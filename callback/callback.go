@@ -21,5 +21,5 @@ type CallbackDispatcher interface {
 		handler  interface{},
 		greedy   bool,
 		context  HandleContext,
-	) (HandleResult, error)
+	) HandleResult
 }

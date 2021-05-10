@@ -16,14 +16,14 @@ func (h *FooHandler) Handle(
 	callback interface{},
 	greedy   bool,
 	context  HandleContext,
-) (HandleResult, error) {
+) HandleResult {
 
 	switch foo := callback.(type) {
 	case *Foo:
 		foo.Handled++
 		return context.Handle(Bar{}, false, nil)
 	default:
-		return NotHandled, nil
+		return NotHandled
 	}
 }
 
@@ -33,15 +33,15 @@ func (h *BarHandler) Handle(
 	callback interface{},
 	greedy   bool,
 	context  HandleContext,
-) (HandleResult, error) {
+) HandleResult {
 
 	switch callback.(type) {
 	case Bar:
-		return Handled, nil
+		return Handled
 	case *Bar:
-		return Handled, nil
+		return Handled
 	default:
-		return NotHandled, nil
+		return NotHandled
 	}
 }
 
@@ -51,14 +51,14 @@ func TestRootHandler(t *testing.T) {
 		RootHandler(&FooHandler{}),
 		&BarHandler{})
 
-	result, err := ctx.Handle(&foo, false, nil)
+	result := ctx.Handle(&foo, false, nil)
 
 	switch {
-	case err != nil:
-		t.Fatalf("Error:` %v", err)
-	case !result.Handled:
+	case result.IsError():
+		t.Fatalf("Error:` %v", result.Error())
+	case !result.IsHandled():
 		t.Fatalf("Not handled")
 	case foo.Handled != 1:
-		t.Fatalf("Foo.Handled != 1")
+		t.Fatalf("Foo.handled != 1")
 	}
 }

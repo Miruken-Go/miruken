@@ -50,6 +50,6 @@ func (c *Command) Dispatch(
 	handler  interface{},
 	greedy   bool,
 	context  HandleContext,
-)(HandleResult, error) {
-	return NotHandled, nil
+)HandleResult {
+	return NotHandled
 }

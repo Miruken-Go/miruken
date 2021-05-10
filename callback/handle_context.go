@@ -27,8 +27,8 @@ func (c *emptyCtx) Handle(
 	interface{},
 	bool,
 	HandleContext,
-) (HandleResult, error) {
-	return NotHandled, nil
+) HandleResult {
+	return NotHandled
 }
 
 // withHandlerContext
@@ -42,17 +42,14 @@ func (c *withHandlerContext) Handle(
 	callback interface{},
 	greedy   bool,
 	context  HandleContext,
-) (HandleResult, error) {
+) HandleResult {
 	if context == nil {
 		context = &compositionScope{c}
 	}
-	if result, err := c.handler.Handle(callback, greedy, context); err != nil {
-		return result, err
-	} else {
-		return result.OtherwiseIf(greedy, func (HandleResult) (HandleResult, error) {
+	return c.handler.Handle(callback, greedy, context).
+		OtherwiseIf(greedy, func (HandleResult) HandleResult {
 			return c.HandleContext.Handle(callback, greedy, context)
-		})
-	}
+	})
 }
 
 // withHandlersContext
@@ -66,7 +63,7 @@ func (c *withHandlersContext) Handle(
 	callback interface{},
 	greedy   bool,
 	context  HandleContext,
-) (HandleResult, error) {
+) HandleResult {
 	if context == nil {
 		context = &compositionScope{c}
 	}
@@ -74,18 +71,13 @@ func (c *withHandlersContext) Handle(
 	result := NotHandled
 
 	for _, h := range c.handlers {
-		if result.Stop || (result.Handled && !greedy) {
-			return result, nil
+		if result.stop || (result.handled && !greedy) {
+			return result
 		}
-
-		if r, err := h.Handle(callback, greedy, context); err != nil {
-			return r, err
-		} else {
-			result = result.Or(r)
-		}
+		result = result.Or(h.Handle(callback, greedy, context))
 	}
 
-	return result.OtherwiseIf(greedy, func (HandleResult) (HandleResult, error) {
+	return result.OtherwiseIf(greedy, func (HandleResult) HandleResult {
 		return c.HandleContext.Handle(callback, greedy, context)
 	})
 }
@@ -128,17 +120,14 @@ func (c *chainCtx) Handle(
 	callback interface{},
 	greedy   bool,
 	context  HandleContext,
-) (HandleResult, error) {
+) HandleResult {
 	if context == nil {
 		context = &compositionScope{c}
 	}
-	if result, err := c.primary.Handle(callback, greedy, context); err != nil {
-		return result, err
-	} else {
-		return result.OtherwiseIf(greedy, func(HandleResult) (HandleResult, error) {
+	return c.primary.Handle(callback, greedy, context).
+		OtherwiseIf(greedy, func(HandleResult) HandleResult {
 			return c.secondary.Handle(callback, greedy, context)
 		})
-	}
 }
 
 func ChainContexts(primary HandleContext, secondary HandleContext) HandleContext {

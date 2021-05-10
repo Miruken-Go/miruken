@@ -7,7 +7,7 @@ type Handler interface {
 		callback interface{},
 		greedy   bool,
 		context  HandleContext,
-	) (HandleResult, error)
+	) HandleResult
 }
 
 // HandlerAdapter
@@ -20,7 +20,7 @@ func (h *HandlerAdapter) Handle(
 	callback interface{},
 	greedy   bool,
 	context  HandleContext,
-) (HandleResult, error) {
+) HandleResult {
 	return DispatchCallback(h.Handler, callback, greedy, context)
 }
 
@@ -29,9 +29,9 @@ func DispatchCallback(
 	callback interface{},
 	greedy   bool,
 	context  HandleContext,
-) (HandleResult, error) {
+) HandleResult {
 	if handler == nil {
-		return NotHandled, nil
+		return NotHandled
 	}
 	if dispatch, ok := callback.(CallbackDispatcher); ok {
 		return dispatch.Dispatch(handler, greedy, context)

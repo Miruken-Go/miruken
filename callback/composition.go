@@ -37,7 +37,7 @@ func (c *composition) Dispatch(
 	handler  interface{},
 	greedy   bool,
 	context  HandleContext,
-) (HandleResult, error) {
+) HandleResult {
 	if cb := c.Callback; cb != nil {
 		return DispatchCallback(handler, cb, greedy, context)
 	}
@@ -53,7 +53,7 @@ func (c *compositionScope) Handle(
 	callback interface{},
 	greedy   bool,
 	context  HandleContext,
-) (HandleResult, error) {
+) HandleResult {
 	if context == nil {
 		context = c
 	}
