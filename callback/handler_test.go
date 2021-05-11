@@ -1,6 +1,7 @@
 package callback
 
 import (
+	"github.com/stretchr/testify/suite"
 	"testing"
 )
 
@@ -29,33 +30,34 @@ func (h *FooHandler) Handle(
 
 type BarHandler struct {}
 
-func (h *BarHandler) Handle(
-	callback interface{},
-	greedy   bool,
+func (h *BarHandler) HandleBar(
+	policy   Handles,
+	bar      Bar,
 	context  HandleContext,
-) HandleResult {
+) {
 
-	switch callback.(type) {
-	case Bar:
-		return Handled
-	case *Bar:
-		return Handled
-	default:
-		return NotHandled
-	}
 }
 
-func TestHandleContext(t *testing.T) {
-	foo := Foo{}
-	ctx := NewHandleContext(&FooHandler{}, &BarHandler{})
-	result := ctx.Handle(&foo, false, nil)
+type HandlerTestSuite struct {
+	suite.Suite
+	ctx HandleContext
+}
 
-	switch {
-	case result.IsError():
-		t.Fatalf("Error:` %v", result.Error())
-	case !result.IsHandled():
-		t.Fatalf("Not handled")
-	case foo.Handled != 1:
-		t.Fatalf("Foo.handled != 1")
-	}
+func (suite *HandlerTestSuite) SetupTest() {
+	suite.ctx = WithHandlerDescriptorFactory(
+		NewHandleContext(&FooHandler{}, &BarHandler{}),
+		NewMutableHandlerDescriptorFactory())
+}
+
+func (suite *HandlerTestSuite) TestHandle() {
+	foo    := Foo{}
+	result := suite.ctx.Handle(&foo, false, nil)
+
+	suite.False(result.IsError())
+	suite.Equal(NotHandled, result)
+	suite.Equal(1, foo.Handled)
+}
+
+func TestHandlerTestSuite(t *testing.T) {
+	suite.Run(t, new(HandlerTestSuite))
 }

@@ -105,6 +105,24 @@ func (r HandleResult) OtherwiseIf(
 	}
 }
 
+func (r HandleResult) OtherwiseHandled(
+	handled bool,
+) HandleResult {
+	if handled || r.handled {
+		if r.stop {
+			return HandledAndStop
+		} else {
+			return Handled
+		}
+	} else {
+		if r.stop {
+			return NotHandledAndStop
+		} else {
+			return NotHandled
+		}
+	}
+}
+
 func (r HandleResult) Or(other HandleResult) HandleResult {
 	err := combineErrors(r, other)
 	if r.handled || other.handled {

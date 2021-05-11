@@ -5,14 +5,22 @@ import (
 )
 
 type Command struct {
-	Callback interface{}
-	Many     bool
-	Results  []interface{}
-	Result   interface{}
+	callback interface{}
+	many     bool
+	results  []interface{}
+	result   interface{}
+}
+
+func (c *Command) IsMany() bool {
+	return c.many
+}
+
+func (c *Command) GetCallback() interface{} {
+	return c.callback
 }
 
 func (c *Command) GetPolicy() Policy {
-	return HandlesPolicy
+	return GetHandlesPolicy()
 }
 
 func (c *Command) GetResultType() reflect.Type {
@@ -20,36 +28,44 @@ func (c *Command) GetResultType() reflect.Type {
 }
 
 func (c *Command) GetResult() interface{} {
-	if result := c.Result; result == nil {
-		if c.Many {
-			c.Result = c.Results
+	if result := c.result; result == nil {
+		if c.many {
+			c.result = c.results
 		} else {
-			if len(c.Results) == 0 {
-				c.Result = nil
+			if len(c.results) == 0 {
+				c.result = nil
 			} else {
-				c.Result = c.Results[0]
+				c.result = c.results[0]
 			}
 		}
 	}
-	return c.Result
+	return c.result
 }
 
 func (c *Command) SetResult(result interface{}) {
-	c.Result = result
+	c.result = result
 }
 
-func (c *Command) Respond(
-	result   interface{},
-	strict   bool,
-	context  HandleContext,
-) {
-
+func (c *Command) ReceiveResult(
+	result  interface{},
+	strict  bool,
+	greedy  bool,
+	context HandleContext,
+) bool {
+	if result != nil {
+		c.results = append(c.results, result)
+		c.result = nil
+		return true
+	}
+	return false
 }
 
 func (c *Command) Dispatch(
 	handler  interface{},
 	greedy   bool,
 	context  HandleContext,
-)HandleResult {
-	return NotHandled
+) HandleResult {
+	count := len(c.results)
+	return DispatchPolicy(c.GetPolicy(), handler, c, greedy, context, c).
+		OtherwiseHandled(len(c.results) > count)
 }

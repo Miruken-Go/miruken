@@ -82,25 +82,33 @@ func (c *withHandlersContext) Handle(
 	})
 }
 
-func NewHandleContext(handlers ... Handler) HandleContext {
+func NewHandleContext(handlers ... interface{}) HandleContext {
 	return AddHandlers(empty, handlers...)
 }
 
-func AddHandlers(parent HandleContext, handlers ... Handler) HandleContext {
+func AddHandlers(parent HandleContext, handlers ... interface{}) HandleContext {
 	if parent == nil {
 		panic("cannot add handlers to a nil parent")
 	}
 
-	c := len(handlers)
+	hs := normalizeHandlers(handlers)
 
-	switch {
+	switch c := len(hs); {
 	case c == 1:
-		return &withHandlerContext{parent, handlers[0]}
+		return &withHandlerContext{parent, hs[0]}
 	case c > 1:
-		return &withHandlersContext{parent, handlers}
+		return &withHandlersContext{parent, hs}
 	default:
 		return parent
 	}
+}
+
+func normalizeHandlers(handlers []interface{}) []Handler {
+	hs := make([]Handler, len(handlers))
+	for i, v := range handlers {
+		hs[i] = ToHandler(v)
+	}
+	return hs
 }
 
 // chainCtx
@@ -155,6 +163,17 @@ func (c *withKeyValueContext) GetValue(key interface{}) interface{} {
 		return c.val
 	}
 	return c.HandleContext.GetValue(key)
+}
+
+func (c *withKeyValueContext) Handle(
+	callback interface{},
+	greedy   bool,
+	context  HandleContext,
+) HandleResult {
+	if context == nil {
+		context = &compositionScope{c}
+	}
+	return c.HandleContext.Handle(callback, greedy, context)
 }
 
 func WithKeyValue(parent HandleContext, key, val interface{}) HandleContext {

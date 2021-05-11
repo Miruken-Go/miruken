@@ -36,6 +36,13 @@ func DispatchCallback(
 	if dispatch, ok := callback.(CallbackDispatcher); ok {
 		return dispatch.Dispatch(handler, greedy, context)
 	}
-	command := &Command{Callback: callback}
+	command := &Command{callback: callback}
 	return command.Dispatch(handler, greedy, context)
+}
+
+func ToHandler(handler interface{}) Handler {
+	switch h := handler.(type) {
+	case Handler: return h
+	default: return &HandlerAdapter{handler}
+	}
 }

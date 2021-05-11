@@ -12,8 +12,8 @@ type PolicyDispatcher interface {
 		callback interface{},
 		greedy   bool,
 		context  HandleContext,
-		results  ResultsFunc,
-	) (HandleResult, error)
+		results  ResultReceiver,
+	) HandleResult
 }
 
 func DispatchPolicy(
@@ -22,25 +22,25 @@ func DispatchPolicy(
 	callback interface{},
 	greedy   bool,
 	context  HandleContext,
-	results  ResultsFunc,
-) (HandleResult, error) {
+	results  ResultReceiver,
+) HandleResult {
 	if dispatch, ok := handler.(PolicyDispatcher); ok {
 		return dispatch.Dispatch(policy, callback, greedy, context, results)
 	}
 
-	//descriptor, err := GetDescriptor(handler)
+	if factory := GetHandlerDescriptorFactory(context); factory != nil {
+		if descriptor := factory.GetHandlerDescriptor(handler); descriptor != nil {
+			return descriptor.Dispatch(policy, callback, greedy, context, results)
+		}
+	}
 
-	//if err != nil {
-
-	//}
-
-	return NotHandled, nil
+	return NotHandled
 }
 
 var (
-	HandlesPolicy  = new(Handles)
-	ProvidesPolicy = new(Provides)
-	CreatesPolicy  = new(Creates)
+	handles  = new(Handles)
+	provides = new(Provides)
+	creates  = new(Creates)
 )
 
 // Handles policy for handling callbacks contravariantly.
@@ -50,6 +50,8 @@ func (h Handles) GetVariance() miruken.Variance {
 	return miruken.Contravariant
 }
 
+func GetHandlesPolicy() Policy { return handles }
+
 // Provides policy for providing instances covariantly.
 type Provides struct{}
 
@@ -57,9 +59,13 @@ func (p Provides) GetVariance() miruken.Variance {
 	return miruken.Covariant
 }
 
+func GetProvidesPolicy() Policy { return provides }
+
 // Creates policy for creating instances covariantly.
 type Creates struct{}
 
 func (c Creates) GetVariance() miruken.Variance {
 	return miruken.Covariant
 }
+
+func GetCreatesPolicy() Policy { return creates }

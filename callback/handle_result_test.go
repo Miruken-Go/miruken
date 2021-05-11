@@ -3,202 +3,220 @@ package callback
 import (
 	"errors"
 	"github.com/hashicorp/go-multierror"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func Test_Handled_follows_or_logic_table(t *testing.T) {
+func TestHandled_Or(t *testing.T) {
+	t.Parallel()
+
 	result := Handled
 
-	if result.Or(Handled) != Handled {
-		t.Fatalf("Handled or Handled should be Handled")
-	}
+	t.Run("Handled should be Handled", func (t *testing.T) {
+		assert.Equal(t, Handled, result.Or(Handled))
+	})
 
-	if result.Or(HandledAndStop) != HandledAndStop {
-		t.Fatalf("Handled or HandledAndStop should be HandledAndStop")
-	}
+	t.Run("HandledAndStop should be HandledAndStop", func (t *testing.T) {
+		assert.Equal(t, HandledAndStop, result.Or(HandledAndStop))
+	})
 
-	if result.Or(NotHandled) != Handled {
-		t.Fatalf("Handled or NotHandled should be Handled")
-	}
+	t.Run("NotHandled should be Handled", func (t *testing.T) {
+		assert.Equal(t, Handled, result.Or(NotHandled))
+	})
 
-	if result.Or(NotHandledAndStop) != HandledAndStop {
-		t.Fatalf("Handled or NotHandledAndStop should be HandledAndStop")
-	}
+	t.Run("NotHandledAndStop should be HandledAndStop", func (t *testing.T) {
+		assert.Equal(t, HandledAndStop, result.Or(NotHandledAndStop))
+	})
 }
 
-func Test_HandledError_follows_or_logic_table(t *testing.T) {
+func TestHandledError_Or(t *testing.T) {
+	t.Parallel()
+
 	result := Handled.WithError(errors.New("bad"))
 
-	if result.Or(Handled).WithoutError() != HandledAndStop {
-		t.Fatalf("Handled or Handled should be HandledAndStop")
-	}
+	t.Run("Handled should be HandledAndStop", func (t *testing.T) {
+		assert.Equal(t, HandledAndStop, result.Or(Handled).WithoutError())
+	})
 
-	if result.Or(HandledAndStop).WithoutError() != HandledAndStop {
-		t.Fatalf("Handled or HandledAndStop should be HandledAndStop")
-	}
+	t.Run("HandledAndStop should be HandledAndStop", func (t *testing.T) {
+		assert.Equal(t, HandledAndStop, result.Or(HandledAndStop).WithoutError())
+	})
 
-	if result.Or(NotHandled).WithoutError() != HandledAndStop {
-		t.Fatalf("Handled or NotHandled should be HandledAndStop")
-	}
+	t.Run("NotHandled should be HandledAndStop", func (t *testing.T) {
+		assert.Equal(t, HandledAndStop, result.Or(NotHandled).WithoutError())
+	})
 
-	if result.Or(NotHandledAndStop).WithoutError() != HandledAndStop {
-		t.Fatalf("Handled or NotHandledAndStop should be HandledAndStop")
-	}
+	t.Run("NotHandledAndStop should be HandledAndStop", func (t *testing.T) {
+		assert.Equal(t, HandledAndStop, result.Or(NotHandledAndStop).WithoutError())
+	})
 }
 
-func Test_HandleResult_or_combines_errors(t *testing.T) {
-	result := Handled.WithError(errors.New("bad")).
-		Or(NotHandled.WithError(errors.New("argument")))
+func TestHandleResultErrors(t *testing.T) {
+	t.Parallel()
 
-	if !result.IsError() {
-		t.Fatalf("expected error")
-	}
+	t.Run("combines multiple errors", func (t *testing.T) {
+		result := Handled.WithError(errors.New("bad")).
+			Or(NotHandled.WithError(errors.New("argument")))
 
-	if err, ok := result.Error().(*multierror.Error); ok {
-		if len(err.Errors) != 2 {
-			t.Fatalf("expected 2 errors")
-		}
-	} else {
-		t.Fatalf("expected multiple errors")
-	}
+		assert.True(t, result.IsError())
+
+		err := result.Error().(*multierror.Error)
+		assert.NotNil(t, err)
+		assert.Len(t, err.Errors, 2)
+		assert.Equal(t, 2, len(err.Errors))
+	})
 }
 
-func Test_HandledAndStop_follows_or_logic_table(t *testing.T) {
+func TestHandledAndStop_Or(t *testing.T) {
+	t.Parallel()
+
 	result := HandledAndStop
 
-	if result.Or(Handled) != HandledAndStop {
-		t.Fatalf("HandledAndStop or Handled should be HandledAndStop")
-	}
+	t.Run("Handled should be HandledAndStop", func (t *testing.T) {
+		assert.Equal(t, HandledAndStop, result.Or(Handled))
+	})
 
-	if result.Or(HandledAndStop) != HandledAndStop {
-		t.Fatalf("HandledAndStop or HandledAndStop should be HandledAndStop")
-	}
+	t.Run("HandledAndStop should be HandledAndStop", func (t *testing.T) {
+		assert.Equal(t, HandledAndStop, result.Or(HandledAndStop))
+	})
 
-	if result.Or(NotHandled) != HandledAndStop {
-		t.Fatalf("HandledAndStop or NotHandled should be HandledAndStop")
-	}
+	t.Run("NotHandled should be HandledAndStop", func (t *testing.T) {
+		assert.Equal(t, HandledAndStop, result.Or(NotHandled))
+	})
 
-	if result.Or(NotHandledAndStop) != HandledAndStop {
-		t.Fatalf("HandledAndStop or NotHandledAndStop should be HandledAndStop")
-	}
+	t.Run("NotHandledAndStop should be HandledAndStop", func (t *testing.T) {
+		assert.Equal(t, HandledAndStop, result.Or(NotHandledAndStop))
+	})
 }
 
-func Test_NotHandled_follows_or_logic_table(t *testing.T) {
+func TestNotHandled_Or(t *testing.T) {
+	t.Parallel()
+
 	result := NotHandled
 
-	if result.Or(Handled) != Handled {
-		t.Fatalf("NotHandled or Handled should be Handled")
-	}
+	t.Run("Handled should be Handled", func (t *testing.T) {
+		assert.Equal(t, Handled, result.Or(Handled).WithoutError())
+	})
 
-	if result.Or(HandledAndStop) != HandledAndStop {
-		t.Fatalf("NotHandled or HandledAndStop should be HandledAndStop")
-	}
+	t.Run("HandledAndStop should be HandledAndStop", func (t *testing.T) {
+		assert.Equal(t, HandledAndStop, result.Or(HandledAndStop).WithoutError())
+	})
 
-	if result.Or(NotHandled) != NotHandled {
-		t.Fatalf("NotHandled or NotHandled should be NotHandled")
-	}
+	t.Run("NotHandled should be NotHandled", func (t *testing.T) {
+		assert.Equal(t, NotHandled, result.Or(NotHandled).WithoutError())
+	})
 
-	if result.Or(NotHandledAndStop) != NotHandledAndStop {
-		t.Fatalf("NotHandled or NotHandledAndStop should be NotHandledAndStop")
-	}
+	t.Run("NotHandledAndStop should be NotHandledAndStop", func (t *testing.T) {
+		assert.Equal(t, NotHandledAndStop, result.Or(NotHandledAndStop).WithoutError())
+	})
 }
 
-func Test_NotHandledAndStop_follows_or_logic_table(t *testing.T) {
+func TestNotHandledAndStop_Or(t *testing.T) {
+	t.Parallel()
+
 	result := NotHandledAndStop
 
-	if result.Or(Handled) != HandledAndStop {
-		t.Fatalf("NotHandledAndStop or Handled should be HandledAndStop")
-	}
+	t.Run("Handled should be HandledAndStop", func (t *testing.T) {
+		assert.Equal(t, HandledAndStop, result.Or(Handled))
+	})
 
-	if result.Or(HandledAndStop) != HandledAndStop {
-		t.Fatalf("NotHandledAndStop or HandledAndStop should be HandledAndStop")
-	}
+	t.Run("HandledAndStop should be HandledAndStop", func (t *testing.T) {
+		assert.Equal(t, HandledAndStop, result.Or(HandledAndStop))
+	})
 
-	if result.Or(NotHandled) != NotHandledAndStop {
-		t.Fatalf("NotHandledAndStop or NotHandled should be NotHandledAndStop")
-	}
+	t.Run("NotHandled should be NotHandledAndStop", func (t *testing.T) {
+		assert.Equal(t, NotHandledAndStop, result.Or(NotHandled))
+	})
 
-	if result.Or(NotHandledAndStop) != NotHandledAndStop {
-		t.Fatalf("NotHandledAndStop or NotHandledAndStop should be NotHandledAndStop")
-	}
+	t.Run("NotHandledAndStop should be NotHandledAndStop", func (t *testing.T) {
+		assert.Equal(t, NotHandledAndStop, result.Or(NotHandledAndStop))
+	})
 }
 
-func Test_Handled_follows_and_logic_table(t *testing.T) {
+func TestHandled_And(t *testing.T) {
+	t.Parallel()
+
 	result := Handled
 
-	if result.And(Handled) != Handled {
-		t.Fatalf("Handled and Handled should be Handled")
-	}
+	t.Run("Handled should be Handled", func (t *testing.T) {
+		assert.Equal(t, Handled, result.And(Handled))
+	})
 
-	if result.And(HandledAndStop) != HandledAndStop {
-		t.Fatalf("Handled and HandledAndStop should be HandledAndStop")
-	}
+	t.Run("HandledAndStop should be HandledAndStop", func (t *testing.T) {
+		assert.Equal(t, HandledAndStop, result.And(HandledAndStop))
+	})
 
-	if result.And(NotHandled) != NotHandled {
-		t.Fatalf("Handled and NotHandled should be NotHandled")
-	}
+	t.Run("NotHandled should be NotHandled", func (t *testing.T) {
+		assert.Equal(t, NotHandled, result.And(NotHandled))
+	})
 
-	if result.And(NotHandledAndStop) != NotHandledAndStop {
-		t.Fatalf("Handled and NotHandledAndStop should be NotHandledAndStop")
-	}
+	t.Run("NotHandledAndStop should be NotHandledAndStop", func (t *testing.T) {
+		assert.Equal(t, NotHandledAndStop, result.And(NotHandledAndStop))
+	})
 }
 
-func Test_HandledAndStop_follows_and_logic_table(t *testing.T) {
+func TestHandledAndStop_And(t *testing.T) {
+	t.Parallel()
+
 	result := HandledAndStop
 
-	if result.And(Handled) != HandledAndStop {
-		t.Fatalf("HandledAndStop and Handled should be HandledAndStop")
-	}
+	t.Run("Handled should be HandledAndStop", func (t *testing.T) {
+		assert.Equal(t, HandledAndStop, result.And(Handled))
+	})
 
-	if result.And(HandledAndStop) != HandledAndStop {
-		t.Fatalf("HandledAndStop and HandledAndStop should be HandledAndStop")
-	}
+	t.Run("HandledAndStop should be HandledAndStop", func (t *testing.T) {
+		assert.Equal(t, HandledAndStop, result.And(HandledAndStop))
+	})
 
-	if result.And(NotHandled) != NotHandledAndStop {
-		t.Fatalf("HandledAndStop and NotHandled should be NotHandledAndStop")
-	}
+	t.Run("NotHandled should be NotHandledAndStop", func (t *testing.T) {
+		assert.Equal(t, NotHandledAndStop, result.And(NotHandled))
+	})
 
-	if result.And(NotHandledAndStop) != NotHandledAndStop {
-		t.Fatalf("HandledAndStop and NotHandledAndStop should be NotHandledAndStop")
-	}
+	t.Run("NotHandledAndStop should be NotHandledAndStop", func (t *testing.T) {
+		assert.Equal(t, NotHandledAndStop, result.And(NotHandledAndStop))
+	})
 }
 
-func Test_NotHandled_follows_and_logic_table(t *testing.T) {
+func TestNotHandled_And(t *testing.T) {
+	t.Parallel()
+
 	result := NotHandled
 
-	if result.And(Handled) != NotHandled {
-		t.Fatalf("NotHandled and Handled should be NotHandled")
-	}
+	t.Run("Handled should be NotHandled", func (t *testing.T) {
+		assert.Equal(t, NotHandled, result.And(Handled))
+	})
 
-	if result.And(HandledAndStop) != NotHandledAndStop {
-		t.Fatalf("NotHandled and HandledAndStop should be NotHandledAndStop")
-	}
+	t.Run("HandledAndStop should be NotHandledAndStop", func (t *testing.T) {
+		assert.Equal(t, NotHandledAndStop, result.And(HandledAndStop))
+	})
 
-	if result.And(NotHandled) != NotHandled {
-		t.Fatalf("NotHandled and NotHandled should be NotHandled")
-	}
+	t.Run("NotHandled should be NotHandled", func (t *testing.T) {
+		assert.Equal(t, NotHandled, result.And(NotHandled))
+	})
 
-	if result.And(NotHandledAndStop) != NotHandledAndStop {
-		t.Fatalf("NotHandled and NotHandledAndStop should be NotHandledAndStop")
-	}
+	t.Run("NotHandledAndStop should be NotHandledAndStop", func (t *testing.T) {
+		assert.Equal(t, NotHandledAndStop, result.And(NotHandledAndStop))
+	})
 }
 
-func Test_NotHandledAndStop_follows_and_logic_table(t *testing.T) {
+func TestNotHandledAndStop_And(t *testing.T) {
+	t.Parallel()
+
 	result := NotHandledAndStop
 
-	if result.And(Handled) != NotHandledAndStop {
-		t.Fatalf("NotHandledAndStop and Handled should be NotHandledAndStop")
-	}
+	t.Run("Handled should be NotHandledAndStop", func (t *testing.T) {
+		assert.Equal(t, NotHandledAndStop, result.And(Handled))
+	})
 
-	if result.And(HandledAndStop) != NotHandledAndStop {
-		t.Fatalf("NotHandledAndStop and HandledAndStop should be NotHandledAndStop")
-	}
+	t.Run("HandledAndStop should be NotHandledAndStop", func (t *testing.T) {
+		assert.Equal(t, NotHandledAndStop, result.And(HandledAndStop))
+	})
 
-	if result.And(NotHandled) != NotHandledAndStop {
-		t.Fatalf("NotHandledAndStop and NotHandled should be NotHandledAndStop")
-	}
+	t.Run("NotHandled should be NotHandledAndStop", func (t *testing.T) {
+		assert.Equal(t, NotHandledAndStop, result.And(NotHandled))
+	})
 
-	if result.And(NotHandledAndStop) != NotHandledAndStop {
-		t.Fatalf("NotHandledAndStop and NotHandledAndStop should be NotHandledAndStop")
-	}
+	t.Run("NotHandledAndStop should be NotHandledAndStop", func (t *testing.T) {
+		assert.Equal(t, NotHandledAndStop, result.And(NotHandledAndStop))
+	})
 }
