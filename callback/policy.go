@@ -37,6 +37,12 @@ func DispatchPolicy(
 	return NotHandled, nil
 }
 
+var (
+	HandlesPolicy  = new(Handles)
+	ProvidesPolicy = new(Provides)
+	CreatesPolicy  = new(Creates)
+)
+
 // Handles policy for handling callbacks contravariantly.
 type Handles struct{}
 

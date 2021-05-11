@@ -12,7 +12,7 @@ type Command struct {
 }
 
 func (c *Command) GetPolicy() Policy {
-	return Handles{}
+	return HandlesPolicy
 }
 
 func (c *Command) GetResultType() reflect.Type {

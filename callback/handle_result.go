@@ -33,6 +33,20 @@ func (r HandleResult) Error() error {
 	return r.err
 }
 
+func  (r HandleResult) WithError(err error) HandleResult {
+	if err == nil {
+		return r
+	}
+	return HandleResult{r.handled, true, err}
+}
+
+func (r HandleResult) WithoutError() HandleResult {
+	if r.IsError() {
+		return HandleResult{r.handled, r.stop, nil}
+	}
+	return r
+}
+
 func (r HandleResult) Then(
 	block HandleResultBlock,
 ) HandleResult {
@@ -95,15 +109,15 @@ func (r HandleResult) Or(other HandleResult) HandleResult {
 	err := combineErrors(r, other)
 	if r.handled || other.handled {
 		if r.stop || other.stop {
-			return withError(HandledAndStop, err)
+			return HandledAndStop.WithError(err)
 		} else {
-			return withError(Handled, err)
+			return Handled.WithError(err)
 		}
 	} else {
 		if r.stop || other.stop {
-			return withError(NotHandledAndStop, err)
+			return NotHandledAndStop.WithError(err)
 		} else {
-			return withError(NotHandled, err)
+			return NotHandled.WithError(err)
 		}
 	}
 }
@@ -112,24 +126,17 @@ func (r HandleResult) And(other HandleResult) HandleResult {
 	err := combineErrors(r, other)
 	if r.handled && other.handled {
 		if r.stop || other.stop {
-			return withError(HandledAndStop, err)
+			return HandledAndStop.WithError(err)
 		} else {
-			return withError(Handled, err)
+			return Handled.WithError(err)
 		}
 	} else {
 		if r.stop || other.stop {
-			return withError(NotHandledAndStop, err)
+			return NotHandledAndStop.WithError(err)
 		} else {
-			return withError(NotHandled, err)
+			return NotHandled.WithError(err)
 		}
 	}
-}
-
-func withError(result HandleResult, err error) HandleResult {
-	if err == nil {
-		return result
-	}
-	return HandleResult{result.handled, true, err}
 }
 
 func combineErrors(r1 HandleResult, r2 HandleResult) error {

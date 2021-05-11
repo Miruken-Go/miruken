@@ -82,38 +82,40 @@ func (c *withHandlersContext) Handle(
 	})
 }
 
-func AddHandlers(context HandleContext, handlers ... Handler) HandleContext {
+func NewHandleContext(handlers ... Handler) HandleContext {
+	return AddHandlers(empty, handlers...)
+}
+
+func AddHandlers(parent HandleContext, handlers ... Handler) HandleContext {
+	if parent == nil {
+		panic("cannot add handlers to a nil parent")
+	}
+
 	c := len(handlers)
 
 	switch {
 	case c == 1:
-		return &withHandlerContext{context, handlers[0]}
+		return &withHandlerContext{parent, handlers[0]}
 	case c > 1:
-		return &withHandlersContext{context, handlers}
+		return &withHandlersContext{parent, handlers}
 	default:
-		return context
+		return parent
 	}
-}
-
-func RootHandler(handler Handler) HandleContext {
-	if handler == nil {
-		panic("cannot create root context from nil handler")
-	}
-	return &withHandlerContext{empty, handler}
 }
 
 // chainCtx
 
 type chainCtx struct {
-	primary   HandleContext
-	secondary HandleContext
+	contexts []HandleContext
 }
 
 func (c *chainCtx) GetValue(key interface{}) interface{} {
-	if value := c.primary.GetValue(key); value != nil {
-		return value
+	for _, ctx := range c.contexts {
+		if value := ctx.GetValue(key); value != nil {
+			return value
+		}
 	}
-	return c.secondary.GetValue(key)
+	return nil
 }
 
 func (c *chainCtx) Handle(
@@ -124,14 +126,21 @@ func (c *chainCtx) Handle(
 	if context == nil {
 		context = &compositionScope{c}
 	}
-	return c.primary.Handle(callback, greedy, context).
-		OtherwiseIf(greedy, func(HandleResult) HandleResult {
-			return c.secondary.Handle(callback, greedy, context)
-		})
+
+	result := NotHandled
+
+	for _, ctx := range c.contexts {
+		if result.stop || (result.handled && !greedy) {
+			return result
+		}
+		result = result.Or(ctx.Handle(callback, greedy, context))
+	}
+
+	return result
 }
 
-func ChainContexts(primary HandleContext, secondary HandleContext) HandleContext {
-	return &chainCtx{primary, secondary}
+func Chain(contexts ... HandleContext) HandleContext {
+	return &chainCtx{contexts}
 }
 
 // withKeyValueContext

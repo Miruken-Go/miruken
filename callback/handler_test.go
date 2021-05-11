@@ -45,12 +45,9 @@ func (h *BarHandler) Handle(
 	}
 }
 
-func TestRootHandler(t *testing.T) {
+func TestHandleContext(t *testing.T) {
 	foo := Foo{}
-	ctx := AddHandlers(
-		RootHandler(&FooHandler{}),
-		&BarHandler{})
-
+	ctx := NewHandleContext(&FooHandler{}, &BarHandler{})
 	result := ctx.Handle(&foo, false, nil)
 
 	switch {

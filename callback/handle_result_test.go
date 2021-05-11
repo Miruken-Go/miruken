@@ -1,24 +1,65 @@
 package callback
 
-import "testing"
+import (
+	"errors"
+	"github.com/hashicorp/go-multierror"
+	"testing"
+)
 
 func Test_Handled_follows_or_logic_table(t *testing.T) {
 	result := Handled
 
 	if result.Or(Handled) != Handled {
-		t.Fatalf("handled or handled should be handled")
+		t.Fatalf("Handled or Handled should be Handled")
 	}
 
 	if result.Or(HandledAndStop) != HandledAndStop {
-		t.Fatalf("handled or HandledAndStop should be HandledAndStop")
+		t.Fatalf("Handled or HandledAndStop should be HandledAndStop")
 	}
 
 	if result.Or(NotHandled) != Handled {
-		t.Fatalf("handled or NotHandled should be handled")
+		t.Fatalf("Handled or NotHandled should be Handled")
 	}
 
 	if result.Or(NotHandledAndStop) != HandledAndStop {
-		t.Fatalf("handled or NotHandledAndStop should be HandledAndStop")
+		t.Fatalf("Handled or NotHandledAndStop should be HandledAndStop")
+	}
+}
+
+func Test_HandledError_follows_or_logic_table(t *testing.T) {
+	result := Handled.WithError(errors.New("bad"))
+
+	if result.Or(Handled).WithoutError() != HandledAndStop {
+		t.Fatalf("Handled or Handled should be HandledAndStop")
+	}
+
+	if result.Or(HandledAndStop).WithoutError() != HandledAndStop {
+		t.Fatalf("Handled or HandledAndStop should be HandledAndStop")
+	}
+
+	if result.Or(NotHandled).WithoutError() != HandledAndStop {
+		t.Fatalf("Handled or NotHandled should be HandledAndStop")
+	}
+
+	if result.Or(NotHandledAndStop).WithoutError() != HandledAndStop {
+		t.Fatalf("Handled or NotHandledAndStop should be HandledAndStop")
+	}
+}
+
+func Test_HandleResult_or_combines_errors(t *testing.T) {
+	result := Handled.WithError(errors.New("bad")).
+		Or(NotHandled.WithError(errors.New("argument")))
+
+	if !result.IsError() {
+		t.Fatalf("expected error")
+	}
+
+	if err, ok := result.Error().(*multierror.Error); ok {
+		if len(err.Errors) != 2 {
+			t.Fatalf("expected 2 errors")
+		}
+	} else {
+		t.Fatalf("expected multiple errors")
 	}
 }
 
@@ -26,7 +67,7 @@ func Test_HandledAndStop_follows_or_logic_table(t *testing.T) {
 	result := HandledAndStop
 
 	if result.Or(Handled) != HandledAndStop {
-		t.Fatalf("HandledAndStop or handled should be HandledAndStop")
+		t.Fatalf("HandledAndStop or Handled should be HandledAndStop")
 	}
 
 	if result.Or(HandledAndStop) != HandledAndStop {
@@ -46,7 +87,7 @@ func Test_NotHandled_follows_or_logic_table(t *testing.T) {
 	result := NotHandled
 
 	if result.Or(Handled) != Handled {
-		t.Fatalf("NotHandled or handled should be handled")
+		t.Fatalf("NotHandled or Handled should be Handled")
 	}
 
 	if result.Or(HandledAndStop) != HandledAndStop {
@@ -66,7 +107,7 @@ func Test_NotHandledAndStop_follows_or_logic_table(t *testing.T) {
 	result := NotHandledAndStop
 
 	if result.Or(Handled) != HandledAndStop {
-		t.Fatalf("NotHandledAndStop or handled should be HandledAndStop")
+		t.Fatalf("NotHandledAndStop or Handled should be HandledAndStop")
 	}
 
 	if result.Or(HandledAndStop) != HandledAndStop {
@@ -86,19 +127,19 @@ func Test_Handled_follows_and_logic_table(t *testing.T) {
 	result := Handled
 
 	if result.And(Handled) != Handled {
-		t.Fatalf("handled and handled should be handled")
+		t.Fatalf("Handled and Handled should be Handled")
 	}
 
 	if result.And(HandledAndStop) != HandledAndStop {
-		t.Fatalf("handled and HandledAndStop should be HandledAndStop")
+		t.Fatalf("Handled and HandledAndStop should be HandledAndStop")
 	}
 
 	if result.And(NotHandled) != NotHandled {
-		t.Fatalf("handled and NotHandled should be NotHandled")
+		t.Fatalf("Handled and NotHandled should be NotHandled")
 	}
 
 	if result.And(NotHandledAndStop) != NotHandledAndStop {
-		t.Fatalf("handled and NotHandledAndStop should be NotHandledAndStop")
+		t.Fatalf("Handled and NotHandledAndStop should be NotHandledAndStop")
 	}
 }
 
@@ -106,7 +147,7 @@ func Test_HandledAndStop_follows_and_logic_table(t *testing.T) {
 	result := HandledAndStop
 
 	if result.And(Handled) != HandledAndStop {
-		t.Fatalf("HandledAndStop and handled should be HandledAndStop")
+		t.Fatalf("HandledAndStop and Handled should be HandledAndStop")
 	}
 
 	if result.And(HandledAndStop) != HandledAndStop {
@@ -126,7 +167,7 @@ func Test_NotHandled_follows_and_logic_table(t *testing.T) {
 	result := NotHandled
 
 	if result.And(Handled) != NotHandled {
-		t.Fatalf("NotHandled and handled should be NotHandled")
+		t.Fatalf("NotHandled and Handled should be NotHandled")
 	}
 
 	if result.And(HandledAndStop) != NotHandledAndStop {
@@ -146,7 +187,7 @@ func Test_NotHandledAndStop_follows_and_logic_table(t *testing.T) {
 	result := NotHandledAndStop
 
 	if result.And(Handled) != NotHandledAndStop {
-		t.Fatalf("NotHandledAndStop and handled should be NotHandledAndStop")
+		t.Fatalf("NotHandledAndStop and Handled should be NotHandledAndStop")
 	}
 
 	if result.And(HandledAndStop) != NotHandledAndStop {
