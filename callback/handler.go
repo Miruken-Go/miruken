@@ -1,48 +1,48 @@
 package callback
 
-// Handler
+// handler
 
 type Handler interface {
 	Handle(
 		callback interface{},
 		greedy   bool,
-		context  HandleContext,
+		ctx      HandleContext,
 	) HandleResult
 }
 
-// HandlerAdapter
+// handlerAdapter
 
-type HandlerAdapter struct {
-	Handler interface{}
+type handlerAdapter struct {
+	handler interface{}
 }
 
-func (h *HandlerAdapter) Handle(
+func (h *handlerAdapter) Handle(
 	callback interface{},
 	greedy   bool,
-	context  HandleContext,
+	ctx      HandleContext,
 ) HandleResult {
-	return DispatchCallback(h.Handler, callback, greedy, context)
+	return DispatchCallback(h.handler, callback, greedy, ctx)
 }
 
 func DispatchCallback(
 	handler  interface{},
 	callback interface{},
 	greedy   bool,
-	context  HandleContext,
+	ctx      HandleContext,
 ) HandleResult {
 	if handler == nil {
 		return NotHandled
 	}
 	if dispatch, ok := callback.(CallbackDispatcher); ok {
-		return dispatch.Dispatch(handler, greedy, context)
+		return dispatch.Dispatch(handler, greedy, ctx)
 	}
 	command := &Command{callback: callback}
-	return command.Dispatch(handler, greedy, context)
+	return command.Dispatch(handler, greedy, ctx)
 }
 
 func ToHandler(handler interface{}) Handler {
 	switch h := handler.(type) {
 	case Handler: return h
-	default: return &HandlerAdapter{handler}
+	default: return &handlerAdapter{handler}
 	}
 }

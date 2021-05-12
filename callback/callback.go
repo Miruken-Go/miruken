@@ -3,42 +3,42 @@ package callback
 import "reflect"
 
 type Callback interface {
-	GetResultType() reflect.Type
-	GetResult()     interface{}
+	ResultType() reflect.Type
 	SetResult(result interface{})
+	Result()     interface{}
 }
 
 type CallbackDispatcher interface {
-	GetPolicy() Policy
+	Policy() Policy
 
  	Dispatch(
-		handler  interface{},
-		greedy   bool,
-		context  HandleContext,
+		handler interface{},
+		greedy  bool,
+		ctx     HandleContext,
 	) HandleResult
 }
 
 type ResultReceiver interface {
 	ReceiveResult(
-		result   interface{},
-		strict   bool,
-		greedy   bool,
-		context  HandleContext,
+		result interface{},
+		strict bool,
+		greedy bool,
+		ctx    HandleContext,
 	) bool
 }
 
 type ResultReceiverFunc func(
-	result   interface{},
-	strict   bool,
-	greedy   bool,
-	context  HandleContext,
+	result interface{},
+	strict bool,
+	greedy bool,
+	ctx    HandleContext,
 ) bool
 
 func (f ResultReceiverFunc) ResultReceiverFunc(
-	result   interface{},
-	strict   bool,
-	greedy   bool,
-	context  HandleContext,
+	result interface{},
+	strict bool,
+	greedy bool,
+	ctx    HandleContext,
 ) bool {
-	return f(result, strict, greedy, context)
+	return f(result, strict, greedy, ctx)
 }

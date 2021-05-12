@@ -16,13 +16,13 @@ type FooHandler struct {}
 func (h *FooHandler) Handle(
 	callback interface{},
 	greedy   bool,
-	context  HandleContext,
+	ctx      HandleContext,
 ) HandleResult {
 
 	switch foo := callback.(type) {
 	case *Foo:
 		foo.Handled++
-		return context.Handle(Bar{}, false, nil)
+		return ctx.Handle(Bar{}, false, nil)
 	default:
 		return NotHandled
 	}
@@ -31,9 +31,9 @@ func (h *FooHandler) Handle(
 type BarHandler struct {}
 
 func (h *BarHandler) HandleBar(
-	policy   Handles,
-	bar      Bar,
-	context  HandleContext,
+	policy Handles,
+	bar    Bar,
+	ctx    HandleContext,
 ) {
 
 }
@@ -44,9 +44,8 @@ type HandlerTestSuite struct {
 }
 
 func (suite *HandlerTestSuite) SetupTest() {
-	suite.ctx = WithHandlerDescriptorFactory(
-		NewHandleContext(&FooHandler{}, &BarHandler{}),
-		NewMutableHandlerDescriptorFactory())
+	suite.ctx = NewHandleContext(
+		WithHandlers(&FooHandler{}, &BarHandler{}))
 }
 
 func (suite *HandlerTestSuite) TestHandle() {

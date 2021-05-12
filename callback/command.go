@@ -11,23 +11,23 @@ type Command struct {
 	result   interface{}
 }
 
-func (c *Command) IsMany() bool {
+func (c *Command) Many() bool {
 	return c.many
 }
 
-func (c *Command) GetCallback() interface{} {
+func (c *Command) Callback() interface{} {
 	return c.callback
 }
 
-func (c *Command) GetPolicy() Policy {
-	return GetHandlesPolicy()
+func (c *Command) Policy() Policy {
+	return HandlesPolicy()
 }
 
-func (c *Command) GetResultType() reflect.Type {
+func (c *Command) ResultType() reflect.Type {
 	return nil
 }
 
-func (c *Command) GetResult() interface{} {
+func (c *Command) Result() interface{} {
 	if result := c.result; result == nil {
 		if c.many {
 			c.result = c.results
@@ -47,10 +47,10 @@ func (c *Command) SetResult(result interface{}) {
 }
 
 func (c *Command) ReceiveResult(
-	result  interface{},
-	strict  bool,
-	greedy  bool,
-	context HandleContext,
+	result interface{},
+	strict bool,
+	greedy bool,
+	ctx    HandleContext,
 ) bool {
 	if result != nil {
 		c.results = append(c.results, result)
@@ -61,11 +61,11 @@ func (c *Command) ReceiveResult(
 }
 
 func (c *Command) Dispatch(
-	handler  interface{},
-	greedy   bool,
-	context  HandleContext,
+	handler interface{},
+	greedy  bool,
+	ctx     HandleContext,
 ) HandleResult {
 	count := len(c.results)
-	return DispatchPolicy(c.GetPolicy(), handler, c, greedy, context, c).
+	return DispatchPolicy(c.Policy(), handler, c, greedy, ctx, c).
 		OtherwiseHandled(len(c.results) > count)
 }

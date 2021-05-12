@@ -1,39 +1,75 @@
 package callback
 
 import (
+	"fmt"
 	"reflect"
 	"sync"
 )
 
+var (
+	_policyType = reflect.TypeOf((*Policy)(nil)).Elem()
+)
+
 type key struct{}
-
-// Binding
-
-type Binding struct {
-
-}
 
 // HandlerDescriptor
 
 type HandlerDescriptor struct {
-	owner reflect.Type
+	owner    reflect.Type
+	bindings map[Policy][]Binding
 }
 
 func (d *HandlerDescriptor) Dispatch(
 	policy   Policy,
+	handler  interface{},
 	callback interface{},
 	greedy   bool,
-	context  HandleContext,
+	ctx      HandleContext,
 	results  ResultReceiver,
 ) HandleResult {
 	return NotHandled
 }
 
+// HandlerDescriptorError
+
+type HandlerDescriptorError struct {
+	HandlerType reflect.Type
+	Reason      error
+}
+
+func (e *HandlerDescriptorError) Error() string {
+	return fmt.Sprintf("handler type %d: reason %v", e.HandlerType, e.Reason)
+}
+
+func (e *HandlerDescriptorError) Unwrap() error { return e.Reason }
+
+// HandlerDescriptorFactory
+
+type HandlerDescriptorProvider interface {
+	GetHandlerDescriptor(handler reflect.Type) *HandlerDescriptor
+}
+
 // HandlerDescriptorFactory
 
 type HandlerDescriptorFactory interface {
-	GetHandlerDescriptor(handler interface{}) *HandlerDescriptor
-	RegisterHandlerDescriptor(handlerType reflect.Type) (*HandlerDescriptor, error)
+	HandlerDescriptorProvider
+	RegisterHandlerType(handlerType reflect.Type) (*HandlerDescriptor, error)
+}
+
+type HandlerDescriptorVisitor interface {
+	VisitHandlerBinding(
+		descriptor *HandlerDescriptor,
+		binding     Binding,
+	)
+}
+
+type HandlerDescriptorVisitorFunc func(*HandlerDescriptor, Binding)
+
+func (f HandlerDescriptorVisitorFunc) VisitHandlerBinding(
+	descriptor *HandlerDescriptor,
+	binding     Binding,
+) {
+	f(descriptor, binding)
 }
 
 // mutableHandlerDescriptorFactory
@@ -41,49 +77,90 @@ type HandlerDescriptorFactory interface {
 type mutableFactory struct {
 	sync.RWMutex
 	descriptors map[reflect.Type]*HandlerDescriptor
+	visitor     HandlerDescriptorVisitor
 }
 
 func (f *mutableFactory) GetHandlerDescriptor(
-	handler interface{},
+	handlerType reflect.Type,
 ) *HandlerDescriptor {
-	if handler == nil {
-		panic("nil handler")
+	if handlerType == nil {
+		panic("nil handlerType")
 	}
 	f.RLock()
-
 	defer f.RUnlock()
-	return f.descriptors[reflect.TypeOf(handler)]
+	return f.descriptors[handlerType]
 }
 
-func (f *mutableFactory) RegisterHandlerDescriptor(
+func (f *mutableFactory) RegisterHandlerType(
 	handlerType reflect.Type,
 ) (*HandlerDescriptor, error) {
+	if handlerType == nil {
+		panic("nil handlerType")
+	}
+
 	f.Lock()
 	defer f.Unlock()
+
+	if descriptor := f.descriptors[handlerType]; descriptor != nil {
+		return descriptor, nil
+	}
+
+	bindings := make(map[Policy][]Binding)
+
+	for i := 0; i < handlerType.NumMethod(); i++ {
+		method     := handlerType.Method(i)
+		methodType := method.Type
+
+		if methodType.NumIn() < 2 || methodType.IsVariadic() {
+			continue
+		}
+
+		policyType := methodType.In(1)
+
+		if !reflect.PtrTo(policyType).Implements(_policyType) {
+			continue
+		}
+
+		policy := requirePolicy(policyType)
+		if binding := policy.BindingFor(method); binding != nil {
+			policyBindings, found := bindings[policy]
+			policyBindings = append(policyBindings, binding)
+			if !found {
+				bindings[policy] = policyBindings
+			}
+		}
+	}
+
 	return nil, nil
 }
 
-func NewMutableHandlerDescriptorFactory() HandlerDescriptorFactory {
-	return &mutableFactory{}
+type MutableHandlerDescriptorFactoryOption interface {
+	applyMutableFactoryOption(factory *mutableFactory)
 }
 
-var factoryKey key
+type mutableFactoryOptionFunc func(*mutableFactory)
 
-func WithHandlerDescriptorFactory(
-	parent  HandleContext,
-	factory HandlerDescriptorFactory,
-) HandleContext {
-	if factory == nil {
-		panic("nil factory")
-	}
-	return WithKeyValue(parent, &factoryKey, factory)
+func (f mutableFactoryOptionFunc) applyMutableFactoryOption(
+	factory *mutableFactory,
+) { f(factory) }
+
+
+func WithVisitor(
+	visitor HandlerDescriptorVisitor,
+) MutableHandlerDescriptorFactoryOption {
+	return mutableFactoryOptionFunc(func (factory *mutableFactory) {
+		factory.visitor = visitor
+	})
 }
 
-func GetHandlerDescriptorFactory(
-	ctx HandleContext,
+func NewMutableHandlerDescriptorFactory(
+	opts ... MutableHandlerDescriptorFactoryOption,
 ) HandlerDescriptorFactory {
-	switch f := ctx.GetValue(&factoryKey).(type) {
-	case HandlerDescriptorFactory: return f
-	default: return nil
+	factory := &mutableFactory{}
+
+	for _, opt := range opts {
+		opt.applyMutableFactoryOption(factory)
 	}
+
+	return factory
 }

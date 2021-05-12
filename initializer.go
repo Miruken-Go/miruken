@@ -1,4 +1,4 @@
-package callback
+package miruken
 
 type Initializer interface {
 	Initialize()
