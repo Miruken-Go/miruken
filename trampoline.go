@@ -1,4 +1,4 @@
-package callback
+package miruken
 
 import "reflect"
 
@@ -37,7 +37,7 @@ func (t *Trampoline) Policy() Policy {
 	return nil
 }
 
-func (t *Trampoline) DispatchTrampoline(
+func (t *Trampoline) Dispatch(
 	callback interface{},
 	handler  interface{},
 	greedy   bool,

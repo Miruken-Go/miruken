@@ -1,4 +1,4 @@
-package callback
+package miruken
 
 import (
 	"errors"

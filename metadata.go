@@ -1,4 +1,4 @@
-package callback
+package miruken
 
 import (
 	"fmt"
@@ -6,28 +6,37 @@ import (
 	"sync"
 )
 
-var (
-	_policyType = reflect.TypeOf((*Policy)(nil)).Elem()
-)
-
 type key struct{}
 
 // HandlerDescriptor
 
 type HandlerDescriptor struct {
-	owner    reflect.Type
-	bindings map[Policy][]Binding
+	handlerType reflect.Type
+	bindings    map[Policy][]Binding
 }
 
 func (d *HandlerDescriptor) Dispatch(
-	policy   Policy,
-	handler  interface{},
-	callback interface{},
-	greedy   bool,
-	ctx      HandleContext,
-	results  ResultReceiver,
-) HandleResult {
-	return NotHandled
+	policy      Policy,
+	handler     interface{},
+	callback    interface{},
+	rawCallback interface{},
+	greedy      bool,
+	ctx         HandleContext,
+	results     ResultReceiver,
+) (result HandleResult) {
+	result = NotHandled
+	if policyBindings, found := d.bindings[policy]; found {
+		constraint := policy.Constraint(callback)
+		for _, binding := range policyBindings {
+			if binding.Matches(constraint, policy.Variance()) {
+				r := binding.Invoke(policy, handler, callback, rawCallback, ctx)
+				if policy.AcceptResults(r) {
+
+				}
+			}
+		}
+	}
+	return result
 }
 
 // HandlerDescriptorError
@@ -46,14 +55,19 @@ func (e *HandlerDescriptorError) Unwrap() error { return e.Reason }
 // HandlerDescriptorFactory
 
 type HandlerDescriptorProvider interface {
-	GetHandlerDescriptor(handler reflect.Type) *HandlerDescriptor
+	GetHandlerDescriptor(
+		handler reflect.Type,
+	) (*HandlerDescriptor, error)
 }
 
 // HandlerDescriptorFactory
 
 type HandlerDescriptorFactory interface {
 	HandlerDescriptorProvider
-	RegisterHandlerType(handlerType reflect.Type) (*HandlerDescriptor, error)
+
+	RegisterHandlerType(
+		handlerType reflect.Type,
+	) (*HandlerDescriptor, error)
 }
 
 type HandlerDescriptorVisitor interface {
@@ -67,7 +81,7 @@ type HandlerDescriptorVisitorFunc func(*HandlerDescriptor, Binding)
 
 func (f HandlerDescriptorVisitorFunc) VisitHandlerBinding(
 	descriptor *HandlerDescriptor,
-	binding     Binding,
+	binding Binding,
 ) {
 	f(descriptor, binding)
 }
@@ -82,20 +96,20 @@ type mutableFactory struct {
 
 func (f *mutableFactory) GetHandlerDescriptor(
 	handlerType reflect.Type,
-) *HandlerDescriptor {
-	if handlerType == nil {
-		panic("nil handlerType")
+) (descriptor *HandlerDescriptor, err error) {
+	if err = validHandlerType(handlerType); err != nil {
+		return nil, err
 	}
 	f.RLock()
 	defer f.RUnlock()
-	return f.descriptors[handlerType]
+	return f.descriptors[handlerType], nil
 }
 
 func (f *mutableFactory) RegisterHandlerType(
 	handlerType reflect.Type,
-) (*HandlerDescriptor, error) {
-	if handlerType == nil {
-		panic("nil handlerType")
+) (descriptor *HandlerDescriptor, err error) {
+	if err = validHandlerType(handlerType); err != nil {
+		return nil, err
 	}
 
 	f.Lock()
@@ -105,24 +119,31 @@ func (f *mutableFactory) RegisterHandlerType(
 		return descriptor, nil
 	}
 
+	descriptor, err = newHandlerDescriptor(handlerType)
+	f.descriptors[handlerType] = descriptor
+	return descriptor, err
+}
+
+func newHandlerDescriptor(
+	handlerType reflect.Type,
+) (descriptor *HandlerDescriptor, err error) {
 	bindings := make(map[Policy][]Binding)
 
 	for i := 0; i < handlerType.NumMethod(); i++ {
 		method     := handlerType.Method(i)
 		methodType := method.Type
 
-		if methodType.NumIn() < 2 || methodType.IsVariadic() {
+		if methodType.NumIn() < 2 {
 			continue
 		}
 
 		policyType := methodType.In(1)
-
-		if !reflect.PtrTo(policyType).Implements(_policyType) {
+		if !isPolicy(policyType) {
 			continue
 		}
 
 		policy := requirePolicy(policyType)
-		if binding := policy.BindingFor(method); binding != nil {
+		if binding, valid := policy.NewBinding(handlerType, &method); valid {
 			policyBindings, found := bindings[policy]
 			policyBindings = append(policyBindings, binding)
 			if !found {
@@ -131,7 +152,21 @@ func (f *mutableFactory) RegisterHandlerType(
 		}
 	}
 
-	return nil, nil
+	return &HandlerDescriptor{handlerType, bindings}, nil
+}
+
+func validHandlerType(handlerType reflect.Type) error {
+	if handlerType == nil {
+		panic("nil handlerType")
+	}
+	t := handlerType
+	if kind := t.Kind(); kind == reflect.Ptr {
+		t = t.Elem()
+	}
+	if kind := t.Kind(); kind != reflect.Struct {
+		return fmt.Errorf("handler type: %v is not a struct or *struct", handlerType)
+	}
+	return nil
 }
 
 type MutableHandlerDescriptorFactoryOption interface {
@@ -154,9 +189,11 @@ func WithVisitor(
 }
 
 func NewMutableHandlerDescriptorFactory(
-	opts ... MutableHandlerDescriptorFactoryOption,
+	opts ...MutableHandlerDescriptorFactoryOption,
 ) HandlerDescriptorFactory {
-	factory := &mutableFactory{}
+	factory := &mutableFactory{
+		descriptors: make(map[reflect.Type]*HandlerDescriptor),
+	}
 
 	for _, opt := range opts {
 		opt.applyMutableFactoryOption(factory)

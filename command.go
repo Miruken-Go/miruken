@@ -1,4 +1,4 @@
-package callback
+package miruken
 
 import (
 	"reflect"
@@ -51,7 +51,7 @@ func (c *Command) ReceiveResult(
 	strict bool,
 	greedy bool,
 	ctx    HandleContext,
-) bool {
+) (accepted bool) {
 	if result != nil {
 		c.results = append(c.results, result)
 		c.result = nil
@@ -66,6 +66,6 @@ func (c *Command) Dispatch(
 	ctx     HandleContext,
 ) HandleResult {
 	count := len(c.results)
-	return DispatchPolicy(c.Policy(), handler, c, greedy, ctx, c).
+	return DispatchPolicy(c.Policy(), handler, c.callback, c, greedy, ctx, c).
 		OtherwiseHandled(len(c.results) > count)
 }

@@ -1,4 +1,4 @@
-package callback
+package miruken
 
 import (
 	"github.com/stretchr/testify/suite"

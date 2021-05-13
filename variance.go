@@ -1,8 +1,9 @@
 package miruken
 
-type Variance int
+type Variance uint
 
 const(
 	Covariant Variance = iota
 	Contravariant
+	Invariant
 )

@@ -1,9 +1,12 @@
-package callback
+package miruken
 
-import "reflect"
+import (
+	"reflect"
+)
 
 var (
-	empty = new(emptyCtx)
+	empty               = new(emptyCtx)
+	_handlerContextType = reflect.TypeOf((*HandleContext)(nil)).Elem()
 )
 
 // HandleContext
@@ -82,6 +85,9 @@ func (c *withHandlerCtx) Handle(
 	greedy   bool,
 	ctx      HandleContext,
 ) HandleResult {
+	if callback == nil {
+		return NotHandled
+	}
 	TryInitializeContext(&ctx, c)
 	return c.handler.Handle(callback, greedy, ctx).
 		OtherwiseIf(greedy, func (HandleResult) HandleResult {
@@ -101,6 +107,9 @@ func (c *withHandlersCtx) Handle(
 	greedy   bool,
 	ctx      HandleContext,
 ) HandleResult {
+	if callback == nil {
+		return NotHandled
+	}
 	TryInitializeContext(&ctx, c)
 
 	result := NotHandled
@@ -166,6 +175,9 @@ func (c *chainCtx) Handle(
 	greedy   bool,
 	ctx      HandleContext,
 ) HandleResult {
+	if callback == nil {
+		return NotHandled
+	}
 	TryInitializeContext(&ctx, c)
 
 	result := NotHandled
@@ -180,13 +192,13 @@ func (c *chainCtx) Handle(
 	return result
 }
 
-func Chain(contexts ... HandleContext) HandleContext {
+func Chain(contexts ...HandleContext) HandleContext {
 	return &chainCtx{contexts}
 }
 
 func TryInitializeContext(
 	incoming *HandleContext,
-	receiver  HandleContext,
+	receiver HandleContext,
 ) {
 	if *incoming == nil {
 		*incoming = &compositionScope{receiver}
@@ -228,7 +240,7 @@ func WithHandlerDescriptorFactory(
 }
 
 func GetHandlerDescriptorFactory(
-	ctx HandleContext,
+	ctx  HandleContext,
 ) HandlerDescriptorFactory {
 	switch f := ctx.Value(&factoryKey).(type) {
 	case HandlerDescriptorFactory: return f
@@ -245,7 +257,7 @@ func normalizeHandlers(handlers []interface{}) []Handler {
 }
 
 func NewHandleContext(
-	opts ... HandleContextOption,
+	opts ...HandleContextOption,
 ) HandleContext {
 	var options handleContextOptions
 	for _, o := range opts {
@@ -256,7 +268,7 @@ func NewHandleContext(
 
 	factory := options.factory
 	if factory == nil {
-		factory = &mutableFactory{}
+		factory = NewMutableHandlerDescriptorFactory()
 	}
 	ctx = WithKeyValue(ctx, &factoryKey, factory)
 

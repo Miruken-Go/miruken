@@ -1,4 +1,4 @@
-package callback
+package miruken
 
 import "reflect"
 
@@ -24,7 +24,7 @@ type ResultReceiver interface {
 		strict bool,
 		greedy bool,
 		ctx    HandleContext,
-	) bool
+	) (accepted bool)
 }
 
 type ResultReceiverFunc func(
@@ -32,13 +32,13 @@ type ResultReceiverFunc func(
 	strict bool,
 	greedy bool,
 	ctx    HandleContext,
-) bool
+) (accepted bool)
 
 func (f ResultReceiverFunc) ResultReceiverFunc(
 	result interface{},
 	strict bool,
 	greedy bool,
 	ctx    HandleContext,
-) bool {
+) (accepted bool) {
 	return f(result, strict, greedy, ctx)
 }
