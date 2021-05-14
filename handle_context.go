@@ -54,6 +54,7 @@ func (c *withKeyValueCtx) Handle(
 	ctx      HandleContext,
 ) HandleResult {
 	TryInitializeContext(&ctx, c)
+	// TODO: Handle Inquiry
 	return c.HandleContext.Handle(callback, greedy, ctx)
 }
 

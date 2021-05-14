@@ -110,15 +110,15 @@ func (r HandleResult) OtherwiseHandled(
 ) HandleResult {
 	if handled || r.handled {
 		if r.stop {
-			return HandledAndStop
+			return r.Or(HandledAndStop)
 		} else {
-			return Handled
+			return r.Or(Handled)
 		}
 	} else {
 		if r.stop {
-			return NotHandledAndStop
+			return r.Or(NotHandledAndStop)
 		} else {
-			return NotHandled
+			return r.Or(NotHandled)
 		}
 	}
 }

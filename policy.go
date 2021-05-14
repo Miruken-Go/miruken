@@ -9,7 +9,7 @@ import (
 type Binding interface {
 	Matches(
 		constraint interface{},
-		variance Variance,
+		variance   Variance,
 	) (matched bool)
 
 	Invoke(
@@ -28,7 +28,9 @@ type Policy interface {
 		callback interface{},
 	) reflect.Type
 
-	AcceptResults(results []interface{}) bool
+	AcceptResults(
+		results []interface{},
+	) (result HandleResult)
 
 	NewBinding(
 		handlerType  reflect.Type,
@@ -52,8 +54,8 @@ func (p *covariantPolicy) Constraint(
 
 func (p *covariantPolicy) AcceptResults(
 	results []interface{},
-) (accepted bool) {
-	return false
+) (result HandleResult) {
+	return NotHandled
 }
 
 func (p *covariantPolicy) NewBinding(
@@ -82,8 +84,15 @@ func (p *contravariantPolicy) Constraint(
 
 func (p *contravariantPolicy) AcceptResults(
 	results []interface{},
-) (accepted bool) {
-	return false
+) (result HandleResult) {
+	if len(results) == 0 {
+		return Handled
+	}
+	switch result := results[len(results)-1].(type) {
+	case error: return NotHandled.WithError(result)
+	case HandleResult: return result
+	default: return Handled
+	}
 }
 
 func (p *contravariantPolicy) NewBinding(
@@ -94,27 +103,27 @@ func (p *contravariantPolicy) NewBinding(
 		return nil, false
 	}
 
-	var args []arg
 	methodType := method.Type
 	numArgs    := methodType.NumIn()
+	args       := make([]arg, numArgs)
 
 	// Receiver type must match handler
 	if methodType.In(0) == handlerType {
-		args = append(args, _receiverArg)
+		args[0] = _receiverArg
 	} else {
 		return nil, false
 	}
 
 	// Policy argument must be present
 	if isPolicy(methodType.In(1)) {
-		args = append(args, _policyArg)
+		args[1] = _zeroArg
 	} else {
 		return nil, false
 	}
 
 	// Callback argument must be present
 	if numArgs > 2 {
-		args = append(args, callbackArg{methodType.In(2)})
+		args[2] = _callbackArg
 	} else {
 		return nil, false
 	}
@@ -122,7 +131,7 @@ func (p *contravariantPolicy) NewBinding(
 	for i := 3; i < numArgs; i++ {
 		switch at := methodType.In(i); {
 		case at ==_handlerContextType:
-			args = append(args, _handleCtxArg)
+			args[i] = _handleCtxArg
 		default:
 			// TODO: Dependencies coming soon
 			return nil, false
@@ -151,9 +160,9 @@ func (b *methodBinding) Matches(
 	if t, ok := constraint.(reflect.Type); ok {
 		switch variance {
 		case Covariant:
-			return t.AssignableTo(b.callbackType)
-		case Contravariant:
 			return b.callbackType.AssignableTo(t)
+		case Contravariant:
+			return t.AssignableTo(b.callbackType)
 		}
 	}
 	return false
@@ -166,17 +175,36 @@ func (b *methodBinding) Invoke(
 	rawCallback interface{},
 	ctx         HandleContext,
 )  (results []interface{}) {
-	if args, err := resolveArgs(
-		b.args, policy, receiver, callback, rawCallback, ctx); err != nil {
+	if args, err := b.resolveArgs(
+		b.args, receiver, callback, rawCallback, ctx); err != nil {
 		panic(err)
 	} else {
-		r := b.method.Func.Call(args)
-		results = make([]interface{}, len(r))
-		for i, v := range r {
+		res := b.method.Func.Call(args)
+		results = make([]interface{}, len(res))
+		for i, v := range res {
 			results[i] = v.Interface()
 		}
 		return results
 	}
+}
+
+func (b *methodBinding) resolveArgs(
+	args        []arg,
+	receiver    interface{},
+	callback    interface{},
+	rawCallback interface{},
+	ctx         HandleContext,
+) ([]reflect.Value, error) {
+	var resolved []reflect.Value
+	for i, arg := range args {
+		t := b.method.Type.In(i)
+		if a, err := arg.Resolve(t, receiver, callback, rawCallback, ctx); err != nil {
+			return nil, err
+		} else {
+			resolved = append(resolved, a)
+		}
+	}
+	return resolved, nil
 }
 
 // constructorBinding

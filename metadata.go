@@ -28,11 +28,17 @@ func (d *HandlerDescriptor) Dispatch(
 	if policyBindings, found := d.bindings[policy]; found {
 		constraint := policy.Constraint(callback)
 		for _, binding := range policyBindings {
+			if result.stop || (result.handled && !greedy) {
+				return result
+			}
 			if binding.Matches(constraint, policy.Variance()) {
 				r := binding.Invoke(policy, handler, callback, rawCallback, ctx)
-				if policy.AcceptResults(r) {
-
+				accepted := policy.AcceptResults(r)
+				if accepted.IsHandled() && results != nil &&
+					!results.ReceiveResults(r, false, greedy, ctx) {
+					accepted = accepted.And(NotHandled)
 				}
+				result = result.Or(accepted)
 			}
 		}
 	}
