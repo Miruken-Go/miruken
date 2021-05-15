@@ -101,7 +101,7 @@ func (h *MultiHandler) HandleFoo(
 	if foo.Inc() == 5 {
 		return errors.New("count reached 5")
 	}
-	ctx.Handle(&Bar{}, false, nil)
+	ctx.Handle(new(Bar), false, nil)
 	return nil
 }
 
@@ -114,6 +114,27 @@ func (h *MultiHandler) HandleBar(
 		return Handled
 	}
 	return NotHandled
+}
+
+// EverythingHandler
+
+type EverythingHandler struct{}
+
+func (h *EverythingHandler) HandleEverything(
+	policy   Handles,
+	callback interface{},
+) HandleResult {
+	switch f := callback.(type) {
+	case *Foo:
+		f.Inc()
+		return Handled
+	case Counter:
+		f.Inc()
+		f.Inc()
+		return Handled
+	default:
+		return NotHandled
+	}
 }
 
 // InvalidHandler
@@ -153,12 +174,12 @@ type HandlerTestSuite struct {
 
 func (suite *HandlerTestSuite) SetupTest() {
 	suite.ctx = NewHandleContext(
-		WithHandlers(&FooHandler{}, &BarHandler{}))
+		WithHandlers(new(FooHandler), new(BarHandler)))
 }
 
 func (suite *HandlerTestSuite) TestHandlesInvariant() {
-	foo    := Foo{}
-	result := suite.ctx.Handle(&foo, false, nil)
+	foo    := new(Foo)
+	result := suite.ctx.Handle(foo, false, nil)
 
 	suite.False(result.IsError())
 	suite.Equal(Handled, result)
@@ -166,9 +187,9 @@ func (suite *HandlerTestSuite) TestHandlesInvariant() {
 }
 
 func (suite *HandlerTestSuite) TestHandlesContravariant() {
-	ctx    := NewHandleContext(WithHandlers(&CounterHandler{}))
-	foo    := Foo{}
-	result := ctx.Handle(&foo, false, nil)
+	ctx    := NewHandleContext(WithHandlers(new(CounterHandler)))
+	foo    := new(Foo)
+	result := ctx.Handle(foo, false, nil)
 
 	suite.False(result.IsError())
 	suite.Equal(Handled, result)
@@ -176,25 +197,25 @@ func (suite *HandlerTestSuite) TestHandlesContravariant() {
 }
 
 func (suite *HandlerTestSuite) TestHandlesExplicitResult() {
-	ctx    := NewHandleContext(WithHandlers(&CounterHandler{}))
-	foo    := Foo{}
+	ctx    := NewHandleContext(WithHandlers(new(CounterHandler)))
+	foo    := new(Foo)
 	foo.Inc()
-	result := ctx.Handle(&foo, false, nil)
+	result := ctx.Handle(foo, false, nil)
 
 	suite.False(result.IsError())
 	suite.Equal(NotHandled, result)
 
-	result = ctx.Handle(&foo, false, nil)
+	result = ctx.Handle(foo, false, nil)
 	suite.True(result.IsError())
 	suite.Equal("3 is divisible by 3", result.Error().Error())
 }
 
 func (suite *HandlerTestSuite) TestHandlesMultiple() {
-	multi := &MultiHandler{}
+	multi := new(MultiHandler)
 	ctx   := NewHandleContext(WithHandlers(multi))
-	foo   := Foo{}
+	foo   := new(Foo)
 	for i := 0; i < 4; i++ {
-		result := ctx.Handle(&foo, false, nil)
+		result := ctx.Handle(foo, false, nil)
 		suite.Equal(Handled, result)
 		suite.Equal(i + 1, foo.Count())
 	}
@@ -202,12 +223,45 @@ func (suite *HandlerTestSuite) TestHandlesMultiple() {
 	suite.Equal(4, multi.foo.Count())
 	suite.Equal(4, multi.bar.Count())
 
-	result := ctx.Handle(&foo, false, nil)
+	result := ctx.Handle(foo, false, nil)
 	suite.True(result.IsError())
 	suite.Equal("count reached 5", result.Error().Error())
 
 	suite.Equal(5, multi.foo.Count())
 	suite.Equal(4, multi.bar.Count())
+}
+
+func (suite *HandlerTestSuite) TestHandlesEverything() {
+	ctx    := NewHandleContext(WithHandlers(new(EverythingHandler)))
+	foo    := new(Foo)
+	result := ctx.Handle(foo, false, nil)
+
+	suite.False(result.IsError())
+	suite.Equal(Handled, result)
+	suite.Equal(1, foo.Count())
+
+	suite.Equal(NotHandled, ctx.Handle("Hello", false, nil))
+}
+
+func (suite *HandlerTestSuite) TestHandlesEverythingContravariantly() {
+	ctx    := NewHandleContext(WithHandlers(new(EverythingHandler)))
+	bar    := new(Bar)
+	result := ctx.Handle(bar, false, nil)
+
+	suite.False(result.IsError())
+	suite.Equal(Handled, result)
+	suite.Equal(2, bar.Count())
+}
+
+func (suite *HandlerTestSuite) TestInvokesCommandWithResult() {
+	ctx := NewHandleContext(WithHandlers(new(CounterHandler)))
+	var foo *Foo
+	if err := Invoke(ctx, new(Foo), &foo); err == nil {
+		suite.NotNil(*foo)
+		suite.Equal(1, foo.Count())
+	} else {
+		suite.Failf("unexpected error: %v", err.Error())
+	}
 }
 
 func (suite *HandlerTestSuite) TestInvalidHandler() {
@@ -227,7 +281,7 @@ func (suite *HandlerTestSuite) TestInvalidHandler() {
 		}
 	}()
 
-	NewHandleContext(WithHandlers(&InvalidHandler{}))
+	NewHandleContext(WithHandlers(new(InvalidHandler)))
 }
 
 func TestHandlerTestSuite(t *testing.T) {

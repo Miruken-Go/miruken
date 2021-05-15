@@ -11,6 +11,8 @@ import (
 // Binding
 
 type Binding interface {
+	Constraint() interface{}
+
 	Matches(
 		constraint interface{},
 		variance   Variance,
@@ -27,6 +29,7 @@ type Binding interface {
 // Policy
 
 type Policy interface {
+	OrderBinding
 	Variance() Variance
 
 	Constraint(
@@ -78,6 +81,24 @@ func (p *covariantPolicy) AcceptResults(
 	return nil, NotHandled
 }
 
+func (p *covariantPolicy) Less(
+	binding, otherBinding Binding,
+) bool {
+	if binding == nil {
+		panic("binding cannot be nil")
+	}
+	if otherBinding == nil {
+		panic("otherBinding cannot be nil")
+	}
+	constraint := binding.Constraint()
+	if otherBinding.Matches(constraint, Invariant) {
+		return false
+	} else if otherBinding.Matches(constraint, Covariant) {
+		return true
+	}
+	return false
+}
+
 // contravariantPolicy
 
 type contravariantPolicy struct{}
@@ -120,6 +141,24 @@ func (p *contravariantPolicy) AcceptResults(
 	}
 	return nil, NotHandled.WithError(
 		errors.New("contravariant policy: cannot accept more than 2 results"))
+}
+
+func (p *contravariantPolicy) Less(
+	binding, otherBinding Binding,
+) bool {
+	if binding == nil {
+		panic("binding cannot be nil")
+	}
+	if otherBinding == nil {
+		panic("otherBinding cannot be nil")
+	}
+	constraint := binding.Constraint()
+	if otherBinding.Matches(constraint, Invariant) {
+		return false
+	} else if otherBinding.Matches(constraint, Contravariant) {
+		return true
+	}
+	return false
 }
 
 func (p *contravariantPolicy) NewMethodBinding(
@@ -186,11 +225,18 @@ type methodBinding struct {
 	args         []arg
 }
 
+func (b *methodBinding) Constraint() interface{} {
+	return b.callbackType
+}
+
 func (b *methodBinding) Matches(
 	constraint interface{},
 	variance   Variance,
 ) (matched bool) {
 	if t, ok := constraint.(reflect.Type); ok {
+		if t == b.callbackType {
+			return true
+		}
 		switch variance {
 		case Covariant:
 			return b.callbackType.AssignableTo(t)
@@ -229,8 +275,8 @@ func (b *methodBinding) resolveArgs(
 ) ([]reflect.Value, error) {
 	var resolved []reflect.Value
 	for i, arg := range args {
-		t := b.method.Type.In(i)
-		if a, err := arg.Resolve(t, receiver, callback, rawCallback, ctx); err != nil {
+		typ := b.method.Type.In(i)
+		if a, err := arg.Resolve(typ, receiver, callback, rawCallback, ctx); err != nil {
 			return nil, err
 		} else {
 			resolved = append(resolved, a)
@@ -287,7 +333,7 @@ func DispatchPolicy(
 
 func RegisterPolicy(policy Policy) Policy {
 	if policy == nil {
-		panic("nil policy")
+		panic("policy cannot be nil")
 	}
 	policyType := reflect.TypeOf(policy).Elem()
 	if _, loaded := _policies.LoadOrStore(policyType, policy); loaded {

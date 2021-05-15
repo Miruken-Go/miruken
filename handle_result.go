@@ -51,7 +51,7 @@ func (r HandleResult) Then(
 	block HandleResultBlock,
 ) HandleResult {
 	if block == nil {
-		panic("nil block")
+		panic("block cannot be nil")
 	}
 
 	if r.stop {
@@ -66,7 +66,7 @@ func (r HandleResult) ThenIf(
 	block HandleResultBlock,
 ) HandleResult {
 	if block == nil {
-		panic("nil block")
+		panic("block cannot be nil")
 	}
 
 	if r.stop || !condition {
@@ -80,7 +80,7 @@ func (r HandleResult) Otherwise(
 	block HandleResultBlock,
 ) HandleResult {
 	if block == nil {
-		panic("nil block")
+		panic("block cannot be nil")
 	}
 
 	if r.handled || r.stop {
@@ -95,7 +95,7 @@ func (r HandleResult) OtherwiseIf(
 	block HandleResultBlock,
 ) HandleResult {
 	if block == nil {
-		panic("nil block")
+		panic("block cannot be nil")
 	}
 
 	if (r.handled || r.stop) && !condition {

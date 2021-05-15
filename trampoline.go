@@ -44,7 +44,7 @@ func (t *Trampoline) Dispatch(
 	ctx      HandleContext,
 ) HandleResult {
 	if callback == nil {
-		panic("nil callback")
+		panic("callback cannot be nil")
 	}
 	if cb := t.callback; cb != nil {
 		return DispatchCallback(handler, cb, greedy, ctx)

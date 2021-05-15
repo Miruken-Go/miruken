@@ -66,7 +66,7 @@ func WithKeyValue(
 		panic("cannot create context from nil parent")
 	}
 	if key == nil {
-		panic("nil key")
+		panic("key cannot be nil")
 	}
 	if !reflect.TypeOf(key).Comparable() {
 		panic("key is not comparable")
@@ -233,7 +233,7 @@ func WithHandlerDescriptorFactory(
 	factory HandlerDescriptorFactory,
 ) HandleContextOption {
 	if factory == nil {
-		panic("nil factory")
+		panic("factory cannot be nil")
 	}
 	return handleContextOptionFunc(func (opts *handleContextOptions) {
 		opts.factory = factory
