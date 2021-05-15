@@ -19,23 +19,23 @@ type CallbackDispatcher interface {
 }
 
 type ResultReceiver interface {
-	ReceiveResults(
-		results []interface{},
+	ReceiveResult(
+		results interface{},
 		strict  bool,
 		greedy  bool,
 		ctx     HandleContext,
 	) (accepted bool)
 }
 
-type ResultsReceiverFunc func(
-	result []interface{},
+type ResultReceiverFunc func(
+	result interface{},
 	strict bool,
 	greedy bool,
 	ctx    HandleContext,
 ) (accepted bool)
 
-func (f ResultsReceiverFunc) ResultsReceiverFunc(
-	results []interface{},
+func (f ResultReceiverFunc) ReceiveResult(
+	results interface{},
 	strict  bool,
 	greedy  bool,
 	ctx     HandleContext,

@@ -46,14 +46,14 @@ func (c *Command) SetResult(result interface{}) {
 	c.result = result
 }
 
-func (c *Command) ReceiveResults(
-	results []interface{},
-	strict  bool,
-	greedy  bool,
-	ctx     HandleContext,
+func (c *Command) ReceiveResult(
+	result interface{},
+	strict bool,
+	greedy bool,
+	ctx    HandleContext,
 ) (accepted bool) {
-	if results != nil {
-		c.results = append(c.results, results...)
+	if result != nil {
+		c.results = append(c.results, result)
 		c.result  = nil
 		return true
 	}

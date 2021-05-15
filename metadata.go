@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/hashicorp/go-multierror"
 	"reflect"
 	"sync"
 )
@@ -32,11 +33,11 @@ func (d *HandlerDescriptor) Dispatch(
 				return result
 			}
 			if binding.Matches(constraint, policy.Variance()) {
-				r := binding.Invoke(policy, handler, callback, rawCallback, ctx)
-				accepted := policy.AcceptResults(r)
+				output   := binding.Invoke(handler, callback, rawCallback, ctx)
+				res, accepted := policy.AcceptResults(output)
 				if accepted.IsHandled() && results != nil &&
-					!results.ReceiveResults(r, false, greedy, ctx) {
-					accepted = accepted.And(NotHandled)
+					results.ReceiveResult(res, false, greedy, ctx) {
+					accepted = accepted.Or(Handled)
 				}
 				result = result.Or(accepted)
 			}
@@ -53,7 +54,7 @@ type HandlerDescriptorError struct {
 }
 
 func (e *HandlerDescriptorError) Error() string {
-	return fmt.Sprintf("handler type %d: reason %v", e.HandlerType, e.Reason)
+	return fmt.Sprintf("invalid handler: %v reason: %v", e.HandlerType, e.Reason)
 }
 
 func (e *HandlerDescriptorError) Unwrap() error { return e.Reason }
@@ -125,14 +126,16 @@ func (f *mutableFactory) RegisterHandlerType(
 		return descriptor, nil
 	}
 
-	descriptor, err = newHandlerDescriptor(handlerType)
-	f.descriptors[handlerType] = descriptor
+	if descriptor, err = newHandlerDescriptor(handlerType); err == nil {
+		f.descriptors[handlerType] = descriptor
+	}
+
 	return descriptor, err
 }
 
 func newHandlerDescriptor(
 	handlerType reflect.Type,
-) (descriptor *HandlerDescriptor, err error) {
+) (descriptor *HandlerDescriptor, invalid error) {
 	bindings := make(map[Policy][]Binding)
 
 	for i := 0; i < handlerType.NumMethod(); i++ {
@@ -147,15 +150,20 @@ func newHandlerDescriptor(
 		if !isPolicy(policyType) {
 			continue
 		}
-
 		policy := requirePolicy(policyType)
-		if binding, valid := policy.NewBinding(handlerType, &method); valid {
-			policyBindings, found := bindings[policy]
-			policyBindings = append(policyBindings, binding)
-			if !found {
+		if binder, ok := policy.(MethodBinder);ok {
+			if binding, err := binder.NewMethodBinding(method); binding != nil {
+				policyBindings, _ := bindings[policy]
+				policyBindings   = append(policyBindings, binding)
 				bindings[policy] = policyBindings
+			} else if err != nil {
+				invalid = multierror.Append(invalid, err)
 			}
 		}
+	}
+
+	if invalid != nil {
+		return nil, &HandlerDescriptorError{handlerType, invalid}
 	}
 
 	return &HandlerDescriptor{handlerType, bindings}, nil
@@ -170,7 +178,7 @@ func validHandlerType(handlerType reflect.Type) error {
 		t = t.Elem()
 	}
 	if kind := t.Kind(); kind != reflect.Struct {
-		return fmt.Errorf("handler type: %v is not a struct or *struct", handlerType)
+		return fmt.Errorf("handler: %v is not a struct or *struct", handlerType)
 	}
 	return nil
 }

@@ -1,10 +1,14 @@
 package miruken
 
 import (
+	"errors"
 	"fmt"
+	"github.com/hashicorp/go-multierror"
 	"reflect"
 	"sync"
 )
+
+// Binding
 
 type Binding interface {
 	Matches(
@@ -13,13 +17,14 @@ type Binding interface {
 	) (matched bool)
 
 	Invoke(
-		policy      Policy,
 		receiver    interface{},
 		callback    interface{},
 		rawCallback interface{},
 		ctx         HandleContext,
 	) (results []interface{})
 }
+
+// Policy
 
 type Policy interface {
 	Variance() Variance
@@ -30,13 +35,28 @@ type Policy interface {
 
 	AcceptResults(
 		results []interface{},
-	) (result HandleResult)
-
-	NewBinding(
-		handlerType  reflect.Type,
-		method      *reflect.Method, // nil for ctor
-	) (binding Binding, valid bool)
+	) (result interface{}, accepted HandleResult)
 }
+
+// MethodBinder
+
+type MethodBinder interface {
+	NewMethodBinding(
+		method  reflect.Method,
+	) (binding Binding, invalid error)
+}
+
+type MethodBindingError struct {
+	Method reflect.Method
+	Reason error
+}
+
+func (e *MethodBindingError) Error() string {
+	return fmt.Sprintf("invalid method: %v %v: reason %v",
+		e.Method.Name, e.Method.Type, e.Reason)
+}
+
+func (e *MethodBindingError) Unwrap() error { return e.Reason }
 
 // covariantPolicy
 
@@ -54,15 +74,8 @@ func (p *covariantPolicy) Constraint(
 
 func (p *covariantPolicy) AcceptResults(
 	results []interface{},
-) (result HandleResult) {
-	return NotHandled
-}
-
-func (p *covariantPolicy) NewBinding(
-	handlerType  reflect.Type,
-	method      *reflect.Method,
-) (binding Binding, valid bool) {
-	return nil, false
+) (result interface{}, accepted HandleResult) {
+	return nil, NotHandled
 }
 
 // contravariantPolicy
@@ -84,48 +97,47 @@ func (p *contravariantPolicy) Constraint(
 
 func (p *contravariantPolicy) AcceptResults(
 	results []interface{},
-) (result HandleResult) {
-	if len(results) == 0 {
-		return Handled
+) (result interface{}, accepted HandleResult) {
+	switch len(results) {
+	case 0:
+		return nil, Handled
+	case 1:
+		switch result := results[0].(type) {
+		case error:
+			return nil, NotHandled.WithError(result)
+		case HandleResult:
+			return nil, result
+		default:
+			return result, Handled
+		}
+	case 2:
+		switch result := results[1].(type) {
+		case error:
+			return results[0], NotHandled.WithError(result)
+		case HandleResult:
+			return results[0], result
+		}
 	}
-	switch result := results[len(results)-1].(type) {
-	case error: return NotHandled.WithError(result)
-	case HandleResult: return result
-	default: return Handled
-	}
+	return nil, NotHandled.WithError(
+		errors.New("contravariant policy: cannot accept more than 2 results"))
 }
 
-func (p *contravariantPolicy) NewBinding(
-	handlerType  reflect.Type,
-	method      *reflect.Method,
-) (binding Binding, valid bool) {
-	if method == nil {
-		return nil, false
-	}
-
+func (p *contravariantPolicy) NewMethodBinding(
+	method  reflect.Method,
+) (binding Binding, invalid error) {
 	methodType := method.Type
 	numArgs    := methodType.NumIn()
 	args       := make([]arg, numArgs)
 
-	// Receiver type must match handler
-	if methodType.In(0) == handlerType {
-		args[0] = _receiverArg
-	} else {
-		return nil, false
-	}
-
-	// Policy argument must be present
-	if isPolicy(methodType.In(1)) {
-		args[1] = _zeroArg
-	} else {
-		return nil, false
-	}
+	args[0] = _receiverArg
+	args[1] = _zeroArg  // policy marker
 
 	// Callback argument must be present
 	if numArgs > 2 {
 		args[2] = _callbackArg
 	} else {
-		return nil, false
+		invalid = multierror.Append(invalid,
+			errors.New("contravariant policy: missing callback argument"))
 	}
 
 	for i := 3; i < numArgs; i++ {
@@ -134,15 +146,36 @@ func (p *contravariantPolicy) NewBinding(
 			args[i] = _handleCtxArg
 		default:
 			// TODO: Dependencies coming soon
-			return nil, false
+			invalid = multierror.Append(invalid,
+				errors.New("contravariant policy: additional dependencies are not supported yet"))
 		}
+	}
+
+	switch methodType.NumOut() {
+	case 0, 1: break
+	case 2:
+		switch methodType.Out(1) {
+		case _errorType, _handleResType: break
+		default:
+			invalid = multierror.Append(invalid,
+				fmt.Errorf("contravariant policy: when two return values, second must be %v or %v",
+					_errorType, _handleResType))
+		}
+	default:
+		invalid = multierror.Append(invalid,
+			fmt.Errorf("contravariant policy: at most two return values allowed and second must be %v or %v",
+				_errorType, _handleResType))
+	}
+
+	if invalid != nil {
+		return nil, &MethodBindingError{method, invalid}
 	}
 
 	return &methodBinding{
 		callbackType: methodType.In(2),
-		method:      *method,
+		method:       method,
 		args:         args,
-	}, true
+	}, nil
 }
 
 // methodBinding
@@ -169,7 +202,6 @@ func (b *methodBinding) Matches(
 }
 
 func (b *methodBinding) Invoke(
-	policy      Policy,
 	receiver    interface{},
 	callback    interface{},
 	rawCallback interface{},
@@ -221,7 +253,6 @@ func (b *constructorBinding) Matches(
 }
 
 func (b *constructorBinding) Invoke(
-	policy      Policy,
 	receiver    interface{},
 	callback    interface{},
 	rawCallback interface{},
@@ -280,10 +311,12 @@ func requirePolicy(policyType reflect.Type) Policy {
 
 var (
 	_policies sync.Map
-	_policyType = reflect.TypeOf((*Policy)(nil)).Elem()
-	_handles    = RegisterPolicy(new(Handles))
-	_provides   = RegisterPolicy(new(Provides))
-	_creates    = RegisterPolicy(new(Creates))
+	_policyType    = reflect.TypeOf((*Policy)(nil)).Elem()
+	_handleResType = reflect.TypeOf((*HandleResult)(nil)).Elem()
+	_errorType     = reflect.TypeOf((*error)(nil)).Elem()
+	_handles       = RegisterPolicy(new(Handles))
+	_provides      = RegisterPolicy(new(Provides))
+	_creates       = RegisterPolicy(new(Creates))
 )
 
 // Handles policy for handling callbacks contravariantly.
