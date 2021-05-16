@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"reflect"
+	"strconv"
 	"sync"
 )
 
 // Binding
 
 type Binding interface {
+	Strict()     bool
 	Constraint() interface{}
 
 	Matches(
@@ -41,13 +43,7 @@ type Policy interface {
 	) (result interface{}, accepted HandleResult)
 }
 
-// MethodBinder
-
-type MethodBinder interface {
-	NewMethodBinding(
-		method  reflect.Method,
-	) (binding Binding, invalid error)
-}
+// methodBinder
 
 type MethodBindingError struct {
 	Method reflect.Method
@@ -57,6 +53,13 @@ type MethodBindingError struct {
 func (e *MethodBindingError) Error() string {
 	return fmt.Sprintf("invalid method: %v %v: reason %v",
 		e.Method.Name, e.Method.Type, e.Reason)
+}
+
+type methodBinder interface {
+	newMethodBinding(
+		method  reflect.Method,
+		spec   *policySpec,
+	) (binding Binding, invalid error)
 }
 
 func (e *MethodBindingError) Unwrap() error { return e.Reason }
@@ -161,8 +164,10 @@ func (p *contravariantPolicy) Less(
 	return false
 }
 
-func (p *contravariantPolicy) NewMethodBinding(
+func (p *contravariantPolicy) newMethodBinding(
 	method  reflect.Method,
+	spec   *policySpec,
+
 ) (binding Binding, invalid error) {
 	methodType := method.Type
 	numArgs    := methodType.NumIn()
@@ -211,18 +216,30 @@ func (p *contravariantPolicy) NewMethodBinding(
 	}
 
 	return &methodBinding{
+		spec:         spec,
 		callbackType: methodType.In(2),
 		method:       method,
 		args:         args,
 	}, nil
 }
 
+// policySpec
+
+type policySpec struct {
+	strict bool
+}
+
 // methodBinding
 
 type methodBinding struct {
-	callbackType reflect.Type
-	method       reflect.Method
-	args         []arg
+	spec         *policySpec
+	callbackType  reflect.Type
+	method        reflect.Method
+	args          []arg
+}
+
+func (b *methodBinding) Strict() bool {
+	return b.spec != nil && b.spec.strict
 }
 
 func (b *methodBinding) Constraint() interface{} {
@@ -342,21 +359,78 @@ func RegisterPolicy(policy Policy) Policy {
 	return policy
 }
 
-func isPolicy(t reflect.Type) bool {
-	return reflect.PtrTo(t).Implements(_policyType)
+func isPolicy(typ reflect.Type) bool {
+	return reflect.PtrTo(typ).Implements(_policyType)
 }
 
-func requirePolicy(policyType reflect.Type) Policy {
+func getPolicy(policyType reflect.Type) Policy {
 	if policy, ok := _policies.Load(policyType); ok {
 		return policy.(Policy)
 	}
-	panic(fmt.Sprintf("policy: %v not found.  Did you forget to call RegisterPolicy?", policyType))
+	return nil
+}
+
+func extractPolicySpec(
+	typ reflect.Type,
+) (policy Policy, spec *policySpec, err error) {
+	var policyType reflect.Type
+	// Is it a policy type already?
+	if isPolicy(typ) {
+		policyType = typ
+		if policy = getPolicy(policyType); policy != nil {
+			return policy, nil, nil
+		}
+	}
+	// Is it a policy specification?
+	if typ.Kind() == reflect.Struct && typ.NumField() > 0 {
+		policyField := typ.Field(0)
+		if isPolicy(policyField.Type) {
+			policyType = policyField.Type
+			if policy = getPolicy(policyType); policy != nil {
+				spec, err := parsePolicySpec(typ)
+				return policy, spec, err
+			}
+		}
+	}
+	if policyType != nil {
+		panic(fmt.Sprintf("policy: %v not found.  Did you forget to call RegisterPolicy?", policyType))
+	}
+	return nil, nil, nil
+}
+
+func parsePolicySpec(
+	policySpecType reflect.Type,
+) (spec *policySpec, err error) {
+	spec = new(policySpec)
+	if strict, invalid := isBindingStrict(policySpecType); invalid == nil {
+		spec.strict = strict
+	} else {
+		err = multierror.Append(err, invalid)
+	}
+	return spec, err
+}
+
+func isBindingStrict(
+	policySpecType reflect.Type,
+) (bool, error) {
+	policyField := policySpecType.Field(0)
+	tag := policyField.Tag.Get(_strictTag)
+	if tag == "" {
+		return false, nil
+	}
+	strict, err := strconv.ParseBool(tag)
+	if err != nil {
+		err = fmt.Errorf("invalid value %q for %q tag on field %v %w",
+			tag, _strictTag, policyField.Name, err)
+	}
+	return strict, err
 }
 
 // Standard _policies
 
 var (
 	_policies sync.Map
+	_strictTag     = "strict"
 	_policyType    = reflect.TypeOf((*Policy)(nil)).Elem()
 	_handleResType = reflect.TypeOf((*HandleResult)(nil)).Elem()
 	_errorType     = reflect.TypeOf((*error)(nil)).Elem()

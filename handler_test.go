@@ -137,6 +137,20 @@ func (h *EverythingHandler) HandleEverything(
 	}
 }
 
+// SpecificationHandler
+
+type SpecificationHandler struct{}
+
+func (h *SpecificationHandler) HandleFoo(
+	policy struct {
+		Handles  `strict:"true"`
+	},
+	foo *Foo,
+) HandleResult {
+	foo.Inc()
+	return Handled
+}
+
 // InvalidHandler
 
 type InvalidHandler struct {}
@@ -169,17 +183,15 @@ func (h *InvalidHandler) SecondReturnMustBeErrorOrHandleResult(
 
 type HandlerTestSuite struct {
 	suite.Suite
-	ctx HandleContext
 }
 
 func (suite *HandlerTestSuite) SetupTest() {
-	suite.ctx = NewHandleContext(
-		WithHandlers(new(FooHandler), new(BarHandler)))
 }
 
 func (suite *HandlerTestSuite) TestHandlesInvariant() {
+	ctx := NewHandleContext(WithHandlers(new(FooHandler), new(BarHandler)))
 	foo    := new(Foo)
-	result := suite.ctx.Handle(foo, false, nil)
+	result := ctx.Handle(foo, false, nil)
 
 	suite.False(result.IsError())
 	suite.Equal(Handled, result)
@@ -229,6 +241,16 @@ func (suite *HandlerTestSuite) TestHandlesMultiple() {
 
 	suite.Equal(5, multi.foo.Count())
 	suite.Equal(4, multi.bar.Count())
+}
+
+func (suite *HandlerTestSuite) TestHandlesSpecification() {
+	ctx    := NewHandleContext(WithHandlers(new(SpecificationHandler)))
+	foo    := new(Foo)
+	result := ctx.Handle(foo, false, nil)
+
+	suite.False(result.IsError())
+	suite.Equal(Handled, result)
+	suite.Equal(1, foo.Count())
 }
 
 func (suite *HandlerTestSuite) TestHandlesEverything() {

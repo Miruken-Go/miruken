@@ -60,7 +60,7 @@ func (d *HandlerDescriptor) Dispatch(
 				output   := binding.Invoke(handler, callback, rawCallback, ctx)
 				res, accepted := policy.AcceptResults(output)
 				if accepted.IsHandled() && results != nil &&
-					results.ReceiveResult(res, false, greedy, ctx) {
+					results.ReceiveResult(res, binding.Strict(), greedy, ctx) {
 					accepted = accepted.Or(Handled)
 				}
 				result = result.Or(accepted)
@@ -165,23 +165,22 @@ func newHandlerDescriptor(
 		if methodType.NumIn() < 2 {
 			continue
 		}
-		policyType := methodType.In(1)
-		if !isPolicy(policyType) {
-			continue
-		}
-		policy := requirePolicy(policyType)
-		if binder, ok := policy.(MethodBinder);ok {
-			if binding, err := binder.NewMethodBinding(method); binding != nil {
-				if policyBindings, found := bindings[policy]; !found {
-					policyBindings = newPolicyBindings(policy)
-					policyBindings.insert(binding)
-					bindings[policy] = policyBindings
-				} else {
-					policyBindings.insert(binding)
+		if policy, spec, errSpec := extractPolicySpec(methodType.In(1)); errSpec == nil {
+			if binder, ok := policy.(methodBinder); ok {
+				if binding, errBind := binder.newMethodBinding(method, spec); binding != nil {
+					if policyBindings, found := bindings[policy]; !found {
+						policyBindings = newPolicyBindings(policy)
+						policyBindings.insert(binding)
+						bindings[policy] = policyBindings
+					} else {
+						policyBindings.insert(binding)
+					}
+				} else if errBind != nil {
+					invalid = multierror.Append(invalid, errBind)
 				}
-			} else if err != nil {
-				invalid = multierror.Append(invalid, err)
 			}
+		} else {
+			invalid = multierror.Append(invalid, errSpec)
 		}
 	}
 	if invalid != nil {
