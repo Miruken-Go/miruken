@@ -275,12 +275,25 @@ func (suite *HandlerTestSuite) TestHandlesEverythingContravariantly() {
 	suite.Equal(2, bar.Count())
 }
 
-func (suite *HandlerTestSuite) TestInvokesCommandWithResult() {
+func (suite *HandlerTestSuite) TestInvokesWithResult() {
 	ctx := NewHandleContext(WithHandlers(new(CounterHandler)))
 	var foo *Foo
 	if err := Invoke(ctx, new(Foo), &foo); err == nil {
 		suite.NotNil(*foo)
 		suite.Equal(1, foo.Count())
+	} else {
+		suite.Failf("unexpected error: %v", err.Error())
+	}
+}
+
+func (suite *HandlerTestSuite) TestInvokesAllWithResult() {
+	ctx := NewHandleContext(WithHandlers(
+		new(CounterHandler), new(SpecificationHandler)))
+	var foo []*Foo
+	if err := InvokeAll(ctx, new(Foo), &foo); err == nil {
+		suite.NotNil(foo)
+		suite.Len(foo, 1)
+		suite.Equal(2, foo[0].Count())
 	} else {
 		suite.Failf("unexpected error: %v", err.Error())
 	}

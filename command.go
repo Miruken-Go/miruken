@@ -66,6 +66,6 @@ func (c *Command) Dispatch(
 	ctx     HandleContext,
 ) HandleResult {
 	count := len(c.results)
-	return DispatchPolicy(c.Policy(), handler, c.callback, c, greedy, ctx, c).
-		OtherwiseHandled(len(c.results) > count)
+	return DispatchPolicy(c.Policy(), handler, c.callback, c, nil, greedy, ctx, c).
+		OtherwiseHandledIf(len(c.results) > count)
 }

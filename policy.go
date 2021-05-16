@@ -34,10 +34,6 @@ type Policy interface {
 	OrderBinding
 	Variance() Variance
 
-	Constraint(
-		callback interface{},
-	) reflect.Type
-
 	AcceptResults(
 		results []interface{},
 	) (result interface{}, accepted HandleResult)
@@ -72,12 +68,6 @@ func (p *covariantPolicy) Variance() Variance {
 	return Covariant
 }
 
-func (p *covariantPolicy) Constraint(
-	callback interface{},
-) reflect.Type {
-	return nil
-}
-
 func (p *covariantPolicy) AcceptResults(
 	results []interface{},
 ) (result interface{}, accepted HandleResult) {
@@ -108,15 +98,6 @@ type contravariantPolicy struct{}
 
 func (p *contravariantPolicy) Variance() Variance {
 	return Contravariant
-}
-
-func (p *contravariantPolicy) Constraint(
-	callback interface{},
-) reflect.Type {
-	switch t := callback.(type) {
-	case reflect.Type: return t
-	default: return reflect.TypeOf(callback)
-	}
 }
 
 func (p *contravariantPolicy) AcceptResults(
@@ -329,6 +310,7 @@ func DispatchPolicy(
 	handler     interface{},
 	callback    interface{},
 	rawCallback interface{},
+	constraint  interface{},
 	greedy      bool,
 	ctx         HandleContext,
 	results     ResultReceiver,
@@ -339,12 +321,13 @@ func DispatchPolicy(
 			if rawCallback == nil {
 				rawCallback = callback
 			}
-			return d.Dispatch(policy, handler, callback, rawCallback, greedy, ctx, results)
+			return d.Dispatch(
+				policy, handler, callback, rawCallback,
+				constraint, greedy, ctx, results)
 		} else if err != nil {
 			return NotHandled.WithError(err)
 		}
 	}
-
 	return NotHandled
 }
 
@@ -370,7 +353,7 @@ func getPolicy(policyType reflect.Type) Policy {
 	return nil
 }
 
-func extractPolicySpec(
+func inferPolicy(
 	typ reflect.Type,
 ) (policy Policy, spec *policySpec, err error) {
 	var policyType reflect.Type

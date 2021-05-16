@@ -1,6 +1,8 @@
 package miruken
 
-// handler
+import "fmt"
+
+// Handler
 
 type Handler interface {
 	Handle(
@@ -24,6 +26,16 @@ func (h *handlerAdapter) Handle(
 	return DispatchCallback(h.handler, callback, greedy, ctx)
 }
 
+// NotHandledError
+
+type NotHandledError struct {
+	callback interface{}
+}
+
+func (e *NotHandledError) Error() string {
+	return fmt.Sprintf("callback %#v not handled", e.callback)
+}
+
 func DispatchCallback(
 	handler  interface{},
 	callback interface{},
@@ -38,11 +50,4 @@ func DispatchCallback(
 	}
 	command := &Command{callback: callback}
 	return command.Dispatch(handler, greedy, ctx)
-}
-
-func ToHandler(handler interface{}) Handler {
-	switch h := handler.(type) {
-	case Handler: return h
-	default: return &handlerAdapter{handler}
-	}
 }

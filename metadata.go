@@ -44,13 +44,19 @@ func (d *HandlerDescriptor) Dispatch(
 	handler     interface{},
 	callback    interface{},
 	rawCallback interface{},
+	constraint  interface{},
 	greedy      bool,
 	ctx         HandleContext,
 	results     ResultReceiver,
 ) (result HandleResult) {
 	result = NotHandled
 	if pb, found := d.bindings[policy]; found {
-		constraint := policy.Constraint(callback)
+		if constraint == nil {
+			switch typ := callback.(type) {
+			case reflect.Type: constraint = typ
+			default: constraint = reflect.TypeOf(callback)
+			}
+		}
 		for e := pb.bindings.Front(); e != nil; e = e.Next() {
 			if result.stop || (result.handled && !greedy) {
 				return result
@@ -165,7 +171,7 @@ func newHandlerDescriptor(
 		if methodType.NumIn() < 2 {
 			continue
 		}
-		if policy, spec, errSpec := extractPolicySpec(methodType.In(1)); errSpec == nil {
+		if policy, spec, errSpec := inferPolicy(methodType.In(1)); errSpec == nil {
 			if binder, ok := policy.(methodBinder); ok {
 				if binding, errBind := binder.newMethodBinding(method, spec); binding != nil {
 					if policyBindings, found := bindings[policy]; !found {

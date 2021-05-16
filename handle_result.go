@@ -105,7 +105,7 @@ func (r HandleResult) OtherwiseIf(
 	}
 }
 
-func (r HandleResult) OtherwiseHandled(
+func (r HandleResult) OtherwiseHandledIf(
 	handled bool,
 ) HandleResult {
 	if handled || r.handled {
