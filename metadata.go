@@ -171,7 +171,7 @@ func newHandlerDescriptor(
 		if methodType.NumIn() < 2 {
 			continue
 		}
-		if policy, spec, errSpec := inferPolicy(methodType.In(1)); errSpec == nil {
+		if policy, spec, errSpec := inferBinding(methodType.In(1)); errSpec == nil {
 			if binder, ok := policy.(methodBinder); ok {
 				if binding, errBind := binder.newMethodBinding(method, spec); binding != nil {
 					if policyBindings, found := bindings[policy]; !found {

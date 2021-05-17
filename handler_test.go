@@ -65,7 +65,6 @@ func (h *BarHandler) HandleBar(
 	policy Handles,
 	bar    Bar,
 ) {
-	fmt.Printf("Handled %#v\n", bar)
 }
 
 // CounterHandler
@@ -142,7 +141,7 @@ func (h *EverythingHandler) HandleEverything(
 type SpecificationHandler struct{}
 
 func (h *SpecificationHandler) HandleFoo(
-	policy struct {
+	binding *struct {
 		Handles  `strict:"true"`
 	},
 	foo *Foo,
@@ -188,38 +187,45 @@ type HandlerTestSuite struct {
 func (suite *HandlerTestSuite) SetupTest() {
 }
 
-func (suite *HandlerTestSuite) TestHandlesInvariant() {
-	ctx := NewHandleContext(WithHandlers(new(FooHandler), new(BarHandler)))
-	foo    := new(Foo)
-	result := ctx.Handle(foo, false, nil)
+func (suite *HandlerTestSuite) TestHandles() {
+	suite.Run("Invariant", func () {
+		ctx    := NewHandleContext(WithHandlers(new(FooHandler), new(BarHandler)))
+		foo    := new(Foo)
+		result := ctx.Handle(foo, false, nil)
+		suite.False(result.IsError())
+		suite.Equal(Handled, result)
+		suite.Equal(1, foo.Count())
+	})
 
-	suite.False(result.IsError())
-	suite.Equal(Handled, result)
-	suite.Equal(1, foo.Count())
+	suite.Run("Covariant", func () {
+		ctx    := NewHandleContext(WithHandlers(new(CounterHandler)))
+		foo    := new(Foo)
+		result := ctx.Handle(foo, false, nil)
+		suite.False(result.IsError())
+		suite.Equal(Handled, result)
+		suite.Equal(1, foo.Count())
+	})
 }
 
-func (suite *HandlerTestSuite) TestHandlesContravariant() {
-	ctx    := NewHandleContext(WithHandlers(new(CounterHandler)))
-	foo    := new(Foo)
-	result := ctx.Handle(foo, false, nil)
+func (suite *HandlerTestSuite) TestHandlesResult() {
+	ctx := NewHandleContext(WithHandlers(new(CounterHandler)))
 
-	suite.False(result.IsError())
-	suite.Equal(Handled, result)
-	suite.Equal(1, foo.Count())
-}
+	suite.Run("Handled", func() {
+		foo := new(Foo)
+		foo.Inc()
+		result := ctx.Handle(foo, false, nil)
+		suite.False(result.IsError())
+		suite.Equal(NotHandled, result)
+	})
 
-func (suite *HandlerTestSuite) TestHandlesExplicitResult() {
-	ctx    := NewHandleContext(WithHandlers(new(CounterHandler)))
-	foo    := new(Foo)
-	foo.Inc()
-	result := ctx.Handle(foo, false, nil)
-
-	suite.False(result.IsError())
-	suite.Equal(NotHandled, result)
-
-	result = ctx.Handle(foo, false, nil)
-	suite.True(result.IsError())
-	suite.Equal("3 is divisible by 3", result.Error().Error())
+	suite.Run("NotHandled", func() {
+		foo := new(Foo)
+		foo.Inc()
+		foo.Inc()
+		result := ctx.Handle(foo, false, nil)
+		suite.True(result.IsError())
+		suite.Equal("3 is divisible by 3", result.Error().Error())
+	})
 }
 
 func (suite *HandlerTestSuite) TestHandlesMultiple() {
@@ -244,59 +250,78 @@ func (suite *HandlerTestSuite) TestHandlesMultiple() {
 }
 
 func (suite *HandlerTestSuite) TestHandlesSpecification() {
-	ctx    := NewHandleContext(WithHandlers(new(SpecificationHandler)))
-	foo    := new(Foo)
-	result := ctx.Handle(foo, false, nil)
+	ctx := NewHandleContext(WithHandlers(new(SpecificationHandler)))
 
-	suite.False(result.IsError())
-	suite.Equal(Handled, result)
-	suite.Equal(1, foo.Count())
+	suite.Run("Strict", func() {
+		foo    := new(Foo)
+		result := ctx.Handle(foo, false, nil)
+		suite.False(result.IsError())
+		suite.Equal(Handled, result)
+		suite.Equal(1, foo.Count())
+	})
 }
 
 func (suite *HandlerTestSuite) TestHandlesEverything() {
-	ctx    := NewHandleContext(WithHandlers(new(EverythingHandler)))
-	foo    := new(Foo)
-	result := ctx.Handle(foo, false, nil)
+	ctx := NewHandleContext(WithHandlers(new(EverythingHandler)))
 
-	suite.False(result.IsError())
-	suite.Equal(Handled, result)
-	suite.Equal(1, foo.Count())
+	suite.Run("Invariant", func () {
+		foo    := new(Foo)
+		result := ctx.Handle(foo, false, nil)
 
-	suite.Equal(NotHandled, ctx.Handle("Hello", false, nil))
-}
+		suite.False(result.IsError())
+		suite.Equal(Handled, result)
+		suite.Equal(1, foo.Count())
+	})
 
-func (suite *HandlerTestSuite) TestHandlesEverythingContravariantly() {
-	ctx    := NewHandleContext(WithHandlers(new(EverythingHandler)))
-	bar    := new(Bar)
-	result := ctx.Handle(bar, false, nil)
+	suite.Run("Covariant", func () {
+		bar    := new(Bar)
+		result := ctx.Handle(bar, false, nil)
 
-	suite.False(result.IsError())
-	suite.Equal(Handled, result)
-	suite.Equal(2, bar.Count())
+		suite.False(result.IsError())
+		suite.Equal(Handled, result)
+		suite.Equal(2, bar.Count())
+	})
 }
 
 func (suite *HandlerTestSuite) TestInvokesWithResult() {
 	ctx := NewHandleContext(WithHandlers(new(CounterHandler)))
-	var foo *Foo
-	if err := Invoke(ctx, new(Foo), &foo); err == nil {
-		suite.NotNil(*foo)
-		suite.Equal(1, foo.Count())
-	} else {
-		suite.Failf("unexpected error: %v", err.Error())
-	}
+
+	suite.Run("Invariant", func () {
+		var foo *Foo
+		if err := Invoke(ctx, new(Foo), &foo); err == nil {
+			suite.NotNil(*foo)
+			suite.Equal(1, foo.Count())
+		} else {
+			suite.Failf("unexpected error: %v", err.Error())
+		}
+	})
+
+	suite.Run("Covariant", func () {
+		var foo interface{}
+		if err := Invoke(ctx, new(Foo), &foo); err == nil {
+			suite.NotNil(foo)
+			suite.IsType(&Foo{}, foo)
+			suite.Equal(1, foo.(*Foo).Count())
+		} else {
+			suite.Failf("unexpected error: %v", err.Error())
+		}
+	})
 }
 
 func (suite *HandlerTestSuite) TestInvokesAllWithResult() {
 	ctx := NewHandleContext(WithHandlers(
 		new(CounterHandler), new(SpecificationHandler)))
-	var foo []*Foo
-	if err := InvokeAll(ctx, new(Foo), &foo); err == nil {
-		suite.NotNil(foo)
-		suite.Len(foo, 1)
-		suite.Equal(2, foo[0].Count())
-	} else {
-		suite.Failf("unexpected error: %v", err.Error())
-	}
+
+	suite.Run("Invariant", func () {
+		var foo []*Foo
+		if err := InvokeAll(ctx, new(Foo), &foo); err == nil {
+			suite.NotNil(foo)
+			suite.Len(foo, 1)
+			suite.Equal(2, foo[0].Count())
+		} else {
+			suite.Failf("unexpected error: %v", err.Error())
+		}
+	})
 }
 
 func (suite *HandlerTestSuite) TestInvalidHandler() {

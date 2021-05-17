@@ -3,6 +3,7 @@ package miruken
 import (
 	"errors"
 	"fmt"
+	"github.com/fatih/structtag"
 	"github.com/hashicorp/go-multierror"
 	"reflect"
 	"strconv"
@@ -54,7 +55,7 @@ func (e *MethodBindingError) Error() string {
 type methodBinder interface {
 	newMethodBinding(
 		method  reflect.Method,
-		spec   *policySpec,
+		spec   *bindingSpec,
 	) (binding Binding, invalid error)
 }
 
@@ -90,6 +91,14 @@ func (p *covariantPolicy) Less(
 		return true
 	}
 	return false
+}
+
+func (p *covariantPolicy) newMethodBinding(
+	method  reflect.Method,
+	spec   *bindingSpec,
+
+) (binding Binding, invalid error) {
+	return nil, nil
 }
 
 // contravariantPolicy
@@ -147,7 +156,7 @@ func (p *contravariantPolicy) Less(
 
 func (p *contravariantPolicy) newMethodBinding(
 	method  reflect.Method,
-	spec   *policySpec,
+	spec   *bindingSpec,
 
 ) (binding Binding, invalid error) {
 	methodType := method.Type
@@ -204,16 +213,16 @@ func (p *contravariantPolicy) newMethodBinding(
 	}, nil
 }
 
-// policySpec
+// bindingSpec
 
-type policySpec struct {
+type bindingSpec struct {
 	strict bool
 }
 
 // methodBinding
 
 type methodBinding struct {
-	spec         *policySpec
+	spec         *bindingSpec
 	callbackType  reflect.Type
 	method        reflect.Method
 	args          []arg
@@ -231,15 +240,15 @@ func (b *methodBinding) Matches(
 	constraint interface{},
 	variance   Variance,
 ) (matched bool) {
-	if t, ok := constraint.(reflect.Type); ok {
-		if t == b.callbackType {
+	if typ, ok := constraint.(reflect.Type); ok {
+		if typ == b.callbackType {
 			return true
 		}
 		switch variance {
 		case Covariant:
-			return b.callbackType.AssignableTo(t)
+			return b.callbackType.AssignableTo(typ)
 		case Contravariant:
-			return t.AssignableTo(b.callbackType)
+			return typ.AssignableTo(b.callbackType)
 		}
 	}
 	return false
@@ -353,24 +362,27 @@ func getPolicy(policyType reflect.Type) Policy {
 	return nil
 }
 
-func inferPolicy(
-	typ reflect.Type,
-) (policy Policy, spec *policySpec, err error) {
+func inferBinding(
+	bindingType reflect.Type,
+) (policy Policy, spec *bindingSpec, err error) {
 	var policyType reflect.Type
 	// Is it a policy type already?
-	if isPolicy(typ) {
-		policyType = typ
+	if isPolicy(bindingType) {
+		policyType = bindingType
 		if policy = getPolicy(policyType); policy != nil {
 			return policy, nil, nil
 		}
 	}
-	// Is it a policy specification?
-	if typ.Kind() == reflect.Struct && typ.NumField() > 0 {
-		policyField := typ.Field(0)
-		if isPolicy(policyField.Type) {
-			policyType = policyField.Type
+	// Is it a binding specification?
+	if bindingType.Kind() == reflect.Ptr {
+		bindingType = bindingType.Elem()
+	}
+	if bindingType.Kind() == reflect.Struct && bindingType.NumField() > 0 {
+		field := bindingType.Field(0)
+		if isPolicy(field.Type) {
+			policyType = field.Type
 			if policy = getPolicy(policyType); policy != nil {
-				spec, err := parsePolicySpec(typ)
+				spec, err := parseBindingSpec(bindingType)
 				return policy, spec, err
 			}
 		}
@@ -381,32 +393,49 @@ func inferPolicy(
 	return nil, nil, nil
 }
 
-func parsePolicySpec(
-	policySpecType reflect.Type,
-) (spec *policySpec, err error) {
-	spec = new(policySpec)
-	if strict, invalid := isBindingStrict(policySpecType); invalid == nil {
-		spec.strict = strict
-	} else {
-		err = multierror.Append(err, invalid)
+type parserFunc func (reflect.StructField, int, *bindingSpec) (bool, error)
+var parsers = []parserFunc{parsePolicy}
+
+func parseBindingSpec(
+	specType reflect.Type,
+) (spec *bindingSpec, err error) {
+	spec = new(bindingSpec)
+	for i := 0; i < specType.NumField(); i++ {
+		for _, parser := range parsers {
+			field := specType.Field(i)
+			if matched, invalid := parser(field, i, spec); matched {
+				continue
+			} else if invalid != nil {
+				err = multierror.Append(err, invalid)
+			}
+		}
 	}
 	return spec, err
 }
 
-func isBindingStrict(
-	policySpecType reflect.Type,
+func parsePolicy(
+	field  reflect.StructField,
+	index  int,
+	spec  *bindingSpec,
 ) (bool, error) {
-	policyField := policySpecType.Field(0)
-	tag := policyField.Tag.Get(_strictTag)
-	if tag == "" {
+	if index != 0 {
 		return false, nil
 	}
-	strict, err := strconv.ParseBool(tag)
+	tag := field.Tag.Get(_strictTag)
+	tags, err := structtag.Parse(string(field.Tag))
 	if err != nil {
-		err = fmt.Errorf("invalid value %q for %q tag on field %v %w",
-			tag, _strictTag, policyField.Name, err)
+		return false, fmt.Errorf("binding: invalid tag %v on field %v %w",
+			tag, field.Name, err)
 	}
-	return strict, err
+	if strictTag, _ := tags.Get("strict"); strictTag != nil {
+		if strict, err := strconv.ParseBool(tag); err == nil {
+			spec.strict = strict
+		} else {
+			return false, fmt.Errorf("binding: invalid value %q for %q tag on field %v %w",
+				tag, _strictTag, field.Name, err)
+		}
+	}
+	return true, nil
 }
 
 // Standard _policies
