@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-func Invoke(handler Handler, callback interface{}, target interface{}) error {
+func Resolve(handler Handler, target interface{}) error {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
@@ -17,13 +17,13 @@ func Invoke(handler Handler, callback interface{}, target interface{}) error {
 	if typ.Kind() != reflect.Ptr || val.IsNil() {
 		panic("target must be a non-nil pointer")
 	}
-	command := NewCommand(callback, false)
-	if result := handler.Handle(command, false, nil); result.IsError() {
+	inquiry := NewInquiry(typ.Elem(), false, nil)
+	if result := handler.Handle(inquiry, false, nil); result.IsError() {
 		return result.Error()
 	} else if !result.handled {
-		return &NotHandledError{callback}
+		return nil
 	}
-	if result := command.Result(); result != nil {
+	if result := inquiry.Result(); result != nil {
 		resultValue := reflect.ValueOf(result)
 		if resultType := resultValue.Type(); resultType.AssignableTo(typ.Elem()) {
 			val.Elem().Set(resultValue)
@@ -34,7 +34,7 @@ func Invoke(handler Handler, callback interface{}, target interface{}) error {
 	return nil
 }
 
-func InvokeAll(handler Handler, callback interface{}, target interface{}) error {
+func ResolveAll(handler Handler, target interface{}) error {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
@@ -46,13 +46,13 @@ func InvokeAll(handler Handler, callback interface{}, target interface{}) error 
 	if typ.Kind() != reflect.Ptr || typ.Elem().Kind() != reflect.Slice || val.IsNil() {
 		panic("target must be a non-nil slice pointer")
 	}
-	command := NewCommand(callback, true)
-	if result := handler.Handle(command, true, nil); result.IsError() {
+	inquiry := NewInquiry(typ.Elem(), false, nil)
+	if result := handler.Handle(inquiry, false, nil); result.IsError() {
 		return result.Error()
 	} else if !result.handled {
-		return &NotHandledError{callback}
+		return nil
 	}
-	if results := command.Result(); results != nil {
+	if results := inquiry.Result(); results != nil {
 		if source, ok := results.([]interface{}); ok {
 			CopyTypedSlice(source, target)
 		} else {

@@ -5,7 +5,40 @@ import "reflect"
 type Callback interface {
 	ResultType() reflect.Type
 	SetResult(result interface{})
-	Result()     interface{}
+	Result() interface{}
+}
+
+type CallbackBase struct {
+	many     bool
+	results  []interface{}
+	result   interface{}
+}
+
+func (c *CallbackBase) Many() bool {
+	return c.many
+}
+
+func (c *CallbackBase) ResultType() reflect.Type {
+	return nil
+}
+
+func (c *CallbackBase) Result() interface{} {
+	if result := c.result; result == nil {
+		if c.many {
+			c.result = c.results
+		} else {
+			if len(c.results) == 0 {
+				c.result = nil
+			} else {
+				c.result = c.results[0]
+			}
+		}
+	}
+	return c.result
+}
+
+func (c *CallbackBase) SetResult(result interface{}) {
+	c.result = result
 }
 
 type CallbackDispatcher interface {
@@ -16,6 +49,13 @@ type CallbackDispatcher interface {
 		greedy  bool,
 		ctx     HandleContext,
 	) HandleResult
+}
+
+type CallbackGuard interface {
+	CanDispatch(
+		handler interface{},
+		binding Binding,
+	) (reset func (rawCallback interface{}), approved bool)
 }
 
 type ResultReceiver interface {

@@ -48,6 +48,6 @@ func DispatchCallback(
 	if dispatch, ok := callback.(CallbackDispatcher); ok {
 		return dispatch.Dispatch(handler, greedy, ctx)
 	}
-	command := &Command{callback: callback}
+	command := NewCommand(callback,false)
 	return command.Dispatch(handler, greedy, ctx)
 }

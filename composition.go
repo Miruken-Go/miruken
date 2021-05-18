@@ -14,7 +14,8 @@ func (c *composition) Dispatch(
 	if cb := c.callback; cb != nil {
 		return DispatchCallback(handler, cb, greedy, ctx)
 	}
-	return (&Command{callback: c}).Dispatch(handler, greedy, ctx)
+	command := NewCommand(c, false)
+	return command.Dispatch(handler, greedy, ctx)
 }
 
 // compositionScope

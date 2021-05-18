@@ -70,7 +70,7 @@ func (p *contravariantPolicy) newMethodBinding(
 	args       := make([]arg, numArgs)
 
 	args[0] = _receiverArg
-	args[1] = _zeroArg  // binding placeholder
+	args[1] = _zeroArg  // policy/binding placeholder
 
 	// Callback argument must be present
 	if numArgs > 2 {
@@ -84,7 +84,7 @@ func (p *contravariantPolicy) newMethodBinding(
 	}
 
 	for i := 3; i < numArgs; i++ {
-		args[i] = dependencyArg{}
+		args[i] = _dependencyArg
 	}
 
 	switch methodType.NumOut() {
@@ -94,12 +94,14 @@ func (p *contravariantPolicy) newMethodBinding(
 		case _errorType, _handleResType: break
 		default:
 			invalid = multierror.Append(invalid,
-				fmt.Errorf("contravariant policy: when two return values, second must be %v or %v",
+				fmt.Errorf(
+					"contravariant policy: when two return values, second must be %v or %v",
 					_errorType, _handleResType))
 		}
 	default:
 		invalid = multierror.Append(invalid,
-			fmt.Errorf("contravariant policy: at most two return values allowed and second must be %v or %v",
+			fmt.Errorf(
+				"contravariant policy: at most two return values allowed and second must be %v or %v",
 				_errorType, _handleResType))
 	}
 
@@ -113,4 +115,3 @@ func (p *contravariantPolicy) newMethodBinding(
 		args:   args,
 	}, nil
 }
-

@@ -12,10 +12,6 @@ type key struct{}
 
 // PolicyBindings
 
-type OrderBinding interface {
-	Less(binding, otherBinding Binding) bool
-}
-
 type PolicyBindings struct {
 	order     OrderBinding
 	bindings *list.List
@@ -63,13 +59,23 @@ func (d *HandlerDescriptor) Dispatch(
 			}
 			binding := e.Value.(Binding)
 			if binding.Matches(constraint, policy.Variance()) {
-				output   := binding.Invoke(handler, callback, rawCallback, ctx)
+				var approved bool
+				var reset func (rawCallback interface{})
+				if guard, ok := rawCallback.(CallbackGuard); ok {
+					if reset, approved = guard.CanDispatch(handler, binding); !approved {
+						continue
+					}
+				}
+				output := binding.Invoke(handler, callback, rawCallback, ctx)
 				res, accepted := policy.AcceptResults(output)
 				if accepted.IsHandled() && results != nil &&
 					results.ReceiveResult(res, binding.Strict(), greedy, ctx) {
 					accepted = accepted.Or(Handled)
 				}
 				result = result.Or(accepted)
+				if reset != nil {
+					reset(rawCallback)
+				}
 			}
 		}
 	}

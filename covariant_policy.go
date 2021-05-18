@@ -18,7 +18,33 @@ func (p *covariantPolicy) Variance() Variance {
 func (p *covariantPolicy) AcceptResults(
 	results []interface{},
 ) (result interface{}, accepted HandleResult) {
-	return nil, NotHandled
+	switch len(results) {
+	case 0:
+		return nil, Handled
+	case 1:
+		if result = results[0]; result == nil {
+			return nil, NotHandled
+		}
+		return result, Handled
+	case 2:
+		result = results[0]
+		switch err := results[1].(type) {
+		case error:
+			return result, NotHandled.WithError(err)
+		case HandleResult:
+			if result == nil {
+				return nil, err.And(NotHandled)
+			}
+			return result, err
+		default:
+			if result == nil {
+				return nil, NotHandled
+			}
+			return result, Handled
+		}
+	}
+	return nil, NotHandled.WithError(
+		errors.New("covariant policy: cannot accept more than 2 results"))
 }
 
 func (p *covariantPolicy) Less(
@@ -49,43 +75,35 @@ func (p *covariantPolicy) newMethodBinding(
 	args       := make([]arg, numArgs)
 
 	args[0] = _receiverArg
-	args[1] = _zeroArg  // binding placeholder
+	args[1] = _zeroArg  // policy/binding placeholder
 
 	for i := 2; i < numArgs; i++ {
-		args[i] = dependencyArg{}
+		args[i] = _dependencyArg
 	}
 
 	switch methodType.NumOut() {
 	case 0:
-		invalid = multierror.Append(invalid,
-			errors.New("covariant policy: must have a return value"))
+		invalid =  errors.New("covariant policy: must have a return value")
 	case 1:
-		switch methodType.Out(0) {
-		case _errorType, _handleResType: break
-		default:
-			invalid = multierror.Append(invalid,
-				fmt.Errorf("covariant policy: single return value must not be %v or %v",
-					_errorType, _handleResType))
-		}
+		invalid = validateCovariantReturn(methodType.Out(0), spec)
 	case 2:
-		switch methodType.Out(0) {
-		case _errorType, _handleResType: break
-		default:
-			invalid = multierror.Append(invalid,
-				fmt.Errorf("covariant policy: when two return values, first must not be %v or %v",
-					_errorType, _handleResType))
-		}
+		invalid = validateCovariantReturn(methodType.Out(0), spec)
 		switch methodType.Out(1) {
 		case _errorType, _handleResType: break
 		default:
-			invalid = multierror.Append(invalid,
-				fmt.Errorf("covariant policy: when two return values, second must be %v or %v",
-					_errorType, _handleResType))
+			err := fmt.Errorf(
+					"covariant policy: when two return values, second must be %v or %v",
+					_errorType, _handleResType)
+			if invalid != nil {
+				invalid = multierror.Append(invalid, err)
+			} else {
+				invalid = err
+			}
 		}
 	default:
-		invalid = multierror.Append(invalid,
-			fmt.Errorf("covariant policy: at most two return values allowed and second must be %v or %v",
-				_errorType, _handleResType))
+		invalid = fmt.Errorf(
+			"covariant policy: at most two return values allowed and second must be %v or %v",
+			_errorType, _handleResType)
 	}
 
 	if invalid != nil {
@@ -99,3 +117,19 @@ func (p *covariantPolicy) newMethodBinding(
 	}, nil
 }
 
+func validateCovariantReturn(
+	returnType  reflect.Type,
+	spec       *bindingSpec,
+) error {
+	switch returnType {
+	case _interfaceType, _errorType, _handleResType:
+		return fmt.Errorf(
+			"covariant policy: primary return value must not be %v, %v or %v",
+			_interfaceType, _errorType, _handleResType)
+	default:
+		if spec.constraint == nil {
+			spec.constraint = returnType
+		}
+		return nil
+	}
+}

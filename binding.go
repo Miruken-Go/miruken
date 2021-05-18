@@ -24,6 +24,9 @@ type Binding interface {
 	) (results []interface{})
 }
 
+type OrderBinding interface {
+	Less(binding, otherBinding Binding) bool
+}
 
 // methodBinder
 
