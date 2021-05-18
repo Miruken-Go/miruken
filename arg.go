@@ -6,17 +6,17 @@ import (
 )
 
 var (
-	_zeroArg      = zeroArg{}
-	_callbackArg  = callbackArg{}
-	_receiverArg  = receiverArg{}
-	_handleCtxArg = handleCtxArg{}
+	_zeroArg       = zeroArg{}
+	_callbackArg   = callbackArg{}
+	_receiverArg   = receiverArg{}
+	_dependencyArg = dependencyArg{}
 )
 
 // Manages arguments
 
 type arg interface {
 	Resolve(
-		t           reflect.Type,
+		typ         reflect.Type,
 		receiver    interface{},
 		callback    interface{},
 		rawCallback interface{},
@@ -29,7 +29,7 @@ type arg interface {
 type receiverArg struct {}
 
 func (a receiverArg) Resolve(
-	t           reflect.Type,
+	typ         reflect.Type,
 	receiver    interface{},
 	callback    interface{},
 	rawCallback interface{},
@@ -43,13 +43,13 @@ func (a receiverArg) Resolve(
 type zeroArg struct {}
 
 func (a zeroArg) Resolve(
-	t           reflect.Type,
+	typ         reflect.Type,
 	receiver    interface{},
 	callback    interface{},
 	rawCallback interface{},
 	ctx         HandleContext,
 ) (reflect.Value, error) {
-	return reflect.Zero(t), nil
+	return reflect.Zero(typ), nil
 }
 
 // callbackArg
@@ -57,31 +57,37 @@ func (a zeroArg) Resolve(
 type callbackArg struct {}
 
 func (a callbackArg) Resolve(
-	t           reflect.Type,
+	typ         reflect.Type,
 	receiver    interface{},
 	callback    interface{},
 	rawCallback interface{},
 	ctx         HandleContext,
 ) (reflect.Value, error) {
-	if v := reflect.ValueOf(callback); v.Type().AssignableTo(t) {
+	if v := reflect.ValueOf(callback); v.Type().AssignableTo(typ) {
 		return v, nil
 	}
-	if v := reflect.ValueOf(rawCallback); v.Type().AssignableTo(t) {
+	if v := reflect.ValueOf(rawCallback); v.Type().AssignableTo(typ) {
 		return v, nil
 	}
-	return reflect.ValueOf(nil), fmt.Errorf("unable to resolve callback type: %v", t)
+	return reflect.ValueOf(nil), fmt.Errorf("unable to resolve callback: %v", typ)
 }
 
-// handleCtxArg
+// dependencyArg
 
-type handleCtxArg struct {}
+type dependencyArg struct {}
 
-func (a handleCtxArg) Resolve(
-	t           reflect.Type,
+func (a dependencyArg) Resolve(
+	typ         reflect.Type,
 	receiver    interface{},
 	callback    interface{},
 	rawCallback interface{},
 	ctx         HandleContext,
 ) (reflect.Value, error) {
-	return reflect.ValueOf(ctx), nil
+	if typ == _handlerContextType {
+		return reflect.ValueOf(ctx), nil
+	}
+	if v := reflect.ValueOf(rawCallback); v.Type().AssignableTo(typ) {
+		return v, nil
+	}
+	return reflect.ValueOf(nil), fmt.Errorf("unable to resolve dependency: %v", typ)
 }

@@ -334,7 +334,8 @@ func (suite *HandlerTestSuite) TestInvalidHandler() {
 					errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 						failures++
 				}
-				suite.Equal(4, failures)
+				fmt.Println(err)
+				suite.Equal(3, failures)
 			} else {
 				suite.Fail("Expected HandlerDescriptorError")
 			}

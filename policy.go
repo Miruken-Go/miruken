@@ -1,7 +1,6 @@
 package miruken
 
 import (
-	"errors"
 	"fmt"
 	"github.com/fatih/structtag"
 	"github.com/hashicorp/go-multierror"
@@ -9,25 +8,6 @@ import (
 	"strconv"
 	"sync"
 )
-
-// Binding
-
-type Binding interface {
-	Strict()     bool
-	Constraint() interface{}
-
-	Matches(
-		constraint interface{},
-		variance   Variance,
-	) (matched bool)
-
-	Invoke(
-		receiver    interface{},
-		callback    interface{},
-		rawCallback interface{},
-		ctx         HandleContext,
-	) (results []interface{})
-}
 
 // Policy
 
@@ -38,280 +18,6 @@ type Policy interface {
 	AcceptResults(
 		results []interface{},
 	) (result interface{}, accepted HandleResult)
-}
-
-// methodBinder
-
-type MethodBindingError struct {
-	Method reflect.Method
-	Reason error
-}
-
-func (e *MethodBindingError) Error() string {
-	return fmt.Sprintf("invalid method: %v %v: reason %v",
-		e.Method.Name, e.Method.Type, e.Reason)
-}
-
-type methodBinder interface {
-	newMethodBinding(
-		method  reflect.Method,
-		spec   *bindingSpec,
-	) (binding Binding, invalid error)
-}
-
-func (e *MethodBindingError) Unwrap() error { return e.Reason }
-
-// covariantPolicy
-
-type covariantPolicy struct{}
-
-func (p *covariantPolicy) Variance() Variance {
-	return Covariant
-}
-
-func (p *covariantPolicy) AcceptResults(
-	results []interface{},
-) (result interface{}, accepted HandleResult) {
-	return nil, NotHandled
-}
-
-func (p *covariantPolicy) Less(
-	binding, otherBinding Binding,
-) bool {
-	if binding == nil {
-		panic("binding cannot be nil")
-	}
-	if otherBinding == nil {
-		panic("otherBinding cannot be nil")
-	}
-	constraint := binding.Constraint()
-	if otherBinding.Matches(constraint, Invariant) {
-		return false
-	} else if otherBinding.Matches(constraint, Covariant) {
-		return true
-	}
-	return false
-}
-
-func (p *covariantPolicy) newMethodBinding(
-	method  reflect.Method,
-	spec   *bindingSpec,
-
-) (binding Binding, invalid error) {
-	return nil, nil
-}
-
-// contravariantPolicy
-
-type contravariantPolicy struct{}
-
-func (p *contravariantPolicy) Variance() Variance {
-	return Contravariant
-}
-
-func (p *contravariantPolicy) AcceptResults(
-	results []interface{},
-) (result interface{}, accepted HandleResult) {
-	switch len(results) {
-	case 0:
-		return nil, Handled
-	case 1:
-		switch result := results[0].(type) {
-		case error:
-			return nil, NotHandled.WithError(result)
-		case HandleResult:
-			return nil, result
-		default:
-			return result, Handled
-		}
-	case 2:
-		switch result := results[1].(type) {
-		case error:
-			return results[0], NotHandled.WithError(result)
-		case HandleResult:
-			return results[0], result
-		}
-	}
-	return nil, NotHandled.WithError(
-		errors.New("contravariant policy: cannot accept more than 2 results"))
-}
-
-func (p *contravariantPolicy) Less(
-	binding, otherBinding Binding,
-) bool {
-	if binding == nil {
-		panic("binding cannot be nil")
-	}
-	if otherBinding == nil {
-		panic("otherBinding cannot be nil")
-	}
-	constraint := binding.Constraint()
-	if otherBinding.Matches(constraint, Invariant) {
-		return false
-	} else if otherBinding.Matches(constraint, Contravariant) {
-		return true
-	}
-	return false
-}
-
-func (p *contravariantPolicy) newMethodBinding(
-	method  reflect.Method,
-	spec   *bindingSpec,
-
-) (binding Binding, invalid error) {
-	methodType := method.Type
-	numArgs    := methodType.NumIn()
-	args       := make([]arg, numArgs)
-
-	args[0] = _receiverArg
-	args[1] = _zeroArg  // policy marker
-
-	// Callback argument must be present
-	if numArgs > 2 {
-		args[2] = _callbackArg
-	} else {
-		invalid = multierror.Append(invalid,
-			errors.New("contravariant policy: missing callback argument"))
-	}
-
-	for i := 3; i < numArgs; i++ {
-		switch at := methodType.In(i); {
-		case at ==_handlerContextType:
-			args[i] = _handleCtxArg
-		default:
-			// TODO: Dependencies coming soon
-			invalid = multierror.Append(invalid,
-				errors.New("contravariant policy: additional dependencies are not supported yet"))
-		}
-	}
-
-	switch methodType.NumOut() {
-	case 0, 1: break
-	case 2:
-		switch methodType.Out(1) {
-		case _errorType, _handleResType: break
-		default:
-			invalid = multierror.Append(invalid,
-				fmt.Errorf("contravariant policy: when two return values, second must be %v or %v",
-					_errorType, _handleResType))
-		}
-	default:
-		invalid = multierror.Append(invalid,
-			fmt.Errorf("contravariant policy: at most two return values allowed and second must be %v or %v",
-				_errorType, _handleResType))
-	}
-
-	if invalid != nil {
-		return nil, &MethodBindingError{method, invalid}
-	}
-
-	return &methodBinding{
-		spec:         spec,
-		callbackType: methodType.In(2),
-		method:       method,
-		args:         args,
-	}, nil
-}
-
-// bindingSpec
-
-type bindingSpec struct {
-	strict bool
-}
-
-// methodBinding
-
-type methodBinding struct {
-	spec         *bindingSpec
-	callbackType  reflect.Type
-	method        reflect.Method
-	args          []arg
-}
-
-func (b *methodBinding) Strict() bool {
-	return b.spec != nil && b.spec.strict
-}
-
-func (b *methodBinding) Constraint() interface{} {
-	return b.callbackType
-}
-
-func (b *methodBinding) Matches(
-	constraint interface{},
-	variance   Variance,
-) (matched bool) {
-	if typ, ok := constraint.(reflect.Type); ok {
-		if typ == b.callbackType {
-			return true
-		}
-		switch variance {
-		case Covariant:
-			return b.callbackType.AssignableTo(typ)
-		case Contravariant:
-			return typ.AssignableTo(b.callbackType)
-		}
-	}
-	return false
-}
-
-func (b *methodBinding) Invoke(
-	receiver    interface{},
-	callback    interface{},
-	rawCallback interface{},
-	ctx         HandleContext,
-)  (results []interface{}) {
-	if args, err := b.resolveArgs(
-		b.args, receiver, callback, rawCallback, ctx); err != nil {
-		panic(err)
-	} else {
-		res := b.method.Func.Call(args)
-		results = make([]interface{}, len(res))
-		for i, v := range res {
-			results[i] = v.Interface()
-		}
-		return results
-	}
-}
-
-func (b *methodBinding) resolveArgs(
-	args        []arg,
-	receiver    interface{},
-	callback    interface{},
-	rawCallback interface{},
-	ctx         HandleContext,
-) ([]reflect.Value, error) {
-	var resolved []reflect.Value
-	for i, arg := range args {
-		typ := b.method.Type.In(i)
-		if a, err := arg.Resolve(typ, receiver, callback, rawCallback, ctx); err != nil {
-			return nil, err
-		} else {
-			resolved = append(resolved, a)
-		}
-	}
-	return resolved, nil
-}
-
-// constructorBinding
-
-type constructorBinding struct {
-	handlerType reflect.Type
-}
-
-func (b *constructorBinding) Matches(
-	constraint interface{},
-	variance   Variance,
-) (matched bool) {
-	return false
-}
-
-func (b *constructorBinding) Invoke(
-	receiver    interface{},
-	callback    interface{},
-	rawCallback interface{},
-	ctx         HandleContext,
-) (results []interface{}) {
-	return nil
 }
 
 func DispatchPolicy(
@@ -370,7 +76,7 @@ func inferBinding(
 	if isPolicy(bindingType) {
 		policyType = bindingType
 		if policy = getPolicy(policyType); policy != nil {
-			return policy, nil, nil
+			return policy, new(bindingSpec), nil
 		}
 	}
 	// Is it a binding specification?
@@ -394,7 +100,7 @@ func inferBinding(
 }
 
 type parserFunc func (reflect.StructField, int, *bindingSpec) (bool, error)
-var parsers = []parserFunc{parsePolicy}
+var parsers = []parserFunc{parsePolicyField}
 
 func parseBindingSpec(
 	specType reflect.Type,
@@ -413,7 +119,7 @@ func parseBindingSpec(
 	return spec, err
 }
 
-func parsePolicy(
+func parsePolicyField(
 	field  reflect.StructField,
 	index  int,
 	spec  *bindingSpec,
@@ -443,6 +149,7 @@ func parsePolicy(
 var (
 	_policies sync.Map
 	_strictTag     = "strict"
+	_interfaceType = reflect.TypeOf((*interface{})(nil)).Elem()
 	_policyType    = reflect.TypeOf((*Policy)(nil)).Elem()
 	_handleResType = reflect.TypeOf((*HandleResult)(nil)).Elem()
 	_errorType     = reflect.TypeOf((*error)(nil)).Elem()
