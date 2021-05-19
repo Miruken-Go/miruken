@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-func CopyTypedSlice(source []interface{}, targetPtr interface{}) {
+func CopySliceInto(source []interface{}, targetPtr interface{}) {
 	val := reflect.ValueOf(targetPtr)
 	typ := val.Type()
 	if typ.Kind() != reflect.Ptr || typ.Elem().Kind() != reflect.Slice || val.IsNil() {
@@ -13,7 +13,11 @@ func CopyTypedSlice(source []interface{}, targetPtr interface{}) {
 	}
 	sliceType   := typ.Elem()
 	elementType := sliceType.Elem()
-	slice       := reflect.MakeSlice(sliceType, len(source), len(source))
+	if source == nil {
+		val.Elem().Set(reflect.MakeSlice(sliceType, 0, 0))
+		return
+	}
+	slice := reflect.MakeSlice(sliceType, len(source), len(source))
 	for i, element := range source {
 		if reflect.TypeOf(element).AssignableTo(elementType) {
 			slice.Index(i).Set(reflect.ValueOf(element))

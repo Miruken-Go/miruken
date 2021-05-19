@@ -91,8 +91,7 @@ func (i *Inquiry) include(
 		return true
 	}
 	switch reflect.TypeOf(resolution).Kind() {
-	case reflect.Slice:
-	case reflect.Array:
+	case reflect.Slice, reflect.Array:
 		forEach(resolution, func(idx int, value interface{}) {
 			if value != nil {
 				i.results = append(i.results, value)

@@ -46,15 +46,16 @@ func ResolveAll(handler Handler, target interface{}) error {
 	if typ.Kind() != reflect.Ptr || typ.Elem().Kind() != reflect.Slice || val.IsNil() {
 		panic("target must be a non-nil slice pointer")
 	}
-	inquiry := NewInquiry(typ.Elem(), false, nil)
-	if result := handler.Handle(inquiry, false, nil); result.IsError() {
+	inquiry := NewInquiry(typ.Elem().Elem(), true, nil)
+	if result := handler.Handle(inquiry, true, nil); result.IsError() {
 		return result.Error()
 	} else if !result.handled {
+		CopySliceInto(nil, target)
 		return nil
 	}
 	if results := inquiry.Result(); results != nil {
 		if source, ok := results.([]interface{}); ok {
-			CopyTypedSlice(source, target)
+			CopySliceInto(source, target)
 		} else {
 			panic(fmt.Sprintf("expected slice result, found %#v", results))
 		}

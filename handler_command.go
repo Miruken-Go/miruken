@@ -54,7 +54,7 @@ func InvokeAll(handler Handler, callback interface{}, target interface{}) error 
 	}
 	if results := command.Result(); results != nil {
 		if source, ok := results.([]interface{}); ok {
-			CopyTypedSlice(source, target)
+			CopySliceInto(source, target)
 		} else {
 			panic(fmt.Sprintf("expected slice result, found %#v", results))
 		}

@@ -78,32 +78,40 @@ func (p *covariantPolicy) newMethodBinding(
 	args[1] = _zeroArg  // policy/binding placeholder
 
 	for i := 2; i < numArgs; i++ {
-		args[i] = _dependencyArg
+		if methodType.In(i) == _interfaceType {
+			invalid = multierror.Append(invalid,
+				fmt.Errorf(
+					"covariant policy: %v dependency at index %v not allowed",
+					_interfaceType, i))
+
+		} else {
+			args[i] = _dependencyArg
+		}
 	}
 
 	switch methodType.NumOut() {
 	case 0:
-		invalid =  errors.New("covariant policy: must have a return value")
+		invalid = multierror.Append(invalid,
+			errors.New("covariant policy: must have a return value"))
 	case 1:
-		invalid = validateCovariantReturn(methodType.Out(0), spec)
+		if err := validateCovariantReturn(methodType.Out(0), spec); err != nil {
+			invalid = multierror.Append(invalid, err)
+		}
 	case 2:
-		invalid = validateCovariantReturn(methodType.Out(0), spec)
+		if err := validateCovariantReturn(methodType.Out(0), spec); err != nil {
+			invalid = multierror.Append(invalid, err)
+		}
 		switch methodType.Out(1) {
 		case _errorType, _handleResType: break
 		default:
-			err := fmt.Errorf(
-					"covariant policy: when two return values, second must be %v or %v",
-					_errorType, _handleResType)
-			if invalid != nil {
-				invalid = multierror.Append(invalid, err)
-			} else {
-				invalid = err
-			}
+			invalid = multierror.Append(invalid, fmt.Errorf(
+				"covariant policy: when two return values, second must be %v or %v",
+				_errorType, _handleResType))
 		}
 	default:
-		invalid = fmt.Errorf(
+		invalid = multierror.Append(invalid, fmt.Errorf(
 			"covariant policy: at most two return values allowed and second must be %v or %v",
-			_errorType, _handleResType)
+			_errorType, _handleResType))
 	}
 
 	if invalid != nil {
@@ -128,6 +136,13 @@ func validateCovariantReturn(
 			_interfaceType, _errorType, _handleResType)
 	default:
 		if spec.constraint == nil {
+			if !spec.strict {
+				switch returnType.Kind() {
+				case reflect.Slice, reflect.Array:
+					spec.constraint = returnType.Elem()
+					return nil
+				}
+			}
 			spec.constraint = returnType
 		}
 		return nil
