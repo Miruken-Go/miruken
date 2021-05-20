@@ -53,14 +53,14 @@ func (t *Trampoline) Dispatch(
 	callback interface{},
 	handler  interface{},
 	greedy   bool,
-	ctx      HandleContext,
+	composer Handler,
 ) HandleResult {
 	if callback == nil {
 		panic("callback cannot be nil")
 	}
 	if cb := t.callback; cb != nil {
-		return DispatchCallback(handler, cb, greedy, ctx)
+		return DispatchCallback(handler, cb, greedy, composer)
 	}
 	command := NewCommand(callback, false)
-	return command.Dispatch(handler, greedy, ctx)
+	return command.Dispatch(handler, greedy, composer)
 }

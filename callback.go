@@ -45,9 +45,9 @@ type CallbackDispatcher interface {
 	Policy() Policy
 
  	Dispatch(
-		handler interface{},
-		greedy  bool,
-		ctx     HandleContext,
+		handler  interface{},
+		greedy   bool,
+		composer Handler,
 	) HandleResult
 }
 
@@ -60,25 +60,25 @@ type CallbackGuard interface {
 
 type ResultReceiver interface {
 	ReceiveResult(
-		results interface{},
-		strict  bool,
-		greedy  bool,
-		ctx     HandleContext,
+		results  interface{},
+		strict   bool,
+		greedy   bool,
+		composer Handler,
 	) (accepted bool)
 }
 
 type ResultReceiverFunc func(
-	result interface{},
-	strict bool,
-	greedy bool,
-	ctx    HandleContext,
+	result   interface{},
+	strict   bool,
+	greedy   bool,
+	composer Handler,
 ) (accepted bool)
 
 func (f ResultReceiverFunc) ReceiveResult(
-	results interface{},
-	strict  bool,
-	greedy  bool,
-	ctx     HandleContext,
+	results  interface{},
+	strict   bool,
+	greedy   bool,
+	composer Handler,
 ) (accepted bool) {
-	return f(results, strict, greedy, ctx)
+	return f(results, strict, greedy, composer)
 }

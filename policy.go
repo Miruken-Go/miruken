@@ -27,10 +27,15 @@ func DispatchPolicy(
 	rawCallback interface{},
 	constraint  interface{},
 	greedy      bool,
-	ctx         HandleContext,
+	composer    Handler,
 	results     ResultReceiver,
 ) HandleResult {
-	if factory := GetHandlerDescriptorFactory(ctx); factory != nil {
+	// The HandlerDescriptorFactory is resolved from a Handler
+	// so when requesting it, we don't want to resolve itself
+	if _, ok := callback.(*getHandlerDescriptorFactory); ok {
+		return NotHandled
+	}
+	if factory := GetHandlerDescriptorFactory(composer); factory != nil {
 		handlerType := reflect.TypeOf(handler)
 		if d, err := factory.GetHandlerDescriptor(handlerType); d != nil {
 			if rawCallback == nil {
@@ -38,7 +43,7 @@ func DispatchPolicy(
 			}
 			return d.Dispatch(
 				policy, handler, callback, rawCallback,
-				constraint, greedy, ctx, results)
+				constraint, greedy, composer, results)
 		} else if err != nil {
 			return NotHandled.WithError(err)
 		}
@@ -99,19 +104,29 @@ func inferBinding(
 	return nil, nil, nil
 }
 
-type parserFunc func (reflect.StructField, int, *bindingSpec) (bool, error)
-var parsers = []parserFunc{parsePolicyField}
+type parseTagFunc func (
+	index  int,
+	field  reflect.StructField,
+	tags  *structtag.Tags,
+	spec  *bindingSpec,
+) error
+
+var tagParsers = []parseTagFunc{parseStrictTag}
 
 func parseBindingSpec(
 	specType reflect.Type,
 ) (spec *bindingSpec, err error) {
 	spec = new(bindingSpec)
 	for i := 0; i < specType.NumField(); i++ {
-		for _, parser := range parsers {
+		for _, parser := range tagParsers {
 			field := specType.Field(i)
-			if matched, invalid := parser(field, i, spec); matched {
-				continue
-			} else if invalid != nil {
+			tags, invalid := structtag.Parse(string(field.Tag))
+			if invalid != nil {
+				err = multierror.Append(err, fmt.Errorf(
+					"binding: invalid tag %v on field %v %w",
+					field.Tag, field.Name, invalid))
+			}
+			if invalid := parser(i, field, tags, spec); invalid != nil {
 				err = multierror.Append(err, invalid)
 			}
 		}
@@ -119,29 +134,24 @@ func parseBindingSpec(
 	return spec, err
 }
 
-func parsePolicyField(
-	field  reflect.StructField,
+func parseStrictTag(
 	index  int,
+	field  reflect.StructField,
+	tags  *structtag.Tags,
 	spec  *bindingSpec,
-) (bool, error) {
+) error {
 	if index != 0 {
-		return false, nil
+		return nil
 	}
-	tag := field.Tag.Get(_strictTag)
-	tags, err := structtag.Parse(string(field.Tag))
-	if err != nil {
-		return false, fmt.Errorf("binding: invalid tag %v on field %v %w",
-			tag, field.Name, err)
-	}
-	if strictTag, _ := tags.Get("strict"); strictTag != nil {
-		if strict, err := strconv.ParseBool(tag); err == nil {
+	if strictTag, _ := tags.Get(_strictTag); strictTag != nil {
+		if strict, err := strconv.ParseBool(strictTag.Name); err == nil {
 			spec.strict = strict
 		} else {
-			return false, fmt.Errorf("binding: invalid value %q for %q tag on field %v %w",
-				tag, _strictTag, field.Name, err)
+			return fmt.Errorf("binding: invalid tag %q on field %v %w",
+				strictTag, field.Name, err)
 		}
 	}
-	return true, nil
+	return nil
 }
 
 // Standard _policies

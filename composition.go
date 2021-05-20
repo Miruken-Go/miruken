@@ -7,33 +7,33 @@ type composition struct {
 }
 
 func (c *composition) Dispatch(
-	handler interface{},
-	greedy  bool,
-	ctx     HandleContext,
+	handler  interface{},
+	greedy   bool,
+	composer Handler,
 ) HandleResult {
 	if cb := c.callback; cb != nil {
-		return DispatchCallback(handler, cb, greedy, ctx)
+		return DispatchCallback(handler, cb, greedy, composer)
 	}
 	command := NewCommand(c, false)
-	return command.Dispatch(handler, greedy, ctx)
+	return command.Dispatch(handler, greedy, composer)
 }
 
 // compositionScope
 
 type compositionScope struct {
-	HandleContext
+	Handler
 }
 
 func (c *compositionScope) Handle(
 	callback interface{},
 	greedy   bool,
-	ctx      HandleContext,
+	composer Handler,
 ) HandleResult {
-	if ctx == nil {
-		ctx = c
+	if composer == nil {
+		composer = c
 	}
 	if _, ok := callback.(composition); !ok {
 		callback = &composition{Trampoline{callback}}
 	}
-	return c.HandleContext.Handle(callback, greedy, ctx)
+	return c.Handler.Handle(callback, greedy, composer)
 }

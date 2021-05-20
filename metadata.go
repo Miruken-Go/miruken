@@ -8,8 +8,6 @@ import (
 	"sync"
 )
 
-type key struct{}
-
 // PolicyBindings
 
 type PolicyBindings struct {
@@ -42,7 +40,7 @@ func (d *HandlerDescriptor) Dispatch(
 	rawCallback interface{},
 	constraint  interface{},
 	greedy      bool,
-	ctx         HandleContext,
+	composer    Handler,
 	results     ResultReceiver,
 ) (result HandleResult) {
 	result = NotHandled
@@ -66,10 +64,10 @@ func (d *HandlerDescriptor) Dispatch(
 						continue
 					}
 				}
-				output := binding.Invoke(handler, callback, rawCallback, ctx)
+				output := binding.Invoke(handler, callback, rawCallback, composer)
 				res, accepted := policy.AcceptResults(output)
 				if accepted.IsHandled() && results != nil &&
-					results.ReceiveResult(res, binding.Strict(), greedy, ctx) {
+					results.ReceiveResult(res, binding.Strict(), greedy, composer) {
 					accepted = accepted.Or(Handled)
 				}
 				result = result.Or(accepted)
@@ -225,8 +223,7 @@ func (f mutableFactoryOptionFunc) applyMutableFactoryOption(
 	factory *mutableFactory,
 ) { f(factory) }
 
-
-func WithVisitor(
+func WithHandlerDescriptorVisitor(
 	visitor HandlerDescriptorVisitor,
 ) MutableHandlerDescriptorFactoryOption {
 	return mutableFactoryOptionFunc(func (factory *mutableFactory) {
@@ -240,10 +237,8 @@ func NewMutableHandlerDescriptorFactory(
 	factory := &mutableFactory{
 		descriptors: make(map[reflect.Type]*HandlerDescriptor),
 	}
-
 	for _, opt := range opts {
 		opt.applyMutableFactoryOption(factory)
 	}
-
 	return factory
 }

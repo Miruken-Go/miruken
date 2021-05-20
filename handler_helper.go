@@ -24,6 +24,22 @@ func HandleAll(handler Handler, callback interface{}) error {
 	return nil
 }
 
+func With(handler Handler, values ... interface{}) Handler {
+	if handler == nil {
+		return nil
+	}
+	var valueHandlers []interface{}
+	for _, val := range values {
+		if val != nil {
+			valueHandlers = append(valueHandlers, NewProvider(val))
+		}
+	}
+	if len(valueHandlers) > 0 {
+		return AddHandlers(handler, valueHandlers...)
+	}
+	return handler
+}
+
 func ToHandler(handler interface{}) Handler {
 	switch h := handler.(type) {
 	case Handler: return h

@@ -130,10 +130,10 @@ func validateCovariantReturn(
 	spec       *bindingSpec,
 ) error {
 	switch returnType {
-	case _interfaceType, _errorType, _handleResType:
+	case _errorType, _handleResType:
 		return fmt.Errorf(
-			"covariant policy: primary return value must not be %v, %v or %v",
-			_interfaceType, _errorType, _handleResType)
+			"covariant policy: primary return value must not be %v or %v",
+			_errorType, _handleResType)
 	default:
 		if spec.constraint == nil {
 			if !spec.strict {

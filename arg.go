@@ -20,7 +20,7 @@ type arg interface {
 		receiver    interface{},
 		callback    interface{},
 		rawCallback interface{},
-		ctx         HandleContext,
+		composer    Handler,
 	) (reflect.Value, error)
 }
 
@@ -33,7 +33,7 @@ func (a receiverArg) Resolve(
 	receiver    interface{},
 	callback    interface{},
 	rawCallback interface{},
-	ctx         HandleContext,
+	composer    Handler,
 ) (reflect.Value, error) {
 	return reflect.ValueOf(receiver), nil
 }
@@ -47,7 +47,7 @@ func (a zeroArg) Resolve(
 	receiver    interface{},
 	callback    interface{},
 	rawCallback interface{},
-	ctx         HandleContext,
+	composer    Handler,
 ) (reflect.Value, error) {
 	return reflect.Zero(typ), nil
 }
@@ -61,7 +61,7 @@ func (a callbackArg) Resolve(
 	receiver    interface{},
 	callback    interface{},
 	rawCallback interface{},
-	ctx         HandleContext,
+	composer    Handler,
 ) (reflect.Value, error) {
 	if v := reflect.ValueOf(callback); v.Type().AssignableTo(typ) {
 		return v, nil
@@ -81,10 +81,10 @@ func (a dependencyArg) Resolve(
 	receiver    interface{},
 	callback    interface{},
 	rawCallback interface{},
-	ctx         HandleContext,
+	composer    Handler,
 ) (reflect.Value, error) {
-	if typ == _handlerContextType {
-		return reflect.ValueOf(ctx), nil
+	if typ == _handlerType {
+		return reflect.ValueOf(composer), nil
 	}
 	if v := reflect.ValueOf(rawCallback); v.Type().AssignableTo(typ) {
 		return v, nil

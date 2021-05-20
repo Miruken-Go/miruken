@@ -23,10 +23,10 @@ func (i *Inquiry) Policy() Policy {
 }
 
 func (i *Inquiry) ReceiveResult(
-	result interface{},
-	strict bool,
-	greedy bool,
-	ctx    HandleContext,
+	result   interface{},
+	strict   bool,
+	greedy   bool,
+	composer Handler,
 ) (accepted bool) {
 	return i.include(result, strict)
 }
@@ -60,14 +60,14 @@ func (i *Inquiry)inProgress(
 }
 
 func (i *Inquiry) Dispatch(
-	handler interface{},
-	greedy  bool,
-	ctx     HandleContext,
+	handler  interface{},
+	greedy   bool,
+	composer Handler,
 ) (result HandleResult) {
 	result = NotHandled
 	if typ, ok := i.key.(reflect.Type); ok {
 		if reflect.TypeOf(handler).AssignableTo(typ) {
-			resolved := i.ReceiveResult(handler, false, greedy, ctx)
+			resolved := i.ReceiveResult(handler, false, greedy, composer)
 			result = result.OtherwiseHandledIf(resolved)
 			if resolved && !greedy {
 				return result
@@ -75,7 +75,7 @@ func (i *Inquiry) Dispatch(
 		}
 	}
 	count := len(i.results)
-	return DispatchPolicy(i.Policy(), handler, i, i, i.key, greedy, ctx, i).
+	return DispatchPolicy(i.Policy(), handler, i, i, i.key, greedy, composer, i).
 		OtherwiseHandledIf(len(i.results) > count)
 }
 

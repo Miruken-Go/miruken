@@ -14,10 +14,10 @@ func (c *Command) Policy() Policy {
 }
 
 func (c *Command) ReceiveResult(
-	result interface{},
-	strict bool,
-	greedy bool,
-	ctx    HandleContext,
+	result   interface{},
+	strict   bool,
+	greedy   bool,
+	composer Handler,
 ) (accepted bool) {
 	if result == nil {
 		return false
@@ -38,12 +38,12 @@ func (c *Command) CanDispatch(
 }
 
 func (c *Command) Dispatch(
-	handler interface{},
-	greedy  bool,
-	ctx     HandleContext,
+	handler  interface{},
+	greedy   bool,
+	composer Handler,
 ) HandleResult {
 	count := len(c.results)
-	return DispatchPolicy(c.Policy(), handler, c.callback, c, nil, greedy, ctx, c).
+	return DispatchPolicy(c.Policy(), handler, c.callback, c, nil, greedy, composer, c).
 		OtherwiseHandledIf(len(c.results) > count)
 }
 

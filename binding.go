@@ -20,7 +20,7 @@ type Binding interface {
 		receiver    interface{},
 		callback    interface{},
 		rawCallback interface{},
-		ctx         HandleContext,
+		composer    Handler,
 	) (results []interface{})
 }
 
@@ -81,7 +81,7 @@ func (b *methodBinding) Matches(
 		if bt, ok := b.Constraint().(reflect.Type); ok {
 			switch variance {
 			case Covariant:
-				return bt.AssignableTo(ct)
+				return bt == _interfaceType || bt.AssignableTo(ct)
 			case Contravariant:
 				return ct.AssignableTo(bt)
 			}
@@ -94,10 +94,10 @@ func (b *methodBinding) Invoke(
 	receiver    interface{},
 	callback    interface{},
 	rawCallback interface{},
-	ctx         HandleContext,
+	composer    Handler,
 )  (results []interface{}) {
 	if args, err := b.resolveArgs(
-		b.args, receiver, callback, rawCallback, ctx); err != nil {
+		b.args, receiver, callback, rawCallback, composer); err != nil {
 		panic(err)
 	} else {
 		res := b.method.Func.Call(args)
@@ -114,12 +114,12 @@ func (b *methodBinding) resolveArgs(
 	receiver    interface{},
 	callback    interface{},
 	rawCallback interface{},
-	ctx         HandleContext,
+	composer    Handler,
 ) ([]reflect.Value, error) {
 	var resolved []reflect.Value
 	for i, arg := range args {
 		typ := b.method.Type.In(i)
-		if a, err := arg.Resolve(typ, receiver, callback, rawCallback, ctx); err != nil {
+		if a, err := arg.Resolve(typ, receiver, callback, rawCallback, composer); err != nil {
 			return nil, err
 		} else {
 			resolved = append(resolved, a)
@@ -145,7 +145,7 @@ func (b *constructorBinding) Invoke(
 	receiver    interface{},
 	callback    interface{},
 	rawCallback interface{},
-	ctx         HandleContext,
+	composer    Handler,
 ) (results []interface{}) {
 	return nil
 }
