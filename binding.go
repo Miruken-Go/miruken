@@ -36,7 +36,7 @@ type MethodBindingError struct {
 }
 
 func (e *MethodBindingError) Error() string {
-	return fmt.Sprintf("invalid method: %v %v: reason %v",
+	return fmt.Sprintf("invalid method: %v %v:\n\t* %v",
 		e.Method.Name, e.Method.Type, e.Reason)
 }
 
@@ -76,9 +76,15 @@ func (b *methodBinding) Matches(
 	constraint interface{},
 	variance   Variance,
 ) (matched bool) {
+	bc := b.Constraint()
+	if bc == constraint {
+		return true
+	} else if b.Strict() {
+		return false
+	}
 	switch ct := constraint.(type) {
 	case reflect.Type:
-		if bt, ok := b.Constraint().(reflect.Type); ok {
+		if bt, ok := bc.(reflect.Type); ok {
 			switch variance {
 			case Covariant:
 				return bt == _interfaceType || bt.AssignableTo(ct)
@@ -119,8 +125,8 @@ func (b *methodBinding) resolveArgs(
 	var resolved []reflect.Value
 	for i, arg := range args {
 		typ := b.method.Type.In(i)
-		if a, err := arg.Resolve(typ, receiver, callback, rawCallback, composer); err != nil {
-			return nil, err
+		if a, err := arg.resolve(typ, receiver, callback, rawCallback, composer); err != nil {
+			return nil, &MethodBindingError{b.method, err}
 		} else {
 			resolved = append(resolved, a)
 		}

@@ -79,6 +79,15 @@ func (i *Inquiry) Dispatch(
 		OtherwiseHandledIf(len(i.results) > count)
 }
 
+func (i *Inquiry) Resolve(
+	handler Handler,
+) (interface{}, error) {
+	if result := handler.Handle(i, i.Many(), nil); result.IsError() {
+		return nil, result.Error()
+	}
+	return i.Result(), nil
+}
+
 func (i *Inquiry) include(
 	resolution interface{},
 	strict     bool,

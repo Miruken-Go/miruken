@@ -5,31 +5,85 @@ import (
 	"reflect"
 )
 
-func CopySliceInto(source []interface{}, targetPtr interface{}) {
-	val := reflect.ValueOf(targetPtr)
+// TargetValue validates the interface contains a
+// non-nil typed pointer and return the reflect.Value.
+func TargetValue(target interface{}) reflect.Value {
+	if target == nil {
+		panic("target cannot be nil")
+	}
+	val := reflect.ValueOf(target)
 	typ := val.Type()
-	if typ.Kind() != reflect.Ptr || typ.Elem().Kind() != reflect.Slice || val.IsNil() {
+	if typ.Kind() != reflect.Ptr || val.IsNil() {
+		panic("target must be a non-nil pointer")
+	}
+	return val
+}
+
+// TargetSliceValue validates the interface contains a
+// non-nil typed slice pointer and return the reflect.Value.
+func TargetSliceValue(target interface{}) reflect.Value {
+	val := TargetValue(target)
+	typ := val.Type()
+	if typ.Elem().Kind() != reflect.Slice {
 		panic("target must be a non-nil slice pointer")
 	}
-	sliceType   := typ.Elem()
-	elementType := sliceType.Elem()
-	if source == nil {
-		val.Elem().Set(reflect.MakeSlice(sliceType, 0, 0))
+	return val
+}
+
+// CopyIndirect copies the contents of src into the
+// target pointer or reflect.Value.
+func CopyIndirect(src interface{}, target interface{}) {
+	var val reflect.Value
+	if v, ok := target.(reflect.Value); ok {
+		val = v
+	} else {
+		val = TargetValue(target)
+	}
+	val = reflect.Indirect(val)
+	typ := val.Type()
+	if src != nil {
+		resultValue := reflect.ValueOf(src)
+		if resultType := resultValue.Type(); resultType.AssignableTo(typ) {
+			val.Set(resultValue)
+		} else {
+			panic(fmt.Sprintf("%T must be assignable to %v", src, typ))
+		}
+	} else {
+		val.Set(reflect.Zero(typ))
+	}
+}
+
+// CopySliceIndirect copies the contents of src slice into
+// the target pointer or reflect.Value.
+func CopySliceIndirect(src []interface{}, target interface{}) {
+	var val reflect.Value
+	if v, ok := target.(reflect.Value); ok {
+		val = v
+	} else {
+		val = TargetSliceValue(target)
+	}
+	val = reflect.Indirect(val)
+	typ := val.Type()
+	elementType := typ.Elem()
+	if src == nil {
+		val.Set(reflect.MakeSlice(typ, 0, 0))
 		return
 	}
-	slice := reflect.MakeSlice(sliceType, len(source), len(source))
-	for i, element := range source {
+	slice := reflect.MakeSlice(typ, len(src), len(src))
+	for i, element := range src {
 		if reflect.TypeOf(element).AssignableTo(elementType) {
 			slice.Index(i).Set(reflect.ValueOf(element))
 		} else {
-			panic(fmt.Sprintf("element at index %v must be assignable to %v", i, elementType))
+			panic(fmt.Sprintf(
+				"%T at index %v must be assignable to %v",
+				element, i, elementType))
 		}
 	}
-	val.Elem().Set(slice)
+	val.Set(slice)
 }
 
-func forEach(iterable interface{}, f func(i int, val interface{})) {
-	v := reflect.ValueOf(iterable)
+func forEach(iter interface{}, f func(i int, val interface{})) {
+	v := reflect.ValueOf(iter)
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
@@ -40,6 +94,6 @@ func forEach(iterable interface{}, f func(i int, val interface{})) {
 			f(i, val)
 		}
 	default:
-		panic(fmt.Errorf("forEach: expected iterable or array, found %q", v.Kind().String()))
+		panic(fmt.Errorf("forEach: expected iter or array, found %q", v.Kind().String()))
 	}
 }

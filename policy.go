@@ -2,10 +2,9 @@ package miruken
 
 import (
 	"fmt"
-	"github.com/fatih/structtag"
 	"github.com/hashicorp/go-multierror"
 	"reflect"
-	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -84,88 +83,69 @@ func inferBinding(
 			return policy, new(bindingSpec), nil
 		}
 	}
-	// Is it a binding specification?
+	// Is it a *Struct binding specification?
 	if bindingType.Kind() == reflect.Ptr {
 		bindingType = bindingType.Elem()
-	}
-	if bindingType.Kind() == reflect.Struct && bindingType.NumField() > 0 {
-		field := bindingType.Field(0)
-		if isPolicy(field.Type) {
-			policyType = field.Type
-			if policy = getPolicy(policyType); policy != nil {
-				spec, err := parseBindingSpec(bindingType)
-				return policy, spec, err
+		if bindingType.Kind() == reflect.Struct && bindingType.NumField() > 0 {
+			field := bindingType.Field(0)
+			if isPolicy(field.Type) {
+				policyType = field.Type
+				if policy = getPolicy(policyType); policy != nil {
+					spec = new(bindingSpec)
+					err := parseTaggedSpec(bindingType, spec, bindingTagParsers)
+					return policy, spec, err
+				}
 			}
 		}
 	}
 	if policyType != nil {
-		panic(fmt.Sprintf("policy: %v not found.  Did you forget to call RegisterPolicy?", policyType))
+		panic(fmt.Sprintf(
+			"policy: %v not found.  Did you forget to call RegisterPolicy?",
+			policyType))
 	}
 	return nil, nil, nil
 }
 
-type parseTagFunc func (
+var bindingTagParsers = []tagParser{tagParserFunc(parseBindingOptions)}
+
+func parseBindingOptions(
 	index  int,
 	field  reflect.StructField,
-	tags  *structtag.Tags,
-	spec  *bindingSpec,
-) error
-
-var tagParsers = []parseTagFunc{parseStrictTag}
-
-func parseBindingSpec(
-	specType reflect.Type,
-) (spec *bindingSpec, err error) {
-	spec = new(bindingSpec)
-	for i := 0; i < specType.NumField(); i++ {
-		for _, parser := range tagParsers {
-			field := specType.Field(i)
-			tags, invalid := structtag.Parse(string(field.Tag))
-			if invalid != nil {
-				err = multierror.Append(err, fmt.Errorf(
-					"binding: invalid tag %v on field %v %w",
-					field.Tag, field.Name, invalid))
-			}
-			if invalid := parser(i, field, tags, spec); invalid != nil {
-				err = multierror.Append(err, invalid)
-			}
-		}
-	}
-	return spec, err
-}
-
-func parseStrictTag(
-	index  int,
-	field  reflect.StructField,
-	tags  *structtag.Tags,
-	spec  *bindingSpec,
-) error {
+	spec   interface{},
+) (err error) {
 	if index != 0 {
 		return nil
 	}
-	if strictTag, _ := tags.Get(_strictTag); strictTag != nil {
-		if strict, err := strconv.ParseBool(strictTag.Name); err == nil {
-			spec.strict = strict
-		} else {
-			return fmt.Errorf("binding: invalid tag %q on field %v %w",
-				strictTag, field.Name, err)
+	if bindingSpec, ok := spec.(*bindingSpec); ok {
+		if  binding, ok := field.Tag.Lookup(_bindingTag); ok {
+			options := strings.Split(binding, ",")
+			for _, opt := range options {
+				switch opt {
+				case _strictOption:
+					bindingSpec.strict = true
+				default:
+					err = multierror.Append(err, fmt.Errorf(
+						"binding: invalid option %q on field %v", opt, field.Name))
+				}
+			}
 		}
 	}
-	return nil
+	return err
 }
 
 // Standard _policies
 
 var (
-	_policies sync.Map
-	_strictTag     = "strict"
-	_interfaceType = reflect.TypeOf((*interface{})(nil)).Elem()
-	_policyType    = reflect.TypeOf((*Policy)(nil)).Elem()
-	_handleResType = reflect.TypeOf((*HandleResult)(nil)).Elem()
-	_errorType     = reflect.TypeOf((*error)(nil)).Elem()
-	_handles       = RegisterPolicy(new(Handles))
-	_provides      = RegisterPolicy(new(Provides))
-	_creates       = RegisterPolicy(new(Creates))
+	_policies       sync.Map
+	_bindingTag     = "binding"
+	_strictOption   = "strict"
+	_interfaceType  = reflect.TypeOf((*interface{})(nil)).Elem()
+	_policyType     = reflect.TypeOf((*Policy)(nil)).Elem()
+	_handleResType  = reflect.TypeOf((*HandleResult)(nil)).Elem()
+	_errorType      = reflect.TypeOf((*error)(nil)).Elem()
+	_handles        = RegisterPolicy(new(Handles))
+	_provides       = RegisterPolicy(new(Provides))
+	_creates        = RegisterPolicy(new(Creates))
 )
 
 // Handles policy for handling callbacks contravariantly.

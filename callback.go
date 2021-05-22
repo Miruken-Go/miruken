@@ -1,6 +1,8 @@
 package miruken
 
-import "reflect"
+import (
+	"reflect"
+)
 
 type Callback interface {
 	ResultType() reflect.Type
@@ -25,6 +27,9 @@ func (c *CallbackBase) ResultType() reflect.Type {
 func (c *CallbackBase) Result() interface{} {
 	if result := c.result; result == nil {
 		if c.many {
+			if c.results == nil {
+				c.results = make([]interface{}, 0, 0)
+			}
 			c.result = c.results
 		} else {
 			if len(c.results) == 0 {
@@ -39,6 +44,14 @@ func (c *CallbackBase) Result() interface{} {
 
 func (c *CallbackBase) SetResult(result interface{}) {
 	c.result = result
+}
+
+func (c *CallbackBase) CopyResult(target interface{}) {
+	if c.Many() {
+		CopySliceIndirect(c.Result().([]interface{}), target)
+	} else {
+		CopyIndirect(c.Result(), target)
+	}
 }
 
 type CallbackDispatcher interface {

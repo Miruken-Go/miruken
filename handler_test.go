@@ -34,6 +34,10 @@ type Bar struct {
 	Counted
 }
 
+type Baz struct {
+	Counted
+}
+
 // FooHandler
 
 type FooHandler struct {}
@@ -50,10 +54,6 @@ func (h *FooHandler) Handle(
 	default:
 		return NotHandled
 	}
-}
-
-func (h *FooHandler) doSomething() {
-
 }
 
 // BarHandler
@@ -104,7 +104,7 @@ func (h *MultiHandler) HandleFoo(
 }
 
 func (h *MultiHandler) HandleBar(
-	policy Handles,
+	policy  Handles,
 	bar    *Bar,
 ) HandleResult {
 	h.bar.Inc()
@@ -140,13 +140,45 @@ func (h *EverythingHandler) HandleEverything(
 type SpecificationHandler struct{}
 
 func (h *SpecificationHandler) HandleFoo(
-	binding *struct {
-		Handles  `strict:"true"`
-	},
+	policy *struct { Handles `binding:"strict"` },
 	foo *Foo,
 ) HandleResult {
 	foo.Inc()
 	return Handled
+}
+
+// DependencyHandler
+
+type DependencyHandler struct{}
+
+func (h *DependencyHandler) RequiredDependency(
+	policy  Handles,
+	foo    *Foo,
+	bar    *Bar,
+) {
+	foo.Inc()
+}
+
+func (h *DependencyHandler) RequiredDependencySlice(
+	policy   Handles,
+	baz      *Baz,
+	bars   []*Bar,
+) {
+	baz.Inc()
+	for _, bar := range bars {
+		bar.Inc()
+	}
+}
+
+func (h *DependencyHandler) OptionalDependency(
+	policy  Handles,
+	bar    *Bar,
+	foo    *struct { Value *Foo `arg:"optional"` },
+) {
+	bar.Inc()
+	if foo.Value != nil {
+		foo.Value.Inc()
+	}
 }
 
 // InvalidHandler
@@ -264,7 +296,6 @@ func (suite *HandlerTestSuite) TestHandles() {
 		suite.Run("Contravariant", func () {
 			bar    := new(Bar)
 			result := handler.Handle(bar, false, nil)
-
 			suite.False(result.IsError())
 			suite.Equal(Handled, result)
 			suite.Equal(2, bar.Count())
@@ -273,12 +304,58 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 	suite.Run("Specification", func () {
 		handler := NewHandleContext(WithHandlers(new(SpecificationHandler)))
-
 		suite.Run("Strict", func() {
 			foo    := new(Foo)
 			result := handler.Handle(foo, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(Handled, result)
+			suite.Equal(1, foo.Count())
+		})
+	})
+
+	suite.Run("Dependencies", func () {
+		handler := NewHandleContext(WithHandlers(new(DependencyHandler)))
+
+		suite.Run("Required", func () {
+			defer func() {
+				if r := recover(); r != nil {
+					if err, ok := r.(*MethodBindingError); ok {
+						suite.Equal("RequiredDependency", err.Method.Name)
+					} else {
+						suite.Fail("Expected MethodBindingError")
+					}
+				}
+			}()
+			handler.Handle(new(Foo), false, nil)
+		})
+
+		suite.Run("RequiredSlice", func () {
+			baz    := new(Baz)
+			bars   := []interface{}{new(Bar), new(Bar)}
+			result := With(handler, bars...).Handle(baz, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(Handled, result)
+			suite.Equal(1, baz.Count())
+			for _, bar := range bars {
+				suite.Equal(1, bar.(*Bar).Count())
+			}
+		})
+
+		suite.Run("Optional", func () {
+			bar    := new(Bar)
+			result := handler.Handle(bar, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(Handled, result)
+			suite.Equal(1, bar.Count())
+		})
+
+		suite.Run("OptionalWithValue", func () {
+			bar    := new(Bar)
+			foo    := new(Foo)
+			result := With(handler, foo).Handle(bar, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(Handled, result)
+			suite.Equal(1, bar.Count())
 			suite.Equal(1, foo.Count())
 		})
 	})
@@ -342,7 +419,6 @@ func (suite *HandlerTestSuite) TestHandles() {
 				}
 			}
 		}()
-
 		NewHandleContext(WithHandlers(new(InvalidHandler)))
 	})
 }
@@ -408,18 +484,14 @@ type SpecificationProvider struct{
 }
 
 func (p *SpecificationProvider) ProvidesFoo(
-	binding *struct {
-		Provides
-	},
+	policy *struct { Provides },
 ) *Foo {
 	p.foo.Inc()
 	return &p.foo
 }
 
 func (p *SpecificationProvider) ProvidesBar(
-	binding *struct {
-		Provides  `strict:"true"`
-    },
+	policy *struct { Provides `binding:"strict"` },
 ) []*Bar {
 	p.bar.Inc()
 	return []*Bar{&p.bar, {}}

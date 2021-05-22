@@ -63,7 +63,6 @@ func (p *contravariantPolicy) Less(
 func (p *contravariantPolicy) newMethodBinding(
 	method  reflect.Method,
 	spec   *bindingSpec,
-
 ) (binding Binding, invalid error) {
 	methodType := method.Type
 	numArgs    := methodType.NumIn()
@@ -84,14 +83,15 @@ func (p *contravariantPolicy) newMethodBinding(
 	}
 
 	for i := 3; i < numArgs; i++ {
-		if methodType.In(i) == _interfaceType {
-			invalid = multierror.Append(invalid,
-				fmt.Errorf(
-					"contravariant policy: %v dependency at index %v not allowed",
-					_interfaceType, i))
-
+		if argType := methodType.In(i); argType == _interfaceType {
+			invalid = multierror.Append(invalid, fmt.Errorf(
+				"contravariant policy: %v dependency at index %v not allowed",
+				_interfaceType, i))
+		} else if arg, err := inferDependencyArg(argType); err == nil {
+			args[i] = arg
 		} else {
-			args[i] = _dependencyArg
+			invalid = multierror.Append(invalid, fmt.Errorf(
+				"contravariant policy: invalid dependency at index %v: %w", i, err))
 		}
 	}
 
@@ -101,16 +101,14 @@ func (p *contravariantPolicy) newMethodBinding(
 		switch methodType.Out(1) {
 		case _errorType, _handleResType: break
 		default:
-			invalid = multierror.Append(invalid,
-				fmt.Errorf(
-					"contravariant policy: when two return values, second must be %v or %v",
-					_errorType, _handleResType))
+			invalid = multierror.Append(invalid, fmt.Errorf(
+				"contravariant policy: when two return values, second must be %v or %v",
+				_errorType, _handleResType))
 		}
 	default:
-		invalid = multierror.Append(invalid,
-			fmt.Errorf(
-				"contravariant policy: at most two return values allowed and second must be %v or %v",
-				_errorType, _handleResType))
+		invalid = multierror.Append(invalid, fmt.Errorf(
+			"contravariant policy: at most two return values allowed and second must be %v or %v",
+			_errorType, _handleResType))
 	}
 
 	if invalid != nil {

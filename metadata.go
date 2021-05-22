@@ -159,15 +159,18 @@ func (f *mutableFactory) RegisterHandlerType(
 	if descriptor := f.descriptors[handlerType]; descriptor != nil {
 		return descriptor, nil
 	}
-	if descriptor, err = newHandlerDescriptor(handlerType); err == nil {
+	if descriptor, err = f.newHandlerDescriptor(handlerType); err == nil {
 		f.descriptors[handlerType] = descriptor
 	}
 	return descriptor, err
 }
 
-func newHandlerDescriptor(
+func (f *mutableFactory) newHandlerDescriptor(
 	handlerType reflect.Type,
 ) (descriptor *HandlerDescriptor, invalid error) {
+	descriptor = &HandlerDescriptor{
+		handlerType: handlerType,
+	}
 	bindings := make(map[Policy]*PolicyBindings)
 	for i := 0; i < handlerType.NumMethod(); i++ {
 		method     := handlerType.Method(i)
@@ -178,13 +181,15 @@ func newHandlerDescriptor(
 		if policy, spec, errSpec := inferBinding(methodType.In(1)); errSpec == nil {
 			if binder, ok := policy.(methodBinder); ok {
 				if binding, errBind := binder.newMethodBinding(method, spec); binding != nil {
-					if policyBindings, found := bindings[policy]; !found {
+					policyBindings, found := bindings[policy]
+					if !found {
 						policyBindings = newPolicyBindings(policy)
-						policyBindings.insert(binding)
 						bindings[policy] = policyBindings
-					} else {
-						policyBindings.insert(binding)
 					}
+					if f.visitor != nil {
+						f.visitor.VisitHandlerBinding(descriptor, binding)
+					}
+					policyBindings.insert(binding)
 				} else if errBind != nil {
 					invalid = multierror.Append(invalid, errBind)
 				}
@@ -196,7 +201,8 @@ func newHandlerDescriptor(
 	if invalid != nil {
 		return nil, &HandlerDescriptorError{handlerType, invalid}
 	}
-	return &HandlerDescriptor{handlerType, bindings}, nil
+	descriptor.bindings = bindings
+	return descriptor, nil
 }
 
 func validHandlerType(handlerType reflect.Type) error {
@@ -223,14 +229,6 @@ func (f mutableFactoryOptionFunc) applyMutableFactoryOption(
 	factory *mutableFactory,
 ) { f(factory) }
 
-func WithHandlerDescriptorVisitor(
-	visitor HandlerDescriptorVisitor,
-) MutableHandlerDescriptorFactoryOption {
-	return mutableFactoryOptionFunc(func (factory *mutableFactory) {
-		factory.visitor = visitor
-	})
-}
-
 func NewMutableHandlerDescriptorFactory(
 	opts ...MutableHandlerDescriptorFactoryOption,
 ) HandlerDescriptorFactory {
@@ -241,4 +239,12 @@ func NewMutableHandlerDescriptorFactory(
 		opt.applyMutableFactoryOption(factory)
 	}
 	return factory
+}
+
+func WithHandlerDescriptorVisitor(
+	visitor HandlerDescriptorVisitor,
+) MutableHandlerDescriptorFactoryOption {
+	return mutableFactoryOptionFunc(func (factory *mutableFactory) {
+		factory.visitor = visitor
+	})
 }
