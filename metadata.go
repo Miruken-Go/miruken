@@ -64,13 +64,14 @@ func (d *HandlerDescriptor) Dispatch(
 						continue
 					}
 				}
-				output := binding.Invoke(handler, callback, rawCallback, composer)
-				res, accepted := policy.AcceptResults(output)
-				if accepted.IsHandled() && results != nil &&
-					results.ReceiveResult(res, binding.Strict(), greedy, composer) {
-					accepted = accepted.Or(Handled)
+				if out, err := binding.Invoke(handler, callback, rawCallback, composer); err == nil {
+					res, accepted := policy.AcceptResults(out)
+					if accepted.IsHandled() && results != nil &&
+						results.ReceiveResult(res, binding.Strict(), greedy, composer) {
+						accepted = accepted.Or(Handled)
+					}
+					result = result.Or(accepted)
 				}
-				result = result.Or(accepted)
 				if reset != nil {
 					reset(rawCallback)
 				}

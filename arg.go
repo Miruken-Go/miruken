@@ -231,6 +231,7 @@ func parseDependencyArgOptions(
 			options := strings.Split(arg, ",")
 			for _, opt := range options {
 				switch opt {
+				case "": break
 				case _strictOption:
 					argSpecPtr.flags = argSpecPtr.flags | ArgStrict
 				case _optionalOption:

@@ -21,7 +21,7 @@ type Binding interface {
 		callback    interface{},
 		rawCallback interface{},
 		composer    Handler,
-	) (results []interface{})
+	) (results []interface{}, err error)
 }
 
 type OrderBinding interface {
@@ -101,17 +101,17 @@ func (b *methodBinding) Invoke(
 	callback    interface{},
 	rawCallback interface{},
 	composer    Handler,
-)  (results []interface{}) {
+)  ([]interface{}, error) {
 	if args, err := b.resolveArgs(
 		b.args, receiver, callback, rawCallback, composer); err != nil {
-		panic(err)
+		return nil, err
 	} else {
 		res := b.method.Func.Call(args)
-		results = make([]interface{}, len(res))
+		results := make([]interface{}, len(res))
 		for i, v := range res {
 			results[i] = v.Interface()
 		}
-		return results
+		return results, nil
 	}
 }
 

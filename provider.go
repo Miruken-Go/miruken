@@ -19,7 +19,7 @@ func (p *provider) Handle(
 		if typ, ok := inquiry.key.(reflect.Type); ok {
 			if p.typ.AssignableTo(typ) {
 				return NotHandled.OtherwiseHandledIf(
-					inquiry.ReceiveResult(p.value, false, greedy, composer))
+					inquiry.ReceiveResult(p.value, true, greedy, composer))
 			}
 		}
 	}

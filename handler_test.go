@@ -26,17 +26,10 @@ func (c *Counted) Inc() int {
 	return c.count
 }
 
-type Foo struct {
-	Counted
-}
-
-type Bar struct {
-	Counted
-}
-
-type Baz struct {
-	Counted
-}
+type Foo struct { Counted }
+type Bar struct { Counted }
+type Baz struct { Counted }
+type Bam struct { Counted }
 
 // FooHandler
 
@@ -61,8 +54,8 @@ func (h *FooHandler) Handle(
 type BarHandler struct {}
 
 func (h *BarHandler) HandleBar(
-	policy Handles,
-	bar    Bar,
+	_ Handles,
+	bar Bar,
 ) {
 }
 
@@ -71,7 +64,7 @@ func (h *BarHandler) HandleBar(
 type CounterHandler struct {}
 
 func (h *CounterHandler) HandleCounted(
-	policy  Handles,
+	_ Handles,
 	counter Counter,
 ) (Counter, HandleResult) {
 	switch c := counter.Inc(); {
@@ -91,7 +84,7 @@ type MultiHandler struct {
 }
 
 func (h *MultiHandler) HandleFoo(
-	policy    Handles,
+	_ Handles,
 	foo      *Foo,
 	composer  Handler,
 ) error {
@@ -104,8 +97,8 @@ func (h *MultiHandler) HandleFoo(
 }
 
 func (h *MultiHandler) HandleBar(
-	policy  Handles,
-	bar    *Bar,
+	_ Handles,
+	bar *Bar,
 ) HandleResult {
 	h.bar.Inc()
 	if bar.Inc() % 2 == 0 {
@@ -119,7 +112,7 @@ func (h *MultiHandler) HandleBar(
 type EverythingHandler struct{}
 
 func (h *EverythingHandler) HandleEverything(
-	policy   Handles,
+	_ Handles,
 	callback interface{},
 ) HandleResult {
 	switch f := callback.(type) {
@@ -140,7 +133,7 @@ func (h *EverythingHandler) HandleEverything(
 type SpecificationHandler struct{}
 
 func (h *SpecificationHandler) HandleFoo(
-	policy *struct { Handles `binding:"strict"` },
+	_ *struct { Handles `binding:"strict"` },
 	foo *Foo,
 ) HandleResult {
 	foo.Inc()
@@ -151,18 +144,17 @@ func (h *SpecificationHandler) HandleFoo(
 
 type DependencyHandler struct{}
 
-func (h *DependencyHandler) RequiredDependency(
-	policy  Handles,
-	foo    *Foo,
-	bar    *Bar,
+func (h *DependencyHandler) RequiredDependency(_ Handles,
+	foo *Foo,
+	bar *Bar,
 ) {
 	foo.Inc()
 }
 
 func (h *DependencyHandler) RequiredDependencySlice(
-	policy   Handles,
-	baz      *Baz,
-	bars   []*Bar,
+	_     Handles,
+	baz   *Baz,
+	bars []*Bar,
 ) {
 	baz.Inc()
 	for _, bar := range bars {
@@ -171,9 +163,9 @@ func (h *DependencyHandler) RequiredDependencySlice(
 }
 
 func (h *DependencyHandler) OptionalDependency(
-	policy  Handles,
-	bar    *Bar,
-	foo    *struct { Value *Foo `arg:"optional"` },
+	_ Handles,
+	bar *Bar,
+	foo *struct { Value *Foo `arg:"optional"` },
 ) {
 	bar.Inc()
 	if foo.Value != nil {
@@ -181,33 +173,54 @@ func (h *DependencyHandler) OptionalDependency(
 	}
 }
 
+func (h *DependencyHandler) OptionalDependencySlice(
+	_    Handles,
+	baz  *Baz,
+	bars *struct { Value []*Bar `arg:""` },
+) {
+	baz.Inc()
+	for _, bar := range bars.Value {
+		bar.Inc()
+	}
+}
+
+func (h *DependencyHandler) StrictDependency(
+	_    Handles,
+	bam  *Bam,
+	bars *struct { Value []*Bar `arg:"strict"` },
+) {
+	bam.Inc()
+	for _, bar := range bars.Value {
+		bar.Inc()
+	}
+}
 // InvalidHandler
 
 type InvalidHandler struct {}
 
 func (h *InvalidHandler) MissingCallback(
-	policy Handles,
+	_ Handles,
 ) {
 }
 
 func (h *InvalidHandler) TooManyReturnValues(
-	policy Handles,
-	bar    *Bar,
+	_ Handles,
+	bar *Bar,
 ) (int, string, Counter) {
 	return 0, "bad", nil
 }
 
 func (h *InvalidHandler) SecondReturnMustBeErrorOrHandleResult(
-	policy   Handles,
+	_ Handles,
 	counter *Counter,
 ) (Foo, string) {
 	return Foo{}, "bad"
 }
 
 func (h *InvalidHandler) UntypedInterfaceDependency(
-	policy Handles,
-	bar    *Bar,
-	any     interface{},
+	_ Handles,
+	bar *Bar,
+	any  interface{},
 ) HandleResult {
 	return Handled
 }
@@ -358,6 +371,35 @@ func (suite *HandlerTestSuite) TestHandles() {
 			suite.Equal(1, bar.Count())
 			suite.Equal(1, foo.Count())
 		})
+
+		suite.Run("OptionalSlice", func () {
+			baz    := new(Baz)
+			bars   := []interface{}{new(Bar), new(Bar)}
+			result := handler.Handle(baz, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(Handled, result)
+			suite.Equal(1, baz.Count())
+			result = With(handler, bars...).Handle(baz, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(Handled, result)
+			suite.Equal(2, baz.Count())
+			for _, bar := range bars {
+				suite.Equal(1, bar.(*Bar).Count())
+			}
+		})
+
+		suite.Run("StrictSlice", func () {
+			bam    := new(Bam)
+			bars1  := []interface{}{new(Bar), new(Bar)}
+			result := With(handler, bars1...).Handle(bam, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(NotHandled, result)
+			bars2  := []*Bar{new(Bar), new(Bar)}
+			result  = With(handler, bars2).Handle(bam, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(Handled, result)
+			suite.Equal(1, bam.Count())
+		})
 	})
 
 	suite.Run("Command", func () {
@@ -428,7 +470,7 @@ type FooProvider struct {
 	foo Foo
 }
 
-func (f *FooProvider) ProvideFoo(policy Provides) *Foo {
+func (f *FooProvider) ProvideFoo(_ Provides) *Foo {
 	f.foo.Inc()
 	return &f.foo
 }
@@ -437,15 +479,11 @@ func (f *FooProvider) ProvideFoo(policy Provides) *Foo {
 
 type ListProvider struct {}
 
-func (f *ListProvider) ProvideFooSlice(
-	policy Provides,
-) []*Foo {
+func (f *ListProvider) ProvideFooSlice(_ Provides) []*Foo {
 	return []*Foo{{Counted{1}}, {Counted{2}}}
 }
 
-func (f *ListProvider) ProvideFooArray(
-	policy Provides,
-) [2]*Bar {
+func (f *ListProvider) ProvideFooArray(_ Provides) [2]*Bar {
 	return [2]*Bar{{Counted{3}}, {Counted{4}}}
 }
 
@@ -456,16 +494,12 @@ type MultiProvider struct {
 	bar Bar
 }
 
-func (p *MultiProvider) ProvideFoo(
-	policy Provides,
-) *Foo {
+func (p *MultiProvider) ProvideFoo(_ Provides) *Foo {
 	p.foo.Inc()
 	return &p.foo
 }
 
-func (p *MultiProvider) ProvideBar(
-	policy Provides,
-) (*Bar, HandleResult) {
+func (p *MultiProvider) ProvideBar(_ Provides) (*Bar, HandleResult) {
 	if p.bar.Inc() % 3 == 0 {
 		return &p.bar, NotHandled.WithError(
 			fmt.Errorf("%v is divisible by 3", p.bar.Count()))
@@ -484,14 +518,14 @@ type SpecificationProvider struct{
 }
 
 func (p *SpecificationProvider) ProvidesFoo(
-	policy *struct { Provides },
+	_ *struct { Provides },
 ) *Foo {
 	p.foo.Inc()
 	return &p.foo
 }
 
 func (p *SpecificationProvider) ProvidesBar(
-	policy *struct { Provides `binding:"strict"` },
+	_ *struct { Provides `binding:"strict"` },
 ) []*Bar {
 	p.bar.Inc()
 	return []*Bar{&p.bar, {}}
@@ -500,7 +534,7 @@ func (p *SpecificationProvider) ProvidesBar(
 type GenericProvider struct{}
 
 func (p *GenericProvider) Provide(
-	policy   Provides,
+	_ Provides,
 	inquiry *Inquiry,
 ) interface{} {
 	if inquiry.Key() == reflect.TypeOf((*Foo)(nil)) {
@@ -516,38 +550,36 @@ func (p *GenericProvider) Provide(
 
 type InvalidProvider struct {}
 
-func (p *InvalidProvider) MissingReturnValue(
-	policy Provides,
-) {
+func (p *InvalidProvider) MissingReturnValue(_ Provides) {
 }
 
 func (p *InvalidProvider) TooManyReturnValues(
-	policy Provides,
+	_ Provides,
 ) (*Foo, string, Counter) {
 	return nil, "bad", nil
 }
 
 func (p *InvalidProvider) InvalidHandleResultReturnValue(
-	policy Provides,
+	_ Provides,
 ) HandleResult {
 	return Handled
 }
 
 func (p *InvalidProvider) InvalidErrorReturnValue(
-	policy Provides,
+	_ Provides,
 ) error {
 	return errors.New("not good")
 }
 
 func (p *InvalidProvider) SecondReturnMustBeErrorOrHandleResult(
-	policy Provides,
+	_ Provides,
 ) (*Foo, string) {
 	return &Foo{}, "bad"
 }
 
 func (p *InvalidProvider) UntypedInterfaceDependency(
-	policy Provides,
-	any    interface{},
+	_ Provides,
+	any interface{},
 ) *Foo {
 	return &Foo{}
 }
