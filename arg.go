@@ -83,9 +83,9 @@ const (
 )
 
 type dependencyArgSpec struct {
-	fieldIndex int
-	flags      dependencyArgFlags
-	resolver   DependencyArgResolver
+	argIndex int
+	flags    dependencyArgFlags
+	resolver DependencyArgResolver
 }
 
 type DependencyArgResolver interface {
@@ -107,15 +107,26 @@ func (d *dependencyArg) resolve(
 	if typ == _handlerType {
 		return reflect.ValueOf(composer), nil
 	}
-	if v := reflect.ValueOf(rawCallback); v.Type().AssignableTo(typ) {
-		return v, nil
+	if val := reflect.ValueOf(rawCallback); val.Type().AssignableTo(typ) {
+		return val, nil
 	}
+	argIndex := -1
+	var resolver DependencyArgResolver = &_defaultArgResolver
 	if spec := d.spec; spec != nil {
-		if resolver := spec.resolver; resolver != nil {
-			return resolver.Resolve(typ, rawCallback, d, composer)
+		argIndex = spec.argIndex
+		if spec.resolver != nil {
+			resolver = spec.resolver
 		}
 	}
-	return _defaultArgResolver.Resolve(typ, rawCallback, d, composer)
+	val, err := resolver.Resolve(typ, rawCallback, d, composer)
+	if err == nil {
+		if argIndex >= 0 {
+			wrapper := reflect.New(typ.Elem())
+			wrapper.Elem().Field(argIndex).Set(val)
+			return wrapper, nil
+		}
+	}
+	return val, err
 }
 
 type defaultDependencyArgResolver struct{}
@@ -126,15 +137,15 @@ func (r *defaultDependencyArgResolver) Resolve(
 	dep         *dependencyArg,
 	handler      Handler,
 ) (reflect.Value, error) {
-	argType := typ
-	fieldIndex := -1
+	argType  := typ
+	argIndex := -1
 	optional, strict := false, false
 
 	if spec := dep.spec; spec != nil {
-		fieldIndex = spec.fieldIndex
-		optional   = spec.flags & ArgOptional == ArgOptional
-		strict     = spec.flags & ArgStrict   == ArgStrict
-		argType    = typ.Elem().Field(fieldIndex).Type
+		argIndex = spec.argIndex
+		optional = spec.flags & ArgOptional == ArgOptional
+		strict   = spec.flags & ArgStrict   == ArgStrict
+		argType  = typ.Elem().Field(argIndex).Type
 	}
 
 	var inquiry *Inquiry
@@ -157,18 +168,13 @@ func (r *defaultDependencyArgResolver) Resolve(
 		} else if optional {
 			val = reflect.Zero(argType)
 		} else {
-			return reflect.ValueOf(nil),
-				fmt.Errorf("arg: unable to resolve dependency %v", argType)
-		}
-		if fieldIndex >= 0 {
-			wrapper := reflect.New(typ.Elem())
-			wrapper.Elem().Field(fieldIndex).Set(val)
-			return wrapper, nil
+			return reflect.ValueOf(nil), fmt.Errorf(
+				"arg: unable to resolve dependency %v", argType)
 		}
 		return val, nil
 	} else {
-		return reflect.ValueOf(nil),
-			fmt.Errorf("arg: unable to resolve dependency %v: %w", argType, err)
+		return reflect.ValueOf(nil), fmt.Errorf(
+			"arg: unable to resolve dependency %v: %w", argType, err)
 	}
 }
 
@@ -186,15 +192,15 @@ func inferDependencyArg(
 		if argType.Kind() == reflect.Struct && argType.Name() == "" {
 			var spec *dependencyArgSpec
 			if err := parseTaggedSpec(argType, &spec, depArgTagParsers); err == nil {
-				if spec == nil || spec.fieldIndex < 0 {
+				if spec == nil || spec.argIndex < 0 {
 					return &_dependencyArg, nil
 				}
 				dep := &dependencyArg{spec}
-				if spec.resolver != nil {
-					if v, ok := err.(interface {
-						Validate(*dependencyArg) error
+				if resolver := spec.resolver; resolver != nil {
+					if v, ok := resolver.(interface {
+						Validate(reflect.Type, *dependencyArg) error
 					}); ok {
-						if err := v.Validate(dep); err != nil {
+						if err := v.Validate(argType, dep); err != nil {
 							return nil, err
 						}
 					}
@@ -222,11 +228,13 @@ func parseDependencyArgOptions(
 			}
 			if argSpecPtr == nil {
 				argSpecPtr = new(dependencyArgSpec)
-				argSpecPtr.fieldIndex = index
+				argSpecPtr.argIndex = index
 				*argSpec = argSpecPtr
-			} else if (*argSpec).fieldIndex >= 0 {
+			} else if (*argSpec).argIndex >= 0 {
 				return fmt.Errorf(
-					"arg: field %v already esignated as the argument", index)
+					"arg: field %v already designated as the argument", index)
+			} else {
+				argSpecPtr.argIndex = index
 			}
 			options := strings.Split(arg, ",")
 			for _, opt := range options {
@@ -255,14 +263,14 @@ func parseDependencyArgResolver(
 		argSpecPtr := *argSpec
 		if argSpecPtr == nil {
 			argSpecPtr = new(dependencyArgSpec)
-			argSpecPtr.fieldIndex = -1
+			argSpecPtr.argIndex = -1
 			*argSpec = argSpecPtr
 		}
 		if field.Type.AssignableTo(_depArgResolverType) {
-			if argSpecPtr.resolver != nil {
+			if argSpecPtr.resolver == nil {
 				argSpecPtr.resolver = reflect.New(field.Type).Interface().(DependencyArgResolver)
 			} else {
-				err = errors.New("arg: only one resolver is permitted")
+				err = errors.New("arg: only one resolver is allowed")
 			}
 		}
 	}

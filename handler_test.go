@@ -133,7 +133,7 @@ func (h *EverythingHandler) HandleEverything(
 type SpecificationHandler struct{}
 
 func (h *SpecificationHandler) HandleFoo(
-	_ *struct { Handles `binding:"strict"` },
+	_ *struct{ Handles `binding:"strict"` },
 	foo *Foo,
 ) HandleResult {
 	foo.Inc()
@@ -151,7 +151,7 @@ func (h *DependencyHandler) RequiredDependency(_ Handles,
 	foo.Inc()
 }
 
-func (h *DependencyHandler) RequiredDependencySlice(
+func (h *DependencyHandler) RequiredSliceDependency(
 	_     Handles,
 	baz   *Baz,
 	bars []*Bar,
@@ -165,7 +165,7 @@ func (h *DependencyHandler) RequiredDependencySlice(
 func (h *DependencyHandler) OptionalDependency(
 	_ Handles,
 	bar *Bar,
-	foo *struct { Value *Foo `arg:"optional"` },
+	foo *struct{ Value *Foo `arg:"optional"` },
 ) {
 	bar.Inc()
 	if foo.Value != nil {
@@ -173,10 +173,10 @@ func (h *DependencyHandler) OptionalDependency(
 	}
 }
 
-func (h *DependencyHandler) OptionalDependencySlice(
+func (h *DependencyHandler) OptionalSliceDependency(
 	_    Handles,
 	baz  *Baz,
-	bars *struct { Value []*Bar `arg:""` },
+	bars *struct{ Value []*Bar `arg:""` },
 ) {
 	baz.Inc()
 	for _, bar := range bars.Value {
@@ -187,13 +187,61 @@ func (h *DependencyHandler) OptionalDependencySlice(
 func (h *DependencyHandler) StrictDependency(
 	_    Handles,
 	bam  *Bam,
-	bars *struct { Value []*Bar `arg:"strict"` },
+	bars *struct{ Value []*Bar `arg:"strict"` },
 ) {
 	bam.Inc()
 	for _, bar := range bars.Value {
 		bar.Inc()
 	}
 }
+
+type Config struct {
+	baseUrl string
+	timeout int
+}
+
+type Configuration struct {
+	config *Config
+}
+
+func (c Configuration) Validate(
+	typ  reflect.Type,
+	dep *dependencyArg,
+) error {
+	argType := typ.Field(dep.spec.argIndex).Type
+	if !reflect.TypeOf(c.config).AssignableTo(argType) {
+		return fmt.Errorf("the Configuration resolver expects a %T field", c.config)
+	}
+	return nil
+}
+
+func (c Configuration) Resolve(
+	typ          reflect.Type,
+	rawCallback  interface{},
+	dep         *dependencyArg,
+	handler      Handler,
+) (reflect.Value, error) {
+	if c.config == nil {
+		c.config = &Config{
+			baseUrl: "https://server/api",
+			timeout: 30000,
+		}
+	}
+	return reflect.ValueOf(c.config), nil
+}
+
+// DependencyResolverHandler
+
+type DependencyResolverHandler struct{}
+
+func (h *DependencyResolverHandler) UseDependencyResolver(_ Handles,
+	foo *Foo,
+	config *struct{ _ Configuration; Value *Config `arg:""`},
+) *Config {
+	foo.Inc()
+	return config.Value
+}
+
 // InvalidHandler
 
 type InvalidHandler struct {}
@@ -399,6 +447,21 @@ func (suite *HandlerTestSuite) TestHandles() {
 			suite.False(result.IsError())
 			suite.Equal(Handled, result)
 			suite.Equal(1, bam.Count())
+			for _, bar := range bars2 {
+				suite.Equal(1, bar.Count())
+			}
+		})
+
+		suite.Run("CustomResolver", func() {
+			handler := NewHandleContext(WithHandlers(new(DependencyResolverHandler)))
+			var config *Config
+			if err := Invoke(handler, new(Foo), &config); err == nil {
+				suite.NotNil(*config)
+				suite.Equal("https://server/api", config.baseUrl)
+				suite.Equal(30000, config.timeout)
+			} else {
+				suite.Failf("unexpected error: %v", err.Error())
+			}
 		})
 	})
 
@@ -518,14 +581,14 @@ type SpecificationProvider struct{
 }
 
 func (p *SpecificationProvider) ProvidesFoo(
-	_ *struct { Provides },
+	_ *struct{ Provides },
 ) *Foo {
 	p.foo.Inc()
 	return &p.foo
 }
 
 func (p *SpecificationProvider) ProvidesBar(
-	_ *struct { Provides `binding:"strict"` },
+	_ *struct{ Provides `binding:"strict"` },
 ) []*Bar {
 	p.bar.Inc()
 	return []*Bar{&p.bar, {}}

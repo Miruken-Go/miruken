@@ -32,8 +32,8 @@ func parseTaggedSpec(
 	parsers  []tagParser,
 ) (err error) {
 	for i := 0; i < specType.NumField(); i++ {
+		field := specType.Field(i)
 		for _, parser := range parsers {
-			field := specType.Field(i)
 			if invalid := parser.parseTag(i, field, spec); invalid != nil {
 				err = multierror.Append(err, invalid)
 			}
