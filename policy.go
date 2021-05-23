@@ -6,15 +6,35 @@ import (
 	"sync"
 )
 
+// Variance
+
+type Variance uint
+
+const(
+	Covariant Variance = iota
+	Contravariant
+	Invariant
+)
+
 // Policy
 
 type Policy interface {
 	OrderBinding
 	Variance() Variance
-
 	AcceptResults(
 		results []interface{},
 	) (result interface{}, accepted HandleResult)
+}
+
+func RegisterPolicy(policy Policy) Policy {
+	if policy == nil {
+		panic("policy cannot be nil")
+	}
+	policyType := reflect.TypeOf(policy).Elem()
+	if _, loaded := _policies.LoadOrStore(policyType, policy); loaded {
+		panic(fmt.Sprintf("policy: %T already registered", policyType))
+	}
+	return policy
 }
 
 func DispatchPolicy(
@@ -27,11 +47,6 @@ func DispatchPolicy(
 	composer    Handler,
 	results     ResultReceiver,
 ) HandleResult {
-	// The HandlerDescriptorFactory is resolved from a Handler
-	// so when requesting it, we don't want to resolve itself
-	if _, ok := callback.(*getHandlerDescriptorFactory); ok {
-		return NotHandled
-	}
 	if factory := GetHandlerDescriptorFactory(composer); factory != nil {
 		handlerType := reflect.TypeOf(handler)
 		if d, err := factory.GetHandlerDescriptor(handlerType); d != nil {
@@ -48,17 +63,6 @@ func DispatchPolicy(
 	return NotHandled
 }
 
-func RegisterPolicy(policy Policy) Policy {
-	if policy == nil {
-		panic("policy cannot be nil")
-	}
-	policyType := reflect.TypeOf(policy).Elem()
-	if _, loaded := _policies.LoadOrStore(policyType, policy); loaded {
-		panic(fmt.Sprintf("policy: %v already registered", policyType))
-	}
-	return policy
-}
-
 func isPolicy(typ reflect.Type) bool {
 	return reflect.PtrTo(typ).Implements(_policyType)
 }
@@ -70,42 +74,84 @@ func getPolicy(policyType reflect.Type) Policy {
 	return nil
 }
 
-func inferBinding(
-	bindingType reflect.Type,
-) (policy Policy, spec *methodSpec, err error) {
-	var policyType reflect.Type
+// policySpec
+
+type policySpec struct {
+	policy     Policy
+	strict     bool
+	constraint interface{}
+}
+
+func (s *policySpec) setPolicy(
+	policy Policy,
+) error {
+	s.policy = policy
+	return nil
+}
+
+func (s *policySpec) setStrict(
+	index  int,
+	field  reflect.StructField,
+	strict bool,
+) error {
+	s.strict = strict
+	return nil
+}
+
+var policyBuilders = []bindingBuilder{
+	bindingBuilderFunc(policyBindingBuilder),
+	bindingBuilderFunc(optionsBindingBuilder),
+}
+
+func buildPolicySpec(
+	policyType reflect.Type,
+) (spec *policySpec, err error) {
 	// Is it a policy type already?
-	if isPolicy(bindingType) {
-		policyType = bindingType
-		if policy = getPolicy(policyType); policy != nil {
-			return policy, new(methodSpec), nil
+	if isPolicy(policyType) {
+		if policy := getPolicy(policyType); policy != nil {
+			return &policySpec{policy: policy}, nil
 		}
 	}
-	// Is it a *Struct binding specification?
-	if bindingType.Kind() == reflect.Ptr {
-		bindingType = bindingType.Elem()
-		if bindingType.Kind() == reflect.Struct && bindingType.NumField() > 0 {
-			field := bindingType.Field(0)
-			if isPolicy(field.Type) {
-				policyType = field.Type
-				if policy = getPolicy(policyType); policy != nil {
-					spec = new(methodSpec)
-					err := configureBinding(bindingType, spec, methodBindingBuilders)
-					return policy, spec, err
+	// Is it a *Struct policy binding?
+	if policyType.Kind() != reflect.Ptr {
+		return spec, err
+	}
+	policyType = policyType.Elem()
+	if policyType.Kind() == reflect.Struct &&
+		policyType.Name() == "" &&  // anonymous
+		policyType.NumField() > 0 {
+		spec = new(policySpec)
+		if err = configureBinding(policyType, spec, policyBuilders);
+			err != nil || spec.policy == nil {
+			return nil, err
+		}
+	}
+	return spec, err
+}
+
+func policyBindingBuilder(
+	index   int,
+	field   reflect.StructField,
+	binding interface{},
+) (err error) {
+	if isPolicy(field.Type) {
+		if b, ok := binding.(interface {
+			setPolicy(policy Policy) error
+		}); ok {
+			if policy := getPolicy(field.Type); policy != nil {
+				if invalid := b.setPolicy(policy); invalid != nil {
+					err = fmt.Errorf(
+						"binding: policy %#v at index %v failed: %w",
+						policy, index, invalid)
 				}
+			} else {
+				err = fmt.Errorf(
+					"binding: policy %T at index %v not found.  Did you forget to call RegisterPolicy?",
+					_policyType, index)
 			}
 		}
 	}
-	if policyType != nil {
-		panic(fmt.Sprintf(
-			"policy: %v not found.  Did you forget to call RegisterPolicy?",
-			policyType))
-	}
-	return nil, nil, nil
-}
-
-var methodBindingBuilders = []bindingBuilder{
-	bindingBuilderFunc(optionsBindingBuilder),
+	return err
 }
 
 // Standard _policies

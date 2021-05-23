@@ -42,52 +42,27 @@ func (e *MethodBindingError) Error() string {
 		e.Method.Name, e.Method.Type, e.Reason)
 }
 
+func (e *MethodBindingError) Unwrap() error { return e.Reason }
+
+// methodBinder
+
 type methodBinder interface {
 	newMethodBinding(
 		method  reflect.Method,
-		spec   *methodSpec,
+		spec   *policySpec,
 	) (binding Binding, invalid error)
-}
-
-func (e *MethodBindingError) Unwrap() error { return e.Reason }
-
-// methodSpec
-
-type methodSpec struct {
-	strict     bool
-	constraint interface{}
-}
-
-func (s *methodSpec) bindingAt(
-	index  int,
-	field  reflect.StructField,
-) error {
-	if index != 0 {
-		return fmt.Errorf(
-			"method binding must be at index 0, found at %v", index)
-	}
-	return nil
-}
-
-func (s *methodSpec) setStrict(
-	index  int,
-	field  reflect.StructField,
-	strict bool,
-) error {
-	s.strict = strict
-	return nil
 }
 
 // methodBinding
 
 type methodBinding struct {
-	spec   *methodSpec
+	spec   *policySpec
 	method  reflect.Method
 	args    []arg
 }
 
 func (b *methodBinding) Strict() bool {
-	return b.spec != nil && b.spec.strict
+	return b.spec.strict
 }
 
 func (b *methodBinding) Constraint() interface{} {
@@ -246,20 +221,20 @@ func optionsBindingBuilder(
 			switch opt {
 			case "": break
 			case _strictOption:
-				if o, ok := binding.(interface {
+				if b, ok := binding.(interface {
 					setStrict(int, reflect.StructField, bool) error
 				}); ok {
-					if invalid := o.setStrict(index, field, true); invalid != nil {
+					if invalid := b.setStrict(index, field, true); invalid != nil {
 						err = multierror.Append(err, fmt.Errorf(
 							"binding: strict option on field %v (%v) failed: %w",
 							field.Name, index, invalid))
 					}
 				}
 			case _optionalOption:
-				if o, ok := binding.(interface {
+				if b, ok := binding.(interface {
 					setOptional(int, reflect.StructField, bool) error
 				}); ok {
-					if invalid := o.setOptional(index, field, true); invalid != nil {
+					if invalid := b.setOptional(index, field, true); invalid != nil {
 						err = multierror.Append(err, fmt.Errorf(
 							"binding: optional option on field %v (%v) failed: %w",
 							field.Name, index, invalid))

@@ -137,11 +137,11 @@ func (d *dependencyArg) resolve(
 	if typ == _handlerType {
 		return reflect.ValueOf(composer), nil
 	}
-	if val := reflect.ValueOf(rawCallback); val.Type().AssignableTo(typ) {
-		return val, nil
+	if rawType := reflect.TypeOf(rawCallback); rawType.AssignableTo(typ) {
+		return reflect.ValueOf(rawCallback), nil
 	}
 	argIndex := -1
-	var resolver DependencyResolver = &_defaultArgResolver
+	var resolver DependencyResolver = &_defaultResolver
 	if spec := d.spec; spec != nil {
 		argIndex = spec.index
 		if spec.resolver != nil {
@@ -221,40 +221,40 @@ func (r *defaultDependencyResolver) Resolve(
 	}
 }
 
-var dependencyBindingBuilders = []bindingBuilder{
+// Dependency bindings
+
+var dependencyBuilders = []bindingBuilder{
 	bindingBuilderFunc(optionsBindingBuilder),
 	bindingBuilderFunc(resolverBindingBuilder),
 }
 
-func inferDependencyArg(
+func buildDependency(
 	argType reflect.Type,
-) (*dependencyArg, error) {
-	// Is it a *Struct arg specification?
-	if argType.Kind() == reflect.Ptr {
-		argType = argType.Elem()
-		if argType.Kind() == reflect.Struct && argType.Name() == "" {
-			spec := &dependencySpec{index: -1}
-			if err := configureBinding(argType, spec, dependencyBindingBuilders); err == nil {
-				if spec.index < 0 {
-					return &_dependencyArg, nil
-				}
-				dep := &dependencyArg{spec}
-				if resolver := spec.resolver; resolver != nil {
-					if v, ok := resolver.(interface {
-						Validate(reflect.Type, *dependencyArg) error
-					}); ok {
-						if err := v.Validate(argType, dep); err != nil {
-							return nil, err
-						}
-					}
-				}
-				return dep, nil
-			} else {
-				return nil, err
+) (arg *dependencyArg, err error) {
+	// Is it a *Struct arg binding?
+	if argType.Kind() != reflect.Ptr {
+		return &_dependencyArg, nil
+	}
+	arg = &_dependencyArg
+	argType = argType.Elem()
+	if argType.Kind() == reflect.Struct &&
+		argType.Name() == "" &&  // anonymous
+		argType.NumField() > 0 {
+		spec := &dependencySpec{index: -1}
+		if err = configureBinding(argType, spec, dependencyBuilders);
+			err != nil || spec.index < 0 {
+			return arg, err
+		}
+		arg = &dependencyArg{spec}
+		if resolver := spec.resolver; resolver != nil {
+			if v, ok := resolver.(interface {
+				Validate(reflect.Type, *dependencyArg) error
+			}); ok {
+				err = v.Validate(argType, arg)
 			}
 		}
 	}
-	return &_dependencyArg, nil
+	return arg, err
 }
 
 func resolverBindingBuilder(
@@ -262,12 +262,17 @@ func resolverBindingBuilder(
 	field   reflect.StructField,
 	binding interface{},
 ) (err error) {
-	if field.Type.AssignableTo(_depArgResolverType) {
-		if o, ok := binding.(interface {
+	if field.Type.AssignableTo(_depResolverType) {
+		if b, ok := binding.(interface {
 			setResolver(resolver DependencyResolver) error
 		}); ok {
 			resolver := reflect.New(field.Type).Interface().(DependencyResolver)
-			if invalid := o.setResolver(resolver); invalid != nil {
+			if init, ok := resolver.(interface{
+				initWithTag(reflect.StructTag)
+			}); ok {
+				init.initWithTag(field.Tag)
+			}
+			if invalid := b.setResolver(resolver); invalid != nil {
 				err = multierror.Append(err, fmt.Errorf(
 					"binding: dependency resolver %#v at field %v (%v) failed: %w",
 					resolver, field.Name, index, invalid))
@@ -278,10 +283,11 @@ func resolverBindingBuilder(
 }
 
 var (
-	_zeroArg            = zeroArg{}
-	_callbackArg        = callbackArg{}
-	_receiverArg        = receiverArg{}
-	_dependencyArg      = dependencyArg{}
-	_depArgResolverType = reflect.TypeOf((*DependencyResolver)(nil)).Elem()
-	_defaultArgResolver = defaultDependencyResolver{}
+	_zeroArg         = zeroArg{}
+	_callbackArg     = callbackArg{}
+	_receiverArg     = receiverArg{}
+	_dependencyArg   = dependencyArg{}
+	_handlerType     = reflect.TypeOf((*Handler)(nil)).Elem()
+	_depResolverType = reflect.TypeOf((*DependencyResolver)(nil)).Elem()
+	_defaultResolver = defaultDependencyResolver{}
 )

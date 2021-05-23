@@ -67,7 +67,7 @@ func (p *covariantPolicy) Less(
 
 func (p *covariantPolicy) newMethodBinding(
 	method  reflect.Method,
-	spec   *methodSpec,
+	spec   *policySpec,
 
 ) (binding Binding, invalid error) {
 	methodType := method.Type
@@ -82,7 +82,7 @@ func (p *covariantPolicy) newMethodBinding(
 			invalid = multierror.Append(invalid, fmt.Errorf(
 				"covariant policy: %v dependency at index %v not allowed",
 				_interfaceType, i))
-		} else if arg, err := inferDependencyArg(argType); err == nil {
+		} else if arg, err := buildDependency(argType); err == nil {
 			args[i] = arg
 		} else {
 			invalid = multierror.Append(invalid, fmt.Errorf(
@@ -128,7 +128,7 @@ func (p *covariantPolicy) newMethodBinding(
 
 func validateCovariantReturn(
 	returnType  reflect.Type,
-	spec       *methodSpec,
+	spec       *policySpec,
 ) error {
 	switch returnType {
 	case _errorType, _handleResType:

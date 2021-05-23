@@ -179,7 +179,11 @@ func (f *mutableFactory) newHandlerDescriptor(
 		if methodType.NumIn() < 2 {
 			continue
 		}
-		if policy, spec, errSpec := inferBinding(methodType.In(1)); errSpec == nil {
+		if spec, err := buildPolicySpec(methodType.In(1)); err == nil {
+			if spec == nil {
+				continue
+			}
+			policy := spec.policy
 			if binder, ok := policy.(methodBinder); ok {
 				if binding, errBind := binder.newMethodBinding(method, spec); binding != nil {
 					policyBindings, found := bindings[policy]
@@ -196,7 +200,7 @@ func (f *mutableFactory) newHandlerDescriptor(
 				}
 			}
 		} else {
-			invalid = multierror.Append(invalid, errSpec)
+			invalid = multierror.Append(invalid, err)
 		}
 	}
 	if invalid != nil {

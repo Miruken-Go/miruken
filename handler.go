@@ -48,10 +48,13 @@ func DispatchCallback(
 	if handler == nil {
 		return NotHandled
 	}
+	if _, ok := callback.(interface{suppressDispatch()}); ok {
+		return NotHandled
+	}
 	if dispatch, ok := callback.(CallbackDispatcher); ok {
 		return dispatch.Dispatch(handler, greedy, composer)
 	}
-	command := NewCommand(callback,false)
+	command := NewCommand(callback, false)
 	return command.Dispatch(handler, greedy, composer)
 }
 
@@ -180,6 +183,8 @@ func (g *getHandlerDescriptorFactory) Handle(
 	return NotHandled
 }
 
+func (g *getHandlerDescriptorFactory) suppressDispatch() {}
+
 func GetHandlerDescriptorFactory(
 	handler Handler,
 ) HandlerDescriptorFactory {
@@ -236,7 +241,3 @@ func tryInitializeComposer(
 		*incoming = &compositionScope{receiver}
 	}
 }
-
-var (
-	_handlerType = reflect.TypeOf((*Handler)(nil)).Elem()
-)
