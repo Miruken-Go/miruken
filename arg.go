@@ -1,11 +1,9 @@
 package miruken
 
 import (
-	"errors"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"reflect"
-	"strings"
 	"unicode"
 )
 
@@ -69,32 +67,64 @@ func (a callbackArg) resolve(
 	return reflect.ValueOf(nil), fmt.Errorf("arg: unable to resolve callback: %v", typ)
 }
 
+// dependencySpec
+
+type dependencySpec struct {
+	index    int
+	flags    bindingFlags
+	resolver DependencyResolver
+}
+
+func (s *dependencySpec) bindingAt(
+	index  int,
+	field  reflect.StructField,
+) error {
+	if s.index >= 0 {
+		return fmt.Errorf(
+			"field index %v already designated as the dependency", s.index)
+	}
+	if unicode.IsLower(rune(field.Name[0])) {
+		return fmt.Errorf(
+			"field %v at index %v must start with an uppercase character",
+			field.Name, index)
+	}
+	s.index = index
+	return nil
+}
+
+func (s *dependencySpec) setStrict(
+	index  int,
+	field  reflect.StructField,
+	strict bool,
+) error {
+	s.flags = s.flags | bindingStrict
+	return nil
+}
+
+func (s *dependencySpec) setOptional(
+	index  int,
+	field  reflect.StructField,
+	strict bool,
+) error {
+	s.flags = s.flags | bindingOptional
+	return nil
+}
+
+func (s *dependencySpec) setResolver(
+	resolver DependencyResolver,
+) error {
+	if s.resolver != nil {
+		return fmt.Errorf(
+			"only one dependency resolver allowed, found %#v", resolver)
+	}
+	s.resolver = resolver
+	return nil
+}
+
 // dependencyArg
 
 type dependencyArg struct {
-	spec *dependencyArgSpec
-}
-
-type dependencyArgFlags uint8
-
-const (
-	ArgStrict dependencyArgFlags = 1 << iota
-	ArgOptional
-)
-
-type dependencyArgSpec struct {
-	argIndex int
-	flags    dependencyArgFlags
-	resolver DependencyArgResolver
-}
-
-type DependencyArgResolver interface {
-	Resolve(
-		typ          reflect.Type,
-		rawCallback  interface{},
-		dep         *dependencyArg,
-		handler      Handler,
-	) (reflect.Value, error)
+	spec *dependencySpec
 }
 
 func (d *dependencyArg) resolve(
@@ -111,9 +141,9 @@ func (d *dependencyArg) resolve(
 		return val, nil
 	}
 	argIndex := -1
-	var resolver DependencyArgResolver = &_defaultArgResolver
+	var resolver DependencyResolver = &_defaultArgResolver
 	if spec := d.spec; spec != nil {
-		argIndex = spec.argIndex
+		argIndex = spec.index
 		if spec.resolver != nil {
 			resolver = spec.resolver
 		}
@@ -129,9 +159,22 @@ func (d *dependencyArg) resolve(
 	return val, err
 }
 
-type defaultDependencyArgResolver struct{}
+// DependencyResolver
 
-func (r *defaultDependencyArgResolver) Resolve(
+type DependencyResolver interface {
+	Resolve(
+		typ          reflect.Type,
+		rawCallback  interface{},
+		dep         *dependencyArg,
+		handler      Handler,
+	) (reflect.Value, error)
+}
+
+// defaultDependencyResolver
+
+type defaultDependencyResolver struct{}
+
+func (r *defaultDependencyResolver) Resolve(
 	typ          reflect.Type,
 	rawCallback  interface{},
 	dep         *dependencyArg,
@@ -142,9 +185,9 @@ func (r *defaultDependencyArgResolver) Resolve(
 	optional, strict := false, false
 
 	if spec := dep.spec; spec != nil {
-		argIndex = spec.argIndex
-		optional = spec.flags & ArgOptional == ArgOptional
-		strict   = spec.flags & ArgStrict   == ArgStrict
+		argIndex = spec.index
+		optional = spec.flags &bindingOptional == bindingOptional
+		strict   = spec.flags &bindingStrict == bindingStrict
 		argType  = typ.Elem().Field(argIndex).Type
 	}
 
@@ -178,9 +221,9 @@ func (r *defaultDependencyArgResolver) Resolve(
 	}
 }
 
-var depArgTagParsers = []tagParser{
-	tagParserFunc(parseDependencyArgOptions),
-	tagParserFunc(parseDependencyArgResolver),
+var dependencyBindingBuilders = []bindingBuilder{
+	bindingBuilderFunc(optionsBindingBuilder),
+	bindingBuilderFunc(resolverBindingBuilder),
 }
 
 func inferDependencyArg(
@@ -190,9 +233,9 @@ func inferDependencyArg(
 	if argType.Kind() == reflect.Ptr {
 		argType = argType.Elem()
 		if argType.Kind() == reflect.Struct && argType.Name() == "" {
-			var spec *dependencyArgSpec
-			if err := parseTaggedSpec(argType, &spec, depArgTagParsers); err == nil {
-				if spec == nil || spec.argIndex < 0 {
+			spec := &dependencySpec{index: -1}
+			if err := configureBinding(argType, spec, dependencyBindingBuilders); err == nil {
+				if spec.index < 0 {
 					return &_dependencyArg, nil
 				}
 				dep := &dependencyArg{spec}
@@ -214,63 +257,20 @@ func inferDependencyArg(
 	return &_dependencyArg, nil
 }
 
-func parseDependencyArgOptions(
-	index int,
-	field reflect.StructField,
-	spec  interface{},
+func resolverBindingBuilder(
+	index   int,
+	field   reflect.StructField,
+	binding interface{},
 ) (err error) {
-	if argSpec, ok := spec.(**dependencyArgSpec); ok {
-		argSpecPtr := *argSpec
-		if  arg, ok := field.Tag.Lookup(_argTag); ok {
-			if unicode.IsLower(rune(field.Name[0])) {
-				return fmt.Errorf(
-					"arg: field %v at index %v must start with an uppercase character", field.Name, index)
-			}
-			if argSpecPtr == nil {
-				argSpecPtr = new(dependencyArgSpec)
-				argSpecPtr.argIndex = index
-				*argSpec = argSpecPtr
-			} else if (*argSpec).argIndex >= 0 {
-				return fmt.Errorf(
-					"arg: field %v already designated as the argument", index)
-			} else {
-				argSpecPtr.argIndex = index
-			}
-			options := strings.Split(arg, ",")
-			for _, opt := range options {
-				switch opt {
-				case "": break
-				case _strictOption:
-					argSpecPtr.flags = argSpecPtr.flags | ArgStrict
-				case _optionalOption:
-					argSpecPtr.flags = argSpecPtr.flags | ArgOptional
-				default:
-					err = multierror.Append(err, fmt.Errorf(
-						"arg: invalid option %q on field %v", opt, field.Name))
-				}
-			}
-		}
-	}
-	return err
-}
-
-func parseDependencyArgResolver(
-	index  int,
-	field  reflect.StructField,
-	spec   interface{},
-) (err error) {
-	if argSpec, ok := spec.(**dependencyArgSpec); ok {
-		argSpecPtr := *argSpec
-		if argSpecPtr == nil {
-			argSpecPtr = new(dependencyArgSpec)
-			argSpecPtr.argIndex = -1
-			*argSpec = argSpecPtr
-		}
-		if field.Type.AssignableTo(_depArgResolverType) {
-			if argSpecPtr.resolver == nil {
-				argSpecPtr.resolver = reflect.New(field.Type).Interface().(DependencyArgResolver)
-			} else {
-				err = errors.New("arg: only one resolver is allowed")
+	if field.Type.AssignableTo(_depArgResolverType) {
+		if o, ok := binding.(interface {
+			setResolver(resolver DependencyResolver) error
+		}); ok {
+			resolver := reflect.New(field.Type).Interface().(DependencyResolver)
+			if invalid := o.setResolver(resolver); invalid != nil {
+				err = multierror.Append(err, fmt.Errorf(
+					"binding: dependency resolver %#v at field %v (%v) failed: %w",
+					resolver, field.Name, index, invalid))
 			}
 		}
 	}
@@ -278,12 +278,10 @@ func parseDependencyArgResolver(
 }
 
 var (
-	_argTag             = "arg"
-	_optionalOption     = "optional"
 	_zeroArg            = zeroArg{}
 	_callbackArg        = callbackArg{}
 	_receiverArg        = receiverArg{}
 	_dependencyArg      = dependencyArg{}
-	_depArgResolverType = reflect.TypeOf((*DependencyArgResolver)(nil)).Elem()
-	_defaultArgResolver = defaultDependencyArgResolver{}
+	_depArgResolverType = reflect.TypeOf((*DependencyResolver)(nil)).Elem()
+	_defaultArgResolver = defaultDependencyResolver{}
 )

@@ -2,7 +2,9 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/hashicorp/go-multierror"
 	"reflect"
+	"strings"
 )
 
 // Binding
@@ -43,23 +45,43 @@ func (e *MethodBindingError) Error() string {
 type methodBinder interface {
 	newMethodBinding(
 		method  reflect.Method,
-		spec   *bindingSpec,
+		spec   *methodSpec,
 	) (binding Binding, invalid error)
 }
 
 func (e *MethodBindingError) Unwrap() error { return e.Reason }
 
-// bindingSpec
+// methodSpec
 
-type bindingSpec struct {
+type methodSpec struct {
 	strict     bool
 	constraint interface{}
+}
+
+func (s *methodSpec) bindingAt(
+	index  int,
+	field  reflect.StructField,
+) error {
+	if index != 0 {
+		return fmt.Errorf(
+			"method binding must be at index 0, found at %v", index)
+	}
+	return nil
+}
+
+func (s *methodSpec) setStrict(
+	index  int,
+	field  reflect.StructField,
+	strict bool,
+) error {
+	s.strict = strict
+	return nil
 }
 
 // methodBinding
 
 type methodBinding struct {
-	spec   *bindingSpec
+	spec   *methodSpec
 	method  reflect.Method
 	args    []arg
 }
@@ -156,3 +178,105 @@ func (b *constructorBinding) Invoke(
 	return nil
 }
 
+// Binding builders
+
+type bindingFlags uint8
+
+const (
+	bindingNone bindingFlags = 0
+	bindingStrict = 1 << iota
+	bindingOptional
+)
+
+type bindingBuilder interface {
+	configure(
+		index   int,
+		field   reflect.StructField,
+		binding interface{},
+	) error
+}
+
+type bindingBuilderFunc func (
+	index   int,
+	field   reflect.StructField,
+	binding interface{},
+) error
+
+func (b bindingBuilderFunc) configure(
+	index   int,
+	field   reflect.StructField,
+	binding interface{},
+) error {
+	return b(index, field, binding)
+}
+
+func configureBinding(
+	source   reflect.Type,
+	binding  interface{},
+	builders []bindingBuilder,
+) (err error) {
+	for i := 0; i < source.NumField(); i++ {
+		field := source.Field(i)
+		for _, builder := range builders {
+			if invalid := builder.configure(i, field, binding); invalid != nil {
+				err = multierror.Append(err, invalid)
+			}
+		}
+	}
+	return err
+}
+
+func optionsBindingBuilder(
+	index   int,
+	field   reflect.StructField,
+	binding interface{},
+) (err error) {
+	if  b, ok := field.Tag.Lookup(_bindingTag); ok {
+		if o, ok := binding.(interface {
+			bindingAt(int, reflect.StructField) error
+		}); ok {
+			if invalid := o.bindingAt(index, field); invalid != nil {
+				err = multierror.Append(err, fmt.Errorf(
+					"binding: on field %v (%v) failed: %w",
+					field.Name, index, invalid))
+			}
+		}
+		options := strings.Split(b, ",")
+		for _, opt := range options {
+			switch opt {
+			case "": break
+			case _strictOption:
+				if o, ok := binding.(interface {
+					setStrict(int, reflect.StructField, bool) error
+				}); ok {
+					if invalid := o.setStrict(index, field, true); invalid != nil {
+						err = multierror.Append(err, fmt.Errorf(
+							"binding: strict option on field %v (%v) failed: %w",
+							field.Name, index, invalid))
+					}
+				}
+			case _optionalOption:
+				if o, ok := binding.(interface {
+					setOptional(int, reflect.StructField, bool) error
+				}); ok {
+					if invalid := o.setOptional(index, field, true); invalid != nil {
+						err = multierror.Append(err, fmt.Errorf(
+							"binding: optional option on field %v (%v) failed: %w",
+							field.Name, index, invalid))
+					}
+				}
+			default:
+				err = multierror.Append(err, fmt.Errorf(
+					"binding: invalid option %q on field %v (%v) for binding %T",
+					opt, field.Name, index, reflect.TypeOf(binding)))
+			}
+		}
+	}
+	return err
+}
+
+var (
+	_bindingTag     = "bind"
+	_strictOption   = "strict"
+	_optionalOption = "optional"
+)

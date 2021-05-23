@@ -62,7 +62,7 @@ func (p *contravariantPolicy) Less(
 
 func (p *contravariantPolicy) newMethodBinding(
 	method  reflect.Method,
-	spec   *bindingSpec,
+	spec   *methodSpec,
 ) (binding Binding, invalid error) {
 	methodType := method.Type
 	numArgs    := methodType.NumIn()

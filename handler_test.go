@@ -133,7 +133,7 @@ func (h *EverythingHandler) HandleEverything(
 type SpecificationHandler struct{}
 
 func (h *SpecificationHandler) HandleFoo(
-	_ *struct{ Handles `binding:"strict"` },
+	_ *struct{ Handles `bind:"strict"` },
 	foo *Foo,
 ) HandleResult {
 	foo.Inc()
@@ -165,7 +165,7 @@ func (h *DependencyHandler) RequiredSliceDependency(
 func (h *DependencyHandler) OptionalDependency(
 	_ Handles,
 	bar *Bar,
-	foo *struct{ Value *Foo `arg:"optional"` },
+	foo *struct{ Value *Foo `bind:"optional"` },
 ) {
 	bar.Inc()
 	if foo.Value != nil {
@@ -176,7 +176,7 @@ func (h *DependencyHandler) OptionalDependency(
 func (h *DependencyHandler) OptionalSliceDependency(
 	_    Handles,
 	baz  *Baz,
-	bars *struct{ Value []*Bar `arg:""` },
+	bars *struct{ Value []*Bar `bind:""` },
 ) {
 	baz.Inc()
 	for _, bar := range bars.Value {
@@ -187,7 +187,7 @@ func (h *DependencyHandler) OptionalSliceDependency(
 func (h *DependencyHandler) StrictDependency(
 	_    Handles,
 	bam  *Bam,
-	bars *struct{ Value []*Bar `arg:"strict"` },
+	bars *struct{ Value []*Bar `bind:"strict"` },
 ) {
 	bam.Inc()
 	for _, bar := range bars.Value {
@@ -208,7 +208,7 @@ func (c Configuration) Validate(
 	typ  reflect.Type,
 	dep *dependencyArg,
 ) error {
-	argType := typ.Field(dep.spec.argIndex).Type
+	argType := typ.Field(dep.spec.index).Type
 	if !reflect.TypeOf(c.config).AssignableTo(argType) {
 		return fmt.Errorf("the Configuration resolver expects a %T field", c.config)
 	}
@@ -236,7 +236,7 @@ type DependencyResolverHandler struct{}
 
 func (h *DependencyResolverHandler) UseDependencyResolver(_ Handles,
 	foo *Foo,
-	config *struct{ _ Configuration; Value *Config `arg:""`},
+	config *struct{ _ Configuration; Value *Config `bind:""`},
 ) *Config {
 	foo.Inc()
 	return config.Value
@@ -588,7 +588,7 @@ func (p *SpecificationProvider) ProvidesFoo(
 }
 
 func (p *SpecificationProvider) ProvidesBar(
-	_ *struct{ Provides `binding:"strict"` },
+	_ *struct{ Provides `bind:"strict"` },
 ) []*Bar {
 	p.bar.Inc()
 	return []*Bar{&p.bar, {}}

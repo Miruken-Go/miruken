@@ -67,7 +67,7 @@ func (p *covariantPolicy) Less(
 
 func (p *covariantPolicy) newMethodBinding(
 	method  reflect.Method,
-	spec   *bindingSpec,
+	spec   *methodSpec,
 
 ) (binding Binding, invalid error) {
 	methodType := method.Type
@@ -128,7 +128,7 @@ func (p *covariantPolicy) newMethodBinding(
 
 func validateCovariantReturn(
 	returnType  reflect.Type,
-	spec       *bindingSpec,
+	spec       *methodSpec,
 ) error {
 	switch returnType {
 	case _errorType, _handleResType:

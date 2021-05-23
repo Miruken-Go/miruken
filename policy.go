@@ -2,9 +2,7 @@ package miruken
 
 import (
 	"fmt"
-	"github.com/hashicorp/go-multierror"
 	"reflect"
-	"strings"
 	"sync"
 )
 
@@ -74,13 +72,13 @@ func getPolicy(policyType reflect.Type) Policy {
 
 func inferBinding(
 	bindingType reflect.Type,
-) (policy Policy, spec *bindingSpec, err error) {
+) (policy Policy, spec *methodSpec, err error) {
 	var policyType reflect.Type
 	// Is it a policy type already?
 	if isPolicy(bindingType) {
 		policyType = bindingType
 		if policy = getPolicy(policyType); policy != nil {
-			return policy, new(bindingSpec), nil
+			return policy, new(methodSpec), nil
 		}
 	}
 	// Is it a *Struct binding specification?
@@ -91,8 +89,8 @@ func inferBinding(
 			if isPolicy(field.Type) {
 				policyType = field.Type
 				if policy = getPolicy(policyType); policy != nil {
-					spec = new(bindingSpec)
-					err := parseTaggedSpec(bindingType, spec, bindingTagParsers)
+					spec = new(methodSpec)
+					err := configureBinding(bindingType, spec, methodBindingBuilders)
 					return policy, spec, err
 				}
 			}
@@ -106,39 +104,14 @@ func inferBinding(
 	return nil, nil, nil
 }
 
-var bindingTagParsers = []tagParser{tagParserFunc(parseBindingOptions)}
-
-func parseBindingOptions(
-	index  int,
-	field  reflect.StructField,
-	spec   interface{},
-) (err error) {
-	if index != 0 {
-		return nil
-	}
-	if bindingSpec, ok := spec.(*bindingSpec); ok {
-		if  binding, ok := field.Tag.Lookup(_bindingTag); ok {
-			options := strings.Split(binding, ",")
-			for _, opt := range options {
-				switch opt {
-				case _strictOption:
-					bindingSpec.strict = true
-				default:
-					err = multierror.Append(err, fmt.Errorf(
-						"binding: invalid option %q on field %v", opt, field.Name))
-				}
-			}
-		}
-	}
-	return err
+var methodBindingBuilders = []bindingBuilder{
+	bindingBuilderFunc(optionsBindingBuilder),
 }
 
 // Standard _policies
 
 var (
 	_policies       sync.Map
-	_bindingTag     = "binding"
-	_strictOption   = "strict"
 	_interfaceType  = reflect.TypeOf((*interface{})(nil)).Elem()
 	_policyType     = reflect.TypeOf((*Policy)(nil)).Elem()
 	_handleResType  = reflect.TypeOf((*HandleResult)(nil)).Elem()
