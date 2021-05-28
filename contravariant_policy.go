@@ -67,14 +67,15 @@ func (p *contravariantPolicy) newMethodBinding(
 	methodType := method.Type
 	numArgs    := methodType.NumIn()
 	args       := make([]arg, numArgs)
+	constraint := spec.constraint
 
 	args[0] = _receiverArg
 	args[1] = _zeroArg  // policy/binding placeholder
 
 	// Callback argument must be present
 	if numArgs > 2 {
-		if spec.constraint == nil {
-			spec.constraint = methodType.In(2)
+		if constraint == nil {
+			constraint = methodType.In(2)
 		}
 		args[2] = _callbackArg
 	} else {
@@ -116,8 +117,8 @@ func (p *contravariantPolicy) newMethodBinding(
 	}
 
 	return &methodBinding{
-		spec:   spec,
-		method: method,
-		args:   args,
+		methodInvoke{method, args},
+		constraint,
+		spec.flags,
 	}, nil
 }

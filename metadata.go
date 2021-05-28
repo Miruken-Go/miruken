@@ -172,31 +172,60 @@ func (f *mutableFactory) newHandlerDescriptor(
 	descriptor = &HandlerDescriptor{
 		handlerType: handlerType,
 	}
-	bindings := make(map[Policy]*PolicyBindings)
+	bindings    := make(map[Policy]*PolicyBindings)
+	getBindings := func (policy Policy) *PolicyBindings {
+		policyBindings, found := bindings[policy]
+		if !found {
+			policyBindings = newPolicyBindings(policy)
+			bindings[policy] = policyBindings
+		}
+		return policyBindings
+	}
+	// Provide constructors implicitly
+	provides := ProvidesPolicy()
+	var initMethod *reflect.Method
+	var initSpec   *policySpec
+	if method, ok := handlerType.MethodByName("init"); ok {
+		initMethod = &method
+		initMethodType := initMethod.Type
+		if spec, err := buildPolicySpec(initMethodType.In(1)); err == nil {
+			initSpec = spec
+		} else {
+			invalid = multierror.Append(invalid, err)
+		}
+	}
+	if binder, ok := provides.(constructorBinder); ok {
+		if ctor, err := binder.newConstructorBinding(
+				handlerType, initMethod, initSpec); err == nil {
+			if f.visitor != nil {
+				f.visitor.VisitHandlerBinding(descriptor, ctor)
+			}
+			getBindings(provides).insert(ctor)
+		} else {
+			invalid = multierror.Append(invalid, err)
+		}
+	}
+	// Add callback bindings explicitly
 	for i := 0; i < handlerType.NumMethod(); i++ {
 		method     := handlerType.Method(i)
 		methodType := method.Type
 		if methodType.NumIn() < 2 {
-			continue
+			continue // must have a policy/spec
 		}
 		if spec, err := buildPolicySpec(methodType.In(1)); err == nil {
-			if spec == nil {
+			if spec == nil { // not a handler method
 				continue
 			}
-			policy := spec.policy
-			if binder, ok := policy.(methodBinder); ok {
-				if binding, errBind := binder.newMethodBinding(method, spec); binding != nil {
-					policyBindings, found := bindings[policy]
-					if !found {
-						policyBindings = newPolicyBindings(policy)
-						bindings[policy] = policyBindings
+			for _, policy := range spec.policies {
+				if binder, ok := policy.(methodBinder); ok {
+					if binding, errBind := binder.newMethodBinding(method, spec); binding != nil {
+						if f.visitor != nil {
+							f.visitor.VisitHandlerBinding(descriptor, binding)
+						}
+						getBindings(policy).insert(binding)
+					} else if errBind != nil {
+						invalid = multierror.Append(invalid, errBind)
 					}
-					if f.visitor != nil {
-						f.visitor.VisitHandlerBinding(descriptor, binding)
-					}
-					policyBindings.insert(binding)
-				} else if errBind != nil {
-					invalid = multierror.Append(invalid, errBind)
 				}
 			}
 		} else {

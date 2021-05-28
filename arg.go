@@ -137,8 +137,10 @@ func (d *dependencyArg) resolve(
 	if typ == _handlerType {
 		return reflect.ValueOf(composer), nil
 	}
-	if rawType := reflect.TypeOf(rawCallback); rawType.AssignableTo(typ) {
-		return reflect.ValueOf(rawCallback), nil
+	if rawCallback != nil {
+		if rawType := reflect.TypeOf(rawCallback); rawType.AssignableTo(typ) {
+			return reflect.ValueOf(rawCallback), nil
+		}
 	}
 	argIndex := -1
 	var resolver DependencyResolver = &_defaultResolver

@@ -120,9 +120,9 @@ func (p *covariantPolicy) newMethodBinding(
 	}
 
 	return &methodBinding{
-		spec:   spec,
-		method: method,
-		args:   args,
+		methodInvoke{method, args},
+		spec.constraint,
+		spec.flags,
 	}, nil
 }
 
@@ -137,7 +137,7 @@ func validateCovariantReturn(
 			_errorType, _handleResType)
 	default:
 		if spec.constraint == nil {
-			if !spec.strict {
+			if spec.flags & bindingStrict != bindingStrict {
 				switch returnType.Kind() {
 				case reflect.Slice, reflect.Array:
 					spec.constraint = returnType.Elem()

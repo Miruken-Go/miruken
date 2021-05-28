@@ -48,11 +48,11 @@ func DispatchCallback(
 	if handler == nil {
 		return NotHandled
 	}
-	if _, ok := callback.(interface{suppressDispatch()}); ok {
+	switch d := callback.(type) {
+	case CallbackDispatcher:
+		return d.Dispatch(handler, greedy, composer)
+	case interface{ suppressDispatch() }:
 		return NotHandled
-	}
-	if dispatch, ok := callback.(CallbackDispatcher); ok {
-		return dispatch.Dispatch(handler, greedy, composer)
 	}
 	command := NewCommand(callback, false)
 	return command.Dispatch(handler, greedy, composer)
@@ -161,9 +161,7 @@ func NewHandleContext(
 	return root
 }
 
-// getHandlerDescriptorFactory is a special Handler to resolve the
-// current HandlerDescriptorFactory
-
+// getHandlerDescriptorFactory resolves the current HandlerDescriptorFactory
 type getHandlerDescriptorFactory struct {
 	factory HandlerDescriptorFactory
 }
@@ -194,8 +192,9 @@ func GetHandlerDescriptorFactory(
 }
 
 type handleContextOptions struct {
-	handlers []interface{}
-	factory  HandlerDescriptorFactory
+	handlers     []interface{}
+	handlerTypes []reflect.Type
+	factory      HandlerDescriptorFactory
 }
 
 type HandleContextOption interface {
@@ -211,6 +210,12 @@ func (f handleContextOptionFunc) applyHandleContextOption(
 func WithHandlers(handlers ... interface{}) HandleContextOption {
 	return handleContextOptionFunc(func (opts *handleContextOptions) {
 		opts.handlers = append(opts.handlers, handlers...)
+	})
+}
+
+func WithHandlerTypes(handlerTypes ... reflect.Type) HandleContextOption {
+	return handleContextOptionFunc(func (opts *handleContextOptions) {
+		opts.handlerTypes = append(opts.handlerTypes, handlerTypes...)
 	})
 }
 

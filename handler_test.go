@@ -8,6 +8,8 @@ import (
 	"testing"
 )
 
+//go:generate $GOPATH/bin/miruken-types -tests
+
 type Counter interface {
 	Count() int
 	Inc() int
@@ -33,7 +35,13 @@ type Bam struct { Counted }
 
 // FooHandler
 
-type FooHandler struct {}
+type FooHandler struct {
+	initialized bool
+}
+
+func (h *FooHandler) init() {
+	h.initialized = true
+}
 
 func (h *FooHandler) Handle(
 	callback interface{},
@@ -755,6 +763,10 @@ func (suite *HandlerTestSuite) TestProvides() {
 		})
 	})
 
+	suite.Run("Constructor", func () {
+		//handler := NewHandleContext(WithHandlerTypes(Mir))
+	})
+
 	suite.Run("ResolveAll", func () {
 		suite.Run("Invariant", func () {
 			handler := NewHandleContext(WithHandlers(
@@ -819,6 +831,10 @@ func (suite *HandlerTestSuite) TestProvides() {
 
 		NewHandleContext(WithHandlers(new(InvalidProvider)))
 	})
+}
+
+func (suite *HandlerTestSuite) TestScanning() {
+
 }
 
 func TestHandlerTestSuite(t *testing.T) {

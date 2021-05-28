@@ -77,15 +77,15 @@ func getPolicy(policyType reflect.Type) Policy {
 // policySpec
 
 type policySpec struct {
-	policy     Policy
-	strict     bool
+	policies   []Policy
+	flags      bindingFlags
 	constraint interface{}
 }
 
-func (s *policySpec) setPolicy(
+func (s *policySpec) addPolicy(
 	policy Policy,
 ) error {
-	s.policy = policy
+	s.policies = append(s.policies, policy)
 	return nil
 }
 
@@ -94,7 +94,7 @@ func (s *policySpec) setStrict(
 	field  reflect.StructField,
 	strict bool,
 ) error {
-	s.strict = strict
+	s.flags = s.flags | bindingStrict
 	return nil
 }
 
@@ -109,7 +109,7 @@ func buildPolicySpec(
 	// Is it a policy type already?
 	if isPolicy(policyType) {
 		if policy := getPolicy(policyType); policy != nil {
-			return &policySpec{policy: policy}, nil
+			return &policySpec{policies: []Policy{policy}}, nil
 		}
 	}
 	// Is it a *Struct policy binding?
@@ -122,7 +122,7 @@ func buildPolicySpec(
 		policyType.NumField() > 0 {
 		spec = new(policySpec)
 		if err = configureBinding(policyType, spec, policyBuilders);
-			err != nil || spec.policy == nil {
+			err != nil || len(spec.policies) == 0 {
 			return nil, err
 		}
 	}
@@ -136,10 +136,10 @@ func policyBindingBuilder(
 ) (err error) {
 	if isPolicy(field.Type) {
 		if b, ok := binding.(interface {
-			setPolicy(policy Policy) error
+			addPolicy(policy Policy) error
 		}); ok {
 			if policy := getPolicy(field.Type); policy != nil {
-				if invalid := b.setPolicy(policy); invalid != nil {
+				if invalid := b.addPolicy(policy); invalid != nil {
 					err = fmt.Errorf(
 						"binding: policy %#v at index %v failed: %w",
 						policy, index, invalid)
@@ -177,10 +177,24 @@ func HandlesPolicy() Policy { return _handles }
 type Provides struct {
 	covariantPolicy
 }
+func (p *Provides) newConstructorBinding(
+	handlerType  reflect.Type,
+	initMethod  *reflect.Method,
+	spec        *policySpec,
+) (binding Binding, invalid error) {
+	return newConstructorBinding(handlerType, initMethod, spec)
+}
 func ProvidesPolicy() Policy { return _provides }
 
 // Creates policy for creating instances covariantly.
 type Creates struct {
 	covariantPolicy
+}
+func (p *Creates) newConstructorBinding(
+	handlerType  reflect.Type,
+	initMethod  *reflect.Method,
+	spec        *policySpec,
+) (binding Binding, invalid error) {
+	return newConstructorBinding(handlerType, initMethod, spec)
 }
 func CreatesPolicy() Policy { return _creates }
