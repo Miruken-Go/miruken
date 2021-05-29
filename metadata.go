@@ -8,29 +8,104 @@ import (
 	"sync"
 )
 
-// PolicyBindings
+// policyBindings
 
-type PolicyBindings struct {
-	order     OrderBinding
-	bindings *list.List
+type (
+	policyBindings struct {
+		order OrderBinding
+		typed *list.List
+		index map[reflect.Type]*list.Element
+		invar map[interface{}][]Binding
+	}
+
+	BindingReducer func(
+		binding Binding,
+		result  HandleResult,
+	) (HandleResult, bool)
+)
+
+func (p *policyBindings) indexOf(typ reflect.Type) *list.Element {
+	return p.index[typ]
 }
 
-func (p *PolicyBindings) insert(binding Binding) {
-	p.bindings.PushBack(binding)
+func (p *policyBindings) insert(binding Binding) {
+	constraint := binding.Constraint()
+	if typ, ok := constraint.(reflect.Type); ok {
+		if typ == _interfaceType {
+			p.typed.PushBack(binding)
+			return
+		}
+		indexedElem := p.index[typ]
+		insert := indexedElem
+		if insert == nil {
+			insert = p.typed.Front()
+		}
+		for insert != nil && !p.order.Less(binding, insert.Value.(Binding)) {
+			insert = insert.Next()
+		}
+		var elem *list.Element
+		if insert != nil {
+			elem = p.typed.InsertBefore(binding, insert)
+		} else {
+			elem = p.typed.PushBack(binding)
+		}
+		if indexedElem == nil {
+			p.index[typ] = elem
+		}
+	} else {
+		if p.invar == nil {
+			p.invar = make(map[interface{}][]Binding)
+			p.invar[constraint] = []Binding{binding}
+		} else {
+			bindings := append(p.invar[constraint], binding)
+			p.invar[constraint] = bindings
+		}
+	}
 }
 
-func newPolicyBindings(order OrderBinding) *PolicyBindings {
+func (p *policyBindings) reduce(
+	constraint interface{},
+	reduce     BindingReducer,
+) (result HandleResult) {
+	done := false
+	result = NotHandled
+	if typ, ok := constraint.(reflect.Type); ok {
+		elem := p.indexOf(typ)
+		if elem == nil {
+			elem = p.typed.Front()
+		}
+		for !done && elem != nil {
+			result, done = reduce(elem.Value.(Binding), result)
+			elem = elem.Next()
+		}
+	} else if p.invar != nil {
+		if bs := p.invar[constraint]; bs != nil {
+			for _, b := range bs {
+				result, done = reduce(b, result)
+				if done { break }
+			}
+		}
+	}
+	return result
+}
+
+func newPolicyBindings(order OrderBinding) *policyBindings {
 	if order == nil {
 		panic("order cannot be nil")
 	}
-	return &PolicyBindings{order, list.New()}
+	return &policyBindings{
+		order,
+		list.New(),
+		make(map[reflect.Type]*list.Element),
+		nil,
+	}
 }
 
 // HandlerDescriptor
 
 type HandlerDescriptor struct {
 	handlerType reflect.Type
-	bindings    map[Policy]*PolicyBindings
+	bindings    map[Policy]*policyBindings
 }
 
 func (d *HandlerDescriptor) Dispatch(
@@ -43,7 +118,6 @@ func (d *HandlerDescriptor) Dispatch(
 	composer    Handler,
 	results     ResultReceiver,
 ) (result HandleResult) {
-	result = NotHandled
 	if pb, found := d.bindings[policy]; found {
 		if constraint == nil {
 			switch typ := callback.(type) {
@@ -51,20 +125,25 @@ func (d *HandlerDescriptor) Dispatch(
 			default: constraint = reflect.TypeOf(callback)
 			}
 		}
-		for e := pb.bindings.Front(); e != nil; e = e.Next() {
+		return pb.reduce(constraint, func (
+			binding Binding,
+			result  HandleResult,
+		) (HandleResult, bool) {
 			if result.stop || (result.handled && !greedy) {
-				return result
+				return result, true
 			}
-			binding := e.Value.(Binding)
 			if binding.Matches(constraint, policy.Variance()) {
-				var approved bool
-				var reset func (rawCallback interface{})
 				if guard, ok := rawCallback.(CallbackGuard); ok {
-					if reset, approved = guard.CanDispatch(handler, binding); !approved {
-						continue
-					}
+					reset, approve := guard.CanDispatch(handler, binding)
+					defer func() {
+						if reset != nil {
+							reset(rawCallback)
+						}
+					}()
+					if !approve { return result, false }
 				}
-				if out, err := binding.Invoke(handler, callback, rawCallback, composer); err == nil {
+				if out, err := binding.Invoke(
+						handler, callback, rawCallback, composer); err == nil {
 					res, accepted := policy.AcceptResults(out)
 					if accepted.IsHandled() && results != nil &&
 						results.ReceiveResult(res, binding.Strict(), greedy, composer) {
@@ -72,13 +151,11 @@ func (d *HandlerDescriptor) Dispatch(
 					}
 					result = result.Or(accepted)
 				}
-				if reset != nil {
-					reset(rawCallback)
-				}
 			}
-		}
+			return result, false
+		})
 	}
-	return result
+	return NotHandled
 }
 
 // HandlerDescriptorError
@@ -172,8 +249,8 @@ func (f *mutableFactory) newHandlerDescriptor(
 	descriptor = &HandlerDescriptor{
 		handlerType: handlerType,
 	}
-	bindings    := make(map[Policy]*PolicyBindings)
-	getBindings := func (policy Policy) *PolicyBindings {
+	bindings    := make(map[Policy]*policyBindings)
+	getBindings := func (policy Policy) *policyBindings {
 		policyBindings, found := bindings[policy]
 		if !found {
 			policyBindings = newPolicyBindings(policy)
@@ -205,7 +282,7 @@ func (f *mutableFactory) newHandlerDescriptor(
 			invalid = multierror.Append(invalid, err)
 		}
 	}
-	// Add callback bindings explicitly
+	// Add callback typed explicitly
 	for i := 0; i < handlerType.NumMethod(); i++ {
 		method     := handlerType.Method(i)
 		methodType := method.Type
@@ -282,3 +359,34 @@ func WithHandlerDescriptorVisitor(
 		factory.visitor = visitor
 	})
 }
+
+func GetHandlerDescriptorFactory(
+	handler Handler,
+) HandlerDescriptorFactory {
+	get := &getHandlerDescriptorFactory{}
+	handler.Handle(get, false, handler)
+	return get.factory
+}
+
+// getHandlerDescriptorFactory resolves the current HandlerDescriptorFactory
+type getHandlerDescriptorFactory struct {
+	factory HandlerDescriptorFactory
+}
+
+func (g *getHandlerDescriptorFactory) Handle(
+	callback interface{},
+	greedy   bool,
+	composer Handler,
+) HandleResult {
+	if comp, ok := callback.(*composition); ok {
+		callback = comp.callback
+	}
+	if getFactory, ok := callback.(*getHandlerDescriptorFactory); ok {
+		getFactory.factory = g.factory
+		return Handled
+	}
+	return NotHandled
+}
+
+func (g *getHandlerDescriptorFactory) suppressDispatch() {}
+

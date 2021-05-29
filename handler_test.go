@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-//go:generate $GOPATH/bin/miruken-types -tests
+//go:generate $GOPATH/bin/mirukentypes -tests
 
 type Counter interface {
 	Count() int
@@ -290,7 +290,8 @@ func (suite *HandlerTestSuite) SetupTest() {
 
 func (suite *HandlerTestSuite) TestHandles() {
 	suite.Run("Invariant", func () {
-		handler := NewHandleContext(WithHandlers(new(FooHandler), new(BarHandler)))
+		handler := Build(NewRootHandler(),
+			WithHandlers(new(FooHandler), new(BarHandler)))
 		foo     := new(Foo)
 		result  := handler.Handle(foo, false, nil)
 		suite.False(result.IsError())
@@ -299,7 +300,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 	})
 
 	suite.Run("Covariant", func () {
-		handler := NewHandleContext(WithHandlers(new(CounterHandler)))
+		handler := Build(NewRootHandler(), WithHandlers(new(CounterHandler)))
 		foo    := new(Foo)
 		result := handler.Handle(foo, false, nil)
 		suite.False(result.IsError())
@@ -308,8 +309,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 	})
 
 	suite.Run("HandleResult", func () {
-		handler := NewHandleContext(WithHandlers(new(CounterHandler)))
-
+		handler := Build(NewRootHandler(), WithHandlers(new(CounterHandler)))
 		suite.Run("Handled", func() {
 			foo := new(Foo)
 			foo.Inc()
@@ -330,7 +330,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 	suite.Run("Multiple", func () {
 		multi   := new(MultiHandler)
-		handler := NewHandleContext(WithHandlers(multi))
+		handler := Build(NewRootHandler(), WithHandlers(multi))
 		foo     := new(Foo)
 
 		for i := 0; i < 4; i++ {
@@ -351,7 +351,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 	})
 
 	suite.Run("Everything", func () {
-		handler := NewHandleContext(WithHandlers(new(EverythingHandler)))
+		handler := Build(NewRootHandler(), WithHandlers(new(EverythingHandler)))
 
 		suite.Run("Invariant", func () {
 			foo    := new(Foo)
@@ -372,7 +372,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 	})
 
 	suite.Run("Specification", func () {
-		handler := NewHandleContext(WithHandlers(new(SpecificationHandler)))
+		handler := Build(NewRootHandler(), WithHandlers(new(SpecificationHandler)))
 		suite.Run("Strict", func() {
 			foo    := new(Foo)
 			result := handler.Handle(foo, false, nil)
@@ -383,8 +383,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 	})
 
 	suite.Run("Dependencies", func () {
-		handler := NewHandleContext(WithHandlers(new(DependencyHandler)))
-
+		handler := Build(NewRootHandler(), WithHandlers(new(DependencyHandler)))
 		suite.Run("Required", func () {
 			defer func() {
 				if r := recover(); r != nil {
@@ -401,7 +400,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 		suite.Run("RequiredSlice", func () {
 			baz    := new(Baz)
 			bars   := []interface{}{new(Bar), new(Bar)}
-			result := With(handler, bars...).Handle(baz, false, nil)
+			result := Build(handler, With(bars...)).Handle(baz, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(Handled, result)
 			suite.Equal(1, baz.Count())
@@ -421,7 +420,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 		suite.Run("OptionalWithValue", func () {
 			bar    := new(Bar)
 			foo    := new(Foo)
-			result := With(handler, foo).Handle(bar, false, nil)
+			result := Build(handler, With(foo)).Handle(bar, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(Handled, result)
 			suite.Equal(1, bar.Count())
@@ -435,7 +434,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 			suite.False(result.IsError())
 			suite.Equal(Handled, result)
 			suite.Equal(1, baz.Count())
-			result = With(handler, bars...).Handle(baz, false, nil)
+			result = Build(handler, With(bars...)).Handle(baz, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(Handled, result)
 			suite.Equal(2, baz.Count())
@@ -447,11 +446,11 @@ func (suite *HandlerTestSuite) TestHandles() {
 		suite.Run("StrictSlice", func () {
 			bam    := new(Bam)
 			bars1  := []interface{}{new(Bar), new(Bar)}
-			result := With(handler, bars1...).Handle(bam, false, nil)
+			result := Build(handler, With(bars1...)).Handle(bam, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(NotHandled, result)
 			bars2  := []*Bar{new(Bar), new(Bar)}
-			result  = With(handler, bars2).Handle(bam, false, nil)
+			result  = Build(handler, With(bars2)).Handle(bam, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(Handled, result)
 			suite.Equal(1, bam.Count())
@@ -461,7 +460,8 @@ func (suite *HandlerTestSuite) TestHandles() {
 		})
 
 		suite.Run("CustomResolver", func() {
-			handler := NewHandleContext(WithHandlers(new(DependencyResolverHandler)))
+			handler := Build(NewRootHandler(),
+				WithHandlers(new(DependencyResolverHandler)))
 			var config *Config
 			if err := Invoke(handler, new(Foo), &config); err == nil {
 				suite.NotNil(*config)
@@ -474,8 +474,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 	})
 
 	suite.Run("Command", func () {
-		handler := NewHandleContext(WithHandlers(new(CounterHandler)))
-
+		handler := Build(NewRootHandler(), WithHandlers(new(CounterHandler)))
 		suite.Run("Invoke", func () {
 			suite.Run("Invariant", func() {
 				var foo *Foo
@@ -500,9 +499,8 @@ func (suite *HandlerTestSuite) TestHandles() {
 		})
 
 		suite.Run("InvokeAll", func () {
-			handler := NewHandleContext(WithHandlers(
-				new(CounterHandler), new(SpecificationHandler)))
-
+			handler := Build(NewRootHandler(),
+				WithHandlers(new(CounterHandler),  new(SpecificationHandler)))
 			suite.Run("Invariant", func () {
 				var foo []*Foo
 				if err := InvokeAll(handler, new(Foo), &foo); err == nil {
@@ -532,7 +530,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 				}
 			}
 		}()
-		NewHandleContext(WithHandlers(new(InvalidHandler)))
+		Build(NewRootHandler(), WithHandlers(new(InvalidHandler)))
 	})
 }
 
@@ -657,7 +655,7 @@ func (p *InvalidProvider) UntypedInterfaceDependency(
 
 func (suite *HandlerTestSuite) TestProvides() {
 	suite.Run("Implied", func () {
-		handler := NewHandleContext(WithHandlers(new(FooProvider)))
+		handler := Build(NewRootHandler(), WithHandlers(new(FooProvider)))
 		var fooProvider *FooProvider
 		err := Resolve(handler, &fooProvider)
 		suite.Nil(err)
@@ -665,7 +663,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 	})
 
 	suite.Run("Invariant", func () {
-		handler := NewHandleContext(WithHandlers(new(FooProvider)))
+		handler := Build(NewRootHandler(), WithHandlers(new(FooProvider)))
 		var foo *Foo
 		err := Resolve(handler, &foo)
 		suite.Nil(err)
@@ -673,7 +671,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 	})
 
 	suite.Run("Covariant", func () {
-		handler := NewHandleContext(WithHandlers(new(FooProvider)))
+		handler := Build(NewRootHandler(), WithHandlers(new(FooProvider)))
 		var counter Counter
 		err := Resolve(handler, &counter)
 		suite.Nil(err)
@@ -684,7 +682,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 	})
 
 	suite.Run("NotHandledReturnNil", func () {
-		handler := NewHandleContext()
+		handler := NewRootHandler()
 		var foo *Foo
 		err := Resolve(handler, &foo)
 		suite.Nil(err)
@@ -692,7 +690,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 	})
 
 	suite.Run("Generic", func () {
-		handler := NewHandleContext(WithHandlers(new(GenericProvider)))
+		handler := Build(NewRootHandler(), WithHandlers(new(GenericProvider)))
 		var foo *Foo
 		err := Resolve(handler, &foo)
 		suite.Nil(err)
@@ -704,7 +702,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 	})
 
 	suite.Run("Multiple", func () {
-		handler := NewHandleContext(WithHandlers(new(MultiProvider)))
+		handler := Build(NewRootHandler(), WithHandlers(new(MultiProvider)))
 		var foo *Foo
 		err := Resolve(handler, &foo)
 		suite.Nil(err)
@@ -722,7 +720,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 	})
 
 	suite.Run("Specification", func () {
-		handler := NewHandleContext(WithHandlers(new(SpecificationProvider)))
+		handler := Build(NewRootHandler(), WithHandlers(new(SpecificationProvider)))
 
 		suite.Run("Invariant", func () {
 			var foo *Foo
@@ -746,7 +744,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 	})
 
 	suite.Run("Lists", func () {
-		handler := NewHandleContext(WithHandlers(new(ListProvider)))
+		handler := Build(NewRootHandler(), WithHandlers(new(ListProvider)))
 
 		suite.Run("Slice", func () {
 			var foo *Foo
@@ -764,13 +762,20 @@ func (suite *HandlerTestSuite) TestProvides() {
 	})
 
 	suite.Run("Constructor", func () {
-		//handler := NewHandleContext(WithHandlerTypes(Mir))
+		handler := Build(NewRootHandler(), WithHandlerTypes(HandlerTestTypes...))
+
+		suite.Run("NoInit", func () {
+			var fooProvider *FooProvider
+			err := Resolve(handler, &fooProvider)
+			suite.Nil(err)
+		})
 	})
 
 	suite.Run("ResolveAll", func () {
 		suite.Run("Invariant", func () {
-			handler := NewHandleContext(WithHandlers(
+			handler := Build(NewRootHandler(), WithHandlers(
 				new(FooProvider), new(MultiProvider), new (SpecificationProvider)))
+
 			var foo []*Foo
 			if err := ResolveAll(handler, &foo); err == nil {
 				suite.NotNil(foo)
@@ -782,7 +787,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 		})
 
 		suite.Run("Covariant", func () {
-			handler := NewHandleContext(WithHandlers(new(ListProvider)))
+			handler := Build(NewRootHandler(), WithHandlers(new(ListProvider)))
 			var counted []Counter
 			if err := ResolveAll(handler, &counted); err == nil {
 				suite.NotNil(counted)
@@ -793,7 +798,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 		})
 
 		suite.Run("Empty", func () {
-			handler := NewHandleContext(WithHandlers(new(FooProvider)))
+			handler := Build(NewRootHandler(), WithHandlers(new(FooProvider)))
 			var bars []*Bar
 			err := ResolveAll(handler, &bars)
 			suite.Nil(err)
@@ -802,12 +807,12 @@ func (suite *HandlerTestSuite) TestProvides() {
 	})
 
 	suite.Run("With", func () {
-		handler := NewHandleContext()
+		handler := NewRootHandler()
 		var fooProvider *FooProvider
 		err := Resolve(handler, &fooProvider)
 		suite.Nil(err)
 		suite.Nil(fooProvider)
-		err = Resolve(With(handler, new(FooProvider)), &fooProvider)
+		err = Resolve(Build(handler, With(new(FooProvider))), &fooProvider)
 		suite.Nil(err)
 		suite.NotNil(fooProvider)
 	})
@@ -829,7 +834,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 			}
 		}()
 
-		NewHandleContext(WithHandlers(new(InvalidProvider)))
+		Build(NewRootHandler(), WithHandlers(new(InvalidProvider)))
 	})
 }
 

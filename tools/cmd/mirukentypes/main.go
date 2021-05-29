@@ -25,8 +25,8 @@ var (
 
 func init() {
     flag.BoolVar(&norecursFlag, "norecurs", false, "skip sub-directories")
-    flag.StringVar(&outputFlag, "output", "miruken_types", "name of the generated .go file")
-    flag.StringVar(&suffixFlag, "suffix", "", "name suffixFlag's to match types")
+    flag.StringVar(&outputFlag, "output", "mirukentypes", "name of the generated .go file")
+    flag.StringVar(&suffixFlag, "suffix", "", "suffix of types to emit or * for all")
     flag.BoolVar(&stdoutFlag, "stdout", false, "write to stdout")
     flag.BoolVar(&testsFlag, "tests", false, "generate test types")
     flag.BoolVar(&unexportFlag, "unexported", false, "include unexported names")
@@ -36,10 +36,17 @@ func main() {
     flag.Parse()
 
     outFile := strings.TrimSuffix(outputFlag, ".go")
+
     var suffixes []string
-    if suffixFlag == "" {
-        suffixes = []string{"Handler","Provider","Validator"}
-    } else {
+    switch suffixFlag {
+    case "":
+        suffixes = []string{
+            "Handler", "Provider","Consumer","Receiver","Validator",
+            "Filter",
+        }
+    case "*": // everything
+        break
+    default:
         suffixes = strings.Split(suffixFlag, ",")
     }
 
@@ -115,8 +122,8 @@ func parseDir(
         _, _ = fmt.Fprintln(&buf, "")
 
         // Types
-        _, _ = fmt.Fprintf(&buf, "var %s = map[string]reflect.Type{\n", varName)
-        printTo(&buf, pkg, ast.Typ, "\t\"%s\": reflect.TypeOf((*%s)(nil)).Elem(),\n", suffixes)
+        _, _ = fmt.Fprintf(&buf, "var %s = []reflect.Type{\n", varName)
+        printTo(&buf, pkg, ast.Typ, "\treflect.TypeOf((*%s)(nil)).Elem(),\n", suffixes)
         _, _ = fmt.Fprintln(&buf, "}")
         _, _ = fmt.Fprintln(&buf, "")
 
@@ -168,10 +175,14 @@ func printTo(
             if object.Kind == kind && (unexportFlag || ast.IsExported(name)) {
                 if spec := object.Decl.(*ast.TypeSpec); spec != nil {
                     if _, ok := spec.Type.(*ast.StructType); ok {
-                        for _, suffix := range suffixes {
-                            if strings.HasSuffix(name, suffix) {
-                                names = append(names, name)
-                                break
+                        if suffixes == nil {
+                            names = append(names, name)
+                        } else {
+                            for _, suffix := range suffixes {
+                                if strings.HasSuffix(name, suffix) {
+                                    names = append(names, name)
+                                    break
+                                }
                             }
                         }
                     }
@@ -181,6 +192,6 @@ func printTo(
     }
     sort.Strings(names)
     for _, name := range names {
-        _, _ = fmt.Fprintf(w, format, name, name)
+        _, _ = fmt.Fprintf(w, format, name)
     }
 }

@@ -4,17 +4,19 @@ import (
 	"reflect"
 )
 
-type Callback interface {
-	ResultType() reflect.Type
-	SetResult(result interface{})
-	Result() interface{}
-}
+type (
+	Callback interface {
+		ResultType() reflect.Type
+		SetResult(result interface{})
+		Result() interface{}
+	}
 
-type CallbackBase struct {
-	many     bool
-	results  []interface{}
-	result   interface{}
-}
+	CallbackBase struct {
+		many    bool
+		results []interface{}
+		result  interface{}
+	}
+)
 
 func (c *CallbackBase) Many() bool {
 	return c.many

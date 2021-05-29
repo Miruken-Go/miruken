@@ -223,7 +223,7 @@ func (r *defaultDependencyResolver) Resolve(
 	}
 }
 
-// Dependency bindings
+// Dependency typed
 
 var dependencyBuilders = []bindingBuilder{
 	bindingBuilderFunc(optionsBindingBuilder),
