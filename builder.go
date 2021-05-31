@@ -150,9 +150,10 @@ func tryInitializeComposer(
 	}
 }
 
-func NewRootHandler() Handler {
+func NewRootHandler(builders ... Builder) Handler {
 	factory := NewMutableHandlerDescriptorFactory()
-	return &getHandlerDescriptorFactory{factory}
+	var handler Handler = &getHandlerDescriptorFactory{factory}
+	return Build(handler, builders...)
 }
 
 func normalizeHandlers(handlers []interface{}) []Handler {
