@@ -40,7 +40,7 @@ func (t *Trampoline) Policy() Policy {
 func (t *Trampoline) CanDispatch(
 	handler interface{},
 	binding Binding,
-) (reset func (interface{}), approved bool) {
+) (reset func (), approved bool) {
 	if cb := t.callback; cb != nil {
 		if guard, ok := cb.(CallbackGuard); ok {
 			return guard.CanDispatch(handler, binding)
@@ -61,6 +61,7 @@ func (t *Trampoline) Dispatch(
 	if cb := t.callback; cb != nil {
 		return DispatchCallback(handler, cb, greedy, composer)
 	}
-	command := NewCommand(callback, false)
-	return command.Dispatch(handler, greedy, composer)
+	return new(CommandBuilder).
+		WithCallback(callback).
+		NewCommand().Dispatch(handler, greedy, composer)
 }

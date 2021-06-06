@@ -5,16 +5,19 @@ import (
 )
 
 type (
+	// Callback represents an action
 	Callback interface {
 		ResultType() reflect.Type
 		SetResult(result interface{})
 		Result() interface{}
 	}
 
+	// CallbackBase is abstract Callback implementation
 	CallbackBase struct {
 		many    bool
 		results []interface{}
 		result  interface{}
+		accept  AcceptResult
 	}
 )
 
@@ -56,6 +59,39 @@ func (c *CallbackBase) CopyResult(target interface{}) {
 	}
 }
 
+func (c *CallbackBase) AcceptResult(
+	result   interface{},
+	greedy   bool,
+	composer Handler,
+) bool {
+	if c.accept != nil {
+		return c.accept.Accept(result, greedy, composer)
+	}
+	return true
+}
+
+type CallbackBuilder struct {
+	many   bool
+	accept AcceptResult
+}
+
+func (b *CallbackBuilder) WithMany() *CallbackBuilder {
+	b.many = true
+	return b
+}
+
+func (b *CallbackBuilder) WithAcceptResult(
+	accept AcceptResult,
+) *CallbackBuilder {
+	b.accept = accept
+	return b
+}
+
+func (b *CallbackBuilder) Callback() CallbackBase {
+	return CallbackBase{many: b.many, accept: b.accept}
+}
+
+// CallbackDispatcher allows customized Callback dispatch
 type CallbackDispatcher interface {
 	Policy() Policy
 
@@ -66,13 +102,15 @@ type CallbackDispatcher interface {
 	) HandleResult
 }
 
+// CallbackGuard prevents circular actions
 type CallbackGuard interface {
 	CanDispatch(
 		handler interface{},
 		binding Binding,
-	) (reset func (rawCallback interface{}), approved bool)
+	) (reset func (), approved bool)
 }
 
+// ResultReceiver defines acceptance criteria of results
 type ResultReceiver interface {
 	ReceiveResult(
 		results  interface{},
@@ -97,3 +135,23 @@ func (f ResultReceiverFunc) ReceiveResult(
 ) (accepted bool) {
 	return f(results, strict, greedy, composer)
 }
+
+type AcceptResult interface {
+	Accept(
+		result   interface{},
+		greedy   bool,
+		composer Handler,
+	) bool
+}
+
+type AcceptResultFunc func (
+	result   interface{},
+	greedy   bool,
+	composer Handler,
+) bool
+
+func (f AcceptResultFunc) Accept(
+	result   interface{},
+	greedy   bool,
+	composer Handler,
+) bool { return f(result, greedy, composer)}

@@ -55,6 +55,8 @@ func DispatchCallback(
 	case interface{ suppressDispatch() }:
 		return NotHandled
 	}
-	command := NewCommand(callback, false)
-	return command.Dispatch(handler, greedy, composer)
+	return new(CommandBuilder).
+		WithCallback(callback).
+		NewCommand().
+		Dispatch(handler, greedy, composer)
 }

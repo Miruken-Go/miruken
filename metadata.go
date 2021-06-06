@@ -137,7 +137,7 @@ func (d *HandlerDescriptor) Dispatch(
 					reset, approve := guard.CanDispatch(handler, binding)
 					defer func() {
 						if reset != nil {
-							reset(rawCallback)
+							reset()
 						}
 					}()
 					if !approve { return result, false }

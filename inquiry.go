@@ -28,18 +28,18 @@ func (i *Inquiry) ReceiveResult(
 	greedy   bool,
 	composer Handler,
 ) (accepted bool) {
-	return i.include(result, strict)
+	return i.include(result, strict, greedy, composer)
 }
 
 func (i *Inquiry) CanDispatch(
 	handler interface{},
 	binding Binding,
-) (reset func (interface{}), approved bool) {
+) (reset func (), approved bool) {
 	if i.inProgress(handler, binding) {
 		return nil, false
 	}
-	return func(h interface{}, b Binding) func (interface{}) {
-		return func (interface{}) {
+	return func(h interface{}, b Binding) func () {
+		return func () {
 			i.handler = h
 			i.binding = b
 		}
@@ -91,35 +91,70 @@ func (i *Inquiry) Resolve(
 func (i *Inquiry) include(
 	resolution interface{},
 	strict     bool,
+	greedy     bool,
+	composer   Handler,
 ) (included bool) {
 	if resolution == nil {
 		return false
 	}
 	if strict {
-		i.results = append(i.results, resolution)
-		return true
+		if included = i.AcceptResult(resolution, greedy, composer); included {
+			i.results = append(i.results, resolution)
+		}
+		return included
 	}
 	switch reflect.TypeOf(resolution).Kind() {
 	case reflect.Slice, reflect.Array:
 		forEach(resolution, func(idx int, value interface{}) {
 			if value != nil {
-				i.results = append(i.results, value)
-				included  = true
+				if inc := i.AcceptResult(value, greedy, composer); inc {
+					i.results = append(i.results, value)
+					included  = true
+				}
 			}
 		})
 	default:
-		i.results = append(i.results, resolution)
-		included  = true
+		if included = i.AcceptResult(resolution, greedy, composer); included {
+			i.results = append(i.results, resolution)
+		}
 	}
 	return included
 }
 
-func NewInquiry(key interface{}, many bool, parent *Inquiry) *Inquiry {
-	var inquiry = new(Inquiry)
-	inquiry.key    = key
-	inquiry.many   = many
-	inquiry.parent = parent
-	return inquiry
+type InquiryBuilder struct {
+	CallbackBuilder
+	key      interface{}
+	parent  *Inquiry
+}
+
+func (b *InquiryBuilder) WithKey(
+	key interface{},
+) *InquiryBuilder {
+	b.key = key
+	return b
+}
+
+func (b *InquiryBuilder) WithParent(
+	parent *Inquiry,
+) *InquiryBuilder {
+	b.parent = parent
+	return b
+}
+
+func (b *InquiryBuilder) Inquiry() Inquiry {
+	return Inquiry{
+		CallbackBase: b.Callback(),
+		key:          b.key,
+		parent:       b.parent,
+	}
+}
+
+func (b *InquiryBuilder) NewInquiry() *Inquiry {
+	return &Inquiry{
+		CallbackBase: b.Callback(),
+		key:          b.key,
+		parent:       b.parent,
+	}
 }
 
 func Resolve(handler Handler, target interface{}) error {
@@ -127,7 +162,9 @@ func Resolve(handler Handler, target interface{}) error {
 		panic("handler cannot be nil")
 	}
 	tv       := TargetValue(target)
-	inquiry  := NewInquiry(tv.Type().Elem(), false, nil)
+	inquiry  := new(InquiryBuilder).
+		WithKey(tv.Type().Elem()).
+		NewInquiry()
 	if result := handler.Handle(inquiry, false, nil); result.IsError() {
 		return result.Error()
 	}
@@ -140,7 +177,10 @@ func ResolveAll(handler Handler, target interface{}) error {
 		panic("handler cannot be nil")
 	}
 	tv      := TargetSliceValue(target)
-	inquiry := NewInquiry(tv.Type().Elem().Elem(), true, nil)
+	builder := new(InquiryBuilder).
+		WithKey(tv.Type().Elem().Elem())
+	builder.WithMany()
+	inquiry := builder.NewInquiry()
 	if result := handler.Handle(inquiry, true, nil); result.IsError() {
 		return result.Error()
 	}

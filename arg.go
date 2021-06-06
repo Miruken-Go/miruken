@@ -7,8 +7,7 @@ import (
 	"unicode"
 )
 
-// arg
-
+// arg represents an parameter to a function
 type arg interface {
 	resolve(
 		typ         reflect.Type,
@@ -19,8 +18,7 @@ type arg interface {
 	) (reflect.Value, error)
 }
 
-// receiverArg
-
+// receiverArg is the receiver of the function call
 type receiverArg struct {}
 
 func (a receiverArg) resolve(
@@ -33,8 +31,7 @@ func (a receiverArg) resolve(
 	return reflect.ValueOf(receiver), nil
 }
 
-// zeroArg
-
+// zeroArg returns the Zero value of the argument type
 type zeroArg struct {}
 
 func (a zeroArg) resolve(
@@ -47,8 +44,7 @@ func (a zeroArg) resolve(
 	return reflect.Zero(typ), nil
 }
 
-// callbackArg
-
+// callbackArg returns the callback or raw callback
 type callbackArg struct {}
 
 func (a callbackArg) resolve(
@@ -67,8 +63,7 @@ func (a callbackArg) resolve(
 	return reflect.ValueOf(nil), fmt.Errorf("arg: unable to resolve callback: %v", typ)
 }
 
-// dependencySpec
-
+// dependencySpec collects metadata for a dependency
 type dependencySpec struct {
 	index    int
 	flags    bindingFlags
@@ -121,8 +116,7 @@ func (s *dependencySpec) setResolver(
 	return nil
 }
 
-// dependencyArg
-
+// dependencyArg is a parameter resolved at runtime
 type dependencyArg struct {
 	spec *dependencySpec
 }
@@ -161,8 +155,7 @@ func (d *dependencyArg) resolve(
 	return val, err
 }
 
-// DependencyResolver
-
+// DependencyResolver defines how an argument value is retrieved
 type DependencyResolver interface {
 	Resolve(
 		typ          reflect.Type,
@@ -172,8 +165,7 @@ type DependencyResolver interface {
 	) (reflect.Value, error)
 }
 
-// defaultDependencyResolver
-
+// defaultDependencyResolver retrieves the value from the Handler
 type defaultDependencyResolver struct{}
 
 func (r *defaultDependencyResolver) Resolve(
@@ -195,13 +187,15 @@ func (r *defaultDependencyResolver) Resolve(
 
 	var inquiry *Inquiry
 	parent, _ := rawCallback.(*Inquiry)
+	builder := new(InquiryBuilder).WithParent(parent)
 
 	if !strict && argType.Kind() == reflect.Slice {
-		inquiry = NewInquiry(argType.Elem(), true, parent)
+		builder.WithKey(argType.Elem()).WithMany()
 	} else {
-		inquiry = NewInquiry(argType, false, parent)
+		builder.WithKey(argType)
 	}
 
+	inquiry = builder.NewInquiry()
 	if result, err := inquiry.Resolve(handler); err == nil {
 		var val reflect.Value
 		if inquiry.Many() {

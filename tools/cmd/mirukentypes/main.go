@@ -37,16 +37,18 @@ func main() {
 
     outFile := strings.TrimSuffix(outputFlag, ".go")
 
-    var suffixes []string
-    switch suffixFlag {
-    case "":
-        suffixes = []string{
-            "Handler", "Provider","Consumer","Receiver","Validator",
-            "Filter",
+    suffixes := []string{
+        "Handler", "Provider", "Consumer", "Receiver",
+        "Validator", "Filter",
+    }
+
+    if suffixFlag == "*" {
+        suffixes = nil
+    } else if strings.HasPrefix(suffixFlag, "+") {
+        if suffixFlag != "+" {
+            suffixes = append(suffixes, strings.Split(suffixFlag[1:], ",")...)
         }
-    case "*": // everything
-        break
-    default:
+    } else if suffixFlag != "" {
         suffixes = strings.Split(suffixFlag, ",")
     }
 

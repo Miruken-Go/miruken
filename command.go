@@ -30,7 +30,7 @@ func (c *Command) ReceiveResult(
 func (c *Command) CanDispatch(
 	handler     interface{},
 	binding     Binding,
-) (reset func (interface{}), approved bool) {
+) (reset func (), approved bool) {
 	if guard, ok := c.callback.(CallbackGuard); ok {
 		return guard.CanDispatch(handler, binding)
 	}
@@ -47,11 +47,23 @@ func (c *Command) Dispatch(
 		OtherwiseHandledIf(len(c.results) > count)
 }
 
-func NewCommand(callback interface{}, many bool) *Command {
-	var command = new(Command)
-	command.callback = callback
-	command.many     = many
-	return command
+type CommandBuilder struct {
+	CallbackBuilder
+	callback interface{}
+}
+
+func (b *CommandBuilder) WithCallback(
+	callback interface{},
+) *CommandBuilder {
+	b.callback = callback
+	return b
+}
+
+func (b *CommandBuilder) NewCommand() *Command {
+	return &Command{
+		CallbackBase: b.Callback(),
+		callback: b.callback,
+	}
 }
 
 func Invoke(handler Handler, callback interface{}, target interface{}) error {
@@ -59,7 +71,9 @@ func Invoke(handler Handler, callback interface{}, target interface{}) error {
 		panic("handler cannot be nil")
 	}
 	tv      := TargetValue(target)
-	command := NewCommand(callback, false)
+	command := new(CommandBuilder).
+		WithCallback(callback).
+		NewCommand()
 	if result := handler.Handle(command, false, nil); result.IsError() {
 		return result.Error()
 	} else if !result.handled {
@@ -74,7 +88,9 @@ func InvokeAll(handler Handler, callback interface{}, target interface{}) error 
 		panic("handler cannot be nil")
 	}
 	tv      := TargetSliceValue(target)
-	command := NewCommand(callback, true)
+	builder := new(CommandBuilder).WithCallback(callback)
+	builder.WithMany()
+	command := builder.NewCommand()
 	if result := handler.Handle(command, true, nil); result.IsError() {
 		return result.Error()
 	} else if !result.handled {
