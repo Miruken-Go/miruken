@@ -37,6 +37,18 @@ func RegisterPolicy(policy Policy) Policy {
 	return policy
 }
 
+type PolicyDispatch interface {
+	DispatchPolicy(
+		policy      Policy,
+		callback    interface{},
+		rawCallback interface{},
+		constraint  interface{},
+		greedy      bool,
+		composer    Handler,
+		results     ResultReceiver,
+	) HandleResult
+}
+
 func DispatchPolicy(
 	policy      Policy,
 	handler     interface{},
@@ -47,6 +59,11 @@ func DispatchPolicy(
 	composer    Handler,
 	results     ResultReceiver,
 ) HandleResult {
+	if dp, ok := handler.(PolicyDispatch); ok {
+		return dp.DispatchPolicy(
+			policy, callback, rawCallback,
+			constraint, greedy, composer, results)
+	}
 	if factory := GetHandlerDescriptorFactory(composer); factory != nil {
 		handlerType := reflect.TypeOf(handler)
 		if d, err := factory.GetHandlerDescriptor(handlerType); d != nil {

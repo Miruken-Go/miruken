@@ -8,8 +8,6 @@ import (
 	"sync"
 )
 
-// policyBindings
-
 type (
 	policyBindings struct {
 		order OrderBinding
@@ -23,10 +21,6 @@ type (
 		result  HandleResult,
 	) (HandleResult, bool)
 )
-
-func (p *policyBindings) indexOf(typ reflect.Type) *list.Element {
-	return p.index[typ]
-}
 
 func (p *policyBindings) insert(binding Binding) {
 	constraint := binding.Constraint()
@@ -70,7 +64,7 @@ func (p *policyBindings) reduce(
 	done := false
 	result = NotHandled
 	if typ, ok := constraint.(reflect.Type); ok {
-		elem := p.indexOf(typ)
+		elem := p.index[typ]
 		if elem == nil {
 			elem = p.typed.Front()
 		}
@@ -101,11 +95,22 @@ func newPolicyBindings(order OrderBinding) *policyBindings {
 	}
 }
 
-// HandlerDescriptor
+// policyBindingsMap represents a mapping from Policy to Binding's.
+type policyBindingsMap map[Policy]*policyBindings
 
+func (p policyBindingsMap) getBindings(policy Policy) *policyBindings {
+	policyBindings, found := p[policy]
+	if !found {
+		policyBindings = newPolicyBindings(policy)
+		p[policy] = policyBindings
+	}
+	return policyBindings
+}
+
+// HandlerDescriptor maintains a list of Binding's for a Handler type.
 type HandlerDescriptor struct {
 	handlerType reflect.Type
-	bindings    map[Policy]*policyBindings
+	bindings    policyBindingsMap
 }
 
 func (d *HandlerDescriptor) Dispatch(
@@ -143,7 +148,7 @@ func (d *HandlerDescriptor) Dispatch(
 					if !approve { return result, false }
 				}
 				if out, err := binding.Invoke(
-						handler, callback, rawCallback, composer); err == nil {
+						handler, callback, rawCallback, composer, results); err == nil {
 					res, accepted := policy.AcceptResults(out)
 					if accepted.IsHandled() && results != nil &&
 						results.ReceiveResult(res, binding.Strict(), greedy, composer) {
@@ -158,8 +163,7 @@ func (d *HandlerDescriptor) Dispatch(
 	return NotHandled
 }
 
-// HandlerDescriptorError
-
+// HandlerDescriptorError reports a failed descriptor.
 type HandlerDescriptorError struct {
 	HandlerType reflect.Type
 	Reason      error
@@ -171,22 +175,20 @@ func (e *HandlerDescriptorError) Error() string {
 
 func (e *HandlerDescriptorError) Unwrap() error { return e.Reason }
 
-// HandlerDescriptorFactory
-
+// HandlerDescriptorProvider return descriptors for the handler type.
 type HandlerDescriptorProvider interface {
 	GetHandlerDescriptor(
 		handler reflect.Type,
 	) (*HandlerDescriptor, error)
 }
 
-// HandlerDescriptorFactory
-
+// HandlerDescriptorFactory adds registration capability to the HandlerDescriptorProvider.
 type HandlerDescriptorFactory interface {
 	HandlerDescriptorProvider
 
 	RegisterHandlerType(
 		handlerType reflect.Type,
-	) (*HandlerDescriptor, error)
+	) (*HandlerDescriptor, bool, error)
 }
 
 type HandlerDescriptorVisitor interface {
@@ -205,8 +207,7 @@ func (f HandlerDescriptorVisitorFunc) VisitHandlerBinding(
 	f(descriptor, binding)
 }
 
-// mutableHandlerDescriptorFactory
-
+// mutableFactory create HandlerDescriptor's on demand.
 type mutableFactory struct {
 	sync.RWMutex
 	descriptors map[reflect.Type]*HandlerDescriptor
@@ -226,21 +227,23 @@ func (f *mutableFactory) GetHandlerDescriptor(
 
 func (f *mutableFactory) RegisterHandlerType(
 	handlerType reflect.Type,
-) (descriptor *HandlerDescriptor, err error) {
-	if err = validHandlerType(handlerType); err != nil {
-		return nil, err
+) (*HandlerDescriptor, bool, error) {
+	if err := validHandlerType(handlerType); err != nil {
+		return nil, false, err
 	}
 
 	f.Lock()
 	defer f.Unlock()
 
 	if descriptor := f.descriptors[handlerType]; descriptor != nil {
-		return descriptor, nil
+		return descriptor, false, nil
 	}
-	if descriptor, err = f.newHandlerDescriptor(handlerType); err == nil {
+	if descriptor, err := f.newHandlerDescriptor(handlerType); err == nil {
 		f.descriptors[handlerType] = descriptor
+		return descriptor, true, nil
+	} else {
+		return nil, false, err
 	}
-	return descriptor, err
 }
 
 func (f *mutableFactory) newHandlerDescriptor(
@@ -249,42 +252,51 @@ func (f *mutableFactory) newHandlerDescriptor(
 	descriptor = &HandlerDescriptor{
 		handlerType: handlerType,
 	}
-	bindings    := make(map[Policy]*policyBindings)
-	getBindings := func (policy Policy) *policyBindings {
-		policyBindings, found := bindings[policy]
-		if !found {
-			policyBindings = newPolicyBindings(policy)
-			bindings[policy] = policyBindings
-		}
-		return policyBindings
-	}
-	// Provide constructors implicitly
-	provides := ProvidesPolicy()
-	var initMethod *reflect.Method
-	var initSpec   *policySpec
-	if method, ok := handlerType.MethodByName("init"); ok {
-		initMethod = &method
-		initMethodType := initMethod.Type
-		if spec, err := buildPolicySpec(initMethodType.In(1)); err == nil {
-			initSpec = spec
-		} else {
-			invalid = multierror.Append(invalid, err)
-		}
-	}
-	if binder, ok := provides.(constructorBinder); ok {
-		if ctor, err := binder.newConstructorBinding(
-				handlerType, initMethod, initSpec); err == nil {
-			if f.visitor != nil {
-				f.visitor.VisitHandlerBinding(descriptor, ctor)
+	bindings := make(policyBindingsMap)
+	// Add constructors implicitly
+	if handlerType.Kind() == reflect.Ptr {
+		provides := ProvidesPolicy()
+		policies := []Policy{ provides }
+		var initMethod *reflect.Method
+		var initSpec *policySpec
+		if method, ok := handlerType.MethodByName("Initialize"); ok {
+			initMethod = &method
+			initMethodType := initMethod.Type
+			if initMethodType.NumIn() > 1 {
+				if spec, err := buildPolicySpec(initMethodType.In(1)); err == nil {
+					if spec != nil {
+						initSpec = spec
+						for _, policy := range spec.policies {
+							if policy != provides {
+								policies = append(policies, policy)
+							}
+						}
+					}
+				} else {
+					invalid = multierror.Append(invalid, err)
+				}
 			}
-			getBindings(provides).insert(ctor)
-		} else {
-			invalid = multierror.Append(invalid, err)
+		}
+		for _, policy := range policies {
+			if binder, ok := provides.(constructorBinder); ok {
+				if ctor, err := binder.newConstructorBinding(
+					handlerType, initMethod, initSpec); err == nil {
+					if f.visitor != nil {
+						f.visitor.VisitHandlerBinding(descriptor, ctor)
+					}
+					bindings.getBindings(policy).insert(ctor)
+				} else {
+					invalid = multierror.Append(invalid, err)
+				}
+			}
 		}
 	}
-	// Add callback typed explicitly
+	// Add callback types explicitly
 	for i := 0; i < handlerType.NumMethod(); i++ {
 		method     := handlerType.Method(i)
+		if method.Name == "Initialize" {
+			continue
+		}
 		methodType := method.Type
 		if methodType.NumIn() < 2 {
 			continue // must have a policy/spec
@@ -299,7 +311,7 @@ func (f *mutableFactory) newHandlerDescriptor(
 						if f.visitor != nil {
 							f.visitor.VisitHandlerBinding(descriptor, binding)
 						}
-						getBindings(policy).insert(binding)
+						bindings.getBindings(policy).insert(binding)
 					} else if errBind != nil {
 						invalid = multierror.Append(invalid, errBind)
 					}
@@ -363,6 +375,9 @@ func WithHandlerDescriptorVisitor(
 func GetHandlerDescriptorFactory(
 	handler Handler,
 ) HandlerDescriptorFactory {
+	if handler == nil {
+		panic("handler cannot be nil")
+	}
 	get := &getHandlerDescriptorFactory{}
 	handler.Handle(get, false, handler)
 	return get.factory
@@ -389,4 +404,3 @@ func (g *getHandlerDescriptorFactory) Handle(
 }
 
 func (g *getHandlerDescriptorFactory) suppressDispatch() {}
-

@@ -7,8 +7,7 @@ import (
 	"strings"
 )
 
-// Binding
-
+// Binding is the abstraction for constraint handling
 type Binding interface {
 	Strict()     bool
 	Constraint() interface{}
@@ -23,6 +22,7 @@ type Binding interface {
 		callback    interface{},
 		rawCallback interface{},
 		composer    Handler,
+		resultsRcv  ResultReceiver,
 	) (results []interface{}, err error)
 }
 
@@ -30,8 +30,7 @@ type OrderBinding interface {
 	Less(binding, otherBinding Binding) bool
 }
 
-// MethodBindingError
-
+// MethodBindingError reports a failed method binding
 type MethodBindingError struct {
 	Method reflect.Method
 	Reason error
@@ -44,8 +43,7 @@ func (e *MethodBindingError) Error() string {
 
 func (e *MethodBindingError) Unwrap() error { return e.Reason }
 
-// methodBinder
-
+// methodBinder creates a binding to the `method`
 type methodBinder interface {
 	newMethodBinding(
 		method  reflect.Method,
@@ -53,8 +51,7 @@ type methodBinder interface {
 	) (binding Binding, invalid error)
 }
 
-// methodInvoke
-
+// methodInvoke abstracts the invocation of a `method`
 type methodInvoke struct {
 	method reflect.Method
 	args   []arg
@@ -65,9 +62,10 @@ func (m *methodInvoke) Invoke(
 	callback    interface{},
 	rawCallback interface{},
 	composer    Handler,
+	results     ResultReceiver,
 )  ([]interface{}, error) {
 	if args, err := m.resolveArgs(
-		m.args, receiver, callback, rawCallback, composer); err != nil {
+		m.args, receiver, callback, rawCallback, composer, results); err != nil {
 		return nil, err
 	} else {
 		res := m.method.Func.Call(args)
@@ -85,11 +83,13 @@ func (m *methodInvoke) resolveArgs(
 	callback    interface{},
 	rawCallback interface{},
 	composer    Handler,
+	results     ResultReceiver,
 ) ([]reflect.Value, error) {
 	var resolved []reflect.Value
 	for i, arg := range args {
 		typ := m.method.Type.In(i)
-		if a, err := arg.resolve(typ, receiver, callback, rawCallback, composer); err != nil {
+		if a, err := arg.resolve(typ, receiver, callback,
+			rawCallback, composer, results); err != nil {
 			return nil, &MethodBindingError{m.method, err}
 		} else {
 			resolved = append(resolved, a)
@@ -98,8 +98,7 @@ func (m *methodInvoke) resolveArgs(
 	return resolved, nil
 }
 
-// methodBinding
-
+// methodBinding represents the `constraint` Binding to a method
 type methodBinding struct {
 	methodInvoke
 	constraint interface{}
@@ -138,8 +137,7 @@ func (b *methodBinding) Matches(
 	return false
 }
 
-// constructorBinder
-
+// constructorBinder creates a constructor binding to `handlerType`
 type constructorBinder interface {
 	newConstructorBinding(
 		handlerType  reflect.Type,
@@ -148,8 +146,8 @@ type constructorBinder interface {
 	) (binding Binding, invalid error)
 }
 
-// constructorBinding
-
+// constructorBinding represents the creation/initialization
+// of the `handlerType`
 type constructorBinding struct {
 	handlerType  reflect.Type
 	initMethod  *methodInvoke
@@ -170,11 +168,11 @@ func (b *constructorBinding) Matches(
 	if variance == Contravariant {
 		return false
 	}
-	if constraint == _handlerType {
+	if constraint == b.handlerType {
 		return true
 	}
 	if ct, ok := constraint.(reflect.Type); ok {
-		return _handlerType.AssignableTo(ct)
+		return b.handlerType.AssignableTo(ct)
 	}
 	return false
 }
@@ -184,14 +182,15 @@ func (b *constructorBinding) Invoke(
 	callback    interface{},
 	rawCallback interface{},
 	composer    Handler,
+	results     ResultReceiver,
 ) ([]interface{}, error) {
 	if receiver != nil {
 		panic("receiver must be nil")
 	}
-	handler := reflect.New(b.handlerType)
+	handler := reflect.New(b.handlerType.Elem()).Interface()
 	if initMethod := b.initMethod; initMethod != nil {
 		if _, err := initMethod.Invoke(
-			handler, callback, rawCallback, composer); err != nil {
+			handler, callback, rawCallback, composer, results); err != nil {
 			return nil, err
 		}
 	}
@@ -212,6 +211,7 @@ func newConstructorBinding(
 		args[0]     = _receiverArg
 		if spec != nil {
 			startIndex = 2
+			args[1] = _zeroArg  // policy/binding placeholder
 		}
 		for i := startIndex; i < numArgs; i++ {
 			if argType := methodType.In(i); argType == _interfaceType {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/suite"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -35,13 +36,7 @@ type Bam struct { Counted }
 
 // FooHandler
 
-type FooHandler struct {
-	initialized bool
-}
-
-func (h *FooHandler) init() {
-	h.initialized = true
-}
+type FooHandler struct{}
 
 func (h *FooHandler) Handle(
 	callback interface{},
@@ -184,7 +179,7 @@ func (h *DependencyHandler) OptionalDependency(
 func (h *DependencyHandler) OptionalSliceDependency(
 	_    Handles,
 	baz  *Baz,
-	bars *struct{ Value []*Bar `bind:""` },
+	bars *struct{ Value []*Bar `bind:"optional"` },
 ) {
 	baz.Inc()
 	for _, bar := range bars.Value {
@@ -283,9 +278,20 @@ func (h *InvalidHandler) UntypedInterfaceDependency(
 
 type HandlerTestSuite struct {
 	suite.Suite
+	HandleTypes []reflect.Type
 }
 
 func (suite *HandlerTestSuite) SetupTest() {
+	suite.HandleTypes = make([]reflect.Type, 0)
+	for _, typ := range HandlerTestTypes {
+		if !strings.Contains(typ.Elem().Name(), "Invalid") {
+			suite.HandleTypes = append(suite.HandleTypes, typ)
+		}
+	}
+}
+
+func (suite *HandlerTestSuite) InferenceRoot() Handler {
+	return NewRootHandler(WithHandlerTypes(suite.HandleTypes...))
 }
 
 func (suite *HandlerTestSuite) TestHandles() {
@@ -561,6 +567,12 @@ type MultiProvider struct {
 	bar Bar
 }
 
+func (p *MultiProvider) Initialize(
+	_ *struct{ Creates },
+) {
+	p.foo.Inc()
+}
+
 func (p *MultiProvider) ProvideFoo(_ Provides) *Foo {
 	p.foo.Inc()
 	return &p.foo
@@ -584,8 +596,12 @@ type SpecificationProvider struct{
 	bar Bar
 }
 
+func (p *SpecificationProvider) Initialize(baz Baz) {
+	p.foo.count = baz.Count()
+}
+
 func (p *SpecificationProvider) ProvidesFoo(
-	_ *struct{ Provides },
+	_ *struct{ Provides; Creates },
 ) *Foo {
 	p.foo.Inc()
 	return &p.foo
@@ -760,12 +776,42 @@ func (suite *HandlerTestSuite) TestProvides() {
 	})
 
 	suite.Run("Constructor", func () {
-		handler := NewRootHandler(WithHandlerTypes(HandlerTestTypes...))
+		handler := suite.InferenceRoot()
 
 		suite.Run("NoInit", func () {
 			var fooProvider *FooProvider
 			err := Resolve(handler, &fooProvider)
+			suite.NotNil(fooProvider)
 			suite.Nil(err)
+		})
+
+		suite.Run("Init", func () {
+			var multiProvider *MultiProvider
+			err := Resolve(handler, &multiProvider)
+			suite.NotNil(multiProvider)
+			suite.Equal(1, multiProvider.foo.Count())
+			suite.Nil(err)
+		})
+
+		suite.Run("InitDependencies", func () {
+			var specProvider *SpecificationProvider
+			err := Resolve(Build(handler, With(Baz{Counted{2}})), &specProvider)
+			suite.NotNil(specProvider)
+			suite.Equal(2, specProvider.foo.Count())
+			suite.Equal(0, specProvider.bar.Count())
+			suite.Nil(err)
+		})
+	})
+
+	suite.Run("Infer", func () {
+		handler := suite.InferenceRoot()
+
+		suite.Run("Invariant", func() {
+			foo := new(Foo)
+			result := handler.Handle(foo, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(Handled, result)
+			suite.Equal(1, foo.Count())
 		})
 	})
 
@@ -836,8 +882,22 @@ func (suite *HandlerTestSuite) TestProvides() {
 	})
 }
 
-func (suite *HandlerTestSuite) TestScanning() {
+func (suite *HandlerTestSuite) TestCreates() {
+	suite.Run("Invariant", func() {
+		handler := NewRootHandler(WithHandlers(new(SpecificationProvider)))
+		var foo *Foo
+		err := Create(handler, &foo)
+		suite.Nil(err)
+		suite.Equal(1, foo.Count())
+	})
 
+	suite.Run("Infer", func() {
+		handler := suite.InferenceRoot()
+		var multiProvider *MultiProvider
+		err := Create(handler, &multiProvider)
+		suite.NotNil(multiProvider)
+		suite.Nil(err)
+	})
 }
 
 func TestHandlerTestSuite(t *testing.T) {

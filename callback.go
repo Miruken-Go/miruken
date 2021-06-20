@@ -102,6 +102,11 @@ type CallbackDispatcher interface {
 	) HandleResult
 }
 
+// SuppressDispatch marks a type that should not participate in dispatching
+type SuppressDispatch interface {
+	suppressDispatch()
+}
+
 // CallbackGuard prevents circular actions
 type CallbackGuard interface {
 	CanDispatch(

@@ -32,12 +32,20 @@ func AddHandlers(
 		panic("cannot add handlers to a nil parent")
 	}
 
-	if factory := GetHandlerDescriptorFactory(parent); factory != nil {
-		for _, handler := range handlers {
-			typ := reflect.TypeOf(handler)
-			if _, err := factory.RegisterHandlerType(typ); err != nil {
-				panic(err)
+	var factory HandlerDescriptorFactory
+
+	for _, handler := range handlers {
+		if _, ok := handler.(SuppressDispatch); ok {
+			continue
+		}
+		if factory == nil {
+			if factory = GetHandlerDescriptorFactory(parent); factory == nil {
+				break
 			}
+		}
+		typ := reflect.TypeOf(handler)
+		if _, _, err := factory.RegisterHandlerType(typ); err != nil {
+			panic(err)
 		}
 	}
 
@@ -69,8 +77,7 @@ func With(values ... interface{}) Builder {
 }
 
 
-// withHandler
-
+// withHandler composes two Handlers.
 type withHandler struct {
 	Handler
 	handler Handler
@@ -91,8 +98,7 @@ func (c *withHandler) Handle(
 		})
 }
 
-// withHandlers
-
+// withHandlers composes any number of Handlers.
 type withHandlers struct {
 	Handler
 	handlers []Handler
@@ -131,13 +137,10 @@ func WithHandlers(handlers ... interface{}) Builder {
 func WithHandlerTypes(types ... reflect.Type) Builder {
 	return BuilderFunc(func (handler Handler) Handler {
 		if factory := GetHandlerDescriptorFactory(handler); factory != nil {
-			for _, typ := range types {
-				if _, err := factory.RegisterHandlerType(typ); err != nil {
-					panic(err)
-				}
-			}
+			return &withHandler{handler, newInferenceHandler(factory, types)}
+		} else {
+			panic("unable to obtain the HandlerDescriptorFactory")
 		}
-		return &withHandler{handler, NewInferenceHandler(types...)}
 	})
 }
 
@@ -163,3 +166,5 @@ func normalizeHandlers(handlers []interface{}) []Handler {
 	}
 	return hs
 }
+
+var _suppressType = reflect.TypeOf((*SuppressDispatch)(nil)).Elem()

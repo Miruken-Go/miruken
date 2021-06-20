@@ -37,6 +37,13 @@ func (t *Trampoline) Policy() Policy {
 	return nil
 }
 
+func (t *Trampoline) CanInfer() bool {
+	if infer, ok := t.callback.(interface{CanInfer() bool}); ok {
+		return infer.CanInfer()
+	}
+	return true
+}
+
 func (t *Trampoline) CanDispatch(
 	handler interface{},
 	binding Binding,

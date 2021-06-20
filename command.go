@@ -37,6 +37,13 @@ func (c *Command) CanDispatch(
 	return nil, true
 }
 
+func (c *Command) CanInfer() bool {
+	if infer, ok := c.callback.(interface{CanInfer() bool}); ok {
+		return infer.CanInfer()
+	}
+	return true
+}
+
 func (c *Command) Dispatch(
 	handler  interface{},
 	greedy   bool,

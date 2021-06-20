@@ -52,7 +52,7 @@ func DispatchCallback(
 	switch d := callback.(type) {
 	case CallbackDispatcher:
 		return d.Dispatch(handler, greedy, composer)
-	case interface{ suppressDispatch() }:
+	case SuppressDispatch:
 		return NotHandled
 	}
 	return new(CommandBuilder).

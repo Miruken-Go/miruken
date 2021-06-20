@@ -7,7 +7,7 @@ import (
 	"unicode"
 )
 
-// arg represents an parameter to a function
+// arg represents a parameter to a method
 type arg interface {
 	resolve(
 		typ         reflect.Type,
@@ -15,10 +15,11 @@ type arg interface {
 		callback    interface{},
 		rawCallback interface{},
 		composer    Handler,
+		results     ResultReceiver,
 	) (reflect.Value, error)
 }
 
-// receiverArg is the receiver of the function call
+// receiverArg is the receiver of the method call
 type receiverArg struct {}
 
 func (a receiverArg) resolve(
@@ -27,6 +28,7 @@ func (a receiverArg) resolve(
 	callback    interface{},
 	rawCallback interface{},
 	composer    Handler,
+	results     ResultReceiver,
 ) (reflect.Value, error) {
 	return reflect.ValueOf(receiver), nil
 }
@@ -40,6 +42,7 @@ func (a zeroArg) resolve(
 	callback    interface{},
 	rawCallback interface{},
 	composer    Handler,
+	results     ResultReceiver,
 ) (reflect.Value, error) {
 	return reflect.Zero(typ), nil
 }
@@ -53,6 +56,7 @@ func (a callbackArg) resolve(
 	callback    interface{},
 	rawCallback interface{},
 	composer    Handler,
+	results     ResultReceiver,
 ) (reflect.Value, error) {
 	if v := reflect.ValueOf(callback); v.Type().AssignableTo(typ) {
 		return v, nil
@@ -127,9 +131,13 @@ func (d *dependencyArg) resolve(
 	callback    interface{},
 	rawCallback interface{},
 	composer    Handler,
+	results     ResultReceiver,
 ) (reflect.Value, error) {
 	if typ == _handlerType {
 		return reflect.ValueOf(composer), nil
+	}
+	if typ == _handleCtxType {
+		return reflect.ValueOf(HandleContext{callback, rawCallback, composer, results}), nil
 	}
 	if rawCallback != nil {
 		if rawType := reflect.TypeOf(rawCallback); rawType.AssignableTo(typ) {
@@ -217,6 +225,13 @@ func (r *defaultDependencyResolver) Resolve(
 	}
 }
 
+type HandleContext struct {
+	Callback    interface{}
+	RawCallback interface{}
+	Composer    Handler
+	Results     ResultReceiver
+}
+
 // Dependency typed
 
 var dependencyBuilders = []bindingBuilder{
@@ -284,6 +299,7 @@ var (
 	_receiverArg     = receiverArg{}
 	_dependencyArg   = dependencyArg{}
 	_handlerType     = reflect.TypeOf((*Handler)(nil)).Elem()
+	_handleCtxType   = reflect.TypeOf((*HandleContext)(nil)).Elem()
 	_depResolverType = reflect.TypeOf((*DependencyResolver)(nil)).Elem()
 	_defaultResolver = defaultDependencyResolver{}
 )
