@@ -12,7 +12,7 @@ func (p *provider) Handle(
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
-	if comp, ok := callback.(*composition); ok {
+	if comp, ok := callback.(*Composition); ok {
 		callback = comp.Callback()
 	}
 	if inquiry, ok := callback.(*Inquiry); ok {

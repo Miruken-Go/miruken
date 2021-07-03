@@ -188,8 +188,8 @@ func (r *defaultDependencyResolver) Resolve(
 
 	if spec := dep.spec; spec != nil {
 		argIndex = spec.index
-		optional = spec.flags &bindingOptional == bindingOptional
-		strict   = spec.flags &bindingStrict == bindingStrict
+		optional = spec.flags & bindingOptional == bindingOptional
+		strict   = spec.flags & bindingStrict == bindingStrict
 		argType  = typ.Elem().Field(argIndex).Type
 	}
 

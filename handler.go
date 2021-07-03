@@ -31,13 +31,22 @@ func ToHandler(handler interface{}) Handler {
 	}
 }
 
-// NotHandledError reports a callback failure
+// NotHandledError reports a failed callback
 type NotHandledError struct {
 	callback interface{}
 }
 
 func (e *NotHandledError) Error() string {
 	return fmt.Sprintf("callback %#v not handled", e.callback)
+}
+
+// RejectedError reports a rejected callback
+type RejectedError struct {
+	callback interface{}
+}
+
+func (e *RejectedError) Error() string {
+	return fmt.Sprintf("callback %#v was rejected", e.callback)
 }
 
 func DispatchCallback(

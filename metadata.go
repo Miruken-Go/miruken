@@ -393,7 +393,7 @@ func (g *getHandlerDescriptorFactory) Handle(
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
-	if comp, ok := callback.(*composition); ok {
+	if comp, ok := callback.(*Composition); ok {
 		callback = comp.callback
 	}
 	if getFactory, ok := callback.(*getHandlerDescriptorFactory); ok {

@@ -1,12 +1,12 @@
 package miruken
 
-// composition
+// Composition
 
-type composition struct {
+type Composition struct {
 	Trampoline
 }
 
-func (c *composition) Dispatch(
+func (c *Composition) Dispatch(
 	handler  interface{},
 	greedy   bool,
 	composer Handler,
@@ -34,8 +34,8 @@ func (c *compositionScope) Handle(
 	if composer == nil {
 		composer = c
 	}
-	if _, ok := callback.(composition); !ok {
-		callback = &composition{Trampoline{callback}}
+	if _, ok := callback.(Composition); !ok {
+		callback = &Composition{Trampoline{callback}}
 	}
 	return c.Handler.Handle(callback, greedy, composer)
 }

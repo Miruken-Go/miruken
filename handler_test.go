@@ -477,13 +477,39 @@ func (suite *HandlerTestSuite) TestHandles() {
 		})
 	})
 
+	suite.Run("CallSemantics", func () {
+		suite.Run("BestEffort", func () {
+			handler := NewRootHandler(WithHandlers(new(BarHandler)), WithBestEffort)
+			foo     := new(Foo)
+			result  := handler.Handle(foo, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(Handled, result)
+			suite.Equal(0, foo.Count())
+		})
+
+		suite.Run("Broadcast", func () {
+			handler := NewRootHandler(WithHandlers(
+				new(FooHandler), new(FooHandler), new(BarHandler)))
+			foo     := new(Foo)
+			result  := handler.Handle(foo, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(Handled, result)
+			suite.Equal(1, foo.Count())
+
+			result = Build(handler, WithBroadcast).Handle(foo, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(Handled, result)
+			suite.Equal(3, foo.Count())
+		})
+	})
+
 	suite.Run("Command", func () {
 		handler := NewRootHandler(WithHandlers(new(CounterHandler)))
 		suite.Run("Invoke", func () {
 			suite.Run("Invariant", func() {
 				var foo *Foo
 				if err := Invoke(handler, new(Foo), &foo); err == nil {
-					suite.NotNil(*foo)
+					suite.NotNil(foo)
 					suite.Equal(1, foo.Count())
 				} else {
 					suite.Failf("unexpected error: %v", err.Error())
@@ -496,6 +522,16 @@ func (suite *HandlerTestSuite) TestHandles() {
 					suite.NotNil(foo)
 					suite.IsType(&Foo{}, foo)
 					suite.Equal(1, foo.(*Foo).Count())
+				} else {
+					suite.Failf("unexpected error: %v", err.Error())
+				}
+			})
+
+			suite.Run("BestEffort", func () {
+				handler := NewRootHandler(WithHandlers(new(BarHandler)), WithBestEffort)
+				var foo *Foo
+				if err := Invoke(handler, new(Foo), &foo); err == nil {
+					suite.Nil(foo)
 				} else {
 					suite.Failf("unexpected error: %v", err.Error())
 				}
@@ -814,7 +850,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 			suite.Equal(1, foo.Count())
 		})
 	})
-
+	
 	suite.Run("ResolveAll", func () {
 		suite.Run("Invariant", func () {
 			handler := NewRootHandler(WithHandlers(
