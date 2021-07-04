@@ -73,7 +73,7 @@ func WithOptions(options interface{}) Builder {
 		panic("options must be a struct or *struct")
 	}
 	return BuilderFunc(func (handler Handler) Handler {
-		return &optionsHandler{handler, options, reflect.TypeOf(options)}
+		return &optionsHandler{handler, options, optType}
 	})
 }
 

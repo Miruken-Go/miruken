@@ -27,6 +27,18 @@ func (suite *OptionsTestSuite) TestOptions() {
 		suite.Equal(30, options.Timeout)
 	})
 
+	suite.Run("InlineWithOptionsPtr", func () {
+		serverOpt := new(ServerOptions)
+		serverOpt.Url     = "https://playsoccer.com"
+		serverOpt.Timeout = 30
+		handler := NewRootHandler(WithOptions(serverOpt))
+		var options ServerOptions
+		err := GetOptions(handler, &options)
+		suite.Nil(err)
+		suite.Equal("https://playsoccer.com", options.Url)
+		suite.Equal(30, options.Timeout)
+	})
+
 	suite.Run("Creates", func () {
 		handler := NewRootHandler(WithOptions(ServerOptions{
 			Url:     "https://playsoccer.com",
