@@ -850,7 +850,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 			suite.Equal(1, foo.Count())
 		})
 	})
-	
+
 	suite.Run("ResolveAll", func () {
 		suite.Run("Invariant", func () {
 			handler := NewRootHandler(WithHandlers(

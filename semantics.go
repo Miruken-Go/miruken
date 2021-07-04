@@ -18,6 +18,10 @@ type CallbackSemantics struct {
 	specified semanticFlags
 }
 
+func (c *CallbackSemantics) CanInfer() bool {
+	return false
+}
+
 func (c *CallbackSemantics) HasOption(options semanticFlags) bool  {
 	return (c.options & options) == options
 }
@@ -51,13 +55,13 @@ func (c *CallbackSemantics) mergeOption(
 	}
 }
 
-// callOptions applies CallbackSemantics.
-type callOptions struct {
+// callSemantics applies CallbackSemantics.
+type callSemantics struct {
 	Handler
 	semantics CallbackSemantics
 }
 
-func (c *callOptions) Handle(
+func (c *callSemantics) Handle(
 	callback interface{},
 	greedy   bool,
 	composer Handler,
@@ -111,7 +115,7 @@ func GetSemantics(handler Handler) *CallbackSemantics {
 
 func WithCallSemantics(semantics semanticFlags) Builder {
 	return BuilderFunc(func (handler Handler) Handler {
-		return &callOptions{handler,
+		return &callSemantics{handler,
 			CallbackSemantics{
 				options:   semantics,
 				specified: semantics}}
