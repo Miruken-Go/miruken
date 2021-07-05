@@ -35,7 +35,6 @@ type Baz struct { Counted }
 type Bam struct { Counted }
 
 // FooHandler
-
 type FooHandler struct{}
 
 func (h *FooHandler) Handle(
@@ -53,7 +52,6 @@ func (h *FooHandler) Handle(
 }
 
 // BarHandler
-
 type BarHandler struct {}
 
 func (h *BarHandler) HandleBar(
@@ -63,7 +61,6 @@ func (h *BarHandler) HandleBar(
 }
 
 // CounterHandler
-
 type CounterHandler struct {}
 
 func (h *CounterHandler) HandleCounted(
@@ -80,7 +77,6 @@ func (h *CounterHandler) HandleCounted(
 }
 
 // MultiHandler
-
 type MultiHandler struct {
 	foo Foo
 	bar Bar
@@ -111,7 +107,6 @@ func (h *MultiHandler) HandleBar(
 }
 
 // EverythingHandler
-
 type EverythingHandler struct{}
 
 func (h *EverythingHandler) HandleEverything(
@@ -132,7 +127,6 @@ func (h *EverythingHandler) HandleEverything(
 }
 
 // SpecificationHandler
-
 type SpecificationHandler struct{}
 
 func (h *SpecificationHandler) HandleFoo(
@@ -144,7 +138,6 @@ func (h *SpecificationHandler) HandleFoo(
 }
 
 // DependencyHandler
-
 type DependencyHandler struct{}
 
 func (h *DependencyHandler) RequiredDependency(_ Handles,
@@ -211,7 +204,7 @@ func (c Configuration) Validate(
 	typ  reflect.Type,
 	dep *dependencyArg,
 ) error {
-	argType := typ.Field(dep.spec.index).Type
+	argType := dep.ArgType(typ)
 	if !reflect.TypeOf(c.config).AssignableTo(argType) {
 		return fmt.Errorf("the Configuration resolver expects a %T field", c.config)
 	}
@@ -234,7 +227,6 @@ func (c Configuration) Resolve(
 }
 
 // DependencyResolverHandler
-
 type DependencyResolverHandler struct{}
 
 func (h *DependencyResolverHandler) UseDependencyResolver(_ Handles,
@@ -246,7 +238,6 @@ func (h *DependencyResolverHandler) UseDependencyResolver(_ Handles,
 }
 
 // InvalidHandler
-
 type InvalidHandler struct {}
 
 func (h *InvalidHandler) MissingCallback(
@@ -585,7 +576,6 @@ func (f *FooProvider) ProvideFoo(_ Provides) *Foo {
 }
 
 // ListProvider
-
 type ListProvider struct {}
 
 func (f *ListProvider) ProvideFooSlice(_ Provides) []*Foo {
@@ -597,7 +587,6 @@ func (f *ListProvider) ProvideFooArray(_ Provides) [2]*Bar {
 }
 
 // MultiProvider
-
 type MultiProvider struct {
 	foo Foo
 	bar Bar
@@ -626,7 +615,6 @@ func (p *MultiProvider) ProvideBar(_ Provides) (*Bar, HandleResult) {
 }
 
 // SpecificationProvider
-
 type SpecificationProvider struct{
 	foo Foo
 	bar Bar
@@ -666,7 +654,6 @@ func (p *GenericProvider) Provide(
 }
 
 // InvalidProvider
-
 type InvalidProvider struct {}
 
 func (p *InvalidProvider) MissingReturnValue(_ Provides) {

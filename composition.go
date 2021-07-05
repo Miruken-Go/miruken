@@ -34,7 +34,7 @@ func (c *compositionScope) Handle(
 	if composer == nil {
 		composer = c
 	}
-	if _, ok := callback.(Composition); !ok {
+	if _, ok := callback.(*Composition); !ok {
 		callback = &Composition{Trampoline{callback}}
 	}
 	return c.Handler.Handle(callback, greedy, composer)

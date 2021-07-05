@@ -16,12 +16,11 @@ func (o *options) CanInfer() bool {
 }
 
 func (o *options) mergeFrom(options interface{}) bool {
-	return mergo.Merge(o.options, options) == nil
+	return MergeOptions(options, o.options)
 }
 
 // optionsHandler merges compatible options.
 type optionsHandler struct {
-	Handler
 	options interface{}
 	optionsType reflect.Type
 }
@@ -34,31 +33,32 @@ func (c *optionsHandler) Handle(
 	if callback == nil {
 		return NotHandled
 	}
-	if comp, ok := callback.(Composition); ok {
+	if comp, ok := callback.(*Composition); ok {
 		if callback = comp.Callback(); callback == nil {
-			return c.Handler.Handle(callback, greedy, composer)
+			return NotHandled
 		}
 	}
 	if opt, ok := callback.(*options); ok {
 		options := opt.options
 		if reflect.TypeOf(options).Elem().AssignableTo(c.optionsType) {
-			merged := false
 			if o, ok := options.(interface {
 				MergeFrom(options interface{}) bool
 			}); ok {
-				merged = o.MergeFrom(c.options)
-			} else {
-				merged = opt.mergeFrom(c.options)
-			}
-			if merged {
-				if greedy {
-					return c.Handler.Handle(callback, greedy, composer).Or(Handled)
+				if o.MergeFrom(c.options) {
+					return Handled
 				}
-				return Handled
+			} else {
+				if opt.mergeFrom(c.options) {
+					return Handled
+				}
 			}
 		}
 	}
-	return c.Handler.Handle(callback, greedy, composer)
+	return NotHandled
+}
+
+func MergeOptions(from, into interface{}) bool {
+	return mergo.Merge(into, from, mergo.WithAppendSlice) == nil
 }
 
 func WithOptions(options interface{}) Builder {
@@ -73,7 +73,7 @@ func WithOptions(options interface{}) Builder {
 		panic("options must be a struct or *struct")
 	}
 	return BuilderFunc(func (handler Handler) Handler {
-		return &optionsHandler{handler, options, optType}
+		return AddHandlers(handler, &optionsHandler{options, optType})
 	})
 }
 
@@ -84,7 +84,7 @@ func GetOptions(handler Handler, target interface{}) bool {
 	tv := TargetValue(target)
 	optType := tv.Type()
 	if optType.Kind() != reflect.Ptr {
-		panic(fmt.Sprintf("options: %T is not a *struct or **struct", optType))
+		panic(fmt.Sprintf("options: %v is not a *struct or **struct", optType))
 	}
 	optType = optType.Elem()
 
@@ -96,7 +96,7 @@ func GetOptions(handler Handler, target interface{}) bool {
 		options.options = tv.Interface()
 	case reflect.Ptr:
 		if optType.Elem().Kind() != reflect.Struct {
-			panic(fmt.Sprintf("options: %T is not a **struct", optType))
+			panic(fmt.Sprintf("options: %v is not a **struct", optType))
 		}
 		created = true
 		if value := reflect.Indirect(tv); value.IsNil() {
@@ -106,9 +106,44 @@ func GetOptions(handler Handler, target interface{}) bool {
 		}
 	}
 
-	handled := handler.Handle(options, false, nil).IsHandled()
+	handled := handler.Handle(options, true, nil).IsHandled()
 	if handled && created {
 		CopyIndirect(options.options, target)
 	}
 	return handled
+}
+
+// FromOptions is a DependencyResolver that binds the argument to options.
+type FromOptions struct {}
+
+func (o FromOptions) Validate(
+	typ  reflect.Type,
+	dep *dependencyArg,
+) error {
+	optType := dep.ArgType(typ)
+	if optType.Kind() == reflect.Ptr {
+		optType = optType.Elem()
+	}
+	if optType.Kind() != reflect.Struct {
+		return fmt.Errorf("FromOptions: %v is not a struct or *struct", optType)
+	}
+	return nil
+}
+
+func (o FromOptions) Resolve(
+	typ          reflect.Type,
+	rawCallback  interface{},
+	dep         *dependencyArg,
+	handler      Handler,
+) (options reflect.Value, err error) {
+	optType := dep.ArgType(typ.Elem())
+	options = reflect.New(optType)
+	if !GetOptions(handler, options.Interface()) {
+		return reflect.ValueOf(nil), fmt.Errorf(
+			"FromOptions: unable to resolve options %v", optType)
+	}
+	if optType.Kind() == reflect.Ptr {
+		return options, nil
+	}
+	return reflect.Indirect(options), nil
 }

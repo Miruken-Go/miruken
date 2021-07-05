@@ -69,7 +69,7 @@ func (c *callSemantics) Handle(
 	if callback == nil {
 		return NotHandled
 	}
-	if comp, ok := callback.(Composition); ok {
+	if comp, ok := callback.(*Composition); ok {
 		if _, yes := comp.Callback().(CallbackSemantics); yes {
 			return NotHandled
 		}

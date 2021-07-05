@@ -125,6 +125,15 @@ type dependencyArg struct {
 	spec *dependencySpec
 }
 
+func (d *dependencyArg) ArgType(
+	typ reflect.Type,
+) reflect.Type {
+	if d.spec != nil && d.spec.index >= 0 {
+		return typ.Field(d.spec.index).Type
+	}
+	return typ
+}
+
 func (d *dependencyArg) resolve(
 	typ         reflect.Type,
 	receiver    interface{},
@@ -183,14 +192,12 @@ func (r *defaultDependencyResolver) Resolve(
 	handler      Handler,
 ) (reflect.Value, error) {
 	argType  := typ
-	argIndex := -1
 	optional, strict := false, false
 
 	if spec := dep.spec; spec != nil {
-		argIndex = spec.index
 		optional = spec.flags & bindingOptional == bindingOptional
 		strict   = spec.flags & bindingStrict == bindingStrict
-		argType  = typ.Elem().Field(argIndex).Type
+		argType  = dep.ArgType(typ.Elem())
 	}
 
 	var inquiry *Inquiry
