@@ -21,8 +21,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 			Timeout: 30,
 		}))
 		var options ServerOptions
-		err := GetOptions(handler, &options)
-		suite.Nil(err)
+		suite.True(GetOptions(handler, &options))
 		suite.Equal("https://playsoccer.com", options.Url)
 		suite.Equal(30, options.Timeout)
 	})
@@ -33,8 +32,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 		serverOpt.Timeout = 30
 		handler := NewRootHandler(WithOptions(serverOpt))
 		var options ServerOptions
-		err := GetOptions(handler, &options)
-		suite.Nil(err)
+		suite.True(GetOptions(handler, &options))
 		suite.Equal("https://playsoccer.com", options.Url)
 		suite.Equal(30, options.Timeout)
 	})
@@ -45,8 +43,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 			Timeout: 30,
 		}))
 		var options *ServerOptions
-		err := GetOptions(handler, &options)
-		suite.Nil(err)
+		suite.True( GetOptions(handler, &options))
 		suite.NotNil(options)
 		suite.Equal("https://playsoccer.com", options.Url)
 		suite.Equal(30, options.Timeout)
@@ -58,8 +55,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 			Timeout: 30,
 		}))
 		options := ServerOptions{Timeout: 60}
-		err := GetOptions(handler, &options)
-		suite.Nil(err)
+		suite.True(GetOptions(handler, &options))
 		suite.Equal("https://playsoccer.com", options.Url)
 		suite.Equal(60, options.Timeout)
 	})
@@ -71,8 +67,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 		}))
 		options := new (ServerOptions)
 		options.Url = "https://improving.com"
-		err := GetOptions(handler, options)
-		suite.Nil(err)
+		suite.True(GetOptions(handler, options))
 		suite.NotNil(options)
 		suite.Equal("https://improving.com", options.Url)
 		suite.Equal(30, options.Timeout)
@@ -81,8 +76,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 	suite.Run("NoMatch", func () {
 		handler := NewRootHandler()
 		var options ServerOptions
-		err := GetOptions(handler, &options)
-		suite.Nil(err)
+		suite.False(GetOptions(handler, &options))
 		suite.Equal("", options.Url)
 		suite.Equal(0, options.Timeout)
 	})
@@ -90,8 +84,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 	suite.Run("NoMatchCre", func () {
 		handler := NewRootHandler()
 		var options *ServerOptions
-		err := GetOptions(handler, &options)
-		suite.Nil(err)
+		suite.False(GetOptions(handler, &options))
 		suite.Nil(options)
 	})
 

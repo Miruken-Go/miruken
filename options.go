@@ -77,7 +77,7 @@ func WithOptions(options interface{}) Builder {
 	})
 }
 
-func GetOptions(handler Handler, target interface{}) error {
+func GetOptions(handler Handler, target interface{}) bool {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
@@ -86,9 +86,11 @@ func GetOptions(handler Handler, target interface{}) error {
 	if optType.Kind() != reflect.Ptr {
 		panic(fmt.Sprintf("options: %T is not a *struct or **struct", optType))
 	}
+	optType = optType.Elem()
+
 	created := false
 	options := &options{}
-	optType = optType.Elem()
+
 	switch optType.Kind() {
 	case reflect.Struct:
 		options.options = tv.Interface()
@@ -96,17 +98,17 @@ func GetOptions(handler Handler, target interface{}) error {
 		if optType.Elem().Kind() != reflect.Struct {
 			panic(fmt.Sprintf("options: %T is not a **struct", optType))
 		}
+		created = true
 		if value := reflect.Indirect(tv); value.IsNil() {
 			options.options = reflect.New(optType.Elem()).Interface()
 		} else {
 			options.options = value.Interface()
 		}
-		created = true
 	}
-	if result := handler.Handle(options, false, nil); result.IsError() {
-		return result.Error()
-	} else if result.handled && created {
+
+	handled := handler.Handle(options, false, nil).IsHandled()
+	if handled && created {
 		CopyIndirect(options.options, target)
 	}
-	return nil
+	return handled
 }
