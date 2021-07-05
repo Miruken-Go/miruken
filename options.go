@@ -21,6 +21,7 @@ func (o *options) mergeFrom(options interface{}) bool {
 
 // optionsHandler merges compatible options.
 type optionsHandler struct {
+	Handler
 	options interface{}
 	optionsType reflect.Type
 }
@@ -33,28 +34,32 @@ func (c *optionsHandler) Handle(
 	if callback == nil {
 		return NotHandled
 	}
+	tryInitializeComposer(&composer, c)
 	if comp, ok := callback.(*Composition); ok {
 		if callback = comp.Callback(); callback == nil {
-			return NotHandled
+			return c.Handler.Handle(callback, greedy, composer)
 		}
 	}
 	if opt, ok := callback.(*options); ok {
 		options := opt.options
 		if reflect.TypeOf(options).Elem().AssignableTo(c.optionsType) {
+			merged := false
 			if o, ok := options.(interface {
 				MergeFrom(options interface{}) bool
 			}); ok {
-				if o.MergeFrom(c.options) {
-					return Handled
-				}
+				merged = o.MergeFrom(c.options)
 			} else {
-				if opt.mergeFrom(c.options) {
-					return Handled
+				merged = opt.mergeFrom(c.options)
+			}
+			if merged {
+				if greedy {
+					return c.Handler.Handle(callback, greedy, composer).Or(Handled)
 				}
+				return Handled
 			}
 		}
 	}
-	return NotHandled
+	return c.Handler.Handle(callback, greedy, composer)
 }
 
 func MergeOptions(from, into interface{}) bool {
@@ -73,7 +78,7 @@ func WithOptions(options interface{}) Builder {
 		panic("options must be a struct or *struct")
 	}
 	return BuilderFunc(func (handler Handler) Handler {
-		return AddHandlers(handler, &optionsHandler{options, optType})
+		return &optionsHandler{handler, options, optType}
 	})
 }
 

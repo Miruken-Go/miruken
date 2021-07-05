@@ -69,6 +69,7 @@ func (c *callSemantics) Handle(
 	if callback == nil {
 		return NotHandled
 	}
+	tryInitializeComposer(&composer, c)
 	if comp, ok := callback.(*Composition); ok {
 		if _, yes := comp.Callback().(CallbackSemantics); yes {
 			return NotHandled
