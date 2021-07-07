@@ -10,12 +10,9 @@ import (
 // arg represents a parameter to a method
 type arg interface {
 	resolve(
-		typ         reflect.Type,
-		receiver    interface{},
-		callback    interface{},
-		rawCallback interface{},
-		composer    Handler,
-		results     ResultReceiver,
+		typ       reflect.Type,
+		receiver  interface{},
+		context  *HandleContext,
 	) (reflect.Value, error)
 }
 
@@ -23,12 +20,9 @@ type arg interface {
 type receiverArg struct {}
 
 func (a receiverArg) resolve(
-	typ         reflect.Type,
-	receiver    interface{},
-	callback    interface{},
-	rawCallback interface{},
-	composer    Handler,
-	results     ResultReceiver,
+	typ       reflect.Type,
+	receiver  interface{},
+	context  *HandleContext,
 ) (reflect.Value, error) {
 	return reflect.ValueOf(receiver), nil
 }
@@ -37,12 +31,9 @@ func (a receiverArg) resolve(
 type zeroArg struct {}
 
 func (a zeroArg) resolve(
-	typ         reflect.Type,
-	receiver    interface{},
-	callback    interface{},
-	rawCallback interface{},
-	composer    Handler,
-	results     ResultReceiver,
+	typ       reflect.Type,
+	receiver  interface{},
+	context  *HandleContext,
 ) (reflect.Value, error) {
 	return reflect.Zero(typ), nil
 }
@@ -51,17 +42,14 @@ func (a zeroArg) resolve(
 type callbackArg struct {}
 
 func (a callbackArg) resolve(
-	typ         reflect.Type,
-	receiver    interface{},
-	callback    interface{},
-	rawCallback interface{},
-	composer    Handler,
-	results     ResultReceiver,
+	typ       reflect.Type,
+	receiver  interface{},
+	context  *HandleContext,
 ) (reflect.Value, error) {
-	if v := reflect.ValueOf(callback); v.Type().AssignableTo(typ) {
+	if v := reflect.ValueOf(context.Callback); v.Type().AssignableTo(typ) {
 		return v, nil
 	}
-	if v := reflect.ValueOf(rawCallback); v.Type().AssignableTo(typ) {
+	if v := reflect.ValueOf(context.RawCallback); v.Type().AssignableTo(typ) {
 		return v, nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("arg: unable to resolve callback: %v", typ)
@@ -135,19 +123,18 @@ func (d *dependencyArg) ArgType(
 }
 
 func (d *dependencyArg) resolve(
-	typ         reflect.Type,
-	receiver    interface{},
-	callback    interface{},
-	rawCallback interface{},
-	composer    Handler,
-	results     ResultReceiver,
+	typ       reflect.Type,
+	receiver  interface{},
+	context  *HandleContext,
 ) (reflect.Value, error) {
+	composer := context.Composer
 	if typ == _handlerType {
 		return reflect.ValueOf(composer), nil
 	}
 	if typ == _handleCtxType {
-		return reflect.ValueOf(HandleContext{callback, rawCallback, composer, results}), nil
+		return reflect.ValueOf(context), nil
 	}
+	rawCallback := context.RawCallback
 	if rawCallback != nil {
 		if rawType := reflect.TypeOf(rawCallback); rawType.AssignableTo(typ) {
 			return reflect.ValueOf(rawCallback), nil
@@ -284,12 +271,7 @@ func resolverBindingBuilder(
 		if b, ok := binding.(interface {
 			setResolver(resolver DependencyResolver) error
 		}); ok {
-			resolver := reflect.New(field.Type).Interface().(DependencyResolver)
-			if init, ok := resolver.(interface{
-				initWithTag(reflect.StructTag)
-			}); ok {
-				init.initWithTag(field.Tag)
-			}
+			resolver := newStructField(field).(DependencyResolver)
 			if invalid := b.setResolver(resolver); invalid != nil {
 				err = multierror.Append(err, fmt.Errorf(
 					"binding: dependency resolver %#v at field %v (%v) failed: %w",

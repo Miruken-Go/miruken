@@ -6,12 +6,35 @@ import (
 	"reflect"
 )
 
+// OptionBool should be used in option structs instead of bool to
+// be able to represent a bool not set.  Otherwise, the Zero value
+// for of a bool cannot be distinguished from false.
+type OptionBool byte
+const (
+	OptionNone OptionBool = iota
+	OptionFalse
+	OptionTrue
+)
+
+func (b OptionBool) Bool() bool {
+	switch b {
+	case OptionFalse: return false
+	case OptionTrue: return true
+	default:
+		panic("only OptionFalse and OptionTrue can convert to a bool")
+	}
+}
+
 // Options represent extensible settings.
 type options struct{
 	options interface{}
 }
 
 func (o *options) CanInfer() bool {
+	return false
+}
+
+func (o *options) CanFilter() bool {
 	return false
 }
 
@@ -118,7 +141,7 @@ func GetOptions(handler Handler, target interface{}) bool {
 	return handled
 }
 
-// FromOptions is a DependencyResolver that binds the argument to options.
+// FromOptions is a DependencyResolver that binds options to an argument.
 type FromOptions struct {}
 
 func (o FromOptions) Validate(

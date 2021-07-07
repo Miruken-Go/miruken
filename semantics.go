@@ -1,32 +1,35 @@
 package miruken
 
-type semanticFlags uint8
+type SemanticFlags uint8
 
 const (
-	semanticNone semanticFlags = 0
-	semanticDuck = 1 << iota
-	semanticStrict
-	semanticBroadcast
-	semanticBestEffort
-	semanticNotify = semanticBroadcast | semanticBestEffort
+	SemanticNone   SemanticFlags = 0
+	SemanticStrict = 1 << iota
+	SemanticBroadcast
+	SemanticBestEffort
+	SemanticNotify = SemanticBroadcast | SemanticBestEffort
 )
 
 // CallbackSemantics captures semantic options
 type CallbackSemantics struct {
 	Composition
-	options semanticFlags
-	specified semanticFlags
+	options   SemanticFlags
+	specified SemanticFlags
 }
 
 func (c *CallbackSemantics) CanInfer() bool {
 	return false
 }
 
-func (c *CallbackSemantics) HasOption(options semanticFlags) bool  {
+func (c *CallbackSemantics) CanFilter() bool {
+	return false
+}
+
+func (c *CallbackSemantics) HasOption(options SemanticFlags) bool  {
 	return (c.options & options) == options
 }
 
-func (c *CallbackSemantics) SetOption(options semanticFlags, enabled bool) {
+func (c *CallbackSemantics) SetOption(options SemanticFlags, enabled bool) {
 	if enabled {
 		c.options = c.options | options
 	} else {
@@ -35,20 +38,19 @@ func (c *CallbackSemantics) SetOption(options semanticFlags, enabled bool) {
 	c.specified = c.specified | options
 }
 
-func (c *CallbackSemantics) IsSpecified(options semanticFlags) bool  {
+func (c *CallbackSemantics) IsSpecified(options SemanticFlags) bool  {
 	return (c.specified & options) == options
 }
 
 func (c *CallbackSemantics) MergeInto(semantics *CallbackSemantics) {
-	c.mergeOption(semantics, semanticDuck)
-	c.mergeOption(semantics, semanticStrict)
-	c.mergeOption(semantics, semanticBestEffort)
-	c.mergeOption(semantics, semanticBroadcast)
+	c.mergeOption(semantics, SemanticStrict)
+	c.mergeOption(semantics, SemanticBestEffort)
+	c.mergeOption(semantics, SemanticBroadcast)
 }
 
 func (c *CallbackSemantics) mergeOption(
 	semantics *CallbackSemantics,
-	option     semanticFlags,
+	option SemanticFlags,
 ) {
 	if c.IsSpecified(option) && !semantics.IsSpecified(option) {
 		semantics.SetOption(option, c.HasOption(option))
@@ -85,11 +87,11 @@ func (c *callSemantics) Handle(
 	case Composition:
 		return c.Handler.Handle(callback, greedy, composer)
 	}
-	if c.semantics.IsSpecified(semanticBroadcast) {
-		greedy = c.semantics.HasOption(semanticBroadcast)
+	if c.semantics.IsSpecified(SemanticBroadcast) {
+		greedy = c.semantics.HasOption(SemanticBroadcast)
 	}
-	if c.semantics.IsSpecified(semanticBestEffort) &&
-		c.semantics.HasOption(semanticBestEffort) {
+	if c.semantics.IsSpecified(SemanticBestEffort) &&
+		c.semantics.HasOption(SemanticBestEffort) {
 		if result := c.Handler.Handle(callback, greedy, composer); result.IsError() {
 			switch result.Error().(type) {
 			case *NotHandledError: return Handled
@@ -114,19 +116,19 @@ func GetSemantics(handler Handler) *CallbackSemantics {
 	return nil
 }
 
-func WithCallSemantics(semantics semanticFlags) Builder {
+func WithCallSemantics(semantics SemanticFlags) Builder {
+	options := CallbackSemantics{
+		options:   semantics,
+		specified: semantics,
+	}
 	return BuilderFunc(func (handler Handler) Handler {
-		return &callSemantics{handler,
-			CallbackSemantics{
-				options:   semantics,
-				specified: semantics}}
+		return &callSemantics{handler, options}
 	})
 }
 
 var (
-	WithDuckTyping Builder = WithCallSemantics(semanticDuck)
-	WithStrict     Builder = WithCallSemantics(semanticStrict)
-	WithBroadcast  Builder = WithCallSemantics(semanticBroadcast)
-	WithBestEffort Builder = WithCallSemantics(semanticBestEffort)
-	WithNotify     Builder = WithCallSemantics(semanticNotify)
+	WithStrict     = WithCallSemantics(SemanticStrict)
+	WithBroadcast  = WithCallSemantics(SemanticBroadcast)
+	WithBestEffort = WithCallSemantics(SemanticBestEffort)
+	WithNotify     = WithCallSemantics(SemanticNotify)
 )

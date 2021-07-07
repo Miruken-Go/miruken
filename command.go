@@ -44,6 +44,13 @@ func (c *Command) CanInfer() bool {
 	return true
 }
 
+func (c *Command) CanFilter() bool {
+	if infer, ok := c.callback.(interface{CanFilter() bool}); ok {
+		return infer.CanFilter()
+	}
+	return true
+}
+
 func (c *Command) Dispatch(
 	handler  interface{},
 	greedy   bool,

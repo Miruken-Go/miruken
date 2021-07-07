@@ -9,8 +9,10 @@ import (
 
 // Binding is the abstraction for constraint handling
 type Binding interface {
-	Strict()     bool
-	Constraint() interface{}
+	Filtered
+	Strict()      bool
+	SkipFilters() bool
+	Constraint()  interface{}
 
 	Matches(
 		constraint interface{},
@@ -18,11 +20,8 @@ type Binding interface {
 	) (matched bool)
 
 	Invoke(
-		receiver    interface{},
-		callback    interface{},
-		rawCallback interface{},
-		composer    Handler,
-		resultsRcv  ResultReceiver,
+		receiver  interface{},
+		context  *HandleContext,
 	) (results []interface{}, err error)
 }
 
@@ -57,15 +56,11 @@ type methodInvoke struct {
 	args   []arg
 }
 
-func (m *methodInvoke) Invoke(
-	receiver    interface{},
-	callback    interface{},
-	rawCallback interface{},
-	composer    Handler,
-	results     ResultReceiver,
+func (m methodInvoke) Invoke(
+	receiver  interface{},
+	context  *HandleContext,
 )  ([]interface{}, error) {
-	if args, err := m.resolveArgs(
-		m.args, receiver, callback, rawCallback, composer, results); err != nil {
+	if args, err := m.resolveArgs(m.args, receiver, context); err != nil {
 		return nil, err
 	} else {
 		res := m.method.Func.Call(args)
@@ -77,19 +72,15 @@ func (m *methodInvoke) Invoke(
 	}
 }
 
-func (m *methodInvoke) resolveArgs(
-	args        []arg,
-	receiver    interface{},
-	callback    interface{},
-	rawCallback interface{},
-	composer    Handler,
-	results     ResultReceiver,
+func (m methodInvoke) resolveArgs(
+	args      []arg,
+	receiver  interface{},
+	context  *HandleContext,
 ) ([]reflect.Value, error) {
 	var resolved []reflect.Value
 	for i, arg := range args {
 		typ := m.method.Type.In(i)
-		if a, err := arg.resolve(typ, receiver, callback,
-			rawCallback, composer, results); err != nil {
+		if a, err := arg.resolve(typ, receiver, context); err != nil {
 			return nil, &MethodBindingError{m.method, err}
 		} else {
 			resolved = append(resolved, a)
@@ -101,12 +92,17 @@ func (m *methodInvoke) resolveArgs(
 // methodBinding represents the `constraint` Binding to a method
 type methodBinding struct {
 	methodInvoke
+	FilteredScope
 	constraint interface{}
 	flags      bindingFlags
 }
 
 func (b *methodBinding) Strict() bool {
 	return b.flags & bindingStrict == bindingStrict
+}
+
+func (b *methodBinding) SkipFilters() bool {
+	return b.flags & bindingSkipFilters == bindingSkipFilters
 }
 
 func (b *methodBinding) Constraint() interface{} {
@@ -149,12 +145,17 @@ type constructorBinder interface {
 // constructorBinding represents the creation/initialization
 // of the `handlerType`
 type constructorBinding struct {
+	FilteredScope
 	handlerType  reflect.Type
-	initMethod  *methodInvoke
+	flags        bindingFlags
 }
 
 func (b *constructorBinding) Strict() bool {
 	return false
+}
+
+func (b *constructorBinding) SkipFilters() bool {
+	return b.flags & bindingSkipFilters == bindingSkipFilters
 }
 
 func (b *constructorBinding) Constraint() interface{} {
@@ -178,22 +179,13 @@ func (b *constructorBinding) Matches(
 }
 
 func (b *constructorBinding) Invoke(
-	receiver    interface{},
-	callback    interface{},
-	rawCallback interface{},
-	composer    Handler,
-	results     ResultReceiver,
+	receiver  interface{},
+	context  *HandleContext,
 ) ([]interface{}, error) {
 	if receiver != nil {
 		panic("receiver must be nil")
 	}
 	handler := reflect.New(b.handlerType.Elem()).Interface()
-	if initMethod := b.initMethod; initMethod != nil {
-		if _, err := initMethod.Invoke(
-			handler, callback, rawCallback, composer, results); err != nil {
-			return nil, err
-		}
-	}
 	return []interface{}{handler}, nil
 }
 
@@ -202,7 +194,13 @@ func newConstructorBinding(
 	initMethod  *reflect.Method,
 	spec        *policySpec,
 ) (binding *constructorBinding, invalid error) {
-	var invokeInit *methodInvoke
+	binding = &constructorBinding{
+		handlerType: handlerType,
+	}
+	if spec != nil {
+		binding.providers = spec.filters
+		binding.flags     = spec.flags
+	}
 	if initMethod != nil {
 		startIndex := 1
 		methodType := initMethod.Type
@@ -225,17 +223,13 @@ func newConstructorBinding(
 					"init: invalid dependency at index %v: %w", i, err))
 			}
 		}
-
 		if invalid != nil {
 			return nil, &MethodBindingError{*initMethod, invalid}
 		}
-
-		invokeInit = &methodInvoke{*initMethod, args}
+		initializer := initializer{methodInvoke{*initMethod, args}}
+		binding.AddFilters(&initializerProvider{[]Filter{initializer}})
 	}
-
-	return &constructorBinding{
-		handlerType, invokeInit,
-	}, nil
+	return binding, nil
 }
 
 // Binding builders
@@ -246,6 +240,7 @@ const (
 	bindingNone bindingFlags = 0
 	bindingStrict = 1 << iota
 	bindingOptional
+	bindingSkipFilters
 )
 
 type bindingBuilder interface {
@@ -305,29 +300,39 @@ func optionsBindingBuilder(
 		for _, opt := range options {
 			switch opt {
 			case "": break
-			case _strictOption:
+			case _strictBinding:
 				if b, ok := binding.(interface {
 					setStrict(int, reflect.StructField, bool) error
 				}); ok {
 					if invalid := b.setStrict(index, field, true); invalid != nil {
 						err = multierror.Append(err, fmt.Errorf(
-							"binding: strict option on field %v (%v) failed: %w",
+							"binding: strict binding on field %v (%v) failed: %w",
 							field.Name, index, invalid))
 					}
 				}
-			case _optionalOption:
+			case _optionalBinding:
 				if b, ok := binding.(interface {
 					setOptional(int, reflect.StructField, bool) error
 				}); ok {
 					if invalid := b.setOptional(index, field, true); invalid != nil {
 						err = multierror.Append(err, fmt.Errorf(
-							"binding: optional option on field %v (%v) failed: %w",
+							"binding: optional binding on field %v (%v) failed: %w",
+							field.Name, index, invalid))
+					}
+				}
+			case _skipFiltersBinding:
+				if b, ok := binding.(interface {
+					setSkipFilters(int, reflect.StructField, bool) error
+				}); ok {
+					if invalid := b.setSkipFilters(index, field, true); invalid != nil {
+						err = multierror.Append(err, fmt.Errorf(
+							"binding: skipFilters binding on field %v (%v) failed: %w",
 							field.Name, index, invalid))
 					}
 				}
 			default:
 				err = multierror.Append(err, fmt.Errorf(
-					"binding: invalid option %q on field %v (%v) for binding %T",
+					"binding: invalid binding %q on field %v (%v) of type %T",
 					opt, field.Name, index, reflect.TypeOf(binding)))
 			}
 		}
@@ -336,7 +341,8 @@ func optionsBindingBuilder(
 }
 
 var (
-	_bindingTag     = "bind"
-	_strictOption   = "strict"
-	_optionalOption = "optional"
+	_bindingTag         = "bind"
+	_strictBinding      = "strict"
+	_optionalBinding    = "optional"
+	_skipFiltersBinding = "skipFilters"
 )

@@ -109,6 +109,7 @@ func (p policyBindingsMap) getBindings(policy Policy) *policyBindings {
 
 // HandlerDescriptor maintains a list of Binding's for a Handler type.
 type HandlerDescriptor struct {
+	FilteredScope
 	handlerType reflect.Type
 	bindings    policyBindingsMap
 }
@@ -116,14 +117,15 @@ type HandlerDescriptor struct {
 func (d *HandlerDescriptor) Dispatch(
 	policy      Policy,
 	handler     interface{},
-	callback    interface{},
-	rawCallback interface{},
 	constraint  interface{},
 	greedy      bool,
-	composer    Handler,
-	results     ResultReceiver,
+	context    *HandleContext,
 ) (result HandleResult) {
 	if pb, found := d.bindings[policy]; found {
+		callback    := context.Callback
+		rawCallback := context.RawCallback
+		composer    := context.Composer
+		results     := context.Results
 		if constraint == nil {
 			switch typ := callback.(type) {
 			case reflect.Type: constraint = typ
@@ -147,12 +149,40 @@ func (d *HandlerDescriptor) Dispatch(
 					}()
 					if !approve { return result, false }
 				}
-				if out, err := binding.Invoke(
-						handler, callback, rawCallback, composer, results); err == nil {
+				var filters []providedFilter
+				if check, ok := rawCallback.(interface{
+					CanFilter() bool
+				}); !ok || check.CanFilter() {
+					var tp []FilterProvider
+					if tf, ok := handler.(Filter); ok {
+						tp = []FilterProvider{
+							&filterInstanceProvider{true, []Filter{tf}},
+						}
+					}
+					if providedFilters, err := orderedFilters(
+						composer, binding, callback, binding.Filters(),
+						d.Filters(), policy.Filters(), tp);
+						providedFilters != nil && err == nil {
+						filters = providedFilters
+					} else {
+						return result, false
+					}
+				}
+				var out []interface{}
+				var err error
+				if len(filters) == 0 {
+					out, err = binding.Invoke(handler, context)
+				} else {
+					out, err = pipeline(context, filters,
+						func(context *HandleContext) ([]interface{}, error) {
+							return binding.Invoke(handler, context)
+					})
+				}
+				if err == nil {
 					res, accepted := policy.AcceptResults(out)
-					if accepted.IsHandled() && results != nil &&
-						results.ReceiveResult(res, binding.Strict(), greedy, composer) {
-						accepted = accepted.Or(Handled)
+					if accepted.IsHandled() && res != nil && results != nil &&
+						!results.ReceiveResult(res, binding.Strict(), greedy, composer) {
+						accepted = accepted.And(NotHandled)
 					}
 					result = result.Or(accepted)
 				}

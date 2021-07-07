@@ -9,7 +9,9 @@ import (
 
 // covariantPolicy
 
-type covariantPolicy struct{}
+type covariantPolicy struct{
+	FilteredScope
+}
 
 func (p *covariantPolicy) Variance() Variance {
 	return Covariant
@@ -68,7 +70,6 @@ func (p *covariantPolicy) Less(
 func (p *covariantPolicy) newMethodBinding(
 	method  reflect.Method,
 	spec   *policySpec,
-
 ) (binding Binding, invalid error) {
 	methodType := method.Type
 	numArgs    := methodType.NumIn()
@@ -120,9 +121,9 @@ func (p *covariantPolicy) newMethodBinding(
 	}
 
 	return &methodBinding{
-		methodInvoke{method, args},
-		spec.constraint,
-		spec.flags,
+		methodInvoke: methodInvoke{method, args},
+		constraint:   spec.constraint,
+		flags:        spec.flags,
 	}, nil
 }
 

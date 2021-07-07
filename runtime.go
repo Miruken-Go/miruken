@@ -97,3 +97,15 @@ func forEach(iter interface{}, f func(i int, val interface{})) {
 		panic(fmt.Errorf("forEach: expected iter or array, found %q", v.Kind().String()))
 	}
 }
+
+func newStructField(
+	field reflect.StructField,
+) interface{} {
+	instance := reflect.New(field.Type).Interface()
+	if init, ok := instance.(interface{
+		initWithTag(reflect.StructTag)
+	}); ok {
+		init.initWithTag(field.Tag)
+	}
+	return instance
+}

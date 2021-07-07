@@ -3,23 +3,23 @@ package miruken
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 )
 
-// Variance
-
+// Variance determines how callbacks are handled.
 type Variance uint
 
-const(
+const (
 	Covariant Variance = iota
 	Contravariant
 	Invariant
 )
 
-// Policy
-
+// Policy defines behaviors for callbacks.
 type Policy interface {
 	OrderBinding
+	Filtered
 	Variance() Variance
 	AcceptResults(
 		results []interface{},
@@ -37,6 +37,7 @@ func RegisterPolicy(policy Policy) Policy {
 	return policy
 }
 
+// PolicyDispatch allows handlers to override callback dispatch.
 type PolicyDispatch interface {
 	DispatchPolicy(
 		policy      Policy,
@@ -70,9 +71,8 @@ func DispatchPolicy(
 			if rawCallback == nil {
 				rawCallback = callback
 			}
-			return d.Dispatch(
-				policy, handler, callback, rawCallback,
-				constraint, greedy, composer, results)
+			context := &HandleContext{callback, rawCallback, composer, results}
+			return d.Dispatch(policy, handler, constraint, greedy, context)
 		} else if err != nil {
 			return NotHandled.WithError(err)
 		}
@@ -91,18 +91,25 @@ func getPolicy(policyType reflect.Type) Policy {
 	return nil
 }
 
-// policySpec
-
+// policySpec represents policy metadata
 type policySpec struct {
-	policies   []Policy
-	flags      bindingFlags
-	constraint interface{}
+	policies    []Policy
+	flags       bindingFlags
+	filters     []FilterProvider
+	constraint  interface{}
 }
 
 func (s *policySpec) addPolicy(
 	policy Policy,
 ) error {
 	s.policies = append(s.policies, policy)
+	return nil
+}
+
+func (s *policySpec) addFilterProvider(
+	provider FilterProvider,
+) error {
+	s.filters = append(s.filters, provider)
 	return nil
 }
 
@@ -115,9 +122,19 @@ func (s *policySpec) setStrict(
 	return nil
 }
 
+func (s *policySpec) setSkipFilters(
+	index  int,
+	field  reflect.StructField,
+	strict bool,
+) error {
+	s.flags = s.flags | bindingSkipFilters
+	return nil
+}
+
 var policyBuilders = []bindingBuilder{
 	bindingBuilderFunc(policyBindingBuilder),
 	bindingBuilderFunc(optionsBindingBuilder),
+	bindingBuilderFunc(filterBindingBuilder),
 }
 
 func buildPolicySpec(
@@ -171,17 +188,65 @@ func policyBindingBuilder(
 	return err
 }
 
+func filterBindingBuilder(
+	index   int,
+	field   reflect.StructField,
+	binding interface{},
+) (err error) {
+	if field.Type.Implements(_filterType) {
+		if p, ok := binding.(interface {
+			addFilterProvider(provider FilterProvider) error
+		}); ok {
+			spec := filterSpec{field.Type, false, -1}
+			if f, ok := field.Tag.Lookup(_filterTag); ok {
+				args := strings.Split(f, ",")
+				for _, arg := range args {
+					if arg == _requiredArg {
+						spec.required = true
+					} else {
+						if count, _ := fmt.Sscanf(arg, "order=%d", &spec.order); count > 0 {
+							continue
+						}
+					}
+				}
+			}
+			provider := &filterSpecProvider{spec}
+			if invalid := p.addFilterProvider(provider); invalid != nil {
+				err = fmt.Errorf(
+					"binding: filter spec provider %v at index %v failed: %w",
+					provider, index, invalid)
+			}
+		}
+	} else if field.Type.Implements(_filterProviderType) {
+		if p, ok := binding.(interface {
+			addFilterProvider(provider FilterProvider) error
+		}); ok {
+			provider := newStructField(field).(FilterProvider)
+			if invalid := p.addFilterProvider(provider); invalid != nil {
+				err = fmt.Errorf(
+					"binding: filter provider %v at index %v failed: %w",
+					provider, index, invalid)
+			}
+		}
+	}
+	return err
+}
+
 // Standard _policies
 
 var (
-	_policies       sync.Map
-	_interfaceType  = reflect.TypeOf((*interface{})(nil)).Elem()
-	_policyType     = reflect.TypeOf((*Policy)(nil)).Elem()
-	_handleResType  = reflect.TypeOf((*HandleResult)(nil)).Elem()
-	_errorType      = reflect.TypeOf((*error)(nil)).Elem()
-	_handles        = RegisterPolicy(new(Handles))
-	_provides       = RegisterPolicy(new(Provides))
-	_creates        = RegisterPolicy(new(Creates))
+	_policies           sync.Map
+	_filterTag          = "filter"
+	_requiredArg        = "required"
+	_interfaceType      = reflect.TypeOf((*interface{})(nil)).Elem()
+	_policyType         = reflect.TypeOf((*Policy)(nil)).Elem()
+	_filterType         = reflect.TypeOf((*Filter)(nil)).Elem()
+	_filterProviderType = reflect.TypeOf((*FilterProvider)(nil)).Elem()
+	_handleResType      = reflect.TypeOf((*HandleResult)(nil)).Elem()
+	_errorType          = reflect.TypeOf((*error)(nil)).Elem()
+	_handles            = RegisterPolicy(new(Handles))
+	_provides           = RegisterPolicy(new(Provides))
+	_creates            = RegisterPolicy(new(Creates))
 )
 
 // Handles policy for handling callbacks contravariantly.

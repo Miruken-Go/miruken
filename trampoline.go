@@ -44,6 +44,13 @@ func (t *Trampoline) CanInfer() bool {
 	return true
 }
 
+func (t *Trampoline) CanFilter() bool {
+	if infer, ok := t.callback.(interface{CanFilter() bool}); ok {
+		return infer.CanFilter()
+	}
+	return true
+}
+
 func (t *Trampoline) CanDispatch(
 	handler interface{},
 	binding Binding,

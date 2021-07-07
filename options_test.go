@@ -33,9 +33,10 @@ func (suite *OptionsTestSuite) TestOptions() {
 	}
 
 	type ServerOptions struct {
-		Url     string
-		Timeout int
-		Headers []Header
+		Url       string
+		Timeout   int
+		KeepAlive OptionBool
+		Headers   []Header
 	}
 
 	suite.Run("Inline", func () {
@@ -107,14 +108,17 @@ func (suite *OptionsTestSuite) TestOptions() {
 		handler := NewRootHandler(
 			WithOptions(ServerOptions{
 				Url:"https://directv.com",
+				KeepAlive: OptionTrue,
 			}),
 			WithOptions(ServerOptions{
 				Timeout: 60,
+				KeepAlive: OptionFalse,
 			}))
 		var options ServerOptions
 		suite.True(GetOptions(handler, &options))
 		suite.Equal("https://directv.com", options.Url)
 		suite.Equal(60, options.Timeout)
+		suite.False(options.KeepAlive.Bool())
 	})
 
 	suite.Run("AppendsSlice", func () {

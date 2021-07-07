@@ -9,7 +9,9 @@ import (
 
 // contravariantPolicy
 
-type contravariantPolicy struct{}
+type contravariantPolicy struct{
+	FilteredScope
+}
 
 func (p *contravariantPolicy) Variance() Variance {
 	return Contravariant
@@ -49,7 +51,7 @@ func (p *contravariantPolicy) Less(
 		panic("binding cannot be nil")
 	}
 	if otherBinding == nil {
-		panic("otherBinding cannot be nil")
+		panic("otherBinding cannot be be nil")
 	}
 	constraint := binding.Constraint()
 	if otherBinding.Matches(constraint, Invariant) {
@@ -117,8 +119,8 @@ func (p *contravariantPolicy) newMethodBinding(
 	}
 
 	return &methodBinding{
-		methodInvoke{method, args},
-		constraint,
-		spec.flags,
+		methodInvoke: methodInvoke{method, args},
+		constraint:   constraint,
+		flags:        spec.flags,
 	}, nil
 }

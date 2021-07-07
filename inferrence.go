@@ -26,9 +26,8 @@ func (h *inferenceHandler) DispatchPolicy(
 	if infer, ok := rawCallback.(interface{CanInfer() bool}); ok && !infer.CanInfer() {
 		return NotHandled
 	}
-	return h.descriptor.Dispatch(
-		policy, h, callback, rawCallback, constraint,
-		greedy, composer, results)
+	context := &HandleContext{callback, rawCallback, composer, results}
+	return h.descriptor.Dispatch(policy, h, constraint, greedy, context)
 }
 
 // bindingIntercept intercepts Binding invocations to handler inference.
@@ -38,19 +37,16 @@ type bindingIntercept struct {
 }
 
 func (b *bindingIntercept) Invoke(
-	receiver    interface{},
-	callback    interface{},
-	rawCallback interface{},
-	composer    Handler,
-	results     ResultReceiver,
+	receiver  interface{},
+	context  *HandleContext,
 ) ([]interface{}, error) {
 	if ctor, ok := b.Binding.(*constructorBinding); ok {
-		return ctor.Invoke(nil, callback, rawCallback, composer, results)
+		return ctor.Invoke(nil, context)
 	}
-	builder := new(ResolvingBuilder).WithCallback(rawCallback)
+	builder := new(ResolvingBuilder).WithCallback(context.RawCallback)
 	builder.WithKey(b.handlerType)
 	resolving := builder.NewResolving()
-	if result := composer.Handle(resolving, false, nil); result.IsError() {
+	if result := context.Composer.Handle(resolving, false, nil); result.IsError() {
 		return nil, result.Error()
 	}
 	return nil, nil
@@ -92,7 +88,9 @@ func newInferenceHandler(
 		}
 	}
 	return &inferenceHandler {
-		&HandlerDescriptor{_inferenceHandlerType, bindings},
+		&HandlerDescriptor{
+			handlerType: _inferenceHandlerType,
+			bindings:    bindings},
 	}
 }
 
