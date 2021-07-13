@@ -71,15 +71,15 @@ func (p *contravariantPolicy) newMethodBinding(
 	args       := make([]arg, numArgs)
 	constraint := spec.constraint
 
-	args[0] = _receiverArg
-	args[1] = _zeroArg  // policy/binding placeholder
+	args[0] = receiverArg{}
+	args[1] = zeroArg{}  // policy/binding placeholder
 
 	// Callback argument must be present
 	if numArgs > 2 {
 		if constraint == nil {
 			constraint = methodType.In(2)
 		}
-		args[2] = _callbackArg
+		args[2] = callbackArg{}
 	} else {
 		invalid = multierror.Append(invalid,
 			errors.New("contravariant policy: missing callback argument"))

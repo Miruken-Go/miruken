@@ -113,7 +113,7 @@ type dependencyArg struct {
 	spec *dependencySpec
 }
 
-func (d *dependencyArg) ArgType(
+func (d dependencyArg) ArgType(
 	typ reflect.Type,
 ) reflect.Type {
 	if d.spec != nil && d.spec.index >= 0 {
@@ -122,7 +122,7 @@ func (d *dependencyArg) ArgType(
 	return typ
 }
 
-func (d *dependencyArg) resolve(
+func (d dependencyArg) resolve(
 	typ      reflect.Type,
 	receiver interface{},
 	context  HandleContext,
@@ -162,10 +162,10 @@ func (d *dependencyArg) resolve(
 // DependencyResolver defines how an argument value is retrieved
 type DependencyResolver interface {
 	Resolve(
-		typ          reflect.Type,
-		rawCallback  interface{},
-		dep         *dependencyArg,
-		handler      Handler,
+		typ         reflect.Type,
+		rawCallback interface{},
+		dep         dependencyArg,
+		handler     Handler,
 	) (reflect.Value, error)
 }
 
@@ -173,10 +173,10 @@ type DependencyResolver interface {
 type defaultDependencyResolver struct{}
 
 func (r *defaultDependencyResolver) Resolve(
-	typ          reflect.Type,
-	rawCallback  interface{},
-	dep         *dependencyArg,
-	handler      Handler,
+	typ         reflect.Type,
+	rawCallback interface{},
+	dep         dependencyArg,
+	handler     Handler,
 ) (reflect.Value, error) {
 	argType  := typ
 	optional, strict := false, false
@@ -235,12 +235,12 @@ var dependencyBuilders = []bindingBuilder{
 
 func buildDependency(
 	argType reflect.Type,
-) (arg *dependencyArg, err error) {
+) (arg dependencyArg, err error) {
 	// Is it a *Struct arg binding?
 	if argType.Kind() != reflect.Ptr {
-		return &_dependencyArg, nil
+		return dependencyArg{}, nil
 	}
-	arg = &_dependencyArg
+	arg = dependencyArg{}
 	argType = argType.Elem()
 	if argType.Kind() == reflect.Struct &&
 		argType.Name() == "" &&  // anonymous
@@ -250,10 +250,10 @@ func buildDependency(
 			err != nil || spec.index < 0 {
 			return arg, err
 		}
-		arg = &dependencyArg{spec}
+		arg.spec = spec
 		if resolver := spec.resolver; resolver != nil {
 			if v, ok := resolver.(interface {
-				Validate(reflect.Type, *dependencyArg) error
+				Validate(reflect.Type, dependencyArg) error
 			}); ok {
 				err = v.Validate(argType, arg)
 			}
@@ -283,10 +283,6 @@ func resolverBindingBuilder(
 }
 
 var (
-	_zeroArg         = zeroArg{}
-	_callbackArg     = callbackArg{}
-	_receiverArg     = receiverArg{}
-	_dependencyArg   = dependencyArg{}
 	_handlerType     = reflect.TypeOf((*Handler)(nil)).Elem()
 	_handleCtxType   = reflect.TypeOf((*HandleContext)(nil)).Elem()
 	_depResolverType = reflect.TypeOf((*DependencyResolver)(nil)).Elem()

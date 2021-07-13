@@ -201,8 +201,8 @@ type Configuration struct {
 }
 
 func (c Configuration) Validate(
-	typ  reflect.Type,
-	dep *dependencyArg,
+	typ reflect.Type,
+	dep dependencyArg,
 ) error {
 	argType := dep.ArgType(typ)
 	if !reflect.TypeOf(c.config).AssignableTo(argType) {
@@ -212,10 +212,10 @@ func (c Configuration) Validate(
 }
 
 func (c Configuration) Resolve(
-	typ          reflect.Type,
-	rawCallback  interface{},
-	dep         *dependencyArg,
-	handler      Handler,
+	typ         reflect.Type,
+	rawCallback interface{},
+	dep         dependencyArg,
+	handler     Handler,
 ) (reflect.Value, error) {
 	if c.config == nil {
 		c.config = &Config{
@@ -463,7 +463,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 				suite.Equal("https://server/api", config.baseUrl)
 				suite.Equal(30000, config.timeout)
 			} else {
-				suite.Failf("unexpected error: %v", err.Error())
+				suite.Failf("unexpected error", err.Error())
 			}
 		})
 	})
@@ -503,7 +503,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 					suite.NotNil(foo)
 					suite.Equal(1, foo.Count())
 				} else {
-					suite.Failf("unexpected error: %v", err.Error())
+					suite.Failf("unexpected error", err.Error())
 				}
 			})
 
@@ -514,7 +514,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 					suite.IsType(&Foo{}, foo)
 					suite.Equal(1, foo.(*Foo).Count())
 				} else {
-					suite.Failf("unexpected error: %v", err.Error())
+					suite.Failf("unexpected error", err.Error())
 				}
 			})
 
@@ -524,7 +524,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 				if err := Invoke(handler, new(Foo), &foo); err == nil {
 					suite.Nil(foo)
 				} else {
-					suite.Failf("unexpected error: %v", err.Error())
+					suite.Failf("unexpected error", err.Error())
 				}
 			})
 		})
@@ -539,7 +539,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 					suite.Len(foo, 1)
 					suite.Equal(2, foo[0].Count())
 				} else {
-					suite.Failf("unexpected error: %v", err.Error())
+					suite.Failf("unexpected error", err.Error())
 				}
 			})
 		})
@@ -849,7 +849,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 				suite.Len(foo, 3)
 				suite.True(foo[0] != foo[1])
 			} else {
-				suite.Failf("unexpected error: %v", err.Error())
+				suite.Failf("unexpected error", err.Error())
 			}
 		})
 
@@ -860,7 +860,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 				suite.NotNil(counted)
 				suite.Len(counted, 4)
 			} else {
-				suite.Failf("unexpected error: %v", err.Error())
+				suite.Failf("unexpected error", err.Error())
 			}
 		})
 

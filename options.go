@@ -145,8 +145,8 @@ func GetOptions(handler Handler, target interface{}) bool {
 type FromOptions struct {}
 
 func (o FromOptions) Validate(
-	typ  reflect.Type,
-	dep *dependencyArg,
+	typ reflect.Type,
+	dep dependencyArg,
 ) error {
 	optType := dep.ArgType(typ)
 	if optType.Kind() == reflect.Ptr {
@@ -159,10 +159,10 @@ func (o FromOptions) Validate(
 }
 
 func (o FromOptions) Resolve(
-	typ          reflect.Type,
-	rawCallback  interface{},
-	dep         *dependencyArg,
-	handler      Handler,
+	typ         reflect.Type,
+	rawCallback interface{},
+	dep         dependencyArg,
+	handler     Handler,
 ) (options reflect.Value, err error) {
 	optType := dep.ArgType(typ.Elem())
 	options = reflect.New(optType)

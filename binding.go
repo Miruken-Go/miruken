@@ -206,10 +206,10 @@ func newConstructorBinding(
 		methodType := initMethod.Type
 		numArgs    := methodType.NumIn()
 		args       := make([]arg, numArgs)
-		args[0]     = _receiverArg
+		args[0]     = receiverArg{}
 		if spec != nil {
 			startIndex = 2
-			args[1] = _zeroArg  // policy/binding placeholder
+			args[1] = zeroArg{}  // policy/binding placeholder
 		}
 		for i := startIndex; i < numArgs; i++ {
 			if argType := methodType.In(i); argType == _interfaceType {

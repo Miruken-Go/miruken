@@ -75,8 +75,8 @@ func (p *covariantPolicy) newMethodBinding(
 	numArgs    := methodType.NumIn()
 	args       := make([]arg, numArgs)
 
-	args[0] = _receiverArg
-	args[1] = _zeroArg  // policy/binding placeholder
+	args[0] = receiverArg{}
+	args[1] = zeroArg{}  // policy/binding placeholder
 
 	for i := 2; i < numArgs; i++ {
 		if argType := methodType.In(i); argType == _interfaceType {
