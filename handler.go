@@ -16,7 +16,7 @@ type handlerAdapter struct {
 	handler interface{}
 }
 
-func (h *handlerAdapter) Handle(
+func (h handlerAdapter) Handle(
 	callback interface{},
 	greedy   bool,
 	composer Handler,
@@ -27,7 +27,7 @@ func (h *handlerAdapter) Handle(
 func ToHandler(handler interface{}) Handler {
 	switch h := handler.(type) {
 	case Handler: return h
-	default: return &handlerAdapter{handler}
+	default: return handlerAdapter{handler}
 	}
 }
 
@@ -36,7 +36,7 @@ type NotHandledError struct {
 	callback interface{}
 }
 
-func (e *NotHandledError) Error() string {
+func (e NotHandledError) Error() string {
 	return fmt.Sprintf("callback %#v not handled", e.callback)
 }
 
@@ -45,7 +45,7 @@ type RejectedError struct {
 	callback interface{}
 }
 
-func (e *RejectedError) Error() string {
+func (e RejectedError) Error() string {
 	return fmt.Sprintf("callback %#v was rejected", e.callback)
 }
 

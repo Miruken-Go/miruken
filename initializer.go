@@ -13,9 +13,9 @@ func (i initializer) Order() int {
 }
 
 func (i initializer) Next(
-	next      Next,
-	context  *HandleContext,
-	provider  FilterProvider,
+	next     Next,
+	context  HandleContext,
+	provider FilterProvider,
 )  ([]interface{}, error) {
 	instance, err := next.Filter()
 	if err == nil && len(instance) > 0 {

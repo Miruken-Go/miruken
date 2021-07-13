@@ -20,8 +20,8 @@ type Binding interface {
 	) (matched bool)
 
 	Invoke(
-		receiver  interface{},
-		context  *HandleContext,
+		receiver interface{},
+		context  HandleContext,
 	) (results []interface{}, err error)
 }
 
@@ -35,12 +35,12 @@ type MethodBindingError struct {
 	Reason error
 }
 
-func (e *MethodBindingError) Error() string {
+func (e MethodBindingError) Error() string {
 	return fmt.Sprintf("invalid method: %v %v: %v",
 		e.Method.Name, e.Method.Type, e.Reason)
 }
 
-func (e *MethodBindingError) Unwrap() error { return e.Reason }
+func (e MethodBindingError) Unwrap() error { return e.Reason }
 
 // methodBinder creates a binding to the `method`
 type methodBinder interface {
@@ -57,8 +57,8 @@ type methodInvoke struct {
 }
 
 func (m methodInvoke) Invoke(
-	receiver  interface{},
-	context  *HandleContext,
+	receiver interface{},
+	context  HandleContext,
 )  ([]interface{}, error) {
 	if args, err := m.resolveArgs(m.args, receiver, context); err != nil {
 		return nil, err
@@ -73,15 +73,15 @@ func (m methodInvoke) Invoke(
 }
 
 func (m methodInvoke) resolveArgs(
-	args      []arg,
-	receiver  interface{},
-	context  *HandleContext,
+	args     []arg,
+	receiver interface{},
+	context  HandleContext,
 ) ([]reflect.Value, error) {
 	var resolved []reflect.Value
 	for i, arg := range args {
 		typ := m.method.Type.In(i)
 		if a, err := arg.resolve(typ, receiver, context); err != nil {
-			return nil, &MethodBindingError{m.method, err}
+			return nil, MethodBindingError{m.method, err}
 		} else {
 			resolved = append(resolved, a)
 		}
@@ -179,8 +179,8 @@ func (b *constructorBinding) Matches(
 }
 
 func (b *constructorBinding) Invoke(
-	receiver  interface{},
-	context  *HandleContext,
+	receiver interface{},
+	context  HandleContext,
 ) ([]interface{}, error) {
 	if receiver != nil {
 		panic("receiver must be nil")
@@ -224,7 +224,7 @@ func newConstructorBinding(
 			}
 		}
 		if invalid != nil {
-			return nil, &MethodBindingError{*initMethod, invalid}
+			return nil, MethodBindingError{*initMethod, invalid}
 		}
 		initializer := initializer{methodInvoke{*initMethod, args}}
 		binding.AddFilters(&initializerProvider{[]Filter{initializer}})

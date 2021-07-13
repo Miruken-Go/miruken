@@ -115,11 +115,11 @@ type HandlerDescriptor struct {
 }
 
 func (d *HandlerDescriptor) Dispatch(
-	policy      Policy,
-	handler     interface{},
-	constraint  interface{},
-	greedy      bool,
-	context    *HandleContext,
+	policy     Policy,
+	handler    interface{},
+	constraint interface{},
+	greedy     bool,
+	context    HandleContext,
 ) (result HandleResult) {
 	if pb, found := d.bindings[policy]; found {
 		callback    := context.Callback
@@ -174,7 +174,7 @@ func (d *HandlerDescriptor) Dispatch(
 					out, err = binding.Invoke(handler, context)
 				} else {
 					out, err = pipeline(context, filters,
-						func(context *HandleContext) ([]interface{}, error) {
+						func(context HandleContext) ([]interface{}, error) {
 							return binding.Invoke(handler, context)
 					})
 				}

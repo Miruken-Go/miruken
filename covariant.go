@@ -117,7 +117,7 @@ func (p *covariantPolicy) newMethodBinding(
 	}
 
 	if invalid != nil {
-		return nil, &MethodBindingError{method, invalid}
+		return nil, MethodBindingError{method, invalid}
 	}
 
 	return &methodBinding{

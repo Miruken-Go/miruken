@@ -26,9 +26,9 @@ func (n Next) Abort() ([]interface{}, error) {
 type Filter interface {
 	Order() int
 	Next(
-		next      Next,
-		context  *HandleContext,
-		provider  FilterProvider,
+		next     Next,
+		context  HandleContext,
+		provider FilterProvider,
 	)  ([]interface{}, error)
 }
 
@@ -297,10 +297,10 @@ func orderedFilters(
 	return allFilters, nil
 }
 
-type CompletePipelineFunc func(*HandleContext) ([]interface{}, error)
+type CompletePipelineFunc func(HandleContext) ([]interface{}, error)
 
 func pipeline(
-	context  *HandleContext,
+	context  HandleContext,
 	filters  []providedFilter,
 	complete CompletePipelineFunc,
 ) (results []interface{}, err error) {
@@ -314,7 +314,7 @@ func pipeline(
 		proceed  bool,
 	) ([]interface{}, error) {
 		if !proceed {
-			return nil, &RejectedError{callback}
+			return nil, RejectedError{callback}
 		}
 		if comp != nil {
 			composer = comp

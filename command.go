@@ -91,7 +91,7 @@ func Invoke(handler Handler, callback interface{}, target interface{}) error {
 	if result := handler.Handle(command, false, nil); result.IsError() {
 		return result.Error()
 	} else if !result.handled {
-		return &NotHandledError{callback}
+		return NotHandledError{callback}
 	}
 	command.CopyResult(tv)
 	return nil
@@ -108,7 +108,7 @@ func InvokeAll(handler Handler, callback interface{}, target interface{}) error 
 	if result := handler.Handle(command, true, nil); result.IsError() {
 		return result.Error()
 	} else if !result.handled {
-		return &NotHandledError{callback}
+		return NotHandledError{callback}
 	}
 	command.CopyResult(tv)
 	return nil

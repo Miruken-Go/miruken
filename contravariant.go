@@ -115,7 +115,7 @@ func (p *contravariantPolicy) newMethodBinding(
 	}
 
 	if invalid != nil {
-		return nil, &MethodBindingError{method, invalid}
+		return nil, MethodBindingError{method, invalid}
 	}
 
 	return &methodBinding{

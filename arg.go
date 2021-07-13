@@ -10,9 +10,9 @@ import (
 // arg represents a parameter to a method
 type arg interface {
 	resolve(
-		typ       reflect.Type,
-		receiver  interface{},
-		context  *HandleContext,
+		typ      reflect.Type,
+		receiver interface{},
+		context  HandleContext,
 	) (reflect.Value, error)
 }
 
@@ -20,9 +20,9 @@ type arg interface {
 type receiverArg struct {}
 
 func (a receiverArg) resolve(
-	typ       reflect.Type,
-	receiver  interface{},
-	context  *HandleContext,
+	typ      reflect.Type,
+	receiver interface{},
+	context  HandleContext,
 ) (reflect.Value, error) {
 	return reflect.ValueOf(receiver), nil
 }
@@ -31,9 +31,9 @@ func (a receiverArg) resolve(
 type zeroArg struct {}
 
 func (a zeroArg) resolve(
-	typ       reflect.Type,
-	receiver  interface{},
-	context  *HandleContext,
+	typ      reflect.Type,
+	receiver interface{},
+	context  HandleContext,
 ) (reflect.Value, error) {
 	return reflect.Zero(typ), nil
 }
@@ -42,9 +42,9 @@ func (a zeroArg) resolve(
 type callbackArg struct {}
 
 func (a callbackArg) resolve(
-	typ       reflect.Type,
-	receiver  interface{},
-	context  *HandleContext,
+	typ      reflect.Type,
+	receiver interface{},
+	context  HandleContext,
 ) (reflect.Value, error) {
 	if v := reflect.ValueOf(context.Callback); v.Type().AssignableTo(typ) {
 		return v, nil
@@ -123,9 +123,9 @@ func (d *dependencyArg) ArgType(
 }
 
 func (d *dependencyArg) resolve(
-	typ       reflect.Type,
-	receiver  interface{},
-	context  *HandleContext,
+	typ      reflect.Type,
+	receiver interface{},
+	context  HandleContext,
 ) (reflect.Value, error) {
 	composer := context.Composer
 	if typ == _handlerType {

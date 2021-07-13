@@ -26,7 +26,7 @@ func (h *inferenceHandler) DispatchPolicy(
 	if infer, ok := rawCallback.(interface{CanInfer() bool}); ok && !infer.CanInfer() {
 		return NotHandled
 	}
-	context := &HandleContext{callback, rawCallback, composer, results}
+	context := HandleContext{callback, rawCallback, composer, results}
 	return h.descriptor.Dispatch(policy, h, constraint, greedy, context)
 }
 
@@ -37,8 +37,8 @@ type bindingIntercept struct {
 }
 
 func (b *bindingIntercept) Invoke(
-	receiver  interface{},
-	context  *HandleContext,
+	receiver interface{},
+	context  HandleContext,
 ) ([]interface{}, error) {
 	if ctor, ok := b.Binding.(*constructorBinding); ok {
 		return ctor.Invoke(nil, context)

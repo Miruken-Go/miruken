@@ -71,7 +71,7 @@ func DispatchPolicy(
 			if rawCallback == nil {
 				rawCallback = callback
 			}
-			context := &HandleContext{callback, rawCallback, composer, results}
+			context := HandleContext{callback, rawCallback, composer, results}
 			return d.Dispatch(policy, handler, constraint, greedy, context)
 		} else if err != nil {
 			return NotHandled.WithError(err)
