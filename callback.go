@@ -5,7 +5,7 @@ import (
 )
 
 type (
-	// Callback represents an action
+	// Callback models an action
 	Callback interface {
 		ResultType() reflect.Type
 		SetResult(result interface{})

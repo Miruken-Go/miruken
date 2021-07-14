@@ -1,10 +1,14 @@
 package miruken
 
 import (
+	"fmt"
+	"github.com/hashicorp/go-multierror"
 	"reflect"
 	"sort"
+	"sync"
 )
 
+// Next advances to the next step in a pipeline.
 type Next func (
 	composer Handler,
 	proceed  bool,
@@ -81,7 +85,7 @@ func (f *filterSpecProvider) Filters(
 	return nil, err
 }
 
-// filterInstanceProvider manages existing instances.
+// filterInstanceProvider manages existing Filters.
 type filterInstanceProvider struct {
 	required bool
 	filters  []Filter
@@ -99,7 +103,7 @@ func (f *filterInstanceProvider) Filters(
 	return f.filters, nil
 }
 
-// Filtered represents a container of Filter's.
+// Filtered models a container of Filters.
 type Filtered interface {
 	Filters() []FilterProvider
 	AddFilters(providers ... FilterProvider)
@@ -107,7 +111,7 @@ type Filtered interface {
 	RemoveAllFilters()
 }
 
-// FilteredScope is a container for Filters.
+// FilteredScope is a container of Filters.
 type FilteredScope struct {
 	providers []FilterProvider
 }
@@ -155,7 +159,9 @@ func (f *FilteredScope) RemoveAllFilters() {
 	f.providers = nil
 }
 
-// FilterOptions are used the control filter processing.
+// Filter builders
+
+// FilterOptions are used to control Filter processing.
 type FilterOptions struct {
 	SkipFilters OptionBool
 	Providers   []FilterProvider
@@ -202,7 +208,7 @@ func WithFilterProviders(providers ... FilterProvider) Builder {
 	})
 }
 
-// providedFilter represents a Filter and its FilterProvider.
+// providedFilter models a Filter and its FilterProvider.
 type providedFilter struct {
 	filter   Filter
 	provider FilterProvider
@@ -329,3 +335,53 @@ func pipeline(
 
 	return next(composer, true)
 }
+
+func DynNext(
+	filter   Filter,
+	next     Next,
+	context  HandleContext,
+	provider FilterProvider,
+)  (results []interface{}, invalid error) {
+	typ := reflect.TypeOf(filter)
+	_dynNextLock.RLock()
+	binding := _dynNextBinding[typ]
+	_dynNextLock.RUnlock()
+	if binding == nil {
+		_dynNextLock.Lock()
+		defer _dynNextLock.Unlock()
+		if dynNext, ok := typ.MethodByName("DynNext"); !ok {
+			goto Invalid
+		} else if dynNextType := dynNext.Type; dynNextType.NumIn() < 4 {
+			goto Invalid
+		} else if dynNextType.In(1) != reflect.TypeOf(next) ||
+			dynNextType.In(2) != reflect.TypeOf(context) ||
+			dynNextType.In(3) != reflect.TypeOf(provider) {
+			goto Invalid
+		} else {
+			numArgs := dynNextType.NumIn()-4
+			args    := make([]arg, numArgs)
+			for i := 4; i < numArgs; i++ {
+				if arg, err := buildDependency(dynNextType.In(i)); err == nil {
+					args[i] = arg
+				} else {
+					invalid = multierror.Append(invalid, fmt.Errorf(
+						"DynNext: invalid dependency at index %v: %w", i, err))
+				}
+			}
+			if invalid != nil {
+				return nil, MethodBindingError{dynNext, invalid}
+			}
+		}
+		//val := reflect.ValueOf(filter)
+		return nil, nil
+	}
+	Invalid:
+		return nil, fmt.Errorf(
+			"filter %v requires a method DynNext(Next, HandleContext, FilterProvider, ...)",
+			typ)
+}
+
+var (
+	_dynNextLock    sync.RWMutex
+	_dynNextBinding map[reflect.Type]*methodInvoke
+)

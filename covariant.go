@@ -79,15 +79,11 @@ func (p *covariantPolicy) newMethodBinding(
 	args[1] = zeroArg{}  // policy/binding placeholder
 
 	for i := 2; i < numArgs; i++ {
-		if argType := methodType.In(i); argType == _interfaceType {
-			invalid = multierror.Append(invalid, fmt.Errorf(
-				"covariant policy: %v dependency at index %v not allowed",
-				_interfaceType, i))
-		} else if arg, err := buildDependency(argType); err == nil {
+		if arg, err := buildDependency(methodType.In(i)); err == nil {
 			args[i] = arg
 		} else {
 			invalid = multierror.Append(invalid, fmt.Errorf(
-				"contravariant policy: invalid dependency at index %v: %w", i, err))
+				"covariant policy: invalid dependency at index %v: %w", i, err))
 		}
 	}
 

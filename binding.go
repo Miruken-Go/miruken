@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// Binding is the abstraction for constraint handling
+// Binding is the abstraction for constraint handling.
 type Binding interface {
 	Filtered
 	Strict()      bool
@@ -29,7 +29,7 @@ type OrderBinding interface {
 	Less(binding, otherBinding Binding) bool
 }
 
-// MethodBindingError reports a failed method binding
+// MethodBindingError reports a failed method binding.
 type MethodBindingError struct {
 	Method reflect.Method
 	Reason error
@@ -50,7 +50,7 @@ type methodBinder interface {
 	) (binding Binding, invalid error)
 }
 
-// methodInvoke abstracts the invocation of a `method`
+// methodInvoke abstracts the invocation of a `method`.
 type methodInvoke struct {
 	method reflect.Method
 	args   []arg
@@ -59,7 +59,7 @@ type methodInvoke struct {
 func (m methodInvoke) Invoke(
 	receiver interface{},
 	context  HandleContext,
-)  ([]interface{}, error) {
+) ([]interface{}, error) {
 	if args, err := m.resolveArgs(m.args, receiver, context); err != nil {
 		return nil, err
 	} else {
@@ -89,7 +89,7 @@ func (m methodInvoke) resolveArgs(
 	return resolved, nil
 }
 
-// methodBinding represents the `constraint` Binding to a method
+// methodBinding models a `constraint` Binding to a method.
 type methodBinding struct {
 	methodInvoke
 	FilteredScope
@@ -133,7 +133,7 @@ func (b *methodBinding) Matches(
 	return false
 }
 
-// constructorBinder creates a constructor binding to `handlerType`
+// constructorBinder creates a constructor binding to `handlerType`.
 type constructorBinder interface {
 	newConstructorBinding(
 		handlerType  reflect.Type,
@@ -142,8 +142,8 @@ type constructorBinder interface {
 	) (binding Binding, invalid error)
 }
 
-// constructorBinding represents the creation/initialization
-// of the `handlerType`
+// constructorBinding models the creation/initialization
+// of the `handlerType`.
 type constructorBinding struct {
 	FilteredScope
 	handlerType  reflect.Type
@@ -212,11 +212,7 @@ func newConstructorBinding(
 			args[1] = zeroArg{}  // policy/binding placeholder
 		}
 		for i := startIndex; i < numArgs; i++ {
-			if argType := methodType.In(i); argType == _interfaceType {
-				invalid = multierror.Append(invalid, fmt.Errorf(
-					"init: %v dependency at index %v not allowed",
-					_interfaceType, i))
-			} else if arg, err := buildDependency(argType); err == nil {
+			if arg, err := buildDependency(methodType.In(i)); err == nil {
 				args[i] = arg
 			} else {
 				invalid = multierror.Append(invalid, fmt.Errorf(
@@ -226,7 +222,7 @@ func newConstructorBinding(
 		if invalid != nil {
 			return nil, MethodBindingError{*initMethod, invalid}
 		}
-		initializer := initializer{methodInvoke{*initMethod, args}}
+		initializer := &initializer{methodInvoke{*initMethod, args}}
 		binding.AddFilters(&initializerProvider{[]Filter{initializer}})
 	}
 	return binding, nil

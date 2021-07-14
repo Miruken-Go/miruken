@@ -2,6 +2,7 @@ package miruken
 
 import "reflect"
 
+// Builder augments a Handler.
 type Builder interface {
 	Build(Handler) Handler
 }

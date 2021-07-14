@@ -91,7 +91,7 @@ func getPolicy(policyType reflect.Type) Policy {
 	return nil
 }
 
-// policySpec represents policy metadata
+// policySpec encapsulates policy metadata.
 type policySpec struct {
 	policies    []Policy
 	flags       bindingFlags

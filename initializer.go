@@ -8,11 +8,11 @@ type initializer struct {
 	initMethod methodInvoke
 }
 
-func (i initializer) Order() int {
+func (i *initializer) Order() int {
 	return math.MaxInt32
 }
 
-func (i initializer) Next(
+func (i *initializer) Next(
 	next     Next,
 	context  HandleContext,
 	provider FilterProvider,

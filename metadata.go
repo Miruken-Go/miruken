@@ -95,7 +95,7 @@ func newPolicyBindings(order OrderBinding) *policyBindings {
 	}
 }
 
-// policyBindingsMap represents a mapping from Policy to Binding's.
+// policyBindingsMap models a mapping from Policy to Binding.
 type policyBindingsMap map[Policy]*policyBindings
 
 func (p policyBindingsMap) getBindings(policy Policy) *policyBindings {
@@ -107,7 +107,7 @@ func (p policyBindingsMap) getBindings(policy Policy) *policyBindings {
 	return policyBindings
 }
 
-// HandlerDescriptor maintains a list of Binding's for a Handler type.
+// HandlerDescriptor maintains a list of Binding for a Handler type.
 type HandlerDescriptor struct {
 	FilteredScope
 	handlerType reflect.Type
@@ -205,14 +205,14 @@ func (e *HandlerDescriptorError) Error() string {
 
 func (e *HandlerDescriptorError) Unwrap() error { return e.Reason }
 
-// HandlerDescriptorProvider return descriptors for the handler type.
+// HandlerDescriptorProvider return descriptors for the Handler type.
 type HandlerDescriptorProvider interface {
 	GetHandlerDescriptor(
 		handler reflect.Type,
 	) (*HandlerDescriptor, error)
 }
 
-// HandlerDescriptorFactory adds registration capability to the HandlerDescriptorProvider.
+// HandlerDescriptorFactory adds registration to the HandlerDescriptorProvider.
 type HandlerDescriptorFactory interface {
 	HandlerDescriptorProvider
 
@@ -237,7 +237,7 @@ func (f HandlerDescriptorVisitorFunc) VisitHandlerBinding(
 	f(descriptor, binding)
 }
 
-// mutableFactory create HandlerDescriptor's on demand.
+// mutableFactory creates HandlerDescriptor on demand.
 type mutableFactory struct {
 	sync.RWMutex
 	descriptors map[reflect.Type]*HandlerDescriptor

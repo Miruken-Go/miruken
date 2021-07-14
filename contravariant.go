@@ -86,11 +86,7 @@ func (p *contravariantPolicy) newMethodBinding(
 	}
 
 	for i := 3; i < numArgs; i++ {
-		if argType := methodType.In(i); argType == _interfaceType {
-			invalid = multierror.Append(invalid, fmt.Errorf(
-				"contravariant policy: %v dependency at index %v not allowed",
-				_interfaceType, i))
-		} else if arg, err := buildDependency(argType); err == nil {
+		if arg, err := buildDependency(methodType.In(i)); err == nil {
 			args[i] = arg
 		} else {
 			invalid = multierror.Append(invalid, fmt.Errorf(

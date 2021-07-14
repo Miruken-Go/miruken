@@ -7,7 +7,7 @@ import (
 	"unicode"
 )
 
-// arg represents a parameter to a method
+// arg models a parameter of a method.
 type arg interface {
 	resolve(
 		typ      reflect.Type,
@@ -16,7 +16,7 @@ type arg interface {
 	) (reflect.Value, error)
 }
 
-// receiverArg is the receiver of the method call
+// receiverArg is the receiver of the method call.
 type receiverArg struct {}
 
 func (a receiverArg) resolve(
@@ -27,7 +27,7 @@ func (a receiverArg) resolve(
 	return reflect.ValueOf(receiver), nil
 }
 
-// zeroArg returns the Zero value of the argument type
+// zeroArg returns the Zero value of the argument type.
 type zeroArg struct {}
 
 func (a zeroArg) resolve(
@@ -38,7 +38,7 @@ func (a zeroArg) resolve(
 	return reflect.Zero(typ), nil
 }
 
-// callbackArg returns the callback or raw callback
+// callbackArg returns the callback or raw callback.
 type callbackArg struct {}
 
 func (a callbackArg) resolve(
@@ -55,7 +55,7 @@ func (a callbackArg) resolve(
 	return reflect.ValueOf(nil), fmt.Errorf("arg: unable to resolve callback: %v", typ)
 }
 
-// dependencySpec collects metadata for a dependency
+// dependencySpec encapsulates dependency metadata.
 type dependencySpec struct {
 	index    int
 	flags    bindingFlags
@@ -108,7 +108,7 @@ func (s *dependencySpec) setResolver(
 	return nil
 }
 
-// dependencyArg is a parameter resolved at runtime
+// dependencyArg is a parameter resolved at runtime.
 type dependencyArg struct {
 	spec *dependencySpec
 }
@@ -159,7 +159,7 @@ func (d dependencyArg) resolve(
 	return val, err
 }
 
-// DependencyResolver defines how an argument value is retrieved
+// DependencyResolver defines how an argument value is retrieved.
 type DependencyResolver interface {
 	Resolve(
 		typ         reflect.Type,
@@ -169,7 +169,7 @@ type DependencyResolver interface {
 	) (reflect.Value, error)
 }
 
-// defaultDependencyResolver retrieves the value from the Handler
+// defaultDependencyResolver retrieves the value from the Handler.
 type defaultDependencyResolver struct{}
 
 func (r *defaultDependencyResolver) Resolve(
@@ -236,11 +236,15 @@ var dependencyBuilders = []bindingBuilder{
 func buildDependency(
 	argType reflect.Type,
 ) (arg dependencyArg, err error) {
+	if argType == _interfaceType {
+		return arg, fmt.Errorf(
+			"type %v cannot be used as a dependency",
+			_interfaceType)
+	}
 	// Is it a *Struct arg binding?
 	if argType.Kind() != reflect.Ptr {
 		return dependencyArg{}, nil
 	}
-	arg = dependencyArg{}
 	argType = argType.Elem()
 	if argType.Kind() == reflect.Struct &&
 		argType.Name() == "" &&  // anonymous

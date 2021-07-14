@@ -29,10 +29,12 @@ func (c *Counted) Inc() int {
 	return c.count
 }
 
-type Foo struct { Counted }
-type Bar struct { Counted }
-type Baz struct { Counted }
-type Bam struct { Counted }
+type (
+	Foo struct { Counted }
+	Bar struct { Counted }
+	Baz struct { Counted }
+	Bam struct { Counted }
+)
 
 // FooHandler
 type FooHandler struct{}
