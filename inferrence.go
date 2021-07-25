@@ -36,12 +36,16 @@ type bindingIntercept struct {
 	Binding
 }
 
+func (b *bindingIntercept) SkipFilters() bool {
+	return true
+}
+
 func (b *bindingIntercept) Invoke(
-	receiver interface{},
-	context  HandleContext,
+	context      HandleContext,
+	explicitArgs ... interface{},
 ) ([]interface{}, error) {
 	if ctor, ok := b.Binding.(*constructorBinding); ok {
-		return ctor.Invoke(nil, context)
+		return ctor.Invoke(context)
 	}
 	builder := new(ResolvingBuilder).WithCallback(context.RawCallback)
 	builder.WithKey(b.handlerType)

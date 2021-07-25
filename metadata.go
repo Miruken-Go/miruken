@@ -156,7 +156,7 @@ func (d *HandlerDescriptor) Dispatch(
 					var tp []FilterProvider
 					if tf, ok := handler.(Filter); ok {
 						tp = []FilterProvider{
-							&filterInstanceProvider{true, []Filter{tf}},
+							&filterInstanceProvider{[]Filter{tf}, true},
 						}
 					}
 					if providedFilters, err := orderedFilters(
@@ -171,11 +171,11 @@ func (d *HandlerDescriptor) Dispatch(
 				var out []interface{}
 				var err error
 				if len(filters) == 0 {
-					out, err = binding.Invoke(handler, context)
+					out, err = binding.Invoke(context, handler)
 				} else {
 					out, err = pipeline(context, filters,
 						func(context HandleContext) ([]interface{}, error) {
-							return binding.Invoke(handler, context)
+							return binding.Invoke(context, handler)
 					})
 				}
 				if err == nil {
@@ -284,40 +284,38 @@ func (f *mutableFactory) newHandlerDescriptor(
 	}
 	bindings := make(policyBindingsMap)
 	// Add constructors implicitly
-	if handlerType.Kind() == reflect.Ptr {
-		provides := ProvidesPolicy()
-		policies := []Policy{ provides }
-		var initMethod *reflect.Method
-		var initSpec *policySpec
-		if method, ok := handlerType.MethodByName("Initialize"); ok {
-			initMethod = &method
-			initMethodType := initMethod.Type
-			if initMethodType.NumIn() > 1 {
-				if spec, err := buildPolicySpec(initMethodType.In(1)); err == nil {
-					if spec != nil {
-						initSpec = spec
-						for _, policy := range spec.policies {
-							if policy != provides {
-								policies = append(policies, policy)
-							}
+	provides := ProvidesPolicy()
+	policies := []Policy{ provides }
+	var initMethod *reflect.Method
+	var initSpec *policySpec
+	if method, ok := handlerType.MethodByName("Initialize"); ok {
+		initMethod = &method
+		initMethodType := initMethod.Type
+		if initMethodType.NumIn() > 1 {
+			if spec, err := buildPolicySpec(initMethodType.In(1)); err == nil {
+				if spec != nil {
+					initSpec = spec
+					for _, policy := range spec.policies {
+						if policy != provides {
+							policies = append(policies, policy)
 						}
 					}
-				} else {
-					invalid = multierror.Append(invalid, err)
 				}
+			} else {
+				invalid = multierror.Append(invalid, err)
 			}
 		}
-		for _, policy := range policies {
-			if binder, ok := provides.(constructorBinder); ok {
-				if ctor, err := binder.newConstructorBinding(
-					handlerType, initMethod, initSpec); err == nil {
-					if f.visitor != nil {
-						f.visitor.VisitHandlerBinding(descriptor, ctor)
-					}
-					bindings.getBindings(policy).insert(ctor)
-				} else {
-					invalid = multierror.Append(invalid, err)
+	}
+	for _, policy := range policies {
+		if binder, ok := provides.(constructorBinder); ok {
+			if ctor, err := binder.newConstructorBinding(
+				handlerType, initMethod, initSpec); err == nil {
+				if f.visitor != nil {
+					f.visitor.VisitHandlerBinding(descriptor, ctor)
 				}
+				bindings.getBindings(policy).insert(ctor)
+			} else {
+				invalid = multierror.Append(invalid, err)
 			}
 		}
 	}
@@ -337,6 +335,7 @@ func (f *mutableFactory) newHandlerDescriptor(
 			}
 			for _, policy := range spec.policies {
 				if binder, ok := policy.(methodBinder); ok {
+
 					if binding, errBind := binder.newMethodBinding(method, spec); binding != nil {
 						if f.visitor != nil {
 							f.visitor.VisitHandlerBinding(descriptor, binding)

@@ -10,30 +10,17 @@ import (
 // arg models a parameter of a method.
 type arg interface {
 	resolve(
-		typ      reflect.Type,
-		receiver interface{},
-		context  HandleContext,
+		typ     reflect.Type,
+		context HandleContext,
 	) (reflect.Value, error)
-}
-
-// receiverArg is the receiver of the method call.
-type receiverArg struct {}
-
-func (a receiverArg) resolve(
-	typ      reflect.Type,
-	receiver interface{},
-	context  HandleContext,
-) (reflect.Value, error) {
-	return reflect.ValueOf(receiver), nil
 }
 
 // zeroArg returns the Zero value of the argument type.
 type zeroArg struct {}
 
 func (a zeroArg) resolve(
-	typ      reflect.Type,
-	receiver interface{},
-	context  HandleContext,
+	typ     reflect.Type,
+	context HandleContext,
 ) (reflect.Value, error) {
 	return reflect.Zero(typ), nil
 }
@@ -42,9 +29,8 @@ func (a zeroArg) resolve(
 type callbackArg struct {}
 
 func (a callbackArg) resolve(
-	typ      reflect.Type,
-	receiver interface{},
-	context  HandleContext,
+	typ     reflect.Type,
+	context HandleContext,
 ) (reflect.Value, error) {
 	if v := reflect.ValueOf(context.Callback); v.Type().AssignableTo(typ) {
 		return v, nil
@@ -123,9 +109,8 @@ func (d dependencyArg) ArgType(
 }
 
 func (d dependencyArg) resolve(
-	typ      reflect.Type,
-	receiver interface{},
-	context  HandleContext,
+	typ     reflect.Type,
+	context HandleContext,
 ) (reflect.Value, error) {
 	composer := context.Composer
 	if typ == _handlerType {
@@ -271,12 +256,15 @@ func resolverBindingBuilder(
 	field   reflect.StructField,
 	binding interface{},
 ) (err error) {
-	if field.Type.AssignableTo(_depResolverType) {
+	if dr := coerceToPtr(field.Type, _depResolverType); dr != nil {
 		if b, ok := binding.(interface {
 			setResolver(resolver DependencyResolver) error
 		}); ok {
-			resolver := newStructField(field).(DependencyResolver)
-			if invalid := b.setResolver(resolver); invalid != nil {
+			if resolver, invalid := newWithTag(dr, field.Tag); invalid != nil {
+				err = fmt.Errorf(
+					"binding: new dependency resolver at field %v (%v) failed: %w",
+					field.Name, index, invalid)
+			} else if invalid := b.setResolver(resolver.(DependencyResolver)); invalid != nil {
 				err = multierror.Append(err, fmt.Errorf(
 					"binding: dependency resolver %#v at field %v (%v) failed: %w",
 					resolver, field.Name, index, invalid))

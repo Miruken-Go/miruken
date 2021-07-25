@@ -20,8 +20,8 @@ type Binding interface {
 	) (matched bool)
 
 	Invoke(
-		receiver interface{},
 		context  HandleContext,
+		explicitArgs ... interface{},
 	) (results []interface{}, err error)
 }
 
@@ -57,13 +57,18 @@ type methodInvoke struct {
 }
 
 func (m methodInvoke) Invoke(
-	receiver interface{},
-	context  HandleContext,
+	context      HandleContext,
+	explicitArgs ... interface{},
 ) ([]interface{}, error) {
-	if args, err := m.resolveArgs(m.args, receiver, context); err != nil {
+	fromIndex := len(explicitArgs)
+	if args, err := m.resolveArgs(fromIndex, m.args, context); err != nil {
 		return nil, err
 	} else {
-		res := m.method.Func.Call(args)
+		var values []reflect.Value
+		for _, arg := range explicitArgs {
+			values = append(values, reflect.ValueOf(arg))
+		}
+		res := m.method.Func.Call(append(values, args...))
 		results := make([]interface{}, len(res))
 		for i, v := range res {
 			results[i] = v.Interface()
@@ -73,14 +78,14 @@ func (m methodInvoke) Invoke(
 }
 
 func (m methodInvoke) resolveArgs(
-	args     []arg,
-	receiver interface{},
-	context  HandleContext,
+	fromIndex int,
+	args      []arg,
+	context   HandleContext,
 ) ([]reflect.Value, error) {
 	var resolved []reflect.Value
 	for i, arg := range args {
-		typ := m.method.Type.In(i)
-		if a, err := arg.resolve(typ, receiver, context); err != nil {
+		typ := m.method.Type.In(fromIndex + i)
+		if a, err := arg.resolve(typ, context); err != nil {
 			return nil, MethodBindingError{m.method, err}
 		} else {
 			resolved = append(resolved, a)
@@ -179,13 +184,19 @@ func (b *constructorBinding) Matches(
 }
 
 func (b *constructorBinding) Invoke(
-	receiver interface{},
-	context  HandleContext,
+	context      HandleContext,
+	explicitArgs ... interface{},
 ) ([]interface{}, error) {
-	if receiver != nil {
-		panic("receiver must be nil")
+	if len(explicitArgs) > 0 {
+		panic("explicitArgs must be empty")
 	}
-	handler := reflect.New(b.handlerType.Elem()).Interface()
+	var handler interface{}
+	handlerType := b.handlerType
+	if handlerType.Kind() == reflect.Ptr {
+		handler = reflect.New(handlerType.Elem()).Interface()
+	} else {
+		handler = reflect.New(handlerType).Elem().Interface()
+	}
 	return []interface{}{handler}, nil
 }
 
@@ -202,17 +213,16 @@ func newConstructorBinding(
 		binding.flags     = spec.flags
 	}
 	if initMethod != nil {
-		startIndex := 1
+		startIndex := 0
 		methodType := initMethod.Type
-		numArgs    := methodType.NumIn()
+		numArgs    := methodType.NumIn() - 1 // skip receiver
 		args       := make([]arg, numArgs)
-		args[0]     = receiverArg{}
 		if spec != nil {
-			startIndex = 2
-			args[1] = zeroArg{}  // policy/binding placeholder
+			startIndex = 1
+			args[0] = zeroArg{}  // policy/binding placeholder
 		}
 		for i := startIndex; i < numArgs; i++ {
-			if arg, err := buildDependency(methodType.In(i)); err == nil {
+			if arg, err := buildDependency(methodType.In(i + startIndex)); err == nil {
 				args[i] = arg
 			} else {
 				invalid = multierror.Append(invalid, fmt.Errorf(

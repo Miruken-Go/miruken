@@ -98,14 +98,39 @@ func forEach(iter interface{}, f func(i int, val interface{})) {
 	}
 }
 
-func newStructField(
-	field reflect.StructField,
-) interface{} {
-	instance := reflect.New(field.Type).Interface()
-	if init, ok := instance.(interface{
-		initWithTag(reflect.StructTag)
-	}); ok {
-		init.initWithTag(field.Tag)
+func coerceToPtr(
+	givenType   reflect.Type,
+	desiredType reflect.Type,
+) reflect.Type {
+	if givenType.AssignableTo(desiredType) {
+		return givenType
+	} else if givenType.Kind() != reflect.Ptr {
+		givenType = reflect.PtrTo(givenType)
+		if givenType.AssignableTo(desiredType) {
+			return givenType
+		}
 	}
-	return instance
+	return nil
+}
+
+func newWithTag(
+	typ reflect.Type,
+	tag reflect.StructTag,
+) (interface{}, error) {
+	var val interface{}
+	if typ.Kind() == reflect.Ptr {
+		val = reflect.New(typ.Elem()).Interface()
+	} else {
+		val = reflect.New(typ).Elem().Interface()
+	}
+	if len(tag) > 0 {
+		if init, ok := val.(interface {
+			initWithTag(reflect.StructTag) error
+		}); ok {
+			if err := init.initWithTag(tag); err != nil {
+				return val, err
+			}
+		}
+	}
+	return val, nil
 }

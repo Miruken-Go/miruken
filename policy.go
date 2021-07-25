@@ -193,11 +193,12 @@ func filterBindingBuilder(
 	field   reflect.StructField,
 	binding interface{},
 ) (err error) {
-	if field.Type.Implements(_filterType) {
-		if p, ok := binding.(interface {
+	typ := field.Type
+	if filter := coerceToPtr(typ, _filterType); filter != nil {
+		if b, ok := binding.(interface {
 			addFilterProvider(provider FilterProvider) error
 		}); ok {
-			spec := filterSpec{field.Type, false, -1}
+			spec := filterSpec{filter, false, -1}
 			if f, ok := field.Tag.Lookup(_filterTag); ok {
 				args := strings.Split(f, ",")
 				for _, arg := range args {
@@ -211,18 +212,21 @@ func filterBindingBuilder(
 				}
 			}
 			provider := &filterSpecProvider{spec}
-			if invalid := p.addFilterProvider(provider); invalid != nil {
+			if invalid := b.addFilterProvider(provider); invalid != nil {
 				err = fmt.Errorf(
 					"binding: filter spec provider %v at index %v failed: %w",
 					provider, index, invalid)
 			}
 		}
-	} else if field.Type.Implements(_filterProviderType) {
-		if p, ok := binding.(interface {
+	} else if fp := coerceToPtr(typ, _filterProviderType); fp != nil {
+		if b, ok := binding.(interface {
 			addFilterProvider(provider FilterProvider) error
 		}); ok {
-			provider := newStructField(field).(FilterProvider)
-			if invalid := p.addFilterProvider(provider); invalid != nil {
+			if provider, invalid := newWithTag(fp, field.Tag); invalid != nil {
+				err = fmt.Errorf(
+					"binding: new filter provider at index %v failed: %w",
+					index, invalid)
+			} else if invalid := b.addFilterProvider(provider.(FilterProvider)); invalid != nil {
 				err = fmt.Errorf(
 					"binding: filter provider %v at index %v failed: %w",
 					provider, index, invalid)

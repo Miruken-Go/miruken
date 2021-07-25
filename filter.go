@@ -72,7 +72,7 @@ func (f *filterSpecProvider) Filters(
 		WithKey(spec.typ).
 		NewInquiry()
 	result, err := inquiry.Resolve(composer)
-	if result != nil && err != nil {
+	if result != nil && err == nil {
 		if filter, ok := result.(Filter); ok {
 			if spec.order >= 0 {
 				if o, ok := filter.(interface{ SetOrder(order int) }); ok {
@@ -87,8 +87,8 @@ func (f *filterSpecProvider) Filters(
 
 // filterInstanceProvider manages existing Filters.
 type filterInstanceProvider struct {
-	required bool
 	filters  []Filter
+	required bool
 }
 
 func (f *filterInstanceProvider) Required() bool {
@@ -163,8 +163,8 @@ func (f *FilteredScope) RemoveAllFilters() {
 
 // FilterOptions are used to control Filter processing.
 type FilterOptions struct {
-	SkipFilters OptionBool
 	Providers   []FilterProvider
+	SkipFilters OptionBool
 }
 
 var skipFilters = WithOptions(FilterOptions{
@@ -190,7 +190,7 @@ func WithRequiredFilters(filters ... Filter) Builder {
 }
 
 func withFilters(required bool, filters ... Filter) Builder {
-	provider := filterInstanceProvider{required, filters}
+	provider := filterInstanceProvider{filters, required}
 	builder  := WithOptions(FilterOptions{
 		Providers: []FilterProvider{&provider},
 	})
@@ -354,15 +354,15 @@ func DynNext(
 		} else if dynNextType := dynNext.Type; dynNextType.NumIn() < 4 {
 			goto Invalid
 		} else if dynNextType.In(1) != reflect.TypeOf(next) ||
-			dynNextType.In(2) != reflect.TypeOf(context) ||
-			dynNextType.In(3) != reflect.TypeOf(provider) {
+			dynNextType.In(2) != _handleCtxType ||
+			dynNextType.In(3) != _filterProviderType {
 			goto Invalid
 		} else {
-			numArgs := dynNextType.NumIn()-4
-			args    := make([]arg, numArgs)
+			numArgs := dynNextType.NumIn()
+			args    := make([]arg, numArgs-4)
 			for i := 4; i < numArgs; i++ {
 				if arg, err := buildDependency(dynNextType.In(i)); err == nil {
-					args[i] = arg
+					args[i-4] = arg
 				} else {
 					invalid = multierror.Append(invalid, fmt.Errorf(
 						"DynNext: invalid dependency at index %v: %w", i, err))
@@ -371,10 +371,11 @@ func DynNext(
 			if invalid != nil {
 				return nil, MethodBindingError{dynNext, invalid}
 			}
+			binding = &methodInvoke{dynNext, args}
+			_dynNextBinding[typ] = binding
 		}
-		//val := reflect.ValueOf(filter)
-		return nil, nil
 	}
+	return binding.Invoke(context, filter, next, context, provider)
 	Invalid:
 		return nil, fmt.Errorf(
 			"filter %v requires a method DynNext(Next, HandleContext, FilterProvider, ...)",
@@ -382,6 +383,6 @@ func DynNext(
 }
 
 var (
-	_dynNextLock    sync.RWMutex
-	_dynNextBinding map[reflect.Type]*methodInvoke
+	_dynNextLock sync.RWMutex
+	_dynNextBinding = make(map[reflect.Type]*methodInvoke)
 )

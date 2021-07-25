@@ -19,7 +19,7 @@ func (i *initializer) Next(
 )  ([]interface{}, error) {
 	instance, err := next.Filter()
 	if err == nil && len(instance) > 0 {
-		_, err = i.initMethod.Invoke(instance[0], context)
+		_, err = i.initMethod.Invoke(context, instance[0])
 	}
 	return instance, err
 }
