@@ -183,7 +183,7 @@ func (f FilteringHandler) HandleBar(
 		Handles
 		NullFilter
 		LogFilter
-		ExceptionFilter
+		ExceptionFilter `filter:"required"`
 		AbortFilter
 	},
 	bar *BarC,
@@ -198,7 +198,7 @@ func (f FilteringHandler) HandleBee(
 	},
 	bee *BeeC,
 ) {
-
+	bee.IncHandled(3)
 }
 
 func (f FilteringHandler) HandleStuff(
@@ -206,7 +206,7 @@ func (f FilteringHandler) HandleStuff(
 	callback interface{},
 ) {
 	if bar, ok := callback.(*BarC); ok {
-		bar.IncHandled(-99)
+		bar.IncHandled(-999)
 	}
 }
 
@@ -242,6 +242,19 @@ func (s SpecialFilteringHandler) RemoveBoo(
 	ExceptionFilter
 },
 	boo *BooC,
+) {
+}
+
+// BadHandler test handler
+
+type BadHandler struct {}
+
+func (b BadHandler) HandleBar(
+	_ *struct{
+		Handles
+		LogFilter
+    },
+	bar *BarC,
 ) {
 }
 
@@ -288,20 +301,65 @@ func (suite *FilterTestSuite) TestFilters() {
 			suite.False(other2.SkipFilters.Bool())
 			suite.ElementsMatch([]FilterProvider{provider, provider}, other2.Providers)
 		})
+	})
 
-		suite.Run("Create", func () {
+	suite.Run("Create Pipeline", func () {
+		handler := suite.InferenceRoot()
+		bar     := new(BarC)
+		result  := handler.Handle(bar, false, nil)
+		suite.False(result.IsError())
+		suite.Equal(Handled, result)
+		suite.Equal(2, bar.Handled())
+		suite.Equal(4, len(bar.Filters()))
+		suite.IsType(&LogFilter{}, bar.Filters()[0])
+		suite.IsType(&ExceptionFilter{}, bar.Filters()[1])
+		suite.IsType(FilteringHandler{}, bar.Filters()[2])
+		suite.IsType(NullFilter{}, bar.Filters()[3])
+	})
+
+	suite.Run("Abort Pipeline", func () {
+		handler := suite.InferenceRoot()
+		bar := new(BarC)
+		bar.IncHandled(100)
+		result := handler.Handle(bar, false, nil)
+		suite.False(result.IsError())
+		suite.Equal(Handled, result)
+		suite.Equal(-898, bar.Handled())
+	})
+
+	suite.Run("Skip Pipeline", func () {
+		suite.Run("Implicit", func() {
 			handler := suite.InferenceRoot()
+			bee := new(BeeC)
+			result := handler.Handle(bee, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(Handled, result)
+			suite.Equal(3, bee.Handled())
+			suite.Equal(0, len(bee.Filters()))
+		})
+
+		suite.Run("Explicit", func() {
+			handler := Build(suite.InferenceRoot(), SkipFilters)
 			bar     := new(BarC)
 			result  := handler.Handle(bar, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(Handled, result)
 			suite.Equal(2, bar.Handled())
-			suite.Equal(4, len(bar.Filters()))
-			suite.IsType(&LogFilter{}, bar.Filters()[0])
-			suite.IsType(&ExceptionFilter{}, bar.Filters()[1])
-			suite.IsType(FilteringHandler{}, bar.Filters()[2])
-			suite.IsType(NullFilter{}, bar.Filters()[3])
+			suite.Equal(2, len(bar.Filters()))
+			suite.IsType(&ExceptionFilter{}, bar.Filters()[0])
+			suite.IsType(FilteringHandler{}, bar.Filters()[1])
 		})
+	})
+
+	suite.Run("Missing Dependencies", func () {
+		handler := NewRootHandler(WithHandlerTypes(
+			reflect.TypeOf((*BadHandler)(nil)),
+			reflect.TypeOf((*LogFilter)(nil)),
+		))
+		bar   := new(BarC)
+		result := handler.Handle(bar, false, nil)
+		suite.False(result.IsError())
+		suite.Equal(NotHandled, result)
 	})
 }
 

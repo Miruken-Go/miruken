@@ -243,6 +243,7 @@ var (
 	_filterTag          = "filter"
 	_requiredArg        = "required"
 	_interfaceType      = reflect.TypeOf((*interface{})(nil)).Elem()
+	_interfaceSliceType = reflect.TypeOf((*[]interface{})(nil)).Elem()
 	_policyType         = reflect.TypeOf((*Policy)(nil)).Elem()
 	_filterType         = reflect.TypeOf((*Filter)(nil)).Elem()
 	_filterProviderType = reflect.TypeOf((*FilterProvider)(nil)).Elem()

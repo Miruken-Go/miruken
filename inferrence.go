@@ -33,11 +33,19 @@ func (h *inferenceHandler) DispatchPolicy(
 // bindingIntercept intercepts Binding invocations to handler inference.
 type bindingIntercept struct {
 	handlerType reflect.Type
+	skipFilters bool
 	Binding
 }
 
+func (b *bindingIntercept) Filters() []FilterProvider {
+	if b.skipFilters {
+		return nil
+	}
+	return b.Binding.Filters()
+}
+
 func (b *bindingIntercept) SkipFilters() bool {
-	return true
+	return b.skipFilters
 }
 
 func (b *bindingIntercept) Invoke(
@@ -52,6 +60,8 @@ func (b *bindingIntercept) Invoke(
 	resolving := builder.NewResolving()
 	if result := context.Composer.Handle(resolving, false, nil); result.IsError() {
 		return nil, result.Error()
+	} else if !result.handled {
+		return []interface{}{result}, nil
 	}
 	return nil, nil
 }
@@ -75,16 +85,20 @@ func newInferenceHandler(
 				pb   := bindings.getBindings(policy)
 				elem := bs.typed.Front()
 				for elem != nil {
+					binding := elem.Value.(Binding)
+					_, ctorBinding := binding.(*constructorBinding)
 					pb.insert(&bindingIntercept{
 						descriptor.handlerType,
-						elem.Value.(Binding),
+						!ctorBinding,
+						binding,
 					})
 					elem = elem.Next()
 				}
 				for _, bs := range pb.invar {
 					for _, b := range bs {
+						_, ctorBinding := b.(*constructorBinding)
 						pb.insert(&bindingIntercept{
-							descriptor.handlerType, b,
+							descriptor.handlerType, !ctorBinding, b,
 						})
 					}
 				}
@@ -94,7 +108,8 @@ func newInferenceHandler(
 	return &inferenceHandler {
 		&HandlerDescriptor{
 			handlerType: _inferenceHandlerType,
-			bindings:    bindings},
+			bindings:    bindings,
+		},
 	}
 }
 

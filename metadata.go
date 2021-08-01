@@ -286,15 +286,15 @@ func (f *mutableFactory) newHandlerDescriptor(
 	// Add constructors implicitly
 	provides := ProvidesPolicy()
 	policies := []Policy{ provides }
+	var ctorSpec *policySpec
 	var initMethod *reflect.Method
-	var initSpec *policySpec
 	if method, ok := handlerType.MethodByName("Initialize"); ok {
 		initMethod = &method
 		initMethodType := initMethod.Type
 		if initMethodType.NumIn() > 1 {
 			if spec, err := buildPolicySpec(initMethodType.In(1)); err == nil {
 				if spec != nil {
-					initSpec = spec
+					ctorSpec = spec
 					for _, policy := range spec.policies {
 						if policy != provides {
 							policies = append(policies, policy)
@@ -309,7 +309,7 @@ func (f *mutableFactory) newHandlerDescriptor(
 	for _, policy := range policies {
 		if binder, ok := provides.(constructorBinder); ok {
 			if ctor, err := binder.newConstructorBinding(
-				handlerType, initMethod, initSpec); err == nil {
+				handlerType, initMethod, ctorSpec); err == nil {
 				if f.visitor != nil {
 					f.visitor.VisitHandlerBinding(descriptor, ctor)
 				}

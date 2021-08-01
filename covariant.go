@@ -26,6 +26,8 @@ func (p *covariantPolicy) AcceptResults(
 	case 1:
 		if result = results[0]; result == nil {
 			return nil, NotHandled
+		} else if r, ok := result.(HandleResult); ok {
+			return nil, r
 		}
 		return result, Handled
 	case 2:

@@ -351,11 +351,14 @@ func DynNext(
 		defer _dynNextLock.Unlock()
 		if dynNext, ok := typ.MethodByName("DynNext"); !ok {
 			goto Invalid
-		} else if dynNextType := dynNext.Type; dynNextType.NumIn() < 4 {
+		} else if dynNextType := dynNext.Type;
+				dynNextType.NumIn() < 4 || dynNextType.NumOut() < 2 {
 			goto Invalid
 		} else if dynNextType.In(1) != reflect.TypeOf(next) ||
 			dynNextType.In(2) != _handleCtxType ||
-			dynNextType.In(3) != _filterProviderType {
+			dynNextType.In(3) != _filterProviderType ||
+			dynNextType.Out(0) != _interfaceSliceType ||
+			dynNextType.Out(1) != _errorType {
 			goto Invalid
 		} else {
 			numArgs := dynNextType.NumIn()
@@ -375,7 +378,13 @@ func DynNext(
 			_dynNextBinding[typ] = binding
 		}
 	}
-	return binding.Invoke(context, filter, next, context, provider)
+	if results, invalid = binding.Invoke(context, filter, next, context, provider); invalid != nil {
+		return nil, invalid
+	} else {
+		res, _ := results[0].([]interface{})
+		err, _ := results[1].(error)
+		return res, err
+	}
 	Invalid:
 		return nil, fmt.Errorf(
 			"filter %v requires a method DynNext(Next, HandleContext, FilterProvider, ...)",
