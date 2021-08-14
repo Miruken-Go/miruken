@@ -258,6 +258,9 @@ func (f *mutableFactory) GetHandlerDescriptor(
 func (f *mutableFactory) RegisterHandlerType(
 	handlerType reflect.Type,
 ) (*HandlerDescriptor, bool, error) {
+	if handlerType.AssignableTo(_suppressDispatchType) {
+		return nil, false, nil
+	}
 	if err := validHandlerType(handlerType); err != nil {
 		return nil, false, err
 	}
@@ -287,12 +290,12 @@ func (f *mutableFactory) newHandlerDescriptor(
 	provides := ProvidesPolicy()
 	policies := []Policy{ provides }
 	var ctorSpec *policySpec
-	var initMethod *reflect.Method
-	if method, ok := handlerType.MethodByName("Initialize"); ok {
-		initMethod = &method
-		initMethodType := initMethod.Type
-		if initMethodType.NumIn() > 1 {
-			if spec, err := buildPolicySpec(initMethodType.In(1)); err == nil {
+	var constructor *reflect.Method
+	if method, ok := handlerType.MethodByName("Constructor"); ok {
+		constructor = &method
+		constructorType := constructor.Type
+		if constructorType.NumIn() > 1 {
+			if spec, err := buildPolicySpec(constructorType.In(1)); err == nil {
 				if spec != nil {
 					ctorSpec = spec
 					for _, policy := range spec.policies {
@@ -309,7 +312,7 @@ func (f *mutableFactory) newHandlerDescriptor(
 	for _, policy := range policies {
 		if binder, ok := provides.(constructorBinder); ok {
 			if ctor, err := binder.newConstructorBinding(
-				handlerType, initMethod, ctorSpec); err == nil {
+				handlerType, constructor, ctorSpec); err == nil {
 				if f.visitor != nil {
 					f.visitor.VisitHandlerBinding(descriptor, ctor)
 				}
@@ -322,7 +325,7 @@ func (f *mutableFactory) newHandlerDescriptor(
 	// Add callback types explicitly
 	for i := 0; i < handlerType.NumMethod(); i++ {
 		method     := handlerType.Method(i)
-		if method.Name == "Initialize" {
+		if method.Name == "Constructor" {
 			continue
 		}
 		methodType := method.Type
@@ -433,3 +436,5 @@ func (g *getHandlerDescriptorFactory) Handle(
 }
 
 func (g *getHandlerDescriptorFactory) suppressDispatch() {}
+
+var _suppressDispatchType = reflect.TypeOf((*SuppressDispatch)(nil)).Elem()

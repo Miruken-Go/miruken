@@ -30,6 +30,8 @@ func (h *inferenceHandler) DispatchPolicy(
 	return h.descriptor.Dispatch(policy, h, constraint, greedy, context)
 }
 
+func (h *inferenceHandler) suppressDispatch() {}
+
 // bindingIntercept intercepts Binding invocations to handler inference.
 type bindingIntercept struct {
 	handlerType reflect.Type
@@ -75,9 +77,6 @@ func newInferenceHandler(
 	}
 	bindings := make(policyBindingsMap)
 	for _, typ := range types {
-		if typ.AssignableTo(_suppressType) {
-			continue
-		}
 		if descriptor, added, err := factory.RegisterHandlerType(typ); err != nil {
 			panic(err)
 		} else if added {

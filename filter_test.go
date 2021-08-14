@@ -230,7 +230,7 @@ func (s SpecialFilteringHandler) HandleFoo(
 		Handles
 		LogFilter
 		ExceptionFilter
-	},
+	  },
 	foo *FooC,
 ) *SpecialFooC {
 	return new(SpecialFooC)
@@ -238,22 +238,75 @@ func (s SpecialFilteringHandler) HandleFoo(
 
 func (s SpecialFilteringHandler) RemoveBoo(
 	_ *struct{
-	Handles
-	ExceptionFilter
-},
+		Handles
+		ExceptionFilter
+	  },
 	boo *BooC,
 ) {
 }
 
+// SingletonHandler test handler
+
+type SingletonHandler struct{}
+
+func (s *SingletonHandler) Constructor(
+	_ *struct{
+		Provides
+		Singleton
+	  },
+) {
+}
+
+func (s *SingletonHandler) HandleBar(
+	_ *struct{
+		Handles
+		LogFilter
+	  },
+	bar *BarC,
+) {
+	bar.IncHandled(3)
+}
+
+// SingletonErrorHandler test handler
+
+var errorCount = 0
+
+type SingletonErrorHandler struct {
+	count int
+}
+
+func (s *SingletonErrorHandler) Constructor(
+	_ *struct{
+		Provides
+		Singleton
+	  },
+) error {
+	errorCount++
+	switch errorCount {
+	case 1: return errors.New("something bad")
+	case 2: panic("something bad")
+	default:
+		errorCount = 0
+		return nil
+	}
+}
+
+func (s *SingletonErrorHandler) HandleBee(
+	_ Handles,
+	bee *BeeC,
+) {
+	bee.IncHandled(3)
+}
+
 // BadHandler test handler
 
-type BadHandler struct {}
+type BadHandler struct{}
 
 func (b BadHandler) HandleBar(
 	_ *struct{
 		Handles
 		LogFilter
-    },
+      },
 	bar *BarC,
 ) {
 }
@@ -267,6 +320,7 @@ func (suite *FilterTestSuite) SetupTest() {
 	handleTypes := []reflect.Type{
 		reflect.TypeOf((*FilteringHandler)(nil)),
 		reflect.TypeOf((*SpecialFilteringHandler)(nil)),
+		reflect.TypeOf((*SingletonHandler)(nil)),
 		reflect.TypeOf((*LogFilter)(nil)),
 		reflect.TypeOf((*ConsoleLogger)(nil)),
 		reflect.TypeOf((*ExceptionFilter)(nil)),
@@ -278,6 +332,11 @@ func (suite *FilterTestSuite) SetupTest() {
 
 func (suite *FilterTestSuite) InferenceRoot() Handler {
 	return NewRootHandler(WithHandlerTypes(suite.HandleTypes...))
+}
+
+func (suite *FilterTestSuite) InferenceRootWith(
+	handlerTypes ... reflect.Type) Handler {
+	return NewRootHandler(WithHandlerTypes(handlerTypes...))
 }
 
 func (suite *FilterTestSuite) TestFilters() {
@@ -351,11 +410,69 @@ func (suite *FilterTestSuite) TestFilters() {
 		})
 	})
 
+	suite.Run("Singleton", func () {
+		suite.Run("Implicit", func() {
+			handler := suite.InferenceRoot()
+			var singletonHandler *SingletonHandler
+			err := Resolve(handler, &singletonHandler)
+			suite.Nil(err)
+			suite.NotNil(singletonHandler)
+			var singletonHandler2 *SingletonHandler
+			err = Resolve(handler, &singletonHandler2)
+			suite.Nil(err)
+			suite.Same(singletonHandler, singletonHandler2)
+		})
+
+		suite.Run("Infer", func() {
+			handler := suite.InferenceRootWith(
+				reflect.TypeOf((*SingletonHandler)(nil)),
+				reflect.TypeOf((*ConsoleLogger)(nil)),
+				reflect.TypeOf((*LogFilter)(nil)),
+			)
+			bar := new(BarC)
+			bar.IncHandled(10)
+			result := handler.Handle(bar, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(Handled, result)
+			suite.Equal(13, bar.Handled())
+		})
+
+		suite.Run("Error", func() {
+			handler := suite.InferenceRootWith(
+				reflect.TypeOf((*SingletonErrorHandler)(nil)),
+			)
+			bee := new(BeeC)
+			result := handler.Handle(bee, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(NotHandled, result)
+			result = handler.Handle(bee, false, nil)
+			result = handler.Handle(bee, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(Handled, result)
+		})
+
+		suite.Run("Panic", func() {
+			handler := suite.InferenceRootWith(
+				reflect.TypeOf((*SingletonErrorHandler)(nil)),
+			)
+			bee := new(BeeC)
+			result := handler.Handle(bee, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(NotHandled, result)
+			result = handler.Handle(bee, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(NotHandled, result)
+			result = handler.Handle(bee, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(Handled, result)
+		})
+	})
+
 	suite.Run("Missing Dependencies", func () {
-		handler := NewRootHandler(WithHandlerTypes(
+		handler := suite.InferenceRootWith(
 			reflect.TypeOf((*BadHandler)(nil)),
 			reflect.TypeOf((*LogFilter)(nil)),
-		))
+		)
 		bar   := new(BarC)
 		result := handler.Handle(bar, false, nil)
 		suite.False(result.IsError())

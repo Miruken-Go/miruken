@@ -26,6 +26,8 @@ func (p *provider) Handle(
 	return NotHandled
 }
 
+func (p *provider) suppressDispatch() {}
+
 func NewProvider(value interface{}) Handler {
 	if value == nil {
 		panic("value cannot be nil")

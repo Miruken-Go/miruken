@@ -594,7 +594,7 @@ type MultiProvider struct {
 	bar Bar
 }
 
-func (p *MultiProvider) Initialize(
+func (p *MultiProvider) Constructor(
 	_ *struct{ Creates },
 ) {
 	p.foo.Inc()
@@ -622,7 +622,7 @@ type SpecificationProvider struct{
 	bar Bar
 }
 
-func (p *SpecificationProvider) Initialize(baz Baz) {
+func (p *SpecificationProvider) Constructor(baz Baz) {
 	p.foo.count = baz.Count()
 }
 
@@ -810,7 +810,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 			suite.Nil(err)
 		})
 
-		suite.Run("Init", func () {
+		suite.Run("Constructor", func () {
 			var multiProvider *MultiProvider
 			err := Resolve(handler, &multiProvider)
 			suite.NotNil(multiProvider)
@@ -818,7 +818,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 			suite.Nil(err)
 		})
 
-		suite.Run("InitDependencies", func () {
+		suite.Run("ConstructorDependencies", func () {
 			var specProvider *SpecificationProvider
 			err := Resolve(Build(handler, With(Baz{Counted{2}})), &specProvider)
 			suite.NotNil(specProvider)

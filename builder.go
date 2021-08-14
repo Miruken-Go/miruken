@@ -77,14 +77,13 @@ func With(values ... interface{}) Builder {
 	})
 }
 
-
 // withHandler composes two Handlers.
 type withHandler struct {
 	Handler
 	handler Handler
 }
 
-func (c *withHandler) Handle(
+func (w *withHandler) Handle(
 	callback interface{},
 	greedy   bool,
 	composer Handler,
@@ -92,12 +91,14 @@ func (c *withHandler) Handle(
 	if callback == nil {
 		return NotHandled
 	}
-	tryInitializeComposer(&composer, c)
-	return c.handler.Handle(callback, greedy, composer).
+	tryInitializeComposer(&composer, w)
+	return w.handler.Handle(callback, greedy, composer).
 		OtherwiseIf(greedy, func (HandleResult) HandleResult {
-			return c.Handler.Handle(callback, greedy, composer)
+			return w.Handler.Handle(callback, greedy, composer)
 		})
 }
+
+func (w *withHandler) suppressDispatch() {}
 
 // withHandlers composes any number of Handlers.
 type withHandlers struct {
@@ -105,7 +106,7 @@ type withHandlers struct {
 	handlers []Handler
 }
 
-func (c *withHandlers) Handle(
+func (w *withHandlers) Handle(
 	callback interface{},
 	greedy   bool,
 	composer Handler,
@@ -113,11 +114,11 @@ func (c *withHandlers) Handle(
 	if callback == nil {
 		return NotHandled
 	}
-	tryInitializeComposer(&composer, c)
+	tryInitializeComposer(&composer, w)
 
 	result := NotHandled
 
-	for _, h := range c.handlers {
+	for _, h := range w.handlers {
 		if result.stop || (result.handled && !greedy) {
 			return result
 		}
@@ -125,9 +126,11 @@ func (c *withHandlers) Handle(
 	}
 
 	return result.OtherwiseIf(greedy, func (HandleResult) HandleResult {
-		return c.Handler.Handle(callback, greedy, composer)
+		return w.Handler.Handle(callback, greedy, composer)
 	})
 }
+
+func (w *withHandlers) suppressDispatch() {}
 
 func WithHandlers(handlers ... interface{}) Builder {
 	return BuilderFunc(func (handler Handler) Handler {
@@ -167,5 +170,3 @@ func normalizeHandlers(handlers []interface{}) []Handler {
 	}
 	return hs
 }
-
-var _suppressType = reflect.TypeOf((*SuppressDispatch)(nil)).Elem()

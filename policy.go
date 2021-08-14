@@ -266,10 +266,10 @@ type Provides struct {
 }
 func (p *Provides) newConstructorBinding(
 	handlerType  reflect.Type,
-	initMethod  *reflect.Method,
+	constructor *reflect.Method,
 	spec        *policySpec,
 ) (binding Binding, invalid error) {
-	return newConstructorBinding(handlerType, initMethod, spec)
+	return newConstructorBinding(handlerType, constructor, spec)
 }
 func ProvidesPolicy() Policy { return _provides }
 
@@ -279,9 +279,9 @@ type Creates struct {
 }
 func (p *Creates) newConstructorBinding(
 	handlerType  reflect.Type,
-	initMethod  *reflect.Method,
+	constructor *reflect.Method,
 	spec        *policySpec,
 ) (binding Binding, invalid error) {
-	return newConstructorBinding(handlerType, initMethod, spec)
+	return newConstructorBinding(handlerType, constructor, spec)
 }
 func CreatesPolicy() Policy { return _creates }

@@ -6,6 +6,7 @@ import "reflect"
 
 var HandlerTestTypes = []reflect.Type{
 	reflect.TypeOf((*AbortFilter)(nil)),
+	reflect.TypeOf((*BadHandler)(nil)),
 	reflect.TypeOf((*BarHandler)(nil)),
 	reflect.TypeOf((*CounterHandler)(nil)),
 	reflect.TypeOf((*DependencyHandler)(nil)),
@@ -24,6 +25,7 @@ var HandlerTestTypes = []reflect.Type{
 	reflect.TypeOf((*MultiHandler)(nil)),
 	reflect.TypeOf((*MultiProvider)(nil)),
 	reflect.TypeOf((*NullFilter)(nil)),
+	reflect.TypeOf((*SingletonHandler)(nil)),
 	reflect.TypeOf((*SpecialFilteringHandler)(nil)),
 	reflect.TypeOf((*SpecificationHandler)(nil)),
 	reflect.TypeOf((*SpecificationProvider)(nil)),

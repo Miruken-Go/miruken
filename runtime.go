@@ -123,13 +123,19 @@ func newWithTag(
 	} else {
 		val = reflect.New(typ).Elem().Interface()
 	}
-	if len(tag) > 0 {
-		if init, ok := val.(interface {
-			initWithTag(reflect.StructTag) error
-		}); ok {
-			if err := init.initWithTag(tag); err != nil {
-				return val, err
-			}
+	if init, ok := val.(interface {
+		InitWithTag(reflect.StructTag) error
+	}); ok {
+		if err := init.InitWithTag(tag); err != nil {
+			return val, err
+		}
+		return val, nil
+	}
+	if init, ok := val.(interface {
+		Init() error
+	}); ok {
+		if err := init.Init(); err != nil {
+			return val, err
 		}
 	}
 	return val, nil

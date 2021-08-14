@@ -142,7 +142,7 @@ func (b *methodBinding) Matches(
 type constructorBinder interface {
 	newConstructorBinding(
 		handlerType  reflect.Type,
-		initMethod  *reflect.Method,
+		constructor *reflect.Method,
 		spec        *policySpec,
 	) (binding Binding, invalid error)
 }
@@ -202,7 +202,7 @@ func (b *constructorBinding) Invoke(
 
 func newConstructorBinding(
 	handlerType  reflect.Type,
-	initMethod  *reflect.Method,
+	constructor *reflect.Method,
 	spec        *policySpec,
 ) (binding *constructorBinding, invalid error) {
 	binding = &constructorBinding{
@@ -212,9 +212,9 @@ func newConstructorBinding(
 		binding.providers = spec.filters
 		binding.flags     = spec.flags
 	}
-	if initMethod != nil {
+	if constructor != nil {
 		startIndex := 0
-		methodType := initMethod.Type
+		methodType := constructor.Type
 		numArgs    := methodType.NumIn() - 1 // skip receiver
 		args       := make([]arg, numArgs)
 		if spec != nil {
@@ -226,13 +226,13 @@ func newConstructorBinding(
 				args[i] = arg
 			} else {
 				invalid = multierror.Append(invalid, fmt.Errorf(
-					"init: invalid dependency at index %v: %w", i, err))
+					"constructor: invalid dependency at index %v: %w", i, err))
 			}
 		}
 		if invalid != nil {
-			return nil, MethodBindingError{*initMethod, invalid}
+			return nil, MethodBindingError{*constructor, invalid}
 		}
-		initializer := &initializer{methodInvoke{*initMethod, args}}
+		initializer := &initializer{methodInvoke{*constructor, args}}
 		binding.AddFilters(&initializerProvider{[]Filter{initializer}})
 	}
 	return binding, nil

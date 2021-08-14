@@ -2,10 +2,10 @@ package miruken
 
 import "math"
 
-// initializer is a Filter that invokes an 'initialize' method
-// on the current result of the pipeline.
+// initializer is a Filter that invokes a 'constructor'
+// method on the current result of the pipeline.
 type initializer struct {
-	initMethod methodInvoke
+	constructor methodInvoke
 }
 
 func (i *initializer) Order() int {
@@ -19,7 +19,13 @@ func (i *initializer) Next(
 )  ([]interface{}, error) {
 	instance, err := next.Filter()
 	if err == nil && len(instance) > 0 {
-		_, err = i.initMethod.Invoke(context, instance[0])
+		var results []interface{}
+		results, err = i.constructor.Invoke(context, instance[0])
+		if len(results) > 0 {
+			if e, ok := results[len(results)-1].(error); ok {
+				err = e
+			}
+		}
 	}
 	return instance, err
 }
