@@ -146,7 +146,7 @@ type FromOptions struct {}
 
 func (o FromOptions) Validate(
 	typ reflect.Type,
-	dep dependencyArg,
+	dep DependencyArg,
 ) error {
 	optType := dep.ArgType(typ)
 	if optType.Kind() == reflect.Ptr {
@@ -161,7 +161,7 @@ func (o FromOptions) Validate(
 func (o FromOptions) Resolve(
 	typ         reflect.Type,
 	rawCallback interface{},
-	dep         dependencyArg,
+	dep DependencyArg,
 	handler     Handler,
 ) (options reflect.Value, err error) {
 	optType := dep.ArgType(typ.Elem())

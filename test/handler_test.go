@@ -1,9 +1,10 @@
-package miruken
+package test
 
 import (
 	"errors"
 	"fmt"
 	"github.com/stretchr/testify/suite"
+	miruken "miruken.com/miruken"
 	"reflect"
 	"strings"
 	"testing"
@@ -42,14 +43,14 @@ type FooHandler struct{}
 func (h *FooHandler) Handle(
 	callback interface{},
 	greedy   bool,
-	composer Handler,
-) HandleResult {
+	composer miruken.Handler,
+) miruken.HandleResult {
 	switch foo := callback.(type) {
 	case *Foo:
 		foo.Inc()
 		return composer.Handle(Bar{}, false, nil)
 	default:
-		return NotHandled
+		return miruken.NotHandled
 	}
 }
 
@@ -57,7 +58,7 @@ func (h *FooHandler) Handle(
 type BarHandler struct {}
 
 func (h *BarHandler) HandleBar(
-	_ Handles,
+	_ miruken.Handles,
 	bar Bar,
 ) {
 }
@@ -66,15 +67,15 @@ func (h *BarHandler) HandleBar(
 type CounterHandler struct {}
 
 func (h *CounterHandler) HandleCounted(
-	_ Handles,
+	_ miruken.Handles,
 	counter Counter,
-) (Counter, HandleResult) {
+) (Counter, miruken.HandleResult) {
 	switch c := counter.Inc(); {
 	case c % 3 == 0:
 		err := fmt.Errorf("%v is divisible by 3", c)
-		return nil, NotHandled.WithError(err)
-	case c % 2 == 0: return nil, NotHandled
-	default: return counter, Handled
+		return nil, miruken.NotHandled.WithError(err)
+	case c % 2 == 0: return nil, miruken.NotHandled
+	default: return counter, miruken.Handled
 	}
 }
 
@@ -85,9 +86,9 @@ type MultiHandler struct {
 }
 
 func (h *MultiHandler) HandleFoo(
-	_ Handles,
+	_ miruken.Handles,
 	foo      *Foo,
-	composer  Handler,
+	composer miruken.Handler,
 ) error {
 	h.foo.Inc()
 	if foo.Inc() == 5 {
@@ -98,33 +99,33 @@ func (h *MultiHandler) HandleFoo(
 }
 
 func (h *MultiHandler) HandleBar(
-	_ Handles,
+	_ miruken.Handles,
 	bar *Bar,
-) HandleResult {
+) miruken.HandleResult {
 	h.bar.Inc()
 	if bar.Inc() % 2 == 0 {
-		return Handled
+		return miruken.Handled
 	}
-	return NotHandled
+	return miruken.NotHandled
 }
 
 // EverythingHandler
 type EverythingHandler struct{}
 
 func (h *EverythingHandler) HandleEverything(
-	_ Handles,
+	_ miruken.Handles,
 	callback interface{},
-) HandleResult {
+) miruken.HandleResult {
 	switch f := callback.(type) {
 	case *Foo:
 		f.Inc()
-		return Handled
+		return miruken.Handled
 	case Counter:
 		f.Inc()
 		f.Inc()
-		return Handled
+		return miruken.Handled
 	default:
-		return NotHandled
+		return miruken.NotHandled
 	}
 }
 
@@ -132,17 +133,17 @@ func (h *EverythingHandler) HandleEverything(
 type SpecificationHandler struct{}
 
 func (h *SpecificationHandler) HandleFoo(
-	_ *struct{ Handles `bind:"strict"` },
+	_ *struct{ miruken.Handles `bind:"strict"` },
 	foo *Foo,
-) HandleResult {
+) miruken.HandleResult {
 	foo.Inc()
-	return Handled
+	return miruken.Handled
 }
 
 // DependencyHandler
 type DependencyHandler struct{}
 
-func (h *DependencyHandler) RequiredDependency(_ Handles,
+func (h *DependencyHandler) RequiredDependency(_ miruken.Handles,
 	foo *Foo,
 	bar *Bar,
 ) {
@@ -150,7 +151,7 @@ func (h *DependencyHandler) RequiredDependency(_ Handles,
 }
 
 func (h *DependencyHandler) RequiredSliceDependency(
-	_     Handles,
+	_ miruken.Handles,
 	baz   *Baz,
 	bars []*Bar,
 ) {
@@ -161,7 +162,7 @@ func (h *DependencyHandler) RequiredSliceDependency(
 }
 
 func (h *DependencyHandler) OptionalDependency(
-	_ Handles,
+	_ miruken.Handles,
 	bar *Bar,
 	foo *struct{ Value *Foo `bind:"optional"` },
 ) {
@@ -172,7 +173,7 @@ func (h *DependencyHandler) OptionalDependency(
 }
 
 func (h *DependencyHandler) OptionalSliceDependency(
-	_    Handles,
+	_ miruken.Handles,
 	baz  *Baz,
 	bars *struct{ Value []*Bar `bind:"optional"` },
 ) {
@@ -183,7 +184,7 @@ func (h *DependencyHandler) OptionalSliceDependency(
 }
 
 func (h *DependencyHandler) StrictDependency(
-	_    Handles,
+	_ miruken.Handles,
 	bam  *Bam,
 	bars *struct{ Value []*Bar `bind:"strict"` },
 ) {
@@ -204,7 +205,7 @@ type Configuration struct {
 
 func (c Configuration) Validate(
 	typ reflect.Type,
-	dep dependencyArg,
+	dep miruken.DependencyArg,
 ) error {
 	argType := dep.ArgType(typ)
 	if !reflect.TypeOf(c.config).AssignableTo(argType) {
@@ -216,8 +217,8 @@ func (c Configuration) Validate(
 func (c Configuration) Resolve(
 	typ         reflect.Type,
 	rawCallback interface{},
-	dep         dependencyArg,
-	handler     Handler,
+	dep         miruken.DependencyArg,
+	handler     miruken.Handler,
 ) (reflect.Value, error) {
 	if c.config == nil {
 		c.config = &Config{
@@ -231,8 +232,9 @@ func (c Configuration) Resolve(
 // DependencyResolverHandler
 type DependencyResolverHandler struct{}
 
-func (h *DependencyResolverHandler) UseDependencyResolver(_ Handles,
-	foo *Foo,
+func (h *DependencyResolverHandler) UseDependencyResolver(
+	_ miruken.Handles,
+	foo    *Foo,
 	config *struct{ _ Configuration; Value *Config `bind:""`},
 ) *Config {
 	foo.Inc()
@@ -243,30 +245,30 @@ func (h *DependencyResolverHandler) UseDependencyResolver(_ Handles,
 type InvalidHandler struct {}
 
 func (h *InvalidHandler) MissingCallback(
-	_ Handles,
+	_ miruken.Handles,
 ) {
 }
 
 func (h *InvalidHandler) TooManyReturnValues(
-	_ Handles,
+	_ miruken.Handles,
 	bar *Bar,
 ) (int, string, Counter) {
 	return 0, "bad", nil
 }
 
 func (h *InvalidHandler) SecondReturnMustBeErrorOrHandleResult(
-	_ Handles,
+	_ miruken.Handles,
 	counter *Counter,
 ) (Foo, string) {
 	return Foo{}, "bad"
 }
 
 func (h *InvalidHandler) UntypedInterfaceDependency(
-	_ Handles,
+	_ miruken.Handles,
 	bar *Bar,
 	any  interface{},
-) HandleResult {
-	return Handled
+) miruken.HandleResult {
+	return miruken.Handled
 }
 
 type HandlerTestSuite struct {
@@ -283,37 +285,37 @@ func (suite *HandlerTestSuite) SetupTest() {
 	}
 }
 
-func (suite *HandlerTestSuite) InferenceRoot() Handler {
-	return NewRootHandler(WithHandlerTypes(suite.HandleTypes...))
+func (suite *HandlerTestSuite) InferenceRoot() miruken.Handler {
+	return miruken.NewRootHandler(miruken.WithHandlerTypes(suite.HandleTypes...))
 }
 
 func (suite *HandlerTestSuite) TestHandles() {
 	suite.Run("Invariant", func () {
-		handler := NewRootHandler(WithHandlers(new(FooHandler), new(BarHandler)))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(new(FooHandler), new(BarHandler)))
 		foo     := new(Foo)
 		result  := handler.Handle(foo, false, nil)
 		suite.False(result.IsError())
-		suite.Equal(Handled, result)
+		suite.Equal(miruken.Handled, result)
 		suite.Equal(1, foo.Count())
 	})
 
 	suite.Run("Covariant", func () {
-		handler := NewRootHandler(WithHandlers(new(CounterHandler)))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(new(CounterHandler)))
 		foo    := new(Foo)
 		result := handler.Handle(foo, false, nil)
 		suite.False(result.IsError())
-		suite.Equal(Handled, result)
+		suite.Equal(miruken.Handled, result)
 		suite.Equal(1, foo.Count())
 	})
 
 	suite.Run("HandleResult", func () {
-		handler := NewRootHandler(WithHandlers(new(CounterHandler)))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(new(CounterHandler)))
 		suite.Run("Handled", func() {
 			foo := new(Foo)
 			foo.Inc()
 			result := handler.Handle(foo, false, nil)
 			suite.False(result.IsError())
-			suite.Equal(NotHandled, result)
+			suite.Equal(miruken.NotHandled, result)
 		})
 
 		suite.Run("NotHandled", func() {
@@ -328,12 +330,12 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 	suite.Run("Multiple", func () {
 		multi   := new(MultiHandler)
-		handler := NewRootHandler(WithHandlers(multi))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(multi))
 		foo     := new(Foo)
 
 		for i := 0; i < 4; i++ {
 			result := handler.Handle(foo, false, nil)
-			suite.Equal(Handled, result)
+			suite.Equal(miruken.Handled, result)
 			suite.Equal(i + 1, foo.Count())
 		}
 
@@ -349,14 +351,14 @@ func (suite *HandlerTestSuite) TestHandles() {
 	})
 
 	suite.Run("Everything", func () {
-		handler := NewRootHandler(WithHandlers(new(EverythingHandler)))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(new(EverythingHandler)))
 
 		suite.Run("Invariant", func () {
 			foo    := new(Foo)
 			result := handler.Handle(foo, false, nil)
 
 			suite.False(result.IsError())
-			suite.Equal(Handled, result)
+			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, foo.Count())
 		})
 
@@ -364,28 +366,28 @@ func (suite *HandlerTestSuite) TestHandles() {
 			bar    := new(Bar)
 			result := handler.Handle(bar, false, nil)
 			suite.False(result.IsError())
-			suite.Equal(Handled, result)
+			suite.Equal(miruken.Handled, result)
 			suite.Equal(2, bar.Count())
 		})
 	})
 
 	suite.Run("Specification", func () {
-		handler := NewRootHandler(WithHandlers(new(SpecificationHandler)))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(new(SpecificationHandler)))
 		suite.Run("Strict", func() {
 			foo    := new(Foo)
 			result := handler.Handle(foo, false, nil)
 			suite.False(result.IsError())
-			suite.Equal(Handled, result)
+			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, foo.Count())
 		})
 	})
 
 	suite.Run("Dependencies", func () {
-		handler := NewRootHandler(WithHandlers(new(DependencyHandler)))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(new(DependencyHandler)))
 		suite.Run("Required", func () {
 			defer func() {
 				if r := recover(); r != nil {
-					if err, ok := r.(MethodBindingError); ok {
+					if err, ok := r.(miruken.MethodBindingError); ok {
 						suite.Equal("RequiredDependency", err.Method.Name)
 					} else {
 						suite.Fail("Expected MethodBindingError")
@@ -398,9 +400,9 @@ func (suite *HandlerTestSuite) TestHandles() {
 		suite.Run("RequiredSlice", func () {
 			baz    := new(Baz)
 			bars   := []interface{}{new(Bar), new(Bar)}
-			result := Build(handler, With(bars...)).Handle(baz, false, nil)
+			result := miruken.Build(handler, miruken.With(bars...)).Handle(baz, false, nil)
 			suite.False(result.IsError())
-			suite.Equal(Handled, result)
+			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, baz.Count())
 			for _, bar := range bars {
 				suite.Equal(1, bar.(*Bar).Count())
@@ -411,16 +413,16 @@ func (suite *HandlerTestSuite) TestHandles() {
 			bar    := new(Bar)
 			result := handler.Handle(bar, false, nil)
 			suite.False(result.IsError())
-			suite.Equal(Handled, result)
+			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, bar.Count())
 		})
 
 		suite.Run("OptionalWithValue", func () {
 			bar    := new(Bar)
 			foo    := new(Foo)
-			result := Build(handler, With(foo)).Handle(bar, false, nil)
+			result := miruken.Build(handler, miruken.With(foo)).Handle(bar, false, nil)
 			suite.False(result.IsError())
-			suite.Equal(Handled, result)
+			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, bar.Count())
 			suite.Equal(1, foo.Count())
 		})
@@ -430,11 +432,11 @@ func (suite *HandlerTestSuite) TestHandles() {
 			bars   := []interface{}{new(Bar), new(Bar)}
 			result := handler.Handle(baz, false, nil)
 			suite.False(result.IsError())
-			suite.Equal(Handled, result)
+			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, baz.Count())
-			result = Build(handler, With(bars...)).Handle(baz, false, nil)
+			result = miruken.Build(handler, miruken.With(bars...)).Handle(baz, false, nil)
 			suite.False(result.IsError())
-			suite.Equal(Handled, result)
+			suite.Equal(miruken.Handled, result)
 			suite.Equal(2, baz.Count())
 			for _, bar := range bars {
 				suite.Equal(1, bar.(*Bar).Count())
@@ -444,13 +446,13 @@ func (suite *HandlerTestSuite) TestHandles() {
 		suite.Run("StrictSlice", func () {
 			bam    := new(Bam)
 			bars1  := []interface{}{new(Bar), new(Bar)}
-			result := Build(handler, With(bars1...)).Handle(bam, false, nil)
+			result := miruken.Build(handler, miruken.With(bars1...)).Handle(bam, false, nil)
 			suite.False(result.IsError())
-			suite.Equal(NotHandled, result)
+			suite.Equal(miruken.NotHandled, result)
 			bars2  := []*Bar{new(Bar), new(Bar)}
-			result  = Build(handler, With(bars2)).Handle(bam, false, nil)
+			result  = miruken.Build(handler, miruken.With(bars2)).Handle(bam, false, nil)
 			suite.False(result.IsError())
-			suite.Equal(Handled, result)
+			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, bam.Count())
 			for _, bar := range bars2 {
 				suite.Equal(1, bar.Count())
@@ -458,9 +460,9 @@ func (suite *HandlerTestSuite) TestHandles() {
 		})
 
 		suite.Run("CustomResolver", func() {
-			handler := NewRootHandler(WithHandlers(new(DependencyResolverHandler)))
+			handler := miruken.NewRootHandler(miruken.WithHandlers(new(DependencyResolverHandler)))
 			var config *Config
-			if err := Invoke(handler, new(Foo), &config); err == nil {
+			if err := miruken.Invoke(handler, new(Foo), &config); err == nil {
 				suite.NotNil(*config)
 				suite.Equal("https://server/api", config.baseUrl)
 				suite.Equal(30000, config.timeout)
@@ -472,36 +474,36 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 	suite.Run("CallSemantics", func () {
 		suite.Run("BestEffort", func () {
-			handler := NewRootHandler(WithHandlers(new(BarHandler)), WithBestEffort)
+			handler := miruken.NewRootHandler(miruken.WithHandlers(new(BarHandler)), miruken.WithBestEffort)
 			foo     := new(Foo)
 			result  := handler.Handle(foo, false, nil)
 			suite.False(result.IsError())
-			suite.Equal(Handled, result)
+			suite.Equal(miruken.Handled, result)
 			suite.Equal(0, foo.Count())
 		})
 
 		suite.Run("Broadcast", func () {
-			handler := NewRootHandler(WithHandlers(
+			handler := miruken.NewRootHandler(miruken.WithHandlers(
 				new(FooHandler), new(FooHandler), new(BarHandler)))
 			foo     := new(Foo)
 			result  := handler.Handle(foo, false, nil)
 			suite.False(result.IsError())
-			suite.Equal(Handled, result)
+			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, foo.Count())
 
-			result = Build(handler, WithBroadcast).Handle(foo, false, nil)
+			result = miruken.Build(handler, miruken.WithBroadcast).Handle(foo, false, nil)
 			suite.False(result.IsError())
-			suite.Equal(Handled, result)
+			suite.Equal(miruken.Handled, result)
 			suite.Equal(3, foo.Count())
 		})
 	})
 
 	suite.Run("Command", func () {
-		handler := NewRootHandler(WithHandlers(new(CounterHandler)))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(new(CounterHandler)))
 		suite.Run("Invoke", func () {
 			suite.Run("Invariant", func() {
 				var foo *Foo
-				if err := Invoke(handler, new(Foo), &foo); err == nil {
+				if err := miruken.Invoke(handler, new(Foo), &foo); err == nil {
 					suite.NotNil(foo)
 					suite.Equal(1, foo.Count())
 				} else {
@@ -511,7 +513,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 			suite.Run("Contravariant", func() {
 				var foo interface{}
-				if err := Invoke(handler, new(Foo), &foo); err == nil {
+				if err := miruken.Invoke(handler, new(Foo), &foo); err == nil {
 					suite.NotNil(foo)
 					suite.IsType(&Foo{}, foo)
 					suite.Equal(1, foo.(*Foo).Count())
@@ -521,9 +523,9 @@ func (suite *HandlerTestSuite) TestHandles() {
 			})
 
 			suite.Run("BestEffort", func () {
-				handler := NewRootHandler(WithHandlers(new(BarHandler)), WithBestEffort)
+				handler := miruken.NewRootHandler(miruken.WithHandlers(new(BarHandler)), miruken.WithBestEffort)
 				var foo *Foo
-				if err := Invoke(handler, new(Foo), &foo); err == nil {
+				if err := miruken.Invoke(handler, new(Foo), &foo); err == nil {
 					suite.Nil(foo)
 				} else {
 					suite.Failf("unexpected error", err.Error())
@@ -532,11 +534,11 @@ func (suite *HandlerTestSuite) TestHandles() {
 		})
 
 		suite.Run("InvokeAll", func () {
-			handler := NewRootHandler(WithHandlers(
+			handler := miruken.NewRootHandler(miruken.WithHandlers(
 				new(CounterHandler), new(SpecificationHandler)))
 			suite.Run("Invariant", func () {
 				var foo []*Foo
-				if err := InvokeAll(handler, new(Foo), &foo); err == nil {
+				if err := miruken.InvokeAll(handler, new(Foo), &foo); err == nil {
 					suite.NotNil(foo)
 					suite.Len(foo, 1)
 					suite.Equal(2, foo[0].Count())
@@ -550,9 +552,9 @@ func (suite *HandlerTestSuite) TestHandles() {
 	suite.Run("Invalid", func () {
 		defer func() {
 			if r := recover(); r != nil {
-				if err, ok := r.(*HandlerDescriptorError); ok {
+				if err, ok := r.(*miruken.HandlerDescriptorError); ok {
 					failures := 0
-					var errMethod MethodBindingError
+					var errMethod miruken.MethodBindingError
 					for reason := errors.Unwrap(err.Reason);
 						errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 						failures++
@@ -563,7 +565,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 				}
 			}
 		}()
-		NewRootHandler(WithHandlers(new(InvalidHandler)))
+		miruken.NewRootHandler(miruken.WithHandlers(new(InvalidHandler)))
 	})
 }
 
@@ -572,7 +574,7 @@ type FooProvider struct {
 	foo Foo
 }
 
-func (f *FooProvider) ProvideFoo(_ Provides) *Foo {
+func (f *FooProvider) ProvideFoo(_ miruken.Provides) *Foo {
 	f.foo.Inc()
 	return &f.foo
 }
@@ -580,11 +582,11 @@ func (f *FooProvider) ProvideFoo(_ Provides) *Foo {
 // ListProvider
 type ListProvider struct {}
 
-func (f *ListProvider) ProvideFooSlice(_ Provides) []*Foo {
+func (f *ListProvider) ProvideFooSlice(_ miruken.Provides) []*Foo {
 	return []*Foo{{Counted{1}}, {Counted{2}}}
 }
 
-func (f *ListProvider) ProvideFooArray(_ Provides) [2]*Bar {
+func (f *ListProvider) ProvideFooArray(_ miruken.Provides) [2]*Bar {
 	return [2]*Bar{{Counted{3}}, {Counted{4}}}
 }
 
@@ -595,25 +597,25 @@ type MultiProvider struct {
 }
 
 func (p *MultiProvider) Constructor(
-	_ *struct{ Creates },
+	_ *struct{ miruken.Creates },
 ) {
 	p.foo.Inc()
 }
 
-func (p *MultiProvider) ProvideFoo(_ Provides) *Foo {
+func (p *MultiProvider) ProvideFoo(_ miruken.Provides) *Foo {
 	p.foo.Inc()
 	return &p.foo
 }
 
-func (p *MultiProvider) ProvideBar(_ Provides) (*Bar, HandleResult) {
+func (p *MultiProvider) ProvideBar(_ miruken.Provides) (*Bar, miruken.HandleResult) {
 	if p.bar.Inc() % 3 == 0 {
-		return &p.bar, NotHandled.WithError(
+		return &p.bar, miruken.NotHandled.WithError(
 			fmt.Errorf("%v is divisible by 3", p.bar.Count()))
 	}
 	if p.bar.Inc() % 2 == 0 {
-		return &p.bar, NotHandled
+		return &p.bar, miruken.NotHandled
 	}
-	return &p.bar, Handled
+	return &p.bar, miruken.Handled
 }
 
 // SpecificationProvider
@@ -627,14 +629,17 @@ func (p *SpecificationProvider) Constructor(baz Baz) {
 }
 
 func (p *SpecificationProvider) ProvidesFoo(
-	_ *struct{ Provides; Creates },
+	_ *struct{
+	miruken.Provides;
+	miruken.Creates
+},
 ) *Foo {
 	p.foo.Inc()
 	return &p.foo
 }
 
 func (p *SpecificationProvider) ProvidesBar(
-	_ *struct{ Provides `bind:"strict"` },
+	_ *struct{ miruken.Provides `bind:"strict"` },
 ) []*Bar {
 	p.bar.Inc()
 	return []*Bar{&p.bar, {}}
@@ -643,8 +648,8 @@ func (p *SpecificationProvider) ProvidesBar(
 type GenericProvider struct{}
 
 func (p *GenericProvider) Provide(
-	_ Provides,
-	inquiry *Inquiry,
+	_ miruken.Provides,
+	inquiry *miruken.Inquiry,
 ) interface{} {
 	if inquiry.Key() == reflect.TypeOf((*Foo)(nil)) {
 		return &Foo{}
@@ -658,35 +663,35 @@ func (p *GenericProvider) Provide(
 // InvalidProvider
 type InvalidProvider struct {}
 
-func (p *InvalidProvider) MissingReturnValue(_ Provides) {
+func (p *InvalidProvider) MissingReturnValue(_ miruken.Provides) {
 }
 
 func (p *InvalidProvider) TooManyReturnValues(
-	_ Provides,
+	_ miruken.Provides,
 ) (*Foo, string, Counter) {
 	return nil, "bad", nil
 }
 
 func (p *InvalidProvider) InvalidHandleResultReturnValue(
-	_ Provides,
-) HandleResult {
-	return Handled
+	_ miruken.Provides,
+) miruken.HandleResult {
+	return miruken.Handled
 }
 
 func (p *InvalidProvider) InvalidErrorReturnValue(
-	_ Provides,
+	_ miruken.Provides,
 ) error {
 	return errors.New("not good")
 }
 
 func (p *InvalidProvider) SecondReturnMustBeErrorOrHandleResult(
-	_ Provides,
+	_ miruken.Provides,
 ) (*Foo, string) {
 	return &Foo{}, "bad"
 }
 
 func (p *InvalidProvider) UntypedInterfaceDependency(
-	_ Provides,
+	_ miruken.Provides,
 	any interface{},
 ) *Foo {
 	return &Foo{}
@@ -694,25 +699,25 @@ func (p *InvalidProvider) UntypedInterfaceDependency(
 
 func (suite *HandlerTestSuite) TestProvides() {
 	suite.Run("Implied", func () {
-		handler := NewRootHandler(WithHandlers(new(FooProvider)))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(new(FooProvider)))
 		var fooProvider *FooProvider
-		err := Resolve(handler, &fooProvider)
+		err := miruken.Resolve(handler, &fooProvider)
 		suite.Nil(err)
 		suite.NotNil(fooProvider)
 	})
 
 	suite.Run("Invariant", func () {
-		handler := NewRootHandler(WithHandlers(new(FooProvider)))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(new(FooProvider)))
 		var foo *Foo
-		err := Resolve(handler, &foo)
+		err := miruken.Resolve(handler, &foo)
 		suite.Nil(err)
 		suite.Equal(1, foo.Count())
 	})
 
 	suite.Run("Covariant", func () {
-		handler := NewRootHandler(WithHandlers(new(FooProvider)))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(new(FooProvider)))
 		var counter Counter
-		err := Resolve(handler, &counter)
+		err := miruken.Resolve(handler, &counter)
 		suite.Nil(err)
 		suite.Equal(1, counter.Count())
 		if foo, ok := counter.(*Foo); !ok {
@@ -721,61 +726,61 @@ func (suite *HandlerTestSuite) TestProvides() {
 	})
 
 	suite.Run("NotHandledReturnNil", func () {
-		handler := NewRootHandler()
+		handler := miruken.NewRootHandler()
 		var foo *Foo
-		err := Resolve(handler, &foo)
+		err := miruken.Resolve(handler, &foo)
 		suite.Nil(err)
 		suite.Nil(foo)
 	})
 
 	suite.Run("Generic", func () {
-		handler := NewRootHandler(WithHandlers(new(GenericProvider)))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(new(GenericProvider)))
 		var foo *Foo
-		err := Resolve(handler, &foo)
+		err := miruken.Resolve(handler, &foo)
 		suite.Nil(err)
 		suite.Equal(0, foo.Count())
 		var bar *Bar
-		err = Resolve(handler, &bar)
+		err = miruken.Resolve(handler, &bar)
 		suite.Nil(err)
 		suite.Equal(0, bar.Count())
 	})
 
 	suite.Run("Multiple", func () {
-		handler := NewRootHandler(WithHandlers(new(MultiProvider)))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(new(MultiProvider)))
 		var foo *Foo
-		err := Resolve(handler, &foo)
+		err := miruken.Resolve(handler, &foo)
 		suite.Nil(err)
 		suite.Equal(1, foo.Count())
 
 		var bar *Bar
-		err = Resolve(handler, &bar)
+		err = miruken.Resolve(handler, &bar)
 		suite.Nil(err)
 		suite.Nil(bar)
 
-		err = Resolve(handler, &bar)
+		err = miruken.Resolve(handler, &bar)
 		suite.NotNil(err)
 		suite.Equal("3 is divisible by 3", err.Error())
 		suite.Nil(bar)
 	})
 
 	suite.Run("Specification", func () {
-		handler := NewRootHandler(WithHandlers(new(SpecificationProvider)))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(new(SpecificationProvider)))
 
 		suite.Run("Invariant", func () {
 			var foo *Foo
-			err := Resolve(handler, &foo)
+			err := miruken.Resolve(handler, &foo)
 			suite.Nil(err)
 			suite.Equal(1, foo.Count())
 		})
 
 		suite.Run("Strict", func () {
 			var bar *Bar
-			err := Resolve(handler, &bar)
+			err := miruken.Resolve(handler, &bar)
 			suite.Nil(err)
 			suite.Nil(bar)
 
 			var bars []*Bar
-			err = Resolve(handler, &bars)
+			err = miruken.Resolve(handler, &bars)
 			suite.Nil(err)
 			suite.NotNil(bars)
 			suite.Equal(2, len(bars))
@@ -783,18 +788,18 @@ func (suite *HandlerTestSuite) TestProvides() {
 	})
 
 	suite.Run("Lists", func () {
-		handler := NewRootHandler(WithHandlers(new(ListProvider)))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(new(ListProvider)))
 
 		suite.Run("Slice", func () {
 			var foo *Foo
-			err := Resolve(handler, &foo)
+			err := miruken.Resolve(handler, &foo)
 			suite.Nil(err)
 			suite.NotNil(foo)
 		})
 
 		suite.Run("Array", func () {
 			var bar *Bar
-			err := Resolve(handler, &bar)
+			err := miruken.Resolve(handler, &bar)
 			suite.Nil(err)
 			suite.NotNil(bar)
 		})
@@ -805,14 +810,14 @@ func (suite *HandlerTestSuite) TestProvides() {
 
 		suite.Run("NoInit", func () {
 			var fooProvider *FooProvider
-			err := Resolve(handler, &fooProvider)
+			err := miruken.Resolve(handler, &fooProvider)
 			suite.NotNil(fooProvider)
 			suite.Nil(err)
 		})
 
 		suite.Run("Constructor", func () {
 			var multiProvider *MultiProvider
-			err := Resolve(handler, &multiProvider)
+			err := miruken.Resolve(handler, &multiProvider)
 			suite.NotNil(multiProvider)
 			suite.Equal(1, multiProvider.foo.Count())
 			suite.Nil(err)
@@ -820,7 +825,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 
 		suite.Run("ConstructorDependencies", func () {
 			var specProvider *SpecificationProvider
-			err := Resolve(Build(handler, With(Baz{Counted{2}})), &specProvider)
+			err := miruken.Resolve(miruken.Build(handler, miruken.With(Baz{Counted{2}})), &specProvider)
 			suite.NotNil(specProvider)
 			suite.Equal(2, specProvider.foo.Count())
 			suite.Equal(0, specProvider.bar.Count())
@@ -835,18 +840,18 @@ func (suite *HandlerTestSuite) TestProvides() {
 			foo := new(Foo)
 			result := handler.Handle(foo, false, nil)
 			suite.False(result.IsError())
-			suite.Equal(Handled, result)
+			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, foo.Count())
 		})
 	})
 
 	suite.Run("ResolveAll", func () {
 		suite.Run("Invariant", func () {
-			handler := NewRootHandler(WithHandlers(
+			handler := miruken.NewRootHandler(miruken.WithHandlers(
 				new(FooProvider), new(MultiProvider), new (SpecificationProvider)))
 
 			var foo []*Foo
-			if err := ResolveAll(handler, &foo); err == nil {
+			if err := miruken.ResolveAll(handler, &foo); err == nil {
 				suite.NotNil(foo)
 				suite.Len(foo, 3)
 				suite.True(foo[0] != foo[1])
@@ -856,9 +861,9 @@ func (suite *HandlerTestSuite) TestProvides() {
 		})
 
 		suite.Run("Covariant", func () {
-			handler := NewRootHandler(WithHandlers(new(ListProvider)))
+			handler := miruken.NewRootHandler(miruken.WithHandlers(new(ListProvider)))
 			var counted []Counter
-			if err := ResolveAll(handler, &counted); err == nil {
+			if err := miruken.ResolveAll(handler, &counted); err == nil {
 				suite.NotNil(counted)
 				suite.Len(counted, 4)
 			} else {
@@ -867,21 +872,21 @@ func (suite *HandlerTestSuite) TestProvides() {
 		})
 
 		suite.Run("Empty", func () {
-			handler := NewRootHandler(WithHandlers(new(FooProvider)))
+			handler := miruken.NewRootHandler(miruken.WithHandlers(new(FooProvider)))
 			var bars []*Bar
-			err := ResolveAll(handler, &bars)
+			err := miruken.ResolveAll(handler, &bars)
 			suite.Nil(err)
 			suite.NotNil(bars)
 		})
 	})
 
 	suite.Run("With", func () {
-		handler := NewRootHandler()
+		handler := miruken.NewRootHandler()
 		var fooProvider *FooProvider
-		err := Resolve(handler, &fooProvider)
+		err := miruken.Resolve(handler, &fooProvider)
 		suite.Nil(err)
 		suite.Nil(fooProvider)
-		err = Resolve(Build(handler, With(new(FooProvider))), &fooProvider)
+		err = miruken.Resolve(miruken.Build(handler, miruken.With(new(FooProvider))), &fooProvider)
 		suite.Nil(err)
 		suite.NotNil(fooProvider)
 	})
@@ -889,9 +894,9 @@ func (suite *HandlerTestSuite) TestProvides() {
 	suite.Run("Invalid", func () {
 		defer func() {
 			if r := recover(); r != nil {
-				if err, ok := r.(*HandlerDescriptorError); ok {
+				if err, ok := r.(*miruken.HandlerDescriptorError); ok {
 					failures := 0
-					var errMethod MethodBindingError
+					var errMethod miruken.MethodBindingError
 					for reason := errors.Unwrap(err.Reason);
 						errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 						failures++
@@ -903,15 +908,15 @@ func (suite *HandlerTestSuite) TestProvides() {
 			}
 		}()
 
-		NewRootHandler(WithHandlers(new(InvalidProvider)))
+		miruken.NewRootHandler(miruken.WithHandlers(new(InvalidProvider)))
 	})
 }
 
 func (suite *HandlerTestSuite) TestCreates() {
 	suite.Run("Invariant", func() {
-		handler := NewRootHandler(WithHandlers(new(SpecificationProvider)))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(new(SpecificationProvider)))
 		var foo *Foo
-		err := Create(handler, &foo)
+		err := miruken.Create(handler, &foo)
 		suite.Nil(err)
 		suite.Equal(1, foo.Count())
 	})
@@ -919,7 +924,7 @@ func (suite *HandlerTestSuite) TestCreates() {
 	suite.Run("Infer", func() {
 		handler := suite.InferenceRoot()
 		var multiProvider *MultiProvider
-		err := Create(handler, &multiProvider)
+		err := miruken.Create(handler, &multiProvider)
 		suite.NotNil(multiProvider)
 		suite.Nil(err)
 	})

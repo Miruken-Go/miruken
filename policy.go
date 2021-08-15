@@ -211,7 +211,7 @@ func filterBindingBuilder(
 					}
 				}
 			}
-			provider := &filterSpecProvider{spec}
+			provider := &FilterSpecProvider{spec}
 			if invalid := b.addFilterProvider(provider); invalid != nil {
 				err = fmt.Errorf(
 					"binding: filter spec provider %v at index %v failed: %w",

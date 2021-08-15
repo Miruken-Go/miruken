@@ -94,12 +94,12 @@ func (s *dependencySpec) setResolver(
 	return nil
 }
 
-// dependencyArg is a parameter resolved at runtime.
-type dependencyArg struct {
+// DependencyArg is a parameter resolved at runtime.
+type DependencyArg struct {
 	spec *dependencySpec
 }
 
-func (d dependencyArg) ArgType(
+func (d DependencyArg) ArgType(
 	typ reflect.Type,
 ) reflect.Type {
 	if d.spec != nil && d.spec.index >= 0 {
@@ -108,7 +108,7 @@ func (d dependencyArg) ArgType(
 	return typ
 }
 
-func (d dependencyArg) resolve(
+func (d DependencyArg) resolve(
 	typ     reflect.Type,
 	context HandleContext,
 ) (reflect.Value, error) {
@@ -149,7 +149,7 @@ type DependencyResolver interface {
 	Resolve(
 		typ         reflect.Type,
 		rawCallback interface{},
-		dep         dependencyArg,
+		dep DependencyArg,
 		handler     Handler,
 	) (reflect.Value, error)
 }
@@ -160,7 +160,7 @@ type defaultDependencyResolver struct{}
 func (r *defaultDependencyResolver) Resolve(
 	typ         reflect.Type,
 	rawCallback interface{},
-	dep         dependencyArg,
+	dep DependencyArg,
 	handler     Handler,
 ) (reflect.Value, error) {
 	argType  := typ
@@ -220,7 +220,7 @@ var dependencyBuilders = []bindingBuilder{
 
 func buildDependency(
 	argType reflect.Type,
-) (arg dependencyArg, err error) {
+) (arg DependencyArg, err error) {
 	if argType == _interfaceType {
 		return arg, fmt.Errorf(
 			"type %v cannot be used as a dependency",
@@ -228,7 +228,7 @@ func buildDependency(
 	}
 	// Is it a *Struct arg binding?
 	if argType.Kind() != reflect.Ptr {
-		return dependencyArg{}, nil
+		return DependencyArg{}, nil
 	}
 	argType = argType.Elem()
 	if argType.Kind() == reflect.Struct &&
@@ -242,7 +242,7 @@ func buildDependency(
 		arg.spec = spec
 		if resolver := spec.resolver; resolver != nil {
 			if v, ok := resolver.(interface {
-				Validate(reflect.Type, dependencyArg) error
+				Validate(reflect.Type, DependencyArg) error
 			}); ok {
 				err = v.Validate(argType, arg)
 			}

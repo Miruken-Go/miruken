@@ -156,7 +156,7 @@ func (d *HandlerDescriptor) Dispatch(
 					var tp []FilterProvider
 					if tf, ok := handler.(Filter); ok {
 						tp = []FilterProvider{
-							&filterInstanceProvider{[]Filter{tf}, true},
+							&FilterInstanceProvider{[]Filter{tf}, true},
 						}
 					}
 					if providedFilters, err := orderedFilters(

@@ -1,7 +1,8 @@
-package miruken
+package test
 
 import (
 	"github.com/stretchr/testify/suite"
+	"miruken.com/miruken"
 	"testing"
 )
 
@@ -13,9 +14,9 @@ type (
 )
 
 func (h *FooOptionsHandler) HandleFoo(
-	_ Handles,
+	_ miruken.Handles,
 	foo     *Foo,
-	options *struct{ _ FromOptions; Value FooOptions `bind:""`},
+	options *struct{ _ miruken.FromOptions; Value FooOptions `bind:""`},
 ) {
 	for i := 0; i < options.Value.Increment; i++ {
 		foo.Inc()
@@ -35,12 +36,12 @@ func (suite *OptionsTestSuite) TestOptions() {
 	type ServerOptions struct {
 		Url       string
 		Timeout   int
-		KeepAlive OptionBool
+		KeepAlive miruken.OptionBool
 		Headers   []Header
 	}
 
 	suite.Run("Inline", func () {
-		handler := NewRootHandler(WithOptions(ServerOptions{
+		handler := miruken.NewRootHandler(miruken.WithOptions(ServerOptions{
 			Url:     "https://playsoccer.com",
 			Timeout: 30,
 			Headers: []Header{
@@ -49,7 +50,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 			},
 		}))
 		var options ServerOptions
-		suite.True(GetOptions(handler, &options))
+		suite.True(miruken.GetOptions(handler, &options))
 		suite.Equal("https://playsoccer.com", options.Url)
 		suite.Equal(30, options.Timeout)
 		suite.ElementsMatch([]Header{
@@ -61,83 +62,83 @@ func (suite *OptionsTestSuite) TestOptions() {
 		serverOpt := new(ServerOptions)
 		serverOpt.Url     = "https://playsoccer.com"
 		serverOpt.Timeout = 30
-		handler := NewRootHandler(WithOptions(serverOpt))
+		handler := miruken.NewRootHandler(miruken.WithOptions(serverOpt))
 		var options ServerOptions
-		suite.True(GetOptions(handler, &options))
+		suite.True(miruken.GetOptions(handler, &options))
 		suite.Equal("https://playsoccer.com", options.Url)
 		suite.Equal(30, options.Timeout)
 	})
 
 	suite.Run("Creates", func () {
-		handler := NewRootHandler(WithOptions(ServerOptions{
+		handler := miruken.NewRootHandler(miruken.WithOptions(ServerOptions{
 			Url:     "https://playsoccer.com",
 			Timeout: 30,
 		}))
 		var options *ServerOptions
-		suite.True( GetOptions(handler, &options))
+		suite.True( miruken.GetOptions(handler, &options))
 		suite.NotNil(options)
 		suite.Equal("https://playsoccer.com", options.Url)
 		suite.Equal(30, options.Timeout)
 	})
 
 	suite.Run("MergesInline", func () {
-		handler := NewRootHandler(WithOptions(ServerOptions{
+		handler := miruken.NewRootHandler(miruken.WithOptions(ServerOptions{
 			Url:     "https://playsoccer.com",
 			Timeout: 30,
 		}))
 		options := ServerOptions{Timeout: 60}
-		suite.True(GetOptions(handler, &options))
+		suite.True(miruken.GetOptions(handler, &options))
 		suite.Equal("https://playsoccer.com", options.Url)
 		suite.Equal(60, options.Timeout)
 	})
 
 	suite.Run("MergesCreate", func () {
-		handler := NewRootHandler(WithOptions(ServerOptions{
+		handler := miruken.NewRootHandler(miruken.WithOptions(ServerOptions{
 			Url:     "https://playsoccer.com",
 			Timeout: 30,
 		}))
 		options := new (ServerOptions)
 		options.Url = "https://improving.com"
-		suite.True(GetOptions(handler, options))
+		suite.True(miruken.GetOptions(handler, options))
 		suite.NotNil(options)
 		suite.Equal("https://improving.com", options.Url)
 		suite.Equal(30, options.Timeout)
 	})
 
 	suite.Run("Combines", func () {
-		handler := NewRootHandler(
-			WithOptions(ServerOptions{
-				Url:"https://directv.com",
-				KeepAlive: OptionTrue,
+		handler := miruken.NewRootHandler(
+			miruken.WithOptions(ServerOptions{
+				Url:       "https://directv.com",
+				KeepAlive: miruken.OptionTrue,
 			}),
-			WithOptions(ServerOptions{
-				Timeout: 60,
-				KeepAlive: OptionFalse,
+			miruken.WithOptions(ServerOptions{
+				Timeout:   60,
+				KeepAlive: miruken.OptionFalse,
 			}))
 		var options ServerOptions
-		suite.True(GetOptions(handler, &options))
+		suite.True(miruken.GetOptions(handler, &options))
 		suite.Equal("https://directv.com", options.Url)
 		suite.Equal(60, options.Timeout)
 		suite.False(options.KeepAlive.Bool())
 	})
 
 	suite.Run("AppendsSlice", func () {
-		handler := NewRootHandler(
-			WithOptions(ServerOptions{
+		handler := miruken.NewRootHandler(
+			miruken.WithOptions(ServerOptions{
 				Url:"https://netflix.com",
 				Headers: []Header{
 					{"Content-Type", "application/json"},
 					{"Authorization", "Bearer j23j2eh323"},
 				},
 			}),
-			WithOptions(ServerOptions{
+			miruken.WithOptions(ServerOptions{
 				Timeout: 100,
 				Headers: []Header{
 					{"Content-Encoding", "compress"},
 				},
 			}))
 		var options ServerOptions
-		suite.True(GetOptions(handler, &options))
+		suite.True(miruken.GetOptions(handler, &options))
 		suite.Equal("https://netflix.com", options.Url)
 		suite.Equal(100, options.Timeout)
 		suite.ElementsMatch([]Header{
@@ -147,27 +148,27 @@ func (suite *OptionsTestSuite) TestOptions() {
 	})
 
 	suite.Run("NoMatch", func () {
-		handler := NewRootHandler()
+		handler := miruken.NewRootHandler()
 		var options ServerOptions
-		suite.False(GetOptions(handler, &options))
+		suite.False(miruken.GetOptions(handler, &options))
 		suite.Equal("", options.Url)
 		suite.Equal(0, options.Timeout)
 	})
 
 	suite.Run("NoMatchCre", func () {
-		handler := NewRootHandler()
+		handler := miruken.NewRootHandler()
 		var options *ServerOptions
-		suite.False(GetOptions(handler, &options))
+		suite.False(miruken.GetOptions(handler, &options))
 		suite.Nil(options)
 	})
 
 	suite.Run("FromOptions", func () {
-		handler := NewRootHandler(WithHandlers(new(FooOptionsHandler)))
+		handler := miruken.NewRootHandler(miruken.WithHandlers(new(FooOptionsHandler)))
 		foo     := new(Foo)
-		result  := Build(handler, WithOptions(FooOptions{2})).
+		result  := miruken.Build(handler, miruken.WithOptions(FooOptions{2})).
 			Handle(foo, false, nil)
 		suite.False(result.IsError())
-		suite.Equal(Handled, result)
+		suite.Equal(miruken.Handled, result)
 		suite.Equal(2, foo.Count())
 	})
 
@@ -176,14 +177,14 @@ func (suite *OptionsTestSuite) TestOptions() {
 			defer func() {
 				suite.Equal("options cannot be nil", recover())
 			}()
-			WithOptions(nil)
+			miruken.WithOptions(nil)
 		})
 
 		suite.Run("Not Struct Options", func () {
 			defer func() {
 				suite.Equal("options must be a struct or *struct", recover())
 			}()
-			WithOptions(1)
+			miruken.WithOptions(1)
 		})
 	})
 }

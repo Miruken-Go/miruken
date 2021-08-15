@@ -53,16 +53,16 @@ type filterSpec struct {
 	order    int
 }
 
-// filterSpecProvider resolves a Filter specification.
-type filterSpecProvider struct {
+// FilterSpecProvider resolves a Filter specification.
+type FilterSpecProvider struct {
 	spec filterSpec
 }
 
-func (f *filterSpecProvider) Required() bool {
+func (f *FilterSpecProvider) Required() bool {
 	return f.spec.required
 }
 
-func (f *filterSpecProvider) Filters(
+func (f *FilterSpecProvider) Filters(
 	binding  Binding,
 	callback interface{},
 	composer Handler,
@@ -85,22 +85,29 @@ func (f *filterSpecProvider) Filters(
 	return nil, err
 }
 
-// filterInstanceProvider manages existing Filters.
-type filterInstanceProvider struct {
+// FilterInstanceProvider manages existing Filters.
+type FilterInstanceProvider struct {
 	filters  []Filter
 	required bool
 }
 
-func (f *filterInstanceProvider) Required() bool {
+func (f *FilterInstanceProvider) Required() bool {
 	return f.required
 }
 
-func (f *filterInstanceProvider) Filters(
+func (f *FilterInstanceProvider) Filters(
 	binding  Binding,
 	callback interface{},
 	composer Handler,
 ) ([]Filter, error) {
 	return f.filters, nil
+}
+
+func NewFilterInstanceProvider(
+	required    bool,
+	filters ... Filter,
+) *FilterInstanceProvider {
+	return &FilterInstanceProvider{filters, required}
 }
 
 // Filtered models a container of Filters.
@@ -190,7 +197,7 @@ func WithRequiredFilters(filters ... Filter) Builder {
 }
 
 func withFilters(required bool, filters ... Filter) Builder {
-	provider := filterInstanceProvider{filters, required}
+	provider := FilterInstanceProvider{filters, required}
 	builder  := WithOptions(FilterOptions{
 		Providers: []FilterProvider{&provider},
 	})
