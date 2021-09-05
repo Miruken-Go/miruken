@@ -8,6 +8,7 @@ type Inquiry struct {
 	parent  *Inquiry
 	handler  interface{}
 	binding  Binding
+	metadata BindingMetadata
 }
 
 func (i *Inquiry) Key() interface{} {
@@ -20,6 +21,10 @@ func (i *Inquiry) Parent() *Inquiry {
 
 func (i *Inquiry) Policy() Policy {
 	return ProvidesPolicy()
+}
+
+func (i *Inquiry) Metadata() *BindingMetadata {
+	return &i.metadata
 }
 
 func (i *Inquiry) ReceiveResult(
@@ -65,12 +70,14 @@ func (i *Inquiry) Dispatch(
 	composer Handler,
 ) (result HandleResult) {
 	result = NotHandled
-	if typ, ok := i.key.(reflect.Type); ok {
-		if reflect.TypeOf(handler).AssignableTo(typ) {
-			resolved := i.ReceiveResult(handler, false, greedy, composer)
-			result = result.OtherwiseHandledIf(resolved)
-			if resolved && !greedy {
-				return result
+	if i.metadata.IsEmpty() {
+		if typ, ok := i.key.(reflect.Type); ok {
+			if reflect.TypeOf(handler).AssignableTo(typ) {
+				resolved := i.ReceiveResult(handler, false, greedy, composer)
+				result = result.OtherwiseHandledIf(resolved)
+				if resolved && !greedy {
+					return result
+				}
 			}
 		}
 	}
@@ -123,8 +130,9 @@ func (i *Inquiry) include(
 
 type InquiryBuilder struct {
 	CallbackBuilder
-	key      interface{}
-	parent  *Inquiry
+	key          interface{}
+	parent      *Inquiry
+	constraints  []func(*ConstraintBuilder)
 }
 
 func (b *InquiryBuilder) WithKey(
@@ -141,29 +149,47 @@ func (b *InquiryBuilder) WithParent(
 	return b
 }
 
+func (b *InquiryBuilder) WithConstraints(
+	constraints ... func(*ConstraintBuilder),
+) *InquiryBuilder {
+	if len(constraints) > 0 {
+		b.constraints = append(b.constraints, constraints...)
+	}
+	return b
+}
+
 func (b *InquiryBuilder) Inquiry() Inquiry {
-	return Inquiry{
+	inquiry := Inquiry{
 		CallbackBase: b.Callback(),
 		key:          b.key,
 		parent:       b.parent,
 	}
+	ApplyConstraints(&inquiry, b.constraints...)
+	return inquiry
 }
 
 func (b *InquiryBuilder) NewInquiry() *Inquiry {
-	return &Inquiry{
+	inquiry := &Inquiry{
 		CallbackBase: b.Callback(),
 		key:          b.key,
 		parent:       b.parent,
 	}
+	ApplyConstraints(inquiry, b.constraints...)
+	return inquiry
 }
 
-func Resolve(handler Handler, target interface{}) error {
+func Resolve(
+	handler     Handler,
+	target      interface{},
+	constraints ... func(*ConstraintBuilder),
+) error {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
 	tv       := TargetValue(target)
 	inquiry  := new(InquiryBuilder).
 		WithKey(tv.Type().Elem()).
+		WithConstraints(constraints...).
 		NewInquiry()
 	if result := handler.Handle(inquiry, false, nil); result.IsError() {
 		return result.Error()
@@ -172,13 +198,18 @@ func Resolve(handler Handler, target interface{}) error {
 	return nil
 }
 
-func ResolveAll(handler Handler, target interface{}) error {
+func ResolveAll(
+	handler     Handler,
+	target      interface{},
+	constraints ... func(*ConstraintBuilder),
+) error {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
 	tv      := TargetSliceValue(target)
 	builder := new(InquiryBuilder).
-		WithKey(tv.Type().Elem().Elem())
+		WithKey(tv.Type().Elem().Elem()).
+		WithConstraints(constraints...)
 	builder.WithMany()
 	inquiry := builder.NewInquiry()
 	if result := handler.Handle(inquiry, true, nil); result.IsError() {

@@ -181,11 +181,11 @@ func (f FilteringHandler) Order() int {
 
 func (f FilteringHandler) HandleBar(
 	_ *struct{
-	miruken.Handles
-	NullFilter
-	LogFilter
+		miruken.Handles
+		NullFilter
+		LogFilter
 		ExceptionFilter `filter:"required"`
-	AbortFilter
+		AbortFilter
 	},
 	bar *BarC,
 ) {
@@ -252,16 +252,16 @@ type SingletonHandler struct{}
 
 func (s *SingletonHandler) Constructor(
 	_ *struct{
-	miruken.Provides
-	miruken.Singleton
+		miruken.Provides
+		miruken.Singleton
 	  },
 ) {
 }
 
 func (s *SingletonHandler) HandleBar(
 	_ *struct{
-	miruken.Handles
-	LogFilter
+		miruken.Handles
+		LogFilter
 	  },
 	bar *BarC,
 ) {

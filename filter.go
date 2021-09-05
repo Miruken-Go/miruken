@@ -8,6 +8,14 @@ import (
 	"sync"
 )
 
+// Filter stage priorities.
+const (
+	FilterStage              = 0
+	FilterStageLogging       = 10
+	FilterStateAuthorization = 30
+	FilterStageValidation    = 50
+)
+
 // Next advances to the next step in a pipeline.
 type Next func (
 	composer Handler,

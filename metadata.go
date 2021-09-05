@@ -324,7 +324,7 @@ func (f *mutableFactory) newHandlerDescriptor(
 	}
 	// Add callback types explicitly
 	for i := 0; i < handlerType.NumMethod(); i++ {
-		method     := handlerType.Method(i)
+		method := handlerType.Method(i)
 		if method.Name == "Constructor" {
 			continue
 		}

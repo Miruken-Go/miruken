@@ -43,14 +43,15 @@ func (a callbackArg) resolve(
 
 // dependencySpec encapsulates dependency metadata.
 type dependencySpec struct {
-	index    int
-	flags    bindingFlags
-	resolver DependencyResolver
+	index       int
+	flags       bindingFlags
+	resolver    DependencyResolver
+	constraints []func(*ConstraintBuilder)
 }
 
 func (s *dependencySpec) bindingAt(
-	index  int,
-	field  reflect.StructField,
+	index int,
+	field reflect.StructField,
 ) error {
 	if s.index >= 0 {
 		return fmt.Errorf(
@@ -91,6 +92,15 @@ func (s *dependencySpec) setResolver(
 			"only one dependency resolver allowed, found %#v", resolver)
 	}
 	s.resolver = resolver
+	return nil
+}
+
+func (s *dependencySpec) addConstraint(
+	constraint BindingConstraint,
+) error {
+	s.constraints = append(s.constraints, func(builder *ConstraintBuilder) {
+		builder.WithConstraint(constraint)
+	})
 	return nil
 }
 
@@ -149,7 +159,7 @@ type DependencyResolver interface {
 	Resolve(
 		typ         reflect.Type,
 		rawCallback interface{},
-		dep DependencyArg,
+		dep         DependencyArg,
 		handler     Handler,
 	) (reflect.Value, error)
 }
@@ -160,7 +170,7 @@ type defaultDependencyResolver struct{}
 func (r *defaultDependencyResolver) Resolve(
 	typ         reflect.Type,
 	rawCallback interface{},
-	dep DependencyArg,
+	dep         DependencyArg,
 	handler     Handler,
 ) (reflect.Value, error) {
 	argType  := typ
@@ -180,6 +190,10 @@ func (r *defaultDependencyResolver) Resolve(
 		builder.WithKey(argType.Elem()).WithMany()
 	} else {
 		builder.WithKey(argType)
+	}
+
+	if spec := dep.spec; spec != nil {
+		builder.WithConstraints(spec.constraints...)
 	}
 
 	inquiry = builder.NewInquiry()
@@ -216,6 +230,7 @@ type HandleContext struct {
 var dependencyBuilders = []bindingBuilder{
 	bindingBuilderFunc(optionsBindingBuilder),
 	bindingBuilderFunc(resolverBindingBuilder),
+	bindingBuilderFunc(constraintBindingBuilder),
 }
 
 func buildDependency(

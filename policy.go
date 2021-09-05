@@ -113,6 +113,14 @@ func (s *policySpec) addFilterProvider(
 	return nil
 }
 
+func (s *policySpec) addConstraint(
+	constraint BindingConstraint,
+) error {
+	provider := ConstraintProvider{constraint}
+	s.filters = append(s.filters, &provider)
+	return nil
+}
+
 func (s *policySpec) setStrict(
 	index  int,
 	field  reflect.StructField,
@@ -135,6 +143,7 @@ var policyBuilders = []bindingBuilder{
 	bindingBuilderFunc(policyBindingBuilder),
 	bindingBuilderFunc(optionsBindingBuilder),
 	bindingBuilderFunc(filterBindingBuilder),
+	bindingBuilderFunc(constraintBindingBuilder),
 }
 
 func buildPolicySpec(
@@ -236,6 +245,30 @@ func filterBindingBuilder(
 	return err
 }
 
+func constraintBindingBuilder(
+	index   int,
+	field   reflect.StructField,
+	binding interface{},
+) (err error) {
+	typ := field.Type
+	if ct := coerceToPtr(typ, _constraintType); ct != nil {
+		if b, ok := binding.(interface {
+			addConstraint(BindingConstraint) error
+		}); ok {
+			if constraint, invalid := newWithTag(ct, field.Tag); invalid != nil {
+				err = fmt.Errorf(
+					"binding: new constraint at index %v failed: %w",
+					index, invalid)
+			} else if invalid := b.addConstraint(constraint.(BindingConstraint)); invalid != nil {
+				err = fmt.Errorf(
+					"binding: constraint %v at index %v failed: %w",
+					constraint, index, invalid)
+			}
+		}
+	}
+	return err
+}
+
 // Standard _policies
 
 var (
@@ -247,6 +280,7 @@ var (
 	_policyType         = reflect.TypeOf((*Policy)(nil)).Elem()
 	_filterType         = reflect.TypeOf((*Filter)(nil)).Elem()
 	_filterProviderType = reflect.TypeOf((*FilterProvider)(nil)).Elem()
+	_constraintType     = reflect.TypeOf((*BindingConstraint)(nil)).Elem()
 	_handleResType      = reflect.TypeOf((*HandleResult)(nil)).Elem()
 	_errorType          = reflect.TypeOf((*error)(nil)).Elem()
 	_handles            = RegisterPolicy(new(Handles))

@@ -2,7 +2,7 @@ package miruken
 
 import "fmt"
 
-// Handler is the uniform metaphor for processing
+// Handler is the uniform metaphor for processing.
 type Handler interface {
 	Handle(
 		callback interface{},
@@ -11,7 +11,7 @@ type Handler interface {
 	) HandleResult
 }
 
-// handlerAdapter adapts an ordinary type to a Handler
+// handlerAdapter adapts an ordinary type to a Handler.
 type handlerAdapter struct {
 	handler interface{}
 }
@@ -31,7 +31,7 @@ func ToHandler(handler interface{}) Handler {
 	}
 }
 
-// NotHandledError reports a failed callback
+// NotHandledError reports a failed callback.
 type NotHandledError struct {
 	callback interface{}
 }
@@ -40,7 +40,7 @@ func (e NotHandledError) Error() string {
 	return fmt.Sprintf("callback %#v not handled", e.callback)
 }
 
-// RejectedError reports a rejected callback
+// RejectedError reports a rejected callback.
 type RejectedError struct {
 	callback interface{}
 }
