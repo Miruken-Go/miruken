@@ -57,8 +57,8 @@ func (h *Hospital) Constructor(
 		miruken.Provides
 		miruken.Singleton
 	  },
-	doctor     *struct{ Doctor;     Value Person `bind:""` },
-	programmer *struct{ Programmer; Value Person `bind:""` },
+	doctor     *struct{ Doctor;     Value Person },
+	programmer *struct{ Programmer; Value Person },
 ) {
 	h.doctor     = doctor.Value
 	h.programmer = programmer.Value
@@ -139,12 +139,12 @@ func (c *Client) Constructor(
 		miruken.Singleton
 	  },
 	local *struct{
-		miruken.Named     `name:"local"`
-		Value AppSettings `bind:""`
+		miruken.Named `name:"local"`
+		Value AppSettings
 	  },
 	remote *struct{
-		miruken.Named     `name:"remote"`
-		Value AppSettings `bind:""`
+		miruken.Named `name:"remote"`
+		Value AppSettings
 	  },
 ) {
 	c.local  = local.Value
@@ -238,6 +238,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 			var client *Client
 			err := miruken.Resolve(handler, &client)
 			suite.Nil(err)
+			suite.NotNil(client)
 			suite.IsType(&LocalSettings{}, client.Local())
 			suite.IsType(&RemoteSettings{}, client.Remote())
 		})

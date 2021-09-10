@@ -250,9 +250,15 @@ func buildDependency(
 		argType.Name() == "" &&  // anonymous
 		argType.NumField() > 0 {
 		spec := &dependencySpec{index: -1}
-		if err = configureBinding(argType, spec, dependencyBuilders);
-			err != nil || spec.index < 0 {
+		if err = configureBinding(argType, spec, dependencyBuilders); err != nil {
 			return arg, err
+		}
+		if spec.index < 0 {
+			if field, ok := argType.FieldByName("Value"); ok {
+				spec.index = field.Index[0]
+			} else {
+				return arg, nil
+			}
 		}
 		arg.spec = spec
 		if resolver := spec.resolver; resolver != nil {

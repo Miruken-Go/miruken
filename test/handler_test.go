@@ -35,6 +35,7 @@ type (
 	Bar struct { Counted }
 	Baz struct { Counted }
 	Bam struct { Counted }
+	Boo struct { Counted }
 )
 
 // FooHandler
@@ -152,10 +153,10 @@ func (h *DependencyHandler) RequiredDependency(_ miruken.Handles,
 
 func (h *DependencyHandler) RequiredSliceDependency(
 	_ miruken.Handles,
-	baz   *Baz,
+	boo   *Boo,
 	bars []*Bar,
 ) {
-	baz.Inc()
+	boo.Inc()
 	for _, bar := range bars {
 		bar.Inc()
 	}
@@ -235,7 +236,7 @@ type DependencyResolverHandler struct{}
 func (h *DependencyResolverHandler) UseDependencyResolver(
 	_ miruken.Handles,
 	foo    *Foo,
-	config *struct{ _ Configuration; Value *Config `bind:""`},
+	config *struct{ _ Configuration; Value *Config },
 ) *Config {
 	foo.Inc()
 	return config.Value
@@ -398,12 +399,12 @@ func (suite *HandlerTestSuite) TestHandles() {
 		})
 
 		suite.Run("RequiredSlice", func () {
-			baz    := new(Baz)
-			bars   := []interface{}{new(Bar), new(Bar)}
-			result := miruken.Build(handler, miruken.With(bars...)).Handle(baz, false, nil)
+			boo    := new(Boo)
+			bars := []interface{}{new(Bar), new(Bar)}
+			result := miruken.Build(handler, miruken.With(bars...)).Handle(boo, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(miruken.Handled, result)
-			suite.Equal(1, baz.Count())
+			suite.Equal(1, boo.Count())
 			for _, bar := range bars {
 				suite.Equal(1, bar.(*Bar).Count())
 			}

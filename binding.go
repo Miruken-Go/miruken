@@ -222,7 +222,7 @@ func newConstructorBinding(
 			args[0] = zeroArg{}  // policy/binding placeholder
 		}
 		for i := startIndex; i < numArgs; i++ {
-			if arg, err := buildDependency(methodType.In(i + startIndex)); err == nil {
+			if arg, err := buildDependency(methodType.In(i + 1)); err == nil {
 				args[i] = arg
 			} else {
 				invalid = multierror.Append(invalid, fmt.Errorf(

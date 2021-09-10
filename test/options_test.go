@@ -16,7 +16,7 @@ type (
 func (h *FooOptionsHandler) HandleFoo(
 	_ miruken.Handles,
 	foo     *Foo,
-	options *struct{ _ miruken.FromOptions; Value FooOptions `bind:""`},
+	options *struct{ _ miruken.FromOptions; Value FooOptions },
 ) {
 	for i := 0; i < options.Value.Increment; i++ {
 		foo.Inc()
