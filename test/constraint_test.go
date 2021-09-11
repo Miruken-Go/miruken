@@ -53,10 +53,6 @@ type Hospital struct {
 }
 
 func (h *Hospital) Constructor(
-	_ *struct{
-		miruken.Provides
-		miruken.Singleton
-	  },
 	doctor     *struct{ Doctor;     Value Person },
 	programmer *struct{ Programmer; Value Person },
 ) {
@@ -134,10 +130,6 @@ type Client struct {
 }
 
 func (c *Client) Constructor(
-	_ *struct{
-		miruken.Provides
-		miruken.Singleton
-	  },
 	local *struct{
 		miruken.Named `name:"local"`
 		Value AppSettings
@@ -245,7 +237,28 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 	})
 
 	suite.Run("Metadata", func () {
+		suite.Run("Resolve", func() {
+			handler := suite.InferenceRoot()
+			var doctor Person
+			err := miruken.Resolve(handler, &doctor,
+				func(c *miruken.ConstraintBuilder) {
+					c.WithConstraint(new(Doctor))
+				})
+			suite.Nil(err)
+			suite.NotNil(doctor)
+			suite.Equal("Jack", doctor.FirstName())
+			suite.Equal("Zigler", doctor.LastName())
 
+			var programmer Person
+			err = miruken.Resolve(handler, &programmer,
+				func(c *miruken.ConstraintBuilder) {
+					c.WithConstraint(new(Programmer))
+				})
+			suite.Nil(err)
+			suite.NotNil(programmer)
+			suite.Equal("Paul", programmer.FirstName())
+			suite.Equal("Allen", programmer.LastName())
+		})
 	})
 }
 

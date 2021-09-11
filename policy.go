@@ -302,8 +302,18 @@ func (p *Provides) newConstructorBinding(
 	handlerType  reflect.Type,
 	constructor *reflect.Method,
 	spec        *policySpec,
-) (binding Binding, invalid error) {
-	return newConstructorBinding(handlerType, constructor, spec)
+) (binding Binding, err error) {
+	explicitSpec := spec != nil
+	if !explicitSpec {
+		single := new(Singleton)
+		if err = single.Init(); err != nil {
+			return nil, err
+		}
+		spec = &policySpec{
+			filters: []FilterProvider{single},
+		}
+	}
+	return newConstructorBinding(handlerType, constructor, spec, explicitSpec)
 }
 func ProvidesPolicy() Policy { return _provides }
 
@@ -315,7 +325,7 @@ func (p *Creates) newConstructorBinding(
 	handlerType  reflect.Type,
 	constructor *reflect.Method,
 	spec        *policySpec,
-) (binding Binding, invalid error) {
-	return newConstructorBinding(handlerType, constructor, spec)
+) (binding Binding, err error) {
+	return newConstructorBinding(handlerType, constructor, spec, spec != nil)
 }
 func CreatesPolicy() Policy { return _creates }

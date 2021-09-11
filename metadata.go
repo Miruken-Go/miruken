@@ -310,7 +310,7 @@ func (f *mutableFactory) newHandlerDescriptor(
 		}
 	}
 	for _, policy := range policies {
-		if binder, ok := provides.(constructorBinder); ok {
+		if binder, ok := policy.(constructorBinder); ok {
 			if ctor, err := binder.newConstructorBinding(
 				handlerType, constructor, ctorSpec); err == nil {
 				if f.visitor != nil {

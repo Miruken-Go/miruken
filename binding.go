@@ -201,9 +201,10 @@ func (b *constructorBinding) Invoke(
 }
 
 func newConstructorBinding(
-	handlerType  reflect.Type,
-	constructor *reflect.Method,
-	spec        *policySpec,
+	handlerType   reflect.Type,
+	constructor  *reflect.Method,
+	spec         *policySpec,
+	explicitSpec  bool,
 ) (binding *constructorBinding, invalid error) {
 	binding = &constructorBinding{
 		handlerType: handlerType,
@@ -217,7 +218,7 @@ func newConstructorBinding(
 		methodType := constructor.Type
 		numArgs    := methodType.NumIn() - 1 // skip receiver
 		args       := make([]arg, numArgs)
-		if spec != nil {
+		if spec != nil && explicitSpec {
 			startIndex = 1
 			args[0] = zeroArg{}  // policy/binding placeholder
 		}

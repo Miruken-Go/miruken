@@ -125,6 +125,10 @@ func (m *Metadata) InitWithMetadata(
 	if metadata == nil {
 		panic("metadata cannot be nil")
 	}
+	if m.metadata != nil {
+		panic("Metadata already initialized")
+	}
+	m.metadata = make(KeyValues)
 	for key, value := range metadata {
 		m.metadata[key] = value
 	}
@@ -134,6 +138,9 @@ func (m *Metadata) InitWithMetadata(
 func (m *Metadata) InitWithTag(
 	tag reflect.StructTag,
 ) (err error) {
+	if m.metadata != nil {
+		panic("Metadata already initialized")
+	}
 	m.metadata = make(KeyValues)
 	if tag, ok := tag.Lookup("metadata"); ok {
 		if tag == "" {
@@ -265,6 +272,13 @@ func (b *ConstraintBuilder) WithConstraint(
 ) *ConstraintBuilder {
 	if constraint == nil || reflect.ValueOf(constraint).IsNil() {
 		panic("constraint cannot be nil")
+	}
+	if init, ok := constraint.(interface {
+		Init() error
+	}); ok {
+		if err := init.Init(); err != nil {
+			panic(err)
+		}
 	}
 	constraint.Require(b.Metadata())
 	return b

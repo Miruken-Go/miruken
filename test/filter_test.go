@@ -77,8 +77,8 @@ func (n NullFilter) Order() int {
 }
 
 func (n NullFilter) Next(
-	next miruken.Next,
-	context miruken.HandleContext,
+	next     miruken.Next,
+	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  ([]interface{}, error) {
 	if captured := extractCaptured(context.Callback); captured != nil {
@@ -95,16 +95,16 @@ func (l *LogFilter) Order() int {
 }
 
 func (l *LogFilter) Next(
-	next miruken.Next,
-	context miruken.HandleContext,
+	next     miruken.Next,
+	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  ([]interface{}, error) {
 	return miruken.DynNext(l, next, context, provider)
 }
 
 func (l *LogFilter) DynNext(
-	next miruken.Next,
-	context miruken.HandleContext,
+	next     miruken.Next,
+	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
 	logging Logging,
 )  ([]interface{}, error) {
@@ -125,8 +125,8 @@ func (e *ExceptionFilter) Order() int {
 }
 
 func (e *ExceptionFilter) Next(
-	next miruken.Next,
-	context miruken.HandleContext,
+	next     miruken.Next,
+	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  ([]interface{}, error) {
 	captured := extractCaptured(context.Callback)
@@ -150,8 +150,8 @@ func (a *AbortFilter) Order() int {
 }
 
 func (a *AbortFilter) Next(
-	next miruken.Next,
-	context miruken.HandleContext,
+	next     miruken.Next,
+	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  ([]interface{}, error) {
 	if captured := extractCaptured(context.Callback);
@@ -186,7 +186,7 @@ func (f FilteringHandler) HandleBar(
 		LogFilter
 		ExceptionFilter `filter:"required"`
 		AbortFilter
-	},
+	  },
 	bar *BarC,
 ) {
 	bar.IncHandled(1)
@@ -195,8 +195,8 @@ func (f FilteringHandler) HandleBar(
 func (f FilteringHandler) HandleBee(
 	_ *struct{
 		miruken.Handles `bind:"skipFilters"`
-	LogFilter
-	},
+		LogFilter
+	  },
 	bee *BeeC,
 ) {
 	bee.IncHandled(3)
@@ -212,8 +212,8 @@ func (f FilteringHandler) HandleStuff(
 }
 
 func (f FilteringHandler) Next(
-	next miruken.Next,
-	context miruken.HandleContext,
+	next     miruken.Next,
+	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  ([]interface{}, error) {
 	if bar, ok := context.Callback.(*BarC); ok {
@@ -228,9 +228,9 @@ type SpecialFilteringHandler struct {}
 
 func (s SpecialFilteringHandler) HandleFoo(
 	_ *struct{
-	miruken.Handles
-	LogFilter
-	ExceptionFilter
+		miruken.Handles
+		LogFilter
+		ExceptionFilter
 	  },
 	foo *FooC,
 ) *SpecialFooC {
@@ -239,8 +239,8 @@ func (s SpecialFilteringHandler) HandleFoo(
 
 func (s SpecialFilteringHandler) RemoveBoo(
 	_ *struct{
-	miruken.Handles
-	ExceptionFilter
+		miruken.Handles
+		ExceptionFilter
 	  },
 	boo *BooC,
 ) {
@@ -278,8 +278,8 @@ type SingletonErrorHandler struct {
 
 func (s *SingletonErrorHandler) Constructor(
 	_ *struct{
-	miruken.Provides
-	miruken.Singleton
+		miruken.Provides
+		miruken.Singleton
 	  },
 ) error {
 	errorCount++
@@ -305,8 +305,8 @@ type BadHandler struct{}
 
 func (b BadHandler) HandleBar(
 	_ *struct{
-	miruken.Handles
-	LogFilter
+		miruken.Handles
+		LogFilter
       },
 	bar *BarC,
 ) {

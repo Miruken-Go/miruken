@@ -631,9 +631,9 @@ func (p *SpecificationProvider) Constructor(baz Baz) {
 
 func (p *SpecificationProvider) ProvidesFoo(
 	_ *struct{
-	miruken.Provides;
-	miruken.Creates
-},
+		miruken.Provides;
+		miruken.Creates
+	  },
 ) *Foo {
 	p.foo.Inc()
 	return &p.foo
@@ -825,6 +825,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 		})
 
 		suite.Run("ConstructorDependencies", func () {
+			handler := miruken.NewRootHandler(miruken.WithHandlerTypes(reflect.TypeOf((*SpecificationProvider)(nil))))
 			var specProvider *SpecificationProvider
 			err := miruken.Resolve(miruken.Build(handler, miruken.With(Baz{Counted{2}})), &specProvider)
 			suite.NotNil(specProvider)
