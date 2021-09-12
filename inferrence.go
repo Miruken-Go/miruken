@@ -81,9 +81,11 @@ func newInferenceHandler(
 			panic(err)
 		} else if added {
 			for policy, bs := range descriptor.bindings {
-				pb   := bindings.getBindings(policy)
-				elem := bs.typed.Front()
-				for elem != nil {
+				pb := bindings.getBindings(policy)
+				// Us bs.index vs.typed since inference ONLY needs a
+				// single binding to infer the handler type for a
+				// specific constraint.
+				for _, elem := range bs.index {
 					binding := elem.Value.(Binding)
 					_, ctorBinding := binding.(*constructorBinding)
 					pb.insert(&bindingIntercept{
@@ -91,10 +93,10 @@ func newInferenceHandler(
 						!ctorBinding,
 						binding,
 					})
-					elem = elem.Next()
 				}
 				for _, bs := range pb.invar {
-					for _, b := range bs {
+					if len(bs) > 0 {
+						b := bs[0]  // only need first
 						_, ctorBinding := b.(*constructorBinding)
 						pb.insert(&bindingIntercept{
 							descriptor.handlerType, !ctorBinding, b,

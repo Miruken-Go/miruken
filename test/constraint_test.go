@@ -70,6 +70,7 @@ func (h *Hospital) Programmer() Person {
 
 type PersonProvider struct{}
 
+
 func (p *PersonProvider) Doctor(
 	_ *struct{
 		miruken.Provides
@@ -258,6 +259,17 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 			suite.NotNil(programmer)
 			suite.Equal("Paul", programmer.FirstName())
 			suite.Equal("Allen", programmer.LastName())
+		})
+
+		suite.Run("ResolveAll", func() {
+			handler := suite.InferenceRootWith(reflect.TypeOf((*PersonProvider)(nil)))
+			var programmers []Person
+			err := miruken.ResolveAll(handler, &programmers,
+				func(c *miruken.ConstraintBuilder) {
+					c.WithConstraint(new(Programmer))
+				})
+			suite.Nil(err)
+			suite.Len(programmers, 1)
 		})
 	})
 }
