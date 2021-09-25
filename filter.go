@@ -34,7 +34,7 @@ func (n Next) Abort() ([]interface{}, error) {
 	return n(nil, false)
 }
 
-// Filter defines the smallest step in a pipeline.
+// Filter defines a Middleware step in a pipeline.
 type Filter interface {
 	Order() int
 	Next(

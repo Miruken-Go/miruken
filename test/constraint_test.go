@@ -35,6 +35,14 @@ func (d *Doctor) Init() error {
 	})
 }
 
+func NewDoctor() *Doctor {
+	doctor := &Doctor{}
+	if err := doctor.Init(); err != nil {
+		panic(err)
+	}
+	return doctor
+}
+
 type Programmer struct{
 	miruken.Qualifier
 }
@@ -69,7 +77,6 @@ func (h *Hospital) Programmer() Person {
 }
 
 type PersonProvider struct{}
-
 
 func (p *PersonProvider) Doctor(
 	_ *struct{
@@ -243,7 +250,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 			var doctor Person
 			err := miruken.Resolve(handler, &doctor,
 				func(c *miruken.ConstraintBuilder) {
-					c.WithConstraint(new(Doctor))
+					c.WithConstraint(NewDoctor())
 				})
 			suite.Nil(err)
 			suite.NotNil(doctor)
@@ -262,7 +269,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 		})
 
 		suite.Run("ResolveAll", func() {
-			handler := suite.InferenceRootWith(reflect.TypeOf((*PersonProvider)(nil)))
+			handler := suite.InferenceRoot()
 			var programmers []Person
 			err := miruken.ResolveAll(handler, &programmers,
 				func(c *miruken.ConstraintBuilder) {
@@ -270,6 +277,18 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 				})
 			suite.Nil(err)
 			suite.Len(programmers, 1)
+		})
+
+		suite.Run("Inject", func() {
+			handler := suite.InferenceRoot()
+			var hospital *Hospital
+			err := miruken.Resolve(handler, &hospital)
+			suite.Nil(err)
+			suite.NotNil(hospital)
+			suite.Equal("Jack", hospital.Doctor().FirstName())
+			suite.Equal("Zigler", hospital.Doctor().LastName())
+			suite.Equal("Paul", hospital.Programmer().FirstName())
+			suite.Equal("Allen", hospital.Programmer().LastName())
 		})
 	})
 }

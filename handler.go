@@ -36,6 +36,10 @@ type NotHandledError struct {
 	callback interface{}
 }
 
+func (e NotHandledError) Callback() interface{} {
+	return e.callback
+}
+
 func (e NotHandledError) Error() string {
 	return fmt.Sprintf("callback %#v not handled", e.callback)
 }
@@ -43,6 +47,10 @@ func (e NotHandledError) Error() string {
 // RejectedError reports a rejected callback.
 type RejectedError struct {
 	callback interface{}
+}
+
+func (e RejectedError) Callback() interface{} {
+	return e.callback
 }
 
 func (e RejectedError) Error() string {

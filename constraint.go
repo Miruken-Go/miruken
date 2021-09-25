@@ -273,13 +273,6 @@ func (b *ConstraintBuilder) WithConstraint(
 	if constraint == nil || reflect.ValueOf(constraint).IsNil() {
 		panic("constraint cannot be nil")
 	}
-	if init, ok := constraint.(interface {
-		Init() error
-	}); ok {
-		if err := init.Init(); err != nil {
-			panic(err)
-		}
-	}
 	constraint.Require(b.Metadata())
 	return b
 }
