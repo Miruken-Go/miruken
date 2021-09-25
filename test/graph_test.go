@@ -20,10 +20,12 @@ func (t *treeNode) Children() []miruken.Traversing {
 	return t.children
 }
 
-func (t *treeNode) addChildren(children ... *treeNode) {
-	for _, child := range  children {
+func (t *treeNode) addChildren(children ... *treeNode) *treeNode{
+	for _, child := range children {
+		child.parent = t
 		t.children = append(t.children, child)
 	}
+	return t
 }
 
 func (t *treeNode) Traverse(
@@ -113,4 +115,183 @@ func (suite *TraversalTestSuite) TestReverseLevelOrderTraversal() {
 
 func TestTraversalTestSuite(t *testing.T) {
 	suite.Run(t, new(TraversalTestSuite))
+}
+
+type TraversingTestSuite struct {
+	suite.Suite
+	visited []*treeNode
+}
+
+func (suite *TraversingTestSuite) SetupTest() {
+	suite.visited = make([]*treeNode, 0)
+}
+
+func (suite *TraversingTestSuite) VisitTraversal(
+	node miruken.Traversing,
+) (stop bool, err error) {
+	suite.visited = append(suite.visited, node.(*treeNode))
+	return false, nil
+}
+
+func (suite *TraversingTestSuite) Visited(expected ... *treeNode) {
+	suite.ElementsMatch(suite.visited, expected)
+}
+
+func (suite *TraversingTestSuite) TestTraverseSelf() {
+	var root = &treeNode{data: "root"}
+	err := miruken.TraverseAxis(root, miruken.TraverseSelf, suite)
+	suite.Nil(err)
+	suite.Visited(root)
+}
+
+func (suite *TraversingTestSuite) TestTraverseRoot() {
+	var root   = &treeNode{data: "root"}
+	var child1 = &treeNode{data: "child1"}
+	var child2 = &treeNode{data: "child2"}
+	var child3 = &treeNode{data: "child3"}
+	root.addChildren(child1, child2, child3)
+	err := miruken.TraverseAxis(root, miruken.TraverseRoot, suite)
+	suite.Nil(err)
+	suite.Visited(root)
+}
+
+func (suite *TraversingTestSuite) TestTraverseChildren() {
+	var root   = &treeNode{data: "root"}
+	var child1 = &treeNode{data: "child1"}
+	var child2 = &treeNode{data: "child2"}
+	var child3 = &treeNode{data: "child3"}
+	child3.addChildren(&treeNode{data: "child31"})
+	root.addChildren(child1, child2, child3)
+	err := miruken.TraverseAxis(root, miruken.TraverseChild, suite)
+	suite.Nil(err)
+	suite.Visited(child1, child2, child3)
+}
+
+func (suite *TraversingTestSuite) TestTraverseSiblings() {
+	var root   = &treeNode{data: "root"}
+	var child1 = &treeNode{data: "child1"}
+	var child2 = &treeNode{data: "child2"}
+	var child3 = &treeNode{data: "child3"}
+	child3.addChildren(&treeNode{data: "child31"})
+	root.addChildren(child1, child2, child3)
+	err := miruken.TraverseAxis(child2, miruken.TraverseSibling, suite)
+	suite.Nil(err)
+	suite.Visited(child1, child3)
+}
+
+func (suite *TraversingTestSuite) TestTraverseChildrenAndSelf() {
+	var root   = &treeNode{data: "root"}
+	var child1 = &treeNode{data: "child1"}
+	var child2 = &treeNode{data: "child2"}
+	var child3 = &treeNode{data: "child3"}
+	child3.addChildren(&treeNode{data: "child31"})
+	root.addChildren(child1, child2, child3)
+	err := miruken.TraverseAxis(root, miruken.TraverseSelfOrChild, suite)
+	suite.Nil(err)
+	suite.Visited(root, child1, child2, child3)
+}
+
+func (suite *TraversingTestSuite) TestTraverseSiblingAndSelf() {
+	var root   = &treeNode{data: "root"}
+	var child1 = &treeNode{data: "child1"}
+	var child2 = &treeNode{data: "child2"}
+	var child3 = &treeNode{data: "child3"}
+	child3.addChildren(&treeNode{data: "child31"})
+	root.addChildren(child1, child2, child3)
+	err := miruken.TraverseAxis(child2, miruken.TraverseSelfOrSibling, suite)
+	suite.Nil(err)
+	suite.Visited(child2, child1, child3)
+}
+
+func (suite *TraversingTestSuite) TestTraverseAncestors() {
+	var root       = &treeNode{data: "root"}
+	var child      = &treeNode{data: "child"}
+	var grandChild = &treeNode{data: "grandChild"}
+	root.addChildren(child)
+	child.addChildren(grandChild)
+	err := miruken.TraverseAxis(grandChild, miruken.TraverseAncestor, suite)
+	suite.Nil(err)
+	suite.Visited(child, root)
+}
+
+func (suite *TraversingTestSuite) TestTraverseAncestorsAndSelf() {
+	var root       = &treeNode{data: "root"}
+	var child      = &treeNode{data: "child"}
+	var grandChild = &treeNode{data: "grandChild"}
+	root.addChildren(child)
+	child.addChildren(grandChild)
+	err := miruken.TraverseAxis(grandChild, miruken.TraverseSelfOrAncestor, suite)
+	suite.Nil(err)
+	suite.Visited(grandChild, child, root)
+}
+
+func (suite *TraversingTestSuite) TestTraverseDescendants() {
+	var root    = &treeNode{data: "root"}
+	var child1  = &treeNode{data: "child1"}
+	var child2  = &treeNode{data: "child2"}
+	var child3  = &treeNode{data: "child3"}
+	var child31 = &treeNode{data: "child31"}
+	child3.addChildren(child31)
+	root.addChildren(child1, child2, child3)
+	err := miruken.TraverseAxis(root, miruken.TraverseDescendant, suite)
+	suite.Nil(err)
+	suite.Visited(child1, child2, child3, child31)
+}
+
+func (suite *TraversingTestSuite) TestTraverseDescendantsReverse() {
+	var root    = &treeNode{data: "root"}
+	var child1  = &treeNode{data: "child1"}
+	var child2  = &treeNode{data: "child2"}
+	var child3  = &treeNode{data: "child3"}
+	var child31 = &treeNode{data: "child31"}
+	child3.addChildren(child31)
+	root.addChildren(child1, child2, child3)
+	err := miruken.TraverseAxis(root, miruken.TraverseDescendantReverse, suite)
+	suite.Nil(err)
+	suite.Visited(child31, child3, child2, child1)
+}
+
+func (suite *TraversingTestSuite) TestTraverseDescendantsAndSelf() {
+	var root    = &treeNode{data: "root"}
+	var child1  = &treeNode{data: "child1"}
+	var child2  = &treeNode{data: "child2"}
+	var child3  = &treeNode{data: "child3"}
+	var child31 = &treeNode{data: "child31"}
+	child3.addChildren(child31)
+	root.addChildren(child1, child2, child3)
+	err := miruken.TraverseAxis(root, miruken.TraverseSelfOrDescendant, suite)
+	suite.Nil(err)
+	suite.Visited(root, child1, child2, child3, child31)
+}
+
+func (suite *TraversingTestSuite) TestTraverseDescendantsAndSelfReverse() {
+	var root    = &treeNode{data: "root"}
+	var child1  = &treeNode{data: "child1"}
+	var child2  = &treeNode{data: "child2"}
+	var child3  = &treeNode{data: "child3"}
+	var child31 = &treeNode{data: "child31"}
+	child3.addChildren(child31)
+	root.addChildren(child1, child2, child3)
+	err := miruken.TraverseAxis(root, miruken.TraverseSelfOrDescendantReverse, suite)
+	suite.Nil(err)
+	suite.Visited(child31, child1, child2, child3, root)
+}
+
+func (suite *TraversingTestSuite) TestTraverseAncestorSiblingAndSelf() {
+	var root    = &treeNode{data: "root"}
+	var parent  = &treeNode{data: "parent"}
+	var child1  = &treeNode{data: "child1"}
+	var child2  = &treeNode{data: "child2"}
+	var child3  = &treeNode{data: "child3"}
+	var child31 = &treeNode{data: "child31"}
+	child3.addChildren(child31)
+	parent.addChildren(child1, child2, child3)
+	root.addChildren(parent)
+	err := miruken.TraverseAxis(child3, miruken.TraverseSelfSiblingOrAncestor, suite)
+	suite.Nil(err)
+	suite.Visited(child3, child1, child2, parent, root)
+}
+
+func TestTraversingTestSuite(t *testing.T) {
+	suite.Run(t, new(TraversingTestSuite))
 }

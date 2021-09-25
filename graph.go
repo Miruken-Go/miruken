@@ -134,15 +134,16 @@ func traverseAncestors(
 			return err
 		}
 	}
+	parent  := node.Parent()
 	visited := make(traversalHistory)
-	for parent := node.Parent(); parent != nil; {
+	for parent != nil {
 		if err := checkTraversalCircularity(parent, visited); err != nil {
 			return err
 		}
 		if _, err := visitor.VisitTraversal(parent); err != nil {
 			return err
 		}
-		node = parent
+		parent = parent.Parent()
 	}
 	return nil
 }
@@ -155,7 +156,7 @@ func traverseDescendants(
 	return TraverseLevelOrder(node, TraversalVisitorFunc(
 		func(child Traversing) (bool, error) {
 			if child != node || withSelf {
-				return visitor.VisitTraversal(node)
+				return visitor.VisitTraversal(child)
 			}
 			return false, nil
 		}))
@@ -169,7 +170,7 @@ func traverseDescendantsReverse(
 	return TraverseReverseLevelOrder(node, TraversalVisitorFunc(
 		func(child Traversing) (bool, error) {
 			if child != node || withSelf {
-				return visitor.VisitTraversal(node)
+				return visitor.VisitTraversal(child)
 			}
 			return false, nil
 		}))
