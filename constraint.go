@@ -270,7 +270,7 @@ func (b *ConstraintBuilder) Named(
 func (b *ConstraintBuilder) WithConstraint(
 	constraint BindingConstraint,
 ) *ConstraintBuilder {
-	if constraint == nil || reflect.ValueOf(constraint).IsNil() {
+	if IsNil(constraint) {
 		panic("constraint cannot be nil")
 	}
 	constraint.Require(b.Metadata())
@@ -301,7 +301,7 @@ func ApplyConstraints(
 	scope       BindingScope,
 	constraints ... func(*ConstraintBuilder),
 ) *BindingMetadata {
-	if scope == nil || reflect.ValueOf(scope).IsNil() {
+	if IsNil(scope) {
 		panic("scope cannot be nil")
 	}
 	if metadata := scope.Metadata(); metadata != nil {

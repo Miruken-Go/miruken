@@ -5,6 +5,10 @@ import (
 	"reflect"
 )
 
+func IsNil(val interface{}) bool {
+	return val == nil || reflect.ValueOf(val).IsNil()
+}
+
 // TargetValue validates the interface contains a
 // non-nil typed pointer and return the reflect.Value.
 func TargetValue(target interface{}) reflect.Value {

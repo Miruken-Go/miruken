@@ -13,13 +13,52 @@ func (f BuilderFunc) Build(
 	handler Handler,
 ) Handler { return f(handler) }
 
+var nullBuilder BuilderFunc = func(handler Handler) Handler {
+	return handler
+}
+
+func composeBuilder2(builder1 Builder, builder2 Builder) Builder {
+	return BuilderFunc(func(handler Handler) Handler {
+		if builder2 != nil {
+			handler = builder2.Build(handler)
+		}
+		if builder1 != nil {
+			handler = builder1.Build(handler)
+		}
+		return handler
+	})
+}
+
+func ComposeBuilders(builders ... Builder) Builder {
+	switch len(builders) {
+	case 0: return nullBuilder
+	case 1: return builders[0]
+	default:
+		builder := builders[0]
+		for _, b := range builders[1:] {
+			builder = composeBuilder2(builder, b)
+		}
+		return builder
+	}
+}
+
+func PipeBuilders(builders ... Builder) Builder {
+	switch len(builders) {
+	case 0: return nullBuilder
+	case 1: return builders[0]
+	default:
+		builder := builders[len(builders)-1]
+		for i := len(builders)-2; i >= 0; i-- {
+			builder = composeBuilder2(builder, builders[i])
+		}
+		return builder
+	}
+}
+
 func Build(handler Handler, builders ... Builder) Handler {
 	for _, b := range builders {
 		if b != nil {
 			handler = b.Build(handler)
-		}
-		if handler == nil {
-			panic("handler cannot be nil")
 		}
 	}
 	return handler
@@ -124,7 +163,6 @@ func (w *withHandlers) Handle(
 		}
 		result = result.Or(h.Handle(callback, greedy, composer))
 	}
-
 	return result.OtherwiseIf(greedy, func (HandleResult) HandleResult {
 		return w.Handler.Handle(callback, greedy, composer)
 	})

@@ -96,7 +96,7 @@ func traverseRoot(
 ) error {
 	root    := node
 	visited := make(traversalHistory)
-	for parent := root.Parent(); parent != nil; {
+	for parent := root.Parent(); !IsNil(parent); parent = parent.Parent() {
 		if err := checkTraversalCircularity(parent, visited); err != nil {
 			return err
 		}
@@ -136,7 +136,7 @@ func traverseAncestors(
 	}
 	parent  := node.Parent()
 	visited := make(traversalHistory)
-	for parent != nil {
+	for !IsNil(parent) {
 		if err := checkTraversalCircularity(parent, visited); err != nil {
 			return err
 		}
@@ -188,7 +188,7 @@ func traverseSelfSiblingOrAncestor(
 		}
 	}
 	parent := node.Parent()
-	if parent == nil {
+	if IsNil(parent) {
 		return nil
 	}
 	for _, sibling := range parent.Children() {
@@ -310,7 +310,7 @@ func traverseLevelOrder(
 		}
 		if err = TraverseAxis(next, TraverseChild, TraversalVisitorFunc(
 			func(child Traversing) (bool, error) {
-				if child != nil {
+				if !IsNil(child) {
 					queue.PushBack(child)
 				}
 				return false, nil
@@ -352,7 +352,7 @@ func traverseReverseLevelOrder(
 		level := list.New()
 		if err = TraverseAxis(next, TraverseChild, TraversalVisitorFunc(
 			func(child Traversing) (bool, error) {
-				if child != nil {
+				if !IsNil(child) {
 					level.PushFront(child)
 				}
 				return false, nil

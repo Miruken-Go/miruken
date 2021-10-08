@@ -185,16 +185,16 @@ type FilterOptions struct {
 var skipFilters = WithOptions(FilterOptions{
 	SkipFilters: OptionTrue,
 })
-var SkipFilters = BuilderFunc(func (handler Handler) Handler {
+var SkipFilters BuilderFunc = func (handler Handler) Handler {
 	return Build(handler, skipFilters)
-})
+}
 
 var enableFilters = WithOptions(FilterOptions{
 	SkipFilters: OptionFalse,
 })
-var EnableFilters = BuilderFunc(func (handler Handler) Handler {
+var EnableFilters BuilderFunc = func (handler Handler) Handler {
 	return Build(handler, enableFilters)
-})
+}
 
 func WithFilters(filters ... Filter) Builder {
 	return withFilters(false, filters...)
