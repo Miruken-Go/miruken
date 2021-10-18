@@ -165,32 +165,32 @@ func (h *DependencyHandler) RequiredSliceDependency(
 func (h *DependencyHandler) OptionalDependency(
 	_ miruken.Handles,
 	bar *Bar,
-	foo *struct{ miruken.Optional; Value *Foo },
+	_ *struct{ miruken.Optional }, foo *Foo,
 ) {
 	bar.Inc()
-	if foo.Value != nil {
-		foo.Value.Inc()
+	if foo != nil {
+		foo.Inc()
 	}
 }
 
 func (h *DependencyHandler) OptionalSliceDependency(
 	_ miruken.Handles,
-	baz  *Baz,
-	bars *struct{ Value []*Bar `bind:"optional"` },
+	baz *Baz,
+	_ *struct{ miruken.Optional}, bars []*Bar,
 ) {
 	baz.Inc()
-	for _, bar := range bars.Value {
+	for _, bar := range bars {
 		bar.Inc()
 	}
 }
 
 func (h *DependencyHandler) StrictDependency(
 	_ miruken.Handles,
-	bam  *Bam,
-	bars *struct{ miruken.Strict; Value []*Bar },
+	bam *Bam,
+	_ *struct{ miruken.Strict }, bars []*Bar,
 ) {
 	bam.Inc()
-	for _, bar := range bars.Value {
+	for _, bar := range bars {
 		bar.Inc()
 	}
 }
@@ -208,8 +208,7 @@ func (c Configuration) Validate(
 	typ reflect.Type,
 	dep miruken.DependencyArg,
 ) error {
-	argType := dep.ArgType(typ)
-	if !reflect.TypeOf(c.config).AssignableTo(argType) {
+	if !reflect.TypeOf(c.config).AssignableTo(typ) {
 		return fmt.Errorf("the Configuration resolver expects a %T field", c.config)
 	}
 	return nil
@@ -235,11 +234,11 @@ type DependencyResolverHandler struct{}
 
 func (h *DependencyResolverHandler) UseDependencyResolver(
 	_ miruken.Handles,
-	foo    *Foo,
-	config *struct{ _ Configuration; Value *Config },
+	foo *Foo,
+	_ *struct{ Configuration }, config *Config,
 ) *Config {
 	foo.Inc()
-	return config.Value
+	return config
 }
 
 // InvalidHandler
@@ -247,6 +246,13 @@ type InvalidHandler struct {}
 
 func (h *InvalidHandler) MissingCallback(
 	_ miruken.Handles,
+) {
+}
+
+func (h *InvalidHandler) MissingDependency(
+	_ miruken.Handles,
+	bar *Bar,
+	_ *struct{ },
 ) {
 }
 
@@ -560,7 +566,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 						errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 						failures++
 					}
-					suite.Equal(4, failures)
+					suite.Equal(5, failures)
 				} else {
 					suite.Fail("Expected HandlerDescriptorError")
 				}

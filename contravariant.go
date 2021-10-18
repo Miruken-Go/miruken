@@ -69,28 +69,21 @@ func (p *contravariantPolicy) newMethodBinding(
 	methodType := method.Type
 	numArgs    := methodType.NumIn() - 1  // skip receiver
 	args       := make([]arg, numArgs)
+	args[0]     = zeroArg{}  // policy/binding placeholder
 	constraint := spec.constraint
 
-	args[0] = zeroArg{}  // policy/binding placeholder
-
 	// Callback argument must be present
-	if numArgs > 1 {
+	if len(args) > 1 {
 		if constraint == nil {
 			constraint = methodType.In(2)
 		}
 		args[1] = callbackArg{}
 	} else {
-		invalid = multierror.Append(invalid,
-			errors.New("contravariant policy: missing callback argument"))
+		invalid = errors.New("contravariant: missing callback argument")
 	}
 
-	for i := 2; i < numArgs; i++ {
-		if arg, err := buildDependency(methodType.In(i + 1)); err == nil {
-			args[i] = arg
-		} else {
-			invalid = multierror.Append(invalid, fmt.Errorf(
-				"contravariant policy: invalid dependency at index %v: %w", i, err))
-		}
+	if err := buildDependencies(methodType, 2, numArgs, args, 2); err != nil {
+		invalid = multierror.Append(invalid, fmt.Errorf("contravariant: %w", err))
 	}
 
 	switch methodType.NumOut() {

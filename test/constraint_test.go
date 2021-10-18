@@ -61,11 +61,11 @@ type Hospital struct {
 }
 
 func (h *Hospital) Constructor(
-	doctor     *struct{ Doctor;     Value Person },
-	programmer *struct{ Programmer; Value Person },
+	_ *struct{ Doctor },     doctor     Person,
+	_ *struct{ Programmer }, programmer Person,
 ) {
-	h.doctor     = doctor.Value
-	h.programmer = programmer.Value
+	h.doctor     = doctor
+	h.programmer = programmer
 }
 
 func (h *Hospital) Doctor() Person {
@@ -138,17 +138,11 @@ type Client struct {
 }
 
 func (c *Client) Constructor(
-	local *struct{
-		miruken.Named `name:"local"`
-		Value AppSettings
-	  },
-	remote *struct{
-		miruken.Named `name:"remote"`
-		Value AppSettings
-	  },
+	_ *struct{ miruken.Named `name:"local"` },  local  AppSettings,
+	_ *struct{ miruken.Named `name:"remote"` }, remote AppSettings,
 ) {
-	c.local  = local.Value
-	c.remote = remote.Value
+	c.local  = local
+	c.remote = remote
 }
 
 func (c *Client) Local() AppSettings {

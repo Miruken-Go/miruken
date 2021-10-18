@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"reflect"
-	"unicode"
 )
 
 // arg models a parameter of a method.
@@ -43,27 +42,9 @@ func (a callbackArg) resolve(
 
 // dependencySpec encapsulates dependency metadata.
 type dependencySpec struct {
-	index       int
 	flags       bindingFlags
 	resolver    DependencyResolver
 	constraints []func(*ConstraintBuilder)
-}
-
-func (s *dependencySpec) bindingAt(
-	index int,
-	field reflect.StructField,
-) error {
-	if s.index >= 0 {
-		return fmt.Errorf(
-			"field index %v already designated as the dependency", s.index)
-	}
-	if unicode.IsLower(rune(field.Name[0])) {
-		return fmt.Errorf(
-			"field %v at index %v must start with an uppercase character",
-			field.Name, index)
-	}
-	s.index = index
-	return nil
 }
 
 func (s *dependencySpec) setStrict(
@@ -109,15 +90,6 @@ type DependencyArg struct {
 	spec *dependencySpec
 }
 
-func (d DependencyArg) ArgType(
-	typ reflect.Type,
-) reflect.Type {
-	if d.spec != nil && d.spec.index >= 0 {
-		return typ.Field(d.spec.index).Type
-	}
-	return typ
-}
-
 func (d DependencyArg) resolve(
 	typ     reflect.Type,
 	context HandleContext,
@@ -135,22 +107,13 @@ func (d DependencyArg) resolve(
 			return reflect.ValueOf(rawCallback), nil
 		}
 	}
-	argIndex := -1
 	var resolver DependencyResolver = &_defaultResolver
 	if spec := d.spec; spec != nil {
-		argIndex = spec.index
 		if spec.resolver != nil {
 			resolver = spec.resolver
 		}
 	}
 	val, err := resolver.Resolve(typ, rawCallback, d, composer)
-	if err == nil {
-		if argIndex >= 0 {
-			wrapper := reflect.New(typ.Elem())
-			wrapper.Elem().Field(argIndex).Set(val)
-			return wrapper, nil
-		}
-	}
 	return val, err
 }
 
@@ -173,23 +136,21 @@ func (r *defaultDependencyResolver) Resolve(
 	dep         DependencyArg,
 	handler     Handler,
 ) (reflect.Value, error) {
-	argType  := typ
 	optional, strict := false, false
 
 	if spec := dep.spec; spec != nil {
 		optional = spec.flags & bindingOptional == bindingOptional
 		strict   = spec.flags & bindingStrict == bindingStrict
-		argType  = dep.ArgType(typ.Elem())
 	}
 
 	var inquiry *Inquiry
 	parent, _ := rawCallback.(*Inquiry)
 	builder := new(InquiryBuilder).WithParent(parent)
 
-	if !strict && argType.Kind() == reflect.Slice {
-		builder.WithKey(argType.Elem()).WithMany()
+	if !strict && typ.Kind() == reflect.Slice {
+		builder.WithKey(typ.Elem()).WithMany()
 	} else {
-		builder.WithKey(argType)
+		builder.WithKey(typ)
 	}
 
 	if spec := dep.spec; spec != nil {
@@ -201,20 +162,20 @@ func (r *defaultDependencyResolver) Resolve(
 		var val reflect.Value
 		if inquiry.Many() {
 			results := result.([]interface{})
-			val = reflect.New(argType).Elem()
+			val = reflect.New(typ).Elem()
 			CopySliceIndirect(results, val)
 		} else if result != nil {
 			val = reflect.ValueOf(result)
 		} else if optional {
-			val = reflect.Zero(argType)
+			val = reflect.Zero(typ)
 		} else {
 			return reflect.ValueOf(nil), fmt.Errorf(
-				"arg: unable to resolve dependency %v", argType)
+				"arg: unable to resolve dependency %v", typ)
 		}
 		return val, nil
 	} else {
 		return reflect.ValueOf(nil), fmt.Errorf(
-			"arg: unable to resolve dependency %v: %w", argType, err)
+			"arg: unable to resolve dependency %v: %w", typ, err)
 	}
 }
 
@@ -241,35 +202,67 @@ func buildDependency(
 			"type %v cannot be used as a dependency",
 			_interfaceType)
 	}
-	// Is it a *Struct arg binding?
+	// Is it a *struct arg binding?
 	if argType.Kind() != reflect.Ptr {
 		return arg, nil
 	}
 	argType = argType.Elem()
 	if argType.Kind() == reflect.Struct &&
-		argType.Name() == "" &&  // anonymous
-		argType.NumField() > 0 {
-		spec := &dependencySpec{index: -1}
+		argType.Name() == "" {  // anonymous
+		spec := &dependencySpec{}
 		if err = configureBinding(argType, spec, dependencyBuilders); err != nil {
 			return arg, err
 		}
-		if spec.index < 0 {
-			if field, ok := argType.FieldByName("Value"); ok {
-				spec.index = field.Index[0]
-			} else {
-				return arg, nil
-			}
-		}
 		arg.spec = spec
-		if resolver := spec.resolver; resolver != nil {
-			if v, ok := resolver.(interface {
-				Validate(reflect.Type, DependencyArg) error
-			}); ok {
-				err = v.Validate(argType, arg)
-			}
-		}
 	}
 	return arg, err
+}
+
+func buildDependencies(
+	methodType reflect.Type,
+	startIndex int,
+	endIndex   int,
+	args       []arg,
+	offset     int,
+) (invalid error) {
+	var lastSpec *dependencySpec
+	for i, j := startIndex, 0; i < endIndex; i, j = i + 1, j + 1 {
+		argType := methodType.In(i + 1)  // skip receiver
+		if arg, err := buildDependency(argType); err == nil {
+			if arg.spec != nil {
+				if lastSpec != nil {
+					invalid = multierror.Append(invalid, fmt.Errorf(
+						"expected dependency at index %v, but found spec", i))
+				} else {
+					lastSpec = arg.spec // capture spec for actual dependency
+					args[j + offset] = zeroArg{}
+				}
+			} else {
+				if lastSpec != nil {
+					arg.spec = lastSpec // adopt last dependency spec
+					if resolver := lastSpec.resolver; resolver != nil {
+						if v, ok := resolver.(interface {
+							Validate(reflect.Type, DependencyArg) error
+						}); ok {
+							if err := v.Validate(argType, arg); err != nil {
+								invalid = multierror.Append(invalid, err)
+							}
+						}
+					}
+					lastSpec = nil
+				}
+				args[j + offset] = arg
+			}
+		} else {
+			invalid = multierror.Append(invalid, fmt.Errorf(
+				"invalid dependency at index %v: %w", i, err))
+		}
+	}
+	if lastSpec != nil {
+		invalid = multierror.Append(invalid, fmt.Errorf(
+			"missing dependency at index %v", endIndex))
+	}
+	return invalid
 }
 
 func resolverBindingBuilder(

@@ -148,12 +148,11 @@ func (o FromOptions) Validate(
 	typ reflect.Type,
 	dep DependencyArg,
 ) error {
-	optType := dep.ArgType(typ)
-	if optType.Kind() == reflect.Ptr {
-		optType = optType.Elem()
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
 	}
-	if optType.Kind() != reflect.Struct {
-		return fmt.Errorf("FromOptions: %v is not a struct or *struct", optType)
+	if typ.Kind() != reflect.Struct {
+		return fmt.Errorf("FromOptions: %v is not a struct or *struct", typ)
 	}
 	return nil
 }
@@ -164,13 +163,12 @@ func (o FromOptions) Resolve(
 	dep DependencyArg,
 	handler     Handler,
 ) (options reflect.Value, err error) {
-	optType := dep.ArgType(typ.Elem())
-	options = reflect.New(optType)
+	options = reflect.New(typ)
 	if !GetOptions(handler, options.Interface()) {
 		return reflect.ValueOf(nil), fmt.Errorf(
-			"FromOptions: unable to resolve options %v", optType)
+			"FromOptions: unable to resolve options %v", typ)
 	}
-	if optType.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Ptr {
 		return options, nil
 	}
 	return reflect.Indirect(options), nil

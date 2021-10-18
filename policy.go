@@ -155,7 +155,7 @@ func buildPolicySpec(
 			return &policySpec{policies: []Policy{policy}}, nil
 		}
 	}
-	// Is it a *Struct policy binding?
+	// Is it a *struct policy binding?
 	if policyType.Kind() != reflect.Ptr {
 		return spec, err
 	}

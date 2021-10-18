@@ -2,7 +2,6 @@ package miruken
 
 import (
 	"fmt"
-	"github.com/hashicorp/go-multierror"
 	"reflect"
 	"sort"
 	"sync"
@@ -376,15 +375,10 @@ func DynNext(
 			dynNextType.Out(1) != _errorType {
 			goto Invalid
 		} else {
-			numArgs := dynNextType.NumIn()
-			args    := make([]arg, numArgs-4)
-			for i := 4; i < numArgs; i++ {
-				if arg, err := buildDependency(dynNextType.In(i)); err == nil {
-					args[i-4] = arg
-				} else {
-					invalid = multierror.Append(invalid, fmt.Errorf(
-						"DynNext: invalid dependency at index %v: %w", i, err))
-				}
+			numArgs := dynNextType.NumIn()-1
+			args    := make([]arg, numArgs-3)
+			if err := buildDependencies(dynNextType, 3, numArgs, args, 0); err != nil {
+				invalid = fmt.Errorf("DynNext: %w", err)
 			}
 			if invalid != nil {
 				return nil, MethodBindingError{dynNext, invalid}

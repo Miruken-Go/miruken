@@ -15,10 +15,10 @@ type (
 
 func (h *FooOptionsHandler) HandleFoo(
 	_ miruken.Handles,
-	foo     *Foo,
-	options *struct{ _ miruken.FromOptions; Value FooOptions },
+	foo *Foo,
+	_ *struct{ miruken.FromOptions }, options FooOptions,
 ) {
-	for i := 0; i < options.Value.Increment; i++ {
+	for i := 0; i < options.Increment; i++ {
 		foo.Inc()
 	}
 }

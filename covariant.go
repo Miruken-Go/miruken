@@ -76,22 +76,16 @@ func (p *covariantPolicy) newMethodBinding(
 	methodType := method.Type
 	numArgs    := methodType.NumIn() - 1 // skip receiver
 	args       := make([]arg, numArgs)
+	args[0]     = zeroArg{}  // policy/binding placeholder
 
-	args[0] = zeroArg{}  // policy/binding placeholder
-
-	for i := 1; i < numArgs; i++ {
-		if arg, err := buildDependency(methodType.In(i + 1)); err == nil {
-			args[i] = arg
-		} else {
-			invalid = multierror.Append(invalid, fmt.Errorf(
-				"covariant policy: invalid dependency at index %v: %w", i, err))
-		}
+	if err := buildDependencies(methodType, 1, numArgs, args, 1); err != nil {
+		invalid = fmt.Errorf("covariant: %w", err)
 	}
 
 	switch methodType.NumOut() {
 	case 0:
 		invalid = multierror.Append(invalid,
-			errors.New("covariant policy: must have a return value"))
+			errors.New("covariant: must have a return value"))
 	case 1:
 		if err := validateCovariantReturn(methodType.Out(0), spec); err != nil {
 			invalid = multierror.Append(invalid, err)
@@ -104,12 +98,12 @@ func (p *covariantPolicy) newMethodBinding(
 		case _errorType, _handleResType: break
 		default:
 			invalid = multierror.Append(invalid, fmt.Errorf(
-				"covariant policy: when two return values, second must be %v or %v",
+				"covariant: when two return values, second must be %v or %v",
 				_errorType, _handleResType))
 		}
 	default:
 		invalid = multierror.Append(invalid, fmt.Errorf(
-			"covariant policy: at most two return values allowed and second must be %v or %v",
+			"covariant: at most two return values allowed and second must be %v or %v",
 			_errorType, _handleResType))
 	}
 

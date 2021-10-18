@@ -219,23 +219,16 @@ func newConstructorBinding(
 		args       := make([]arg, numArgs)
 		if spec != nil && explicitSpec {
 			startIndex = 1
-			args[0] = zeroArg{}  // policy/binding placeholder
+			args[0] = zeroArg{} // policy/binding placeholder
 		}
-		for i := startIndex; i < numArgs; i++ {
-			if arg, err := buildDependency(methodType.In(i + 1)); err == nil {
-				args[i] = arg
-			} else {
-				invalid = multierror.Append(invalid, fmt.Errorf(
-					"constructor: invalid dependency at index %v: %w", i, err))
-			}
+		if err := buildDependencies(methodType, startIndex, numArgs, args, startIndex); err != nil {
+			invalid = fmt.Errorf("constructor: %w", err)
+		} else {
+			initializer := &initializer{methodInvoke{*constructor, args}}
+			binding.AddFilters(&initializerProvider{[]Filter{initializer}})
 		}
-		if invalid != nil {
-			return nil, MethodBindingError{*constructor, invalid}
-		}
-		initializer := &initializer{methodInvoke{*constructor, args}}
-		binding.AddFilters(&initializerProvider{[]Filter{initializer}})
 	}
-	return binding, nil
+	return binding, invalid
 }
 
 // Binding builders
