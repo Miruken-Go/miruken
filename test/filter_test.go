@@ -194,7 +194,8 @@ func (f FilteringHandler) HandleBar(
 
 func (f FilteringHandler) HandleBee(
 	_ *struct{
-		miruken.Handles `bind:"skipFilters"`
+		miruken.Handles
+		miruken.SkipFilters
 		LogFilter
 	  },
 	bee *BeeC,
@@ -399,7 +400,7 @@ func (suite *FilterTestSuite) TestFilters() {
 		})
 
 		suite.Run("Explicit", func() {
-			handler := miruken.Build(suite.InferenceRoot(), miruken.SkipFilters)
+			handler := miruken.Build(suite.InferenceRoot(), miruken.DisableFilters)
 			bar     := new(BarC)
 			result  := handler.Handle(bar, false, nil)
 			suite.False(result.IsError())

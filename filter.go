@@ -182,11 +182,11 @@ type FilterOptions struct {
 	SkipFilters OptionBool
 }
 
-var skipFilters = WithOptions(FilterOptions{
+var disableFilters = WithOptions(FilterOptions{
 	SkipFilters: OptionTrue,
 })
-var SkipFilters BuilderFunc = func (handler Handler) Handler {
-	return Build(handler, skipFilters)
+var DisableFilters BuilderFunc = func (handler Handler) Handler {
+	return Build(handler, disableFilters)
 }
 
 var enableFilters = WithOptions(FilterOptions{
@@ -276,7 +276,7 @@ func orderedFilters(
 		}
 	}
 	if skipFilters != OptionTrue {
-		handler = Build(handler, SkipFilters)
+		handler = Build(handler, DisableFilters)
 	}
 	var allFilters []providedFilter
 	for _, provider := range allProviders {

@@ -134,7 +134,7 @@ func (h *EverythingHandler) HandleEverything(
 type SpecificationHandler struct{}
 
 func (h *SpecificationHandler) HandleFoo(
-	_ *struct{ miruken.Handles `bind:"strict"` },
+	_ *struct{ miruken.Handles; miruken.Strict },
 	foo *Foo,
 ) miruken.HandleResult {
 	foo.Inc()
@@ -165,7 +165,7 @@ func (h *DependencyHandler) RequiredSliceDependency(
 func (h *DependencyHandler) OptionalDependency(
 	_ miruken.Handles,
 	bar *Bar,
-	foo *struct{ Value *Foo `bind:"optional"` },
+	foo *struct{ miruken.Optional; Value *Foo },
 ) {
 	bar.Inc()
 	if foo.Value != nil {
@@ -187,7 +187,7 @@ func (h *DependencyHandler) OptionalSliceDependency(
 func (h *DependencyHandler) StrictDependency(
 	_ miruken.Handles,
 	bam  *Bam,
-	bars *struct{ Value []*Bar `bind:"strict"` },
+	bars *struct{ miruken.Strict; Value []*Bar },
 ) {
 	bam.Inc()
 	for _, bar := range bars.Value {
@@ -640,7 +640,7 @@ func (p *SpecificationProvider) ProvidesFoo(
 }
 
 func (p *SpecificationProvider) ProvidesBar(
-	_ *struct{ miruken.Provides `bind:"strict"` },
+	_ *struct{ miruken.Provides; miruken.Strict },
 ) []*Bar {
 	p.bar.Inc()
 	return []*Bar{&p.bar, {}}

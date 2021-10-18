@@ -186,6 +186,49 @@ func WithHandlerTypes(types ... reflect.Type) Builder {
 	})
 }
 
+type FilterFunc = func(
+	callback interface{},
+	composer Handler,
+	proceed  func() HandleResult,
+) HandleResult
+
+// filterHandler applies a filter to a Handler.
+type filterHandler struct {
+	Handler
+	filter    FilterFunc
+	reentrant bool
+}
+
+func (f *filterHandler) Handle(
+	callback interface{},
+	greedy   bool,
+	composer Handler,
+) HandleResult {
+	if callback == nil {
+		return NotHandled
+	}
+	tryInitializeComposer(&composer, f)
+
+	if !f.reentrant {
+		if _, ok := callback.(*Composition); ok {
+			return f.Handler.Handle(callback, greedy, composer)
+		}
+	}
+	return f.filter(callback, composer, func() HandleResult {
+		return f.Handler.Handle(callback, greedy, composer)
+	})
+}
+
+func WithFilter(filter FilterFunc, reentrant bool) Builder {
+	if filter == nil {
+		panic("filter cannot be nil")
+	}
+	return BuilderFunc(func (handler Handler) Handler {
+		return &filterHandler{handler, filter, reentrant}
+	})
+}
+
+
 func tryInitializeComposer(
 	incoming *Handler,
 	receiver  Handler,

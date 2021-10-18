@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"reflect"
-	"strings"
 )
 
 // Binding is the abstraction for constraint handling.
@@ -241,6 +240,12 @@ func newConstructorBinding(
 
 // Binding builders
 
+type (
+	Strict      struct{}
+	Optional    struct{}
+	SkipFilters struct{}
+)
+
 type bindingFlags uint8
 
 const (
@@ -293,54 +298,35 @@ func optionsBindingBuilder(
 	field   reflect.StructField,
 	binding interface{},
 ) (err error) {
-	if  b, ok := field.Tag.Lookup(_bindingTag); ok {
-		if o, ok := binding.(interface {
-			bindingAt(int, reflect.StructField) error
+	typ := field.Type
+	if typ == _strictType {
+		if b, ok := binding.(interface {
+			setStrict(int, reflect.StructField, bool) error
 		}); ok {
-			if invalid := o.bindingAt(index, field); invalid != nil {
+			if invalid := b.setStrict(index, field, true); invalid != nil {
 				err = multierror.Append(err, fmt.Errorf(
-					"binding: on field %v (%v) failed: %w",
+					"binding: strict binding on field %v (%v) failed: %w",
 					field.Name, index, invalid))
 			}
 		}
-		options := strings.Split(b, ",")
-		for _, opt := range options {
-			switch opt {
-			case "": break
-			case _strictBinding:
-				if b, ok := binding.(interface {
-					setStrict(int, reflect.StructField, bool) error
-				}); ok {
-					if invalid := b.setStrict(index, field, true); invalid != nil {
-						err = multierror.Append(err, fmt.Errorf(
-							"binding: strict binding on field %v (%v) failed: %w",
-							field.Name, index, invalid))
-					}
-				}
-			case _optionalBinding:
-				if b, ok := binding.(interface {
-					setOptional(int, reflect.StructField, bool) error
-				}); ok {
-					if invalid := b.setOptional(index, field, true); invalid != nil {
-						err = multierror.Append(err, fmt.Errorf(
-							"binding: optional binding on field %v (%v) failed: %w",
-							field.Name, index, invalid))
-					}
-				}
-			case _skipFiltersBinding:
-				if b, ok := binding.(interface {
-					setSkipFilters(int, reflect.StructField, bool) error
-				}); ok {
-					if invalid := b.setSkipFilters(index, field, true); invalid != nil {
-						err = multierror.Append(err, fmt.Errorf(
-							"binding: skipFilters binding on field %v (%v) failed: %w",
-							field.Name, index, invalid))
-					}
-				}
-			default:
+	} else if typ == _optionalType {
+		if b, ok := binding.(interface {
+			setOptional(int, reflect.StructField, bool) error
+		}); ok {
+			if invalid := b.setOptional(index, field, true); invalid != nil {
 				err = multierror.Append(err, fmt.Errorf(
-					"binding: invalid binding %q on field %v (%v) of type %T",
-					opt, field.Name, index, reflect.TypeOf(binding)))
+					"binding: optional binding on field %v (%v) failed: %w",
+					field.Name, index, invalid))
+			}
+		}
+	} else if typ == _skipFiltersType {
+		if b, ok := binding.(interface {
+			setSkipFilters(int, reflect.StructField, bool) error
+		}); ok {
+			if invalid := b.setSkipFilters(index, field, true); invalid != nil {
+				err = multierror.Append(err, fmt.Errorf(
+					"binding: skipFilters binding on field %v (%v) failed: %w",
+					field.Name, index, invalid))
 			}
 		}
 	}
@@ -348,8 +334,7 @@ func optionsBindingBuilder(
 }
 
 var (
-	_bindingTag         = "bind"
-	_strictBinding      = "strict"
-	_optionalBinding    = "optional"
-	_skipFiltersBinding = "skipFilters"
+	_strictType      = reflect.TypeOf((*Strict)(nil)).Elem()
+	_optionalType    = reflect.TypeOf((*Optional)(nil)).Elem()
+	_skipFiltersType = reflect.TypeOf((*SkipFilters)(nil)).Elem()
 )

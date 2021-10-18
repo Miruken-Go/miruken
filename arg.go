@@ -243,7 +243,7 @@ func buildDependency(
 	}
 	// Is it a *Struct arg binding?
 	if argType.Kind() != reflect.Ptr {
-		return DependencyArg{}, nil
+		return arg, nil
 	}
 	argType = argType.Elem()
 	if argType.Kind() == reflect.Struct &&
