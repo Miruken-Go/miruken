@@ -22,6 +22,9 @@ func (p *covariantPolicy) AcceptResults(
 ) (result interface{}, accepted HandleResult) {
 	switch len(results) {
 	case 0:
+		if results == nil {
+			return nil, NotHandled
+		}
 		return nil, Handled
 	case 1:
 		if result = results[0]; result == nil {

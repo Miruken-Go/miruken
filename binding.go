@@ -187,7 +187,7 @@ func (b *constructorBinding) Invoke(
 	explicitArgs ... interface{},
 ) ([]interface{}, error) {
 	if len(explicitArgs) > 0 {
-		panic("explicitArgs must be empty")
+		return nil, nil  // return nothing if not called as constructor
 	}
 	var handler interface{}
 	handlerType := b.handlerType

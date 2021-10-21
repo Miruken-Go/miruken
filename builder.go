@@ -1,6 +1,9 @@
 package miruken
 
-import "reflect"
+import (
+	"reflect"
+	"sync"
+)
 
 // Builder augments a Handler.
 type Builder interface {
@@ -70,23 +73,6 @@ func AddHandlers(
 ) Handler {
 	if parent == nil {
 		panic("cannot add handlers to a nil parent")
-	}
-
-	var factory HandlerDescriptorFactory
-
-	for _, handler := range handlers {
-		if _, ok := handler.(SuppressDispatch); ok {
-			continue
-		}
-		if factory == nil {
-			if factory = GetHandlerDescriptorFactory(parent); factory == nil {
-				break
-			}
-		}
-		typ := reflect.TypeOf(handler)
-		if _, _, err := factory.RegisterHandlerType(typ); err != nil {
-			panic(err)
-		}
 	}
 
 	hs := normalizeHandlers(handlers)
@@ -169,6 +155,18 @@ func (w *withHandlers) Handle(
 }
 
 func (w *withHandlers) suppressDispatch() {}
+
+// mutableHandlers manages any number of Handlers.
+type mutableHandlers struct {
+	handlers []Handler
+	lock     sync.RWMutex
+}
+
+func (m *mutableHandlers) AddHandlers(handlers ... interface{}) {
+
+}
+
+func (m *mutableHandlers) suppressDispatch() {}
 
 func WithHandlers(handlers ... interface{}) Builder {
 	return BuilderFunc(func (handler Handler) Handler {
