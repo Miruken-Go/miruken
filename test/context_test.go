@@ -77,14 +77,14 @@ func (suite *ContextTestSuite) TestContext() {
 
 	suite.Run("GetRootContext", func () {
 		context := miruken.NewContext()
-		child   := context.CreateChild()
+		child   := context.NewChild()
 		suite.Same(context, context.Root())
 		suite.Same(context, child.Root())
 	})
 
 	suite.Run("GetParenContext", func () {
 		context := miruken.NewContext()
-		child   := context.CreateChild()
+		child   := context.NewChild()
 		suite.Same(context, child.Parent())
 	})
 
@@ -95,8 +95,8 @@ func (suite *ContextTestSuite) TestContext() {
 
 	suite.Run("ChildrenAvailable", func () {
 		context := miruken.NewContext()
-		child1  := context.CreateChild()
-		child2  := context.CreateChild()
+		child1  := context.NewChild()
+		child2  := context.NewChild()
 		suite.True(context.HasChildren())
 		suite.ElementsMatch(context.Children(), []*miruken.Context{child1, child2})
 	})
@@ -109,7 +109,7 @@ func (suite *ContextTestSuite) TestContext() {
 
 	suite.Run("EndChild", func () {
 		context := miruken.NewContext()
-		child   := context.CreateChild()
+		child   := context.NewChild()
 		context.End(nil)
 		suite.Equal(miruken.ContextEnded, child.State())
 	})
@@ -122,8 +122,8 @@ func (suite *ContextTestSuite) TestContext() {
 
 	suite.Run("Unwind", func () {
 		context := miruken.NewContext()
-		child1  := context.CreateChild()
-		child2  := context.CreateChild()
+		child1  := context.NewChild()
+		child2  := context.NewChild()
 		context.Unwind(nil)
 		suite.Equal(miruken.ContextEnded, child1.State())
 		suite.Equal(miruken.ContextEnded, child2.State())
@@ -131,9 +131,9 @@ func (suite *ContextTestSuite) TestContext() {
 
 	suite.Run("UnwindRoot", func () {
 		context    := miruken.NewContext()
-		child1     := context.CreateChild()
-		child2     := context.CreateChild()
-		grandChild := child1.CreateChild()
+		child1     := context.NewChild()
+		child2     := context.NewChild()
+		grandChild := child1.NewChild()
 		root       := child2.UnwindToRoot(nil)
 		suite.Same(context, root)
 		suite.Equal(miruken.ContextActive, context.State())
@@ -155,8 +155,8 @@ func (suite *ContextTestSuite) TestContext() {
 	suite.Run("TraverseAncestorsByDefault", func () {
 		data       := &Observer{}
 		root       := miruken.NewContext()
-		child      := root.CreateChild()
-		grandChild := child.CreateChild()
+		child      := root.NewChild()
+		grandChild := child.NewChild()
 		root.Store(data)
 		var resolve *Observer
 		err := miruken.Resolve(grandChild, &resolve)
@@ -167,7 +167,7 @@ func (suite *ContextTestSuite) TestContext() {
 	suite.Run("TraverseSelf", func () {
 		data       := &Observer{}
 		root       := miruken.NewContext()
-		child      := root.CreateChild()
+		child      := root.NewChild()
 		root.Store(data)
 		var resolve *Observer
 		err := miruken.Resolve(miruken.Build(child, miruken.WithSelf), &resolve)
@@ -181,7 +181,7 @@ func (suite *ContextTestSuite) TestContext() {
 	suite.Run("TraverseRoot", func () {
 		data       := &Observer{}
 		root       := miruken.NewContext()
-		child      := root.CreateChild()
+		child      := root.NewChild()
 		child.Store(data)
 		var resolve *Observer
 		err := miruken.Resolve(miruken.Build(child, miruken.WithRoot), &resolve)
@@ -196,10 +196,10 @@ func (suite *ContextTestSuite) TestContext() {
 	suite.Run("TraverseChildren", func () {
 		data       := &Observer{}
 		root       := miruken.NewContext()
-		root.CreateChild()
-		child2     := root.CreateChild()
-		child3     := root.CreateChild()
-		grandChild := child3.CreateChild()
+		root.NewChild()
+		child2     := root.NewChild()
+		child3     := root.NewChild()
+		grandChild := child3.NewChild()
 		child2.Store(data)
 		var resolve *Observer
 		err := miruken.Resolve(miruken.Build(child2, miruken.WithChild), &resolve)
@@ -216,10 +216,10 @@ func (suite *ContextTestSuite) TestContext() {
 	suite.Run("TraverseSiblings", func () {
 		data       := &Observer{}
 		root       := miruken.NewContext()
-		root.CreateChild()
-		child2     := root.CreateChild()
-		child3     := root.CreateChild()
-		grandChild := child3.CreateChild()
+		root.NewChild()
+		child2     := root.NewChild()
+		child3     := root.NewChild()
+		grandChild := child3.NewChild()
 		child3.Store(data)
 		var resolve *Observer
 		err := miruken.Resolve(miruken.Build(root, miruken.WithSibling), &resolve)
@@ -239,10 +239,10 @@ func (suite *ContextTestSuite) TestContext() {
 	suite.Run("TraverseChildrenOrSelf", func () {
 		data       := &Observer{}
 		root       := miruken.NewContext()
-		child1     := root.CreateChild()
-		root.CreateChild()
-		child3     := root.CreateChild()
-		grandChild := child3.CreateChild()
+		child1     := root.NewChild()
+		root.NewChild()
+		child3     := root.NewChild()
+		grandChild := child3.NewChild()
 		child3.Store(data)
 		var resolve *Observer
 		err := miruken.Resolve(miruken.Build(child1, miruken.WithSelfOrChild), &resolve)
@@ -262,10 +262,10 @@ func (suite *ContextTestSuite) TestContext() {
 	suite.Run("TraverseSiblingsOrSelf", func () {
 		data       := &Observer{}
 		root       := miruken.NewContext()
-		root.CreateChild()
-		child2     := root.CreateChild()
-		child3     := root.CreateChild()
-		grandChild := child3.CreateChild()
+		root.NewChild()
+		child2     := root.NewChild()
+		child3     := root.NewChild()
+		grandChild := child3.NewChild()
 		child3.Store(data)
 		var resolve *Observer
 		err := miruken.Resolve(miruken.Build(root, miruken.WithSelfOrSibling), &resolve)
@@ -285,8 +285,8 @@ func (suite *ContextTestSuite) TestContext() {
 	suite.Run("TraverseAncestors", func () {
 		data       := &Observer{}
 		root       := miruken.NewContext()
-		child      := root.CreateChild()
-		grandChild  := child.CreateChild()
+		child      := root.NewChild()
+		grandChild  := child.NewChild()
 		root.Store(data)
 		var resolve *Observer
 		err := miruken.Resolve(miruken.Build(root, miruken.WithAncestor), &resolve)
@@ -300,8 +300,8 @@ func (suite *ContextTestSuite) TestContext() {
 	suite.Run("TraverseAncestorsOrSelf", func () {
 		data       := &Observer{}
 		root       := miruken.NewContext()
-		child      := root.CreateChild()
-		grandChild  := child.CreateChild()
+		child      := root.NewChild()
+		grandChild  := child.NewChild()
 		root.Store(data)
 		var resolve *Observer
 		err := miruken.Resolve(miruken.Build(root, miruken.WithSelfOrAncestor), &resolve)
@@ -315,10 +315,10 @@ func (suite *ContextTestSuite) TestContext() {
 	suite.Run("TraverseDescendants", func () {
 		data       := &Observer{}
 		root       := miruken.NewContext()
-		root.CreateChild()
-		child2     := root.CreateChild()
-		child3     := root.CreateChild()
-		grandChild := child3.CreateChild()
+		root.NewChild()
+		child2     := root.NewChild()
+		child3     := root.NewChild()
+		grandChild := child3.NewChild()
 		grandChild.Store(data)
 		var resolve *Observer
 		err := miruken.Resolve(miruken.Build(grandChild, miruken.WithDescendant), &resolve)
@@ -338,10 +338,10 @@ func (suite *ContextTestSuite) TestContext() {
 	suite.Run("TraverseDescendantsOrSelf", func () {
 		data       := &Observer{}
 		root       := miruken.NewContext()
-		root.CreateChild()
-		child2     := root.CreateChild()
-		child3     := root.CreateChild()
-		grandChild := child3.CreateChild()
+		root.NewChild()
+		child2     := root.NewChild()
+		child3     := root.NewChild()
+		grandChild := child3.NewChild()
 		grandChild.Store(data)
 		var resolve *Observer
 		err := miruken.Resolve(miruken.Build(child2, miruken.WithSelfOrDescendant), &resolve)
@@ -361,10 +361,10 @@ func (suite *ContextTestSuite) TestContext() {
 	suite.Run("TraverseDescendantsOrSELF", func () {
 		data       := &Observer{}
 		root       := miruken.NewContext()
-		root.CreateChild()
-		child2     := root.CreateChild()
-		child3     := root.CreateChild()
-		child3.CreateChild()
+		root.NewChild()
+		child2     := root.NewChild()
+		child3     := root.NewChild()
+		child3.NewChild()
 		root.Store(data)
 		var resolve *Observer
 		err := miruken.Resolve(miruken.Build(child2, miruken.WithSelfOrDescendant), &resolve)
@@ -378,10 +378,10 @@ func (suite *ContextTestSuite) TestContext() {
 	suite.Run("TraverseAncestorsSIBLINGSorSelf", func () {
 		data       := &Observer{}
 		root       := miruken.NewContext()
-		root.CreateChild()
-		child2     := root.CreateChild()
-		child3     := root.CreateChild()
-		grandChild := child3.CreateChild()
+		root.NewChild()
+		child2     := root.NewChild()
+		child3     := root.NewChild()
+		grandChild := child3.NewChild()
 		child2.Store(data)
 		var resolve *Observer
 		err := miruken.Resolve(miruken.Build(grandChild, miruken.WithSelfSiblingOrAncestor), &resolve)
@@ -395,10 +395,10 @@ func (suite *ContextTestSuite) TestContext() {
 	suite.Run("TraverseANCESTORSSiblingsOrSelf", func () {
 		data       := &Observer{}
 		root       := miruken.NewContext()
-		root.CreateChild()
-		root.CreateChild()
-		child3     := root.CreateChild()
-		grandChild := child3.CreateChild()
+		root.NewChild()
+		root.NewChild()
+		child3     := root.NewChild()
+		grandChild := child3.NewChild()
 		child3.Store(data)
 		var resolve *Observer
 		err := miruken.Resolve(miruken.Build(grandChild, miruken.WithSelfSiblingOrAncestor), &resolve)

@@ -158,12 +158,89 @@ func (w *withHandlers) suppressDispatch() {}
 
 // mutableHandlers manages any number of Handlers.
 type mutableHandlers struct {
+	parent   Handler
 	handlers []Handler
 	lock     sync.RWMutex
 }
 
-func (m *mutableHandlers) AddHandlers(handlers ... interface{}) {
+func (m *mutableHandlers) AddHandlers(
+	handlers ... interface{},
+) *mutableHandlers {
+	if len(handlers) > 0 {
+		m.lock.Lock()
+		defer m.lock.Unlock()
+		hs := normalizeHandlers(handlers)
+		m.handlers = append(m.handlers, hs...)
+	}
+	return m
+}
 
+func (m *mutableHandlers) InsertHandlers(
+	index        int,
+	handlers ... interface{},
+) *mutableHandlers {
+	if index < 0 {
+		panic("index must be >= 0")
+	}
+	if len(handlers) > 0 {
+		m.lock.Lock()
+		defer m.lock.Unlock()
+		hs := normalizeHandlers(handlers)
+		m.handlers = append(hs, m.handlers...)
+	}
+	return m
+}
+
+func (m *mutableHandlers) RemoveHandlers(
+	handlers ... interface{},
+) *mutableHandlers {
+	if len(handlers) > 0 {
+		m.lock.Lock()
+		defer m.lock.Unlock()
+		if len(m.handlers) > 0 {
+			for i := len(m.handlers)-1; i >= 0; i-- {
+				for _, h := range handlers {
+					handler := m.handlers[i]
+					if handler != h {
+						if a, ok := handler.(handlerAdapter); !ok || a.handler != h {
+							continue
+						}
+					}
+					m.handlers = append(m.handlers[:i], m.handlers[i+1:]...)
+					break
+				}
+			}
+		}
+	}
+	return m
+}
+
+func (m *mutableHandlers) Handle(
+	callback interface{},
+	greedy   bool,
+	composer Handler,
+) HandleResult {
+	if callback == nil {
+		return NotHandled
+	}
+	tryInitializeComposer(&composer, m)
+
+	result := NotHandled
+
+	if handlers := m.handlers; len(handlers) > 0 {
+		for _, h := range m.handlers {
+			if result.stop || (result.handled && !greedy) {
+				return result
+			}
+			result = result.Or(h.Handle(callback, greedy, composer))
+		}
+	}
+	if parent := m.parent; parent != nil {
+		return result.OtherwiseIf(greedy, func(HandleResult) HandleResult {
+			return parent.Handle(callback, greedy, composer)
+		})
+	}
+	return result
 }
 
 func (m *mutableHandlers) suppressDispatch() {}

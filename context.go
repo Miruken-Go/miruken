@@ -32,9 +32,9 @@ type Contextual interface {
 // A Context represents the scope at a give point in time.
 // It has a beginning and an end and can handle callbacks as well as
 // notify observers of lifecycle changes.  In addition, it maintains
-// parent-child relationships and thus can form a hierarchy.
+// parent-child relationships and thus can form a graph.
 type Context struct {
-	handler    Handler
+	mutableHandlers
 	parent    *Context
 	state      ContextState
 	children   []Traversing
@@ -71,13 +71,13 @@ func (c *Context) HasChildren() bool {
 	return len(c.children) > 0
 }
 
-func (c *Context) CreateChild() *Context {
+func (c *Context) NewChild() *Context {
 	c.ensureActive()
 	child := &Context{
 		parent: c,
 		state: ContextActive,
 	}
-	child.handler = NewProvider(child)
+	child.AddHandlers(NewProvider(child))
 	child.Observe(ContextEndingObserverFunc(func (ctx *Context, reason interface{}) {
 		c.notify(childCtxEnding, ctx, reason)
 	}))
@@ -92,19 +92,8 @@ func (c *Context) CreateChild() *Context {
 }
 
 func (c *Context) Store(values ... interface{}) *Context {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	c.handler = Build(c.handler, With(values...))
-	return c
-}
-
-func (c *Context) AddHandlers(
-	handlers ... interface{},
-) *Context {
-	if len(handlers) > 0 {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-		c.handler = AddHandlers(c.handler, handlers...)
+	for _, val := range values {
+		c.AddHandlers(NewProvider(val))
 	}
 	return c
 }
@@ -114,16 +103,13 @@ func (c *Context) Handle(
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
-	if handler := c.handler; handler != nil {
-		return handler.Handle(callback, greedy, composer).
-			OtherwiseIf(greedy, func (HandleResult) HandleResult {
-				if parent := c.parent; parent != nil {
-					return parent.Handle(callback, greedy, composer)
-				}
-				return NotHandled
-			})
-	}
-	return NotHandled
+	return c.mutableHandlers.Handle(callback, greedy, composer).
+		OtherwiseIf(greedy, func (HandleResult) HandleResult {
+			if parent := c.parent; parent != nil {
+				return parent.Handle(callback, greedy, composer)
+			}
+			return NotHandled
+		})
 }
 
 func (c *Context) HandleAxis(
@@ -136,17 +122,13 @@ func (c *Context) HandleAxis(
 		composer = &compositionScope{c}
 	}
 	if axis == TraverseSelf {
-		if handler := c.handler; handler != nil {
-			return handler.Handle(callback, greedy, composer)
-		}
+		return c.mutableHandlers.Handle(callback, greedy, composer)
 	}
 	result := NotHandled
 	if err := TraverseAxis(c, axis, TraversalVisitorFunc(
 		func(child Traversing) (bool, error) {
 			if child == c {
-				if handler := c.handler; handler != nil {
-					result = result.Or(handler.Handle(callback, greedy, composer))
-				}
+				result = result.Or(c.mutableHandlers.Handle(callback, greedy, composer))
 			} else if ctx, ok := child.(*Context); ok {
 				result = result.Or(ctx.HandleAxis(TraverseSelf, callback, greedy, composer))
 			}
@@ -323,10 +305,11 @@ func (c *Context) ensureActive() {
 
 func NewContext(builders ... Builder) *Context {
 	context := &Context{
-		state:   ContextActive,
-		handler: NewRootHandler(builders...),
+		state:           ContextActive,
+		mutableHandlers: mutableHandlers{parent: NewRootHandler(builders...)},
 	}
-	return context.AddHandlers(NewProvider(context))
+	context.AddHandlers(NewProvider(context))
+	return context
 }
 
 type ContextualBase struct {
