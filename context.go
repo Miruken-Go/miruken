@@ -324,11 +324,34 @@ func (c *ContextualBase) Context() *Context {
 	return c.ctx
 }
 
-func (c *ContextualBase) SetContext(ctx *Context) {
-
+func (c *ContextualBase) ChangeContext(
+	contextual  Contextual,
+	ctx        *Context,
+) {
+	if contextual == nil {
+		panic("contextual cannot be nil")
+	}
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	oldCtx := c.ctx
+	if ctx == oldCtx {
+		return
+	}
+	newCtx := ctx
+	c.notify(contextual, ctxChanging, oldCtx, &newCtx)
+	if oldCtx != nil {
+		oldCtx.RemoveHandlers(contextual)
+	}
+	c.ctx = newCtx
+	if newCtx != nil {
+		newCtx.InsertHandlers(0, contextual)
+	}
+	c.notify(contextual, ctxChanged, oldCtx, &newCtx)
 }
 
-func (c *ContextualBase) Observe(observer ContextObserver) Disposable {
+func (c *ContextualBase) Observe(
+	observer ContextObserver,
+) Disposable {
 	if observer == nil {
 		return DisposableFunc(func() {})
 	}
@@ -391,21 +414,20 @@ func (c *ContextualBase) removeObserver(
 }
 
 func (c *ContextualBase) notify(
-	obsType   contextualObserverType,
-	oldCtx   *Context,
-	newCtx  **Context,
+	contextual Contextual,
+	obsType    contextualObserverType,
+	oldCtx    *Context,
+	newCtx   **Context,
 ) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
 	if observers, ok := c.observers[obsType]; ok && len(observers) > 0 {
 		switch obsType {
 		case ctxChanging:
 			for _, obs := range observers {
-				obs.(ContextChangingObserver).ContextChanging(c, oldCtx, newCtx)
+				obs.(ContextChangingObserver).ContextChanging(contextual, oldCtx, newCtx)
 			}
 		case ctxChanged:
 			for _, obs := range observers {
-				obs.(ContextChangedObserver).ContextChanged(c, oldCtx, *newCtx)
+				obs.(ContextChangedObserver).ContextChanged(contextual, oldCtx, *newCtx)
 			}
 		}
 	}

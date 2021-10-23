@@ -407,6 +407,42 @@ func (suite *ContextTestSuite) TestContext() {
 	})
 }
 
+type ContextualService struct {
+	miruken.ContextualBase
+}
+
+func (c *ContextualService) SetContext(ctx *miruken.Context) {
+	c.ChangeContext(c, ctx)
+}
+
+func (suite *ContextTestSuite) TestContextual() {
+	suite.Run("ContextInitiallyEmpty", func () {
+		service := ContextualService{}
+		suite.Nil(service.Context())
+	})
+
+	suite.Run("SetContext", func () {
+		service := ContextualService{}
+		root    := miruken.NewContext()
+		service.SetContext(root)
+		suite.Same(root, service.Context())
+	})
+
+	suite.Run("AddsContextualToContext", func () {
+		service := ContextualService{}
+		root    := miruken.NewContext()
+		service.SetContext(root)
+		var services []*ContextualService
+		if err := miruken.ResolveAll(root, &services); err == nil {
+			suite.NotNil(services)
+			suite.Len(services, 1)
+			suite.Same(&service, services[0])
+		} else {
+			suite.Failf("unexpected error", err.Error())
+		}
+	})
+}
+
 func TestContextTestSuite(t *testing.T) {
 	suite.Run(t, new(ContextTestSuite))
 }
