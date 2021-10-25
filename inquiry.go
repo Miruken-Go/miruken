@@ -23,6 +23,10 @@ func (i *Inquiry) Policy() Policy {
 	return ProvidesPolicy()
 }
 
+func (i *Inquiry) Binding() Binding {
+	return i.binding
+}
+
 func (i *Inquiry) Metadata() *BindingMetadata {
 	return &i.metadata
 }

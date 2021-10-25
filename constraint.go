@@ -76,7 +76,7 @@ type BindingScope interface {
 	Metadata() *BindingMetadata
 }
 
-// BindingConstraint encapsulates BindingMetadata assertions.
+// BindingConstraint manages BindingMetadata assertions.
 type BindingConstraint interface {
 	Require(metadata *BindingMetadata)
 	Matches(metadata *BindingMetadata) bool
@@ -187,14 +187,14 @@ func (m *Metadata) Matches(metadata *BindingMetadata) bool {
 // Qualifier matches against a type.
 type Qualifier struct {}
 
-func (q *Qualifier) RequireQualifier(
+func (q Qualifier) RequireQualifier(
 	qualifier  interface{},
 	metadata  *BindingMetadata,
 ) {
 	metadata.Set(reflect.TypeOf(qualifier), nil)
 }
 
-func (q *Qualifier) MatchesQualifier(
+func (q Qualifier) MatchesQualifier(
 	qualifier  interface{},
 	metadata  *BindingMetadata,
 ) bool {
@@ -226,7 +226,7 @@ func (c *ConstraintFilter) Next(
 	return next.Filter()
 }
 
-var constraintFilter = []Filter{&ConstraintFilter{}}
+var _constraintFilter = []Filter{&ConstraintFilter{}}
 
 // ConstraintProvider is a FilterProvider for constraints.
 type ConstraintProvider struct {
@@ -253,7 +253,7 @@ func (c *ConstraintProvider) Filters(
 	callback interface{},
 	composer Handler,
 ) ([]Filter, error) {
-	return constraintFilter, nil
+	return _constraintFilter, nil
 }
 
 // ConstraintBuilder is a fluent builder for BindingMetadata.

@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-// LifestyleProvider is a FilterProvider for lifestyles.
+// LifestyleProvider is a FilterProvider of lifestyles.
 type LifestyleProvider struct {
 	filters []Filter
 }
@@ -30,14 +30,14 @@ func (l *LifestyleProvider) Filters(
 	return l.filters, nil
 }
 
-func (l *LifestyleProvider) SetFilter(lifestyle Filter) {
-	if lifestyle == nil {
-		panic("lifestyle cannot be nil")
+func (l *LifestyleProvider) SetFilters(filters ... Filter) {
+	if len(filters) == 0 {
+		panic("filters cannot be empty")
 	}
 	if l.filters != nil {
 		panic("lifestyle can only be set once")
 	}
-	l.filters = []Filter{lifestyle}
+	l.filters = filters
 }
 
 // Lifestyle provides common lifestyle functionality.
@@ -53,11 +53,11 @@ type Singleton struct {
 }
 
 func (s *Singleton) Init() error {
-	s.SetFilter(&singleton{once: new(sync.Once)})
+	s.SetFilters(&singleton{once: new(sync.Once)})
 	return nil
 }
 
-// singleton is the Filter that captures the instance.
+// singleton is a Filter that caches an instance.
 type singleton struct {
 	Lifestyle
 	instance []interface{}
