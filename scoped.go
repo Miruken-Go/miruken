@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"errors"
 	"reflect"
 	"sync"
 )
@@ -12,8 +13,9 @@ type Scoped struct {
 }
 
 func (s *Scoped) InitWithTag(tag reflect.StructTag) error {
-	_, rooted := tag.Lookup("rooted")
-	s.rooted = rooted
+	if scoped, ok := tag.Lookup("scoped"); ok {
+		s.rooted = scoped == "rooted"
+	}
 	return s.Init()
 }
 
@@ -23,7 +25,7 @@ func (s *Scoped) Init() error {
 }
 
 func (s *Scoped) Constraint() BindingConstraint {
-	return scopedQualifier{}
+	return ScopedQualifier{}
 }
 
 // scoped is a Filter that caches an instance per Context.
@@ -60,6 +62,8 @@ func (s *scoped) Next(
 		return nil, err
 	} else if ctx == nil {
 		return next.Abort()
+	} else if ctx.State() != ContextActive {
+		return nil, errors.New("cannot scope instances to inactive context")
 	} else if rooted {
 		ctx = ctx.Root()
 	}
@@ -137,15 +141,15 @@ func (s *scoped) tryDispose(instance interface{}) {
 	}
 }
 
-// scopedQualifier constrains scoped lifestyle.
-type scopedQualifier struct{
+// ScopedQualifier constrains scoped lifestyle.
+type ScopedQualifier struct{
 	Qualifier
 }
 
-func (s scopedQualifier) Require(metadata *BindingMetadata) {
+func (s ScopedQualifier) Require(metadata *BindingMetadata) {
 	s.RequireQualifier(s, metadata)
 }
 
-func (s scopedQualifier) Matches(metadata *BindingMetadata) bool {
+func (s ScopedQualifier) Matches(metadata *BindingMetadata) bool {
 	return s.MatchesQualifier(s, metadata)
 }

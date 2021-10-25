@@ -103,6 +103,9 @@ func (c *Context) Handle(
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
+	if composer == nil {
+		composer = &compositionScope{c}
+	}
 	return c.mutableHandlers.Handle(callback, greedy, composer).
 		OtherwiseIf(greedy, func (HandleResult) HandleResult {
 			if parent := c.parent; parent != nil {

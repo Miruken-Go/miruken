@@ -61,7 +61,8 @@ type ContextTestSuite struct {
 
 func (suite *ContextTestSuite) SetupTest() {
 	handleTypes := []reflect.Type{
-		reflect.TypeOf((*ContextualService)(nil)),
+		reflect.TypeOf((*ScopedService)(nil)),
+		reflect.TypeOf((*RootedService)(nil)),
 	}
 	suite.HandleTypes = handleTypes
 }
@@ -476,12 +477,13 @@ func (suite *ContextTestSuite) TestContext() {
 	})
 }
 
-type ContextualService struct {
+// ScopedService demonstrates a scoped service.
+type ScopedService struct {
 	miruken.ContextualBase
 	disposed bool
 }
 
-func (c *ContextualService) Constructor(
+func (c *ScopedService) Constructor(
 	_ *struct{
 		miruken.Provides
 		miruken.Scoped
@@ -489,14 +491,37 @@ func (c *ContextualService) Constructor(
 ) {
 }
 
-func (c *ContextualService) SetContext(ctx *miruken.Context) {
+func (c *ScopedService) SetContext(ctx *miruken.Context) {
 	c.ChangeContext(c, ctx)
 }
 
-func (c *ContextualService) Dispose() {
+func (c *ScopedService) Dispose() {
 	c.disposed = true
 }
 
+// RootedService demonstrates a root scoped service.
+type RootedService struct {
+	miruken.ContextualBase
+	disposed bool
+}
+
+func (c *RootedService) Constructor(
+	_ *struct{
+	miruken.Provides
+	miruken.Scoped `scoped:"rooted"`
+},
+) {
+}
+
+func (c *RootedService) SetContext(ctx *miruken.Context) {
+	c.ChangeContext(c, ctx)
+}
+
+func (c *RootedService) Dispose() {
+	c.disposed = true
+}
+
+// ContextualObserver collects Contextual changes.
 type ContextualObserver struct {
 	contextual [2]miruken.Contextual
 	oldCtx     [2]*miruken.Context
@@ -529,22 +554,22 @@ func (o *ContextualObserver) ContextChanged(
 
 func (suite *ContextTestSuite) TestContextual() {
 	suite.Run("ContextInitiallyEmpty", func () {
-		service := ContextualService{}
+		service := ScopedService{}
 		suite.Nil(service.Context())
 	})
 
 	suite.Run("SetContext", func () {
-		service := ContextualService{}
+		service := ScopedService{}
 		root    := miruken.NewContext()
 		service.SetContext(root)
 		suite.Same(root, service.Context())
 	})
 
 	suite.Run("AddsContextualToContext", func () {
-		service := ContextualService{}
+		service := ScopedService{}
 		root    := miruken.NewContext()
 		service.SetContext(root)
-		var services []*ContextualService
+		var services []*ScopedService
 		if err := miruken.ResolveAll(root, &services); err == nil {
 			suite.NotNil(services)
 			suite.Len(services, 1)
@@ -555,10 +580,10 @@ func (suite *ContextTestSuite) TestContextual() {
 	})
 
 	suite.Run("RemovesContextualFromContext", func () {
-		service := ContextualService{}
+		service := ScopedService{}
 		root    := miruken.NewContext()
 		service.SetContext(root)
-		var services []*ContextualService
+		var services []*ScopedService
 		if err := miruken.ResolveAll(root, &services); err == nil {
 			suite.NotNil(services)
 			suite.Len(services, 1)
@@ -577,7 +602,7 @@ func (suite *ContextTestSuite) TestContextual() {
 
 	suite.Run("Observes", func () {
 		suite.Run("SetContext", func() {
-			service := ContextualService{}
+			service := ScopedService{}
 			observer := ContextualObserver{}
 			service.Observe(&observer)
 			root := miruken.NewContext()
@@ -592,7 +617,7 @@ func (suite *ContextTestSuite) TestContextual() {
 		})
 
 		suite.Run("ClearContext", func() {
-			service := ContextualService{}
+			service := ScopedService{}
 			root := miruken.NewContext()
 			service.SetContext(root)
 			observer := ContextualObserver{}
@@ -609,7 +634,7 @@ func (suite *ContextTestSuite) TestContextual() {
 	})
 
 	suite.Run("ReplaceContext", func () {
-		service  := ContextualService{}
+		service  := ScopedService{}
 		root     := miruken.NewContext()
 		child    := root.NewChild()
 		observer := ContextualObserver{useCtx: child}
@@ -627,17 +652,57 @@ func (suite *ContextTestSuite) TestContextual() {
 	suite.Run("Inject", func () {
 		suite.Run("ContextAssigned", func() {
 			root := suite.RootContext()
-			var service *ContextualService
+			var service *ScopedService
 			err := miruken.Resolve(root, &service)
 			suite.Nil(err)
 			suite.NotNil(service)
 			suite.Same(root, service.Context())
 			suite.False(service.disposed)
+			var service2 *ScopedService
+			err = miruken.Resolve(root, &service2)
+			suite.Nil(err)
+			suite.Same(service, service2)
+		})
+
+		suite.Run("SameContextualWithoutQualifier", func() {
+			root  := suite.RootContext()
+			child := root.NewChild()
+			var service *ScopedService
+			var childService *ScopedService
+			err := miruken.Resolve(root, &service)
+			suite.Nil(err)
+			suite.Same(root, service.Context())
+			err = miruken.Resolve(child, &childService)
+			suite.Nil(err)
+			suite.Same(service, childService)
+		})
+
+		suite.Run("ChildContextAssigned", func() {
+			root := suite.RootContext()
+			child := root.NewChild()
+			var service *ScopedService
+			var childService *ScopedService
+			err := miruken.Resolve(root, &service)
+			suite.Nil(err)
+			suite.NotNil(service)
+			err = miruken.Resolve(child, &childService,
+				func(c *miruken.ConstraintBuilder) {
+					c.WithConstraint(miruken.ScopedQualifier{})
+				})
+			suite.Nil(err)
+			suite.Same(child, childService.Context())
+			suite.NotSame(service, childService)
+			suite.False(childService.disposed)
+			child.End(nil)
+			suite.True(childService.disposed)
+			suite.False(service.disposed)
+			root.End(nil)
+			suite.True(service.disposed)
 		})
 
 		suite.Run("DisposedWhenContextEnds", func() {
 			root := suite.RootContext()
-			var service *ContextualService
+			var service *ScopedService
 			err := miruken.Resolve(root, &service)
 			suite.Nil(err)
 			suite.NotNil(service)
@@ -646,6 +711,23 @@ func (suite *ContextTestSuite) TestContextual() {
 			root.End(nil)
 			suite.Nil(service.Context())
 			suite.True(service.disposed)
+			var service2 *ScopedService
+			err = miruken.Resolve(root, &service2)
+			suite.Nil(err)
+			suite.Nil(service2)
+		})
+
+		suite.Run("UnmanagedWhenContextNil", func() {
+			root := suite.RootContext()
+			var service *ScopedService
+			err := miruken.Resolve(root, &service)
+			suite.Nil(err)
+			service.SetContext(nil)
+			suite.True(service.disposed)
+			var service2 *ScopedService
+			err = miruken.Resolve(root, &service2)
+			suite.Nil(err)
+			suite.NotSame(service, service2)
 		})
 	})
 }

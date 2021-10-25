@@ -8,7 +8,7 @@ var HandlerTestTypes = []reflect.Type{
 	reflect.TypeOf((*AbortFilter)(nil)),
 	reflect.TypeOf((*BadHandler)(nil)),
 	reflect.TypeOf((*BarHandler)(nil)),
-	reflect.TypeOf((*ContextualService)(nil)),
+	reflect.TypeOf((*ScopedService)(nil)),
 	reflect.TypeOf((*CounterHandler)(nil)),
 	reflect.TypeOf((*DependencyHandler)(nil)),
 	reflect.TypeOf((*DependencyResolverHandler)(nil)),

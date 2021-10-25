@@ -22,6 +22,9 @@ func (a *axisScope) Handle(
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
+	if composer == nil {
+		composer = &compositionScope{a}
+	}
 	if _, ok := callback.(*Composition); ok {
 		return a.HandlerAxis.Handle(callback, greedy, composer)
 	}

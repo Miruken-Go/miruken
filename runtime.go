@@ -6,7 +6,21 @@ import (
 )
 
 func IsNil(val interface{}) bool {
-	return val == nil || reflect.ValueOf(val).IsNil()
+	if val == nil {
+		return true
+	}
+	v := reflect.ValueOf(val)
+	switch v.Type().Kind() {
+	case reflect.Chan,
+		 reflect.Func,
+		 reflect.Interface,
+		 reflect.Map,
+		 reflect.Ptr,
+		 reflect.Slice:
+			 return v.IsNil()
+	default:
+		return false
+	}
 }
 
 // TargetValue validates the interface contains a
