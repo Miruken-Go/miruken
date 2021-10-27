@@ -9,7 +9,7 @@ import (
 
 // covariantPolicy
 
-type covariantPolicy struct{
+type covariantPolicy struct {
 	FilteredScope
 }
 

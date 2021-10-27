@@ -352,6 +352,12 @@ func (c *ContextualBase) ChangeContext(
 	c.notify(contextual, ctxChanged, oldCtx, &newCtx)
 }
 
+func (c *ContextualBase) EndContext() {
+	if ctx := c.Context(); ctx != nil {
+		ctx.End(nil)
+	}
+}
+
 func (c *ContextualBase) Observe(
 	observer ContextObserver,
 ) Disposable {

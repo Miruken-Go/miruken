@@ -481,9 +481,10 @@ func (suite *ContextTestSuite) TestContext() {
 type ScopedService struct {
 	miruken.ContextualBase
 	disposed bool
+	foo Foo
 }
 
-func (c *ScopedService) Constructor(
+func (s *ScopedService) Constructor(
 	_ *struct{
 		miruken.Provides
 		miruken.Scoped
@@ -491,34 +492,73 @@ func (c *ScopedService) Constructor(
 ) {
 }
 
-func (c *ScopedService) SetContext(ctx *miruken.Context) {
-	c.ChangeContext(c, ctx)
+func (s *ScopedService) SetContext(ctx *miruken.Context) {
+	s.ChangeContext(s, ctx)
 }
 
-func (c *ScopedService) Dispose() {
-	c.disposed = true
+func (s *ScopedService) Count(
+	_ miruken.Handles,
+	counter Counter,
+) {
+	if s.Context() == nil {
+		panic("context not assigned")
+	}
+	counter.Inc()
+}
+
+func (s *ScopedService) ProvideFoo(_ miruken.Provides) *Foo {
+	if s.Context() == nil {
+		panic("context not assigned")
+	}
+	s.foo.Inc()
+	return &s.foo
+}
+
+func (s *ScopedService) Dispose() {
+	s.disposed = true
 }
 
 // RootedService demonstrates a root scoped service.
 type RootedService struct {
 	miruken.ContextualBase
 	disposed bool
+	bar Bar
 }
 
-func (c *RootedService) Constructor(
+func (s *RootedService) Constructor(
 	_ *struct{
-	miruken.Provides
-	miruken.Scoped `scoped:"rooted"`
-},
+	     miruken.Provides
+	     miruken.Scoped `scoped:"rooted"`
+      },
 ) {
 }
 
-func (c *RootedService) SetContext(ctx *miruken.Context) {
-	c.ChangeContext(c, ctx)
+func (s *RootedService) SetContext(ctx *miruken.Context) {
+	s.ChangeContext(s, ctx)
 }
 
-func (c *RootedService) Dispose() {
-	c.disposed = true
+func (s *RootedService) HandleBar(
+	_ miruken.Handles,
+	bar *Bar,
+) {
+	if s.Context() == nil {
+		panic("context not assigned")
+	}
+	bar.Inc()
+	bar.Inc()
+}
+
+func (s *RootedService) ProvideCounter(_ miruken.Provides) Counter {
+	if s.Context() == nil {
+		panic("context not assigned")
+	}
+	s.bar.Inc()
+	s.bar.Inc()
+	return &s.bar
+}
+
+func (s *RootedService) Dispose() {
+	s.disposed = true
 }
 
 // ContextualObserver collects Contextual changes.
@@ -602,7 +642,7 @@ func (suite *ContextTestSuite) TestContextual() {
 
 	suite.Run("Observes", func () {
 		suite.Run("SetContext", func() {
-			service := ScopedService{}
+			service  := ScopedService{}
 			observer := ContextualObserver{}
 			service.Observe(&observer)
 			root := miruken.NewContext()
@@ -618,7 +658,7 @@ func (suite *ContextTestSuite) TestContextual() {
 
 		suite.Run("ClearContext", func() {
 			service := ScopedService{}
-			root := miruken.NewContext()
+			root    := miruken.NewContext()
 			service.SetContext(root)
 			observer := ContextualObserver{}
 			service.Observe(&observer)
@@ -631,25 +671,25 @@ func (suite *ContextTestSuite) TestContextual() {
 			suite.Nil(observer.newCtx[0])
 			suite.Nil(observer.newCtx[1])
 		})
+
+		suite.Run("ReplaceContext", func () {
+			service  := ScopedService{}
+			root     := miruken.NewContext()
+			child    := root.NewChild()
+			observer := ContextualObserver{useCtx: child}
+			service.Observe(&observer)
+			service.SetContext(root)
+			suite.Same(child, service.Context())
+			suite.Same(&service, observer.contextual[0])
+			suite.Same(&service, observer.contextual[1])
+			suite.Nil(observer.oldCtx[0])
+			suite.Nil(observer.oldCtx[1])
+			suite.Same(root, observer.newCtx[0])
+			suite.Same(child, observer.newCtx[1])
+		})
 	})
 
-	suite.Run("ReplaceContext", func () {
-		service  := ScopedService{}
-		root     := miruken.NewContext()
-		child    := root.NewChild()
-		observer := ContextualObserver{useCtx: child}
-		service.Observe(&observer)
-		service.SetContext(root)
-		suite.Same(child, service.Context())
-		suite.Same(&service, observer.contextual[0])
-		suite.Same(&service, observer.contextual[1])
-		suite.Nil(observer.oldCtx[0])
-		suite.Nil(observer.oldCtx[1])
-		suite.Same(root, observer.newCtx[0])
-		suite.Same(child, observer.newCtx[1])
-	})
-
-	suite.Run("Inject", func () {
+	suite.Run("Resolve", func () {
 		suite.Run("ContextAssigned", func() {
 			root := suite.RootContext()
 			var service *ScopedService
@@ -678,7 +718,7 @@ func (suite *ContextTestSuite) TestContextual() {
 		})
 
 		suite.Run("ChildContextAssigned", func() {
-			root := suite.RootContext()
+			root  := suite.RootContext()
 			child := root.NewChild()
 			var service *ScopedService
 			var childService *ScopedService
@@ -728,6 +768,83 @@ func (suite *ContextTestSuite) TestContextual() {
 			err = miruken.Resolve(root, &service2)
 			suite.Nil(err)
 			suite.NotSame(service, service2)
+		})
+
+		suite.Run("RootContextAssigned", func() {
+			root   := suite.RootContext()
+			child1 := root.NewChild()
+			child2 := root.NewChild()
+			var service *RootedService
+			err := miruken.Resolve(child1, &service)
+			suite.Nil(err)
+			suite.NotNil(service)
+			suite.Same(root, service.Context())
+			suite.False(service.disposed)
+			var service2 *RootedService
+			err = miruken.Resolve(child2, &service2)
+			suite.Nil(err)
+			suite.Same(service, service2)
+		})
+
+		suite.Run("FailIfContextChangedNonNil", func() {
+
+		})
+
+		suite.Run("FailIfContextChangedNonNil", func() {
+			defer func() {
+				if r := recover(); r != nil {
+					if reason, ok := r.(string); ok {
+						suite.Equal("managed instances cannot change context", reason)
+					} else {
+						suite.Fail("Expected managed instances cannot change context")
+					}
+				}
+			}()
+			root := suite.RootContext()
+			var service *ScopedService
+			err := miruken.Resolve(root, &service)
+			suite.Nil(err)
+			service.SetContext(root.NewChild())
+		})
+	})
+
+	suite.Run("Infer", func () {
+		suite.Run("Handles", func () {
+			suite.Run("Invariant", func() {
+				root   := suite.RootContext()
+				bar    := new(Bar)
+				result := root.Handle(bar, false, nil)
+				suite.False(result.IsError())
+				suite.Equal(miruken.Handled, result)
+				suite.Equal(2, bar.Count())
+			})
+
+			suite.Run("Contravariant", func() {
+				root   := suite.RootContext()
+				foo    := new(Foo)
+				result := root.Handle(foo, false, nil)
+				suite.False(result.IsError())
+				suite.Equal(miruken.Handled, result)
+				suite.Equal(1, foo.Count())
+			})
+		})
+
+		suite.Run("Provides", func () {
+			suite.Run("Invariant", func() {
+				root := suite.RootContext()
+				var foo *Foo
+				err := miruken.Resolve(root, &foo)
+				suite.Nil(err)
+				suite.Equal(1, foo.Count())
+			})
+
+			suite.Run("Covariant", func() {
+				root := suite.RootContextWith(reflect.TypeOf((*RootedService)(nil)))
+				var counter Counter
+				err := miruken.Resolve(root, &counter)
+				suite.Nil(err)
+				suite.Equal(2, counter.Count())
+			})
 		})
 	})
 }

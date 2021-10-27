@@ -43,7 +43,7 @@ func NewDoctor() *Doctor {
 	return doctor
 }
 
-type Programmer struct{
+type Programmer struct {
 	miruken.Qualifier
 }
 

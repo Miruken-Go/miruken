@@ -9,7 +9,7 @@ import (
 
 // contravariantPolicy
 
-type contravariantPolicy struct{
+type contravariantPolicy struct {
 	FilteredScope
 }
 

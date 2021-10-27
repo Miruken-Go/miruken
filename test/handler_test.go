@@ -310,7 +310,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 		suite.Equal(1, foo.Count())
 	})
 
-	suite.Run("Covariant", func () {
+	suite.Run("Contravariant", func () {
 		handler := miruken.NewRootHandler(
 			miruken.WithHandlerTypes(reflect.TypeOf((*CounterHandler)(nil))),
 			miruken.WithHandlers(new(CounterHandler)))
@@ -652,7 +652,7 @@ func (p *MultiProvider) ProvideBar(_ miruken.Provides) (*Bar, miruken.HandleResu
 }
 
 // SpecificationProvider
-type SpecificationProvider struct{
+type SpecificationProvider struct {
 	foo Foo
 	bar Bar
 }

@@ -142,7 +142,7 @@ func (s *scoped) tryDispose(instance interface{}) {
 }
 
 // ScopedQualifier constrains scoped lifestyle.
-type ScopedQualifier struct{
+type ScopedQualifier struct {
 	Qualifier
 }
 
