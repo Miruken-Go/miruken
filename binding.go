@@ -253,20 +253,20 @@ type bindingBuilder interface {
 		index   int,
 		field   reflect.StructField,
 		binding interface{},
-	) error
+	) (bound bool, err error)
 }
 
 type bindingBuilderFunc func (
 	index   int,
 	field   reflect.StructField,
 	binding interface{},
-) error
+) (bound bool, err error)
 
 func (b bindingBuilderFunc) configure(
 	index   int,
 	field   reflect.StructField,
 	binding interface{},
-) error {
+) (bound bool, err error) {
 	return b(index, field, binding)
 }
 
@@ -276,10 +276,24 @@ func configureBinding(
 	builders []bindingBuilder,
 ) (err error) {
 	for i := 0; i < source.NumField(); i++ {
+		bound := false
 		field := source.Field(i)
 		for _, builder := range builders {
-			if invalid := builder.configure(i, field, binding); invalid != nil {
+			if b, invalid := builder.configure(i, field, binding); invalid != nil {
 				err = multierror.Append(err, invalid)
+				break
+			} else if b {
+				bound = true
+				break
+			}
+		}
+		if !bound {
+			if b, ok := binding.(interface {
+				unrecognizedField(int, reflect.StructField) error
+			}); ok {
+				if invalid := b.unrecognizedField(i, field); invalid != nil {
+					err = multierror.Append(err, invalid)
+				}
 			}
 		}
 	}
@@ -290,9 +304,10 @@ func optionsBindingBuilder(
 	index   int,
 	field   reflect.StructField,
 	binding interface{},
-) (err error) {
+) (bound bool, err error) {
 	typ := field.Type
 	if typ == _strictType {
+		bound = true
 		if b, ok := binding.(interface {
 			setStrict(int, reflect.StructField, bool) error
 		}); ok {
@@ -303,6 +318,7 @@ func optionsBindingBuilder(
 			}
 		}
 	} else if typ == _optionalType {
+		bound = true
 		if b, ok := binding.(interface {
 			setOptional(int, reflect.StructField, bool) error
 		}); ok {
@@ -313,6 +329,7 @@ func optionsBindingBuilder(
 			}
 		}
 	} else if typ == _skipFiltersType {
+		bound = true
 		if b, ok := binding.(interface {
 			setSkipFilters(int, reflect.StructField, bool) error
 		}); ok {
@@ -323,7 +340,7 @@ func optionsBindingBuilder(
 			}
 		}
 	}
-	return err
+	return bound, err
 }
 
 var (

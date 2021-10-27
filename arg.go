@@ -269,8 +269,9 @@ func resolverBindingBuilder(
 	index   int,
 	field   reflect.StructField,
 	binding interface{},
-) (err error) {
+) (bound bool, err error) {
 	if dr := coerceToPtr(field.Type, _depResolverType); dr != nil {
+		bound = true
 		if b, ok := binding.(interface {
 			setResolver(resolver DependencyResolver) error
 		}); ok {
@@ -279,13 +280,13 @@ func resolverBindingBuilder(
 					"binding: new dependency resolver at field %v (%v) failed: %w",
 					field.Name, index, invalid)
 			} else if invalid := b.setResolver(resolver.(DependencyResolver)); invalid != nil {
-				err = multierror.Append(err, fmt.Errorf(
+				err = fmt.Errorf(
 					"binding: dependency resolver %#v at field %v (%v) failed: %w",
-					resolver, field.Name, index, invalid))
+					resolver, field.Name, index, invalid)
 			}
 		}
 	}
-	return err
+	return bound, err
 }
 
 var (

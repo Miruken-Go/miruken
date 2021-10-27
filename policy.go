@@ -176,8 +176,9 @@ func policyBindingBuilder(
 	index   int,
 	field   reflect.StructField,
 	binding interface{},
-) (err error) {
+) (bound bool, err error) {
 	if isPolicy(field.Type) {
+		bound = true
 		if b, ok := binding.(interface {
 			addPolicy(policy Policy) error
 		}); ok {
@@ -194,16 +195,17 @@ func policyBindingBuilder(
 			}
 		}
 	}
-	return err
+	return bound, err
 }
 
 func filterBindingBuilder(
 	index   int,
 	field   reflect.StructField,
 	binding interface{},
-) (err error) {
+) (bound bool, err error) {
 	typ := field.Type
 	if filter := coerceToPtr(typ, _filterType); filter != nil {
+		bound = true
 		if b, ok := binding.(interface {
 			addFilterProvider(provider FilterProvider) error
 		}); ok {
@@ -228,6 +230,7 @@ func filterBindingBuilder(
 			}
 		}
 	} else if fp := coerceToPtr(typ, _filterProviderType); fp != nil {
+		bound = true
 		if b, ok := binding.(interface {
 			addFilterProvider(provider FilterProvider) error
 		}); ok {
@@ -242,16 +245,17 @@ func filterBindingBuilder(
 			}
 		}
 	}
-	return err
+	return bound, err
 }
 
 func constraintBindingBuilder(
 	index   int,
 	field   reflect.StructField,
 	binding interface{},
-) (err error) {
+) (bound bool, err error) {
 	typ := field.Type
 	if ct := coerceToPtr(typ, _constraintType); ct != nil {
+		bound = true
 		if b, ok := binding.(interface {
 			addConstraint(BindingConstraint) error
 		}); ok {
@@ -266,7 +270,7 @@ func constraintBindingBuilder(
 			}
 		}
 	}
-	return err
+	return bound, err
 }
 
 // Standard _policies
