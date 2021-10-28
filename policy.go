@@ -139,6 +139,13 @@ func (s *policySpec) setSkipFilters(
 	return nil
 }
 
+func (s *policySpec) unknownBinding(
+	index int,
+	field reflect.StructField,
+) error {
+	return nil
+}
+
 var policyBuilders = []bindingBuilder{
 	bindingBuilderFunc(policyBindingBuilder),
 	bindingBuilderFunc(optionsBindingBuilder),

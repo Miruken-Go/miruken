@@ -289,9 +289,9 @@ func configureBinding(
 		}
 		if !bound {
 			if b, ok := binding.(interface {
-				unrecognizedField(int, reflect.StructField) error
+				unknownBinding(int, reflect.StructField) error
 			}); ok {
-				if invalid := b.unrecognizedField(i, field); invalid != nil {
+				if invalid := b.unknownBinding(i, field); invalid != nil {
 					err = multierror.Append(err, invalid)
 				}
 			}

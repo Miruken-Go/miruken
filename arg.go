@@ -85,6 +85,13 @@ func (s *dependencySpec) addConstraint(
 	return nil
 }
 
+func (s *dependencySpec) unknownBinding(
+	index int,
+	field reflect.StructField,
+) error {
+	return nil
+}
+
 // DependencyArg is a parameter resolved at runtime.
 type DependencyArg struct {
 	spec *dependencySpec
@@ -137,26 +144,21 @@ func (r *defaultDependencyResolver) Resolve(
 	handler     Handler,
 ) (reflect.Value, error) {
 	optional, strict := false, false
-
 	if spec := dep.spec; spec != nil {
 		optional = spec.flags & bindingOptional == bindingOptional
 		strict   = spec.flags & bindingStrict == bindingStrict
 	}
-
 	var inquiry *Inquiry
 	parent, _ := rawCallback.(*Inquiry)
 	builder := new(InquiryBuilder).WithParent(parent)
-
 	if !strict && typ.Kind() == reflect.Slice {
 		builder.WithKey(typ.Elem()).WithMany()
 	} else {
 		builder.WithKey(typ)
 	}
-
 	if spec := dep.spec; spec != nil {
 		builder.WithConstraints(spec.constraints...)
 	}
-
 	inquiry = builder.NewInquiry()
 	if result, err := inquiry.Resolve(handler); err == nil {
 		var val reflect.Value

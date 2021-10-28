@@ -561,6 +561,17 @@ func (s *RootedService) Dispose() {
 	s.disposed = true
 }
 
+type LifestyleMismatch struct {}
+
+func (l *LifestyleMismatch) Constructor(
+	_ *struct{
+		miruken.Provides
+		miruken.Singleton
+	  },
+	service *ScopedService,
+) {
+}
+
 // ContextualObserver collects Contextual changes.
 type ContextualObserver struct {
 	contextual [2]miruken.Contextual
@@ -845,6 +856,16 @@ func (suite *ContextTestSuite) TestContextual() {
 				suite.Nil(err)
 				suite.Equal(2, counter.Count())
 			})
+		})
+
+		suite.Run("RejectScopedDependencyInSingleton", func() {
+			root := suite.RootContextWith(
+				reflect.TypeOf((*ScopedService)(nil)),
+				reflect.TypeOf((*LifestyleMismatch)(nil)))
+			var mismatch *LifestyleMismatch
+			err := miruken.Resolve(root, &mismatch)
+			suite.Nil(err)
+			suite.Nil(mismatch)
 		})
 	})
 }

@@ -286,54 +286,61 @@ func (f *mutableFactory) newHandlerDescriptor(
 		handlerType: handlerType,
 	}
 	bindings := make(policyBindingsMap)
-	// Add constructors implicitly
-	provides := ProvidesPolicy()
-	policies := []Policy{ provides }
 	var ctorSpec *policySpec
+	var ctorPolicies []Policy
 	var constructor *reflect.Method
-	if method, ok := handlerType.MethodByName("Constructor"); ok {
-		constructor = &method
-		constructorType := constructor.Type
-		if constructorType.NumIn() > 1 {
-			if spec, err := buildPolicySpec(constructorType.In(1)); err == nil {
+	// Add constructor implicitly
+	if ctor, ok := handlerType.MethodByName("Constructor"); ok {
+		constructor = &ctor
+		ctorType   := ctor.Type
+		if ctorType.NumIn() > 1 {
+			if spec, err := buildPolicySpec(ctorType.In(1)); err == nil {
 				if spec != nil {
-					ctorSpec = spec
-					for _, policy := range spec.policies {
-						if policy != provides {
-							policies = append(policies, policy)
-						}
-					}
+					ctorSpec     = spec
+					ctorPolicies = spec.policies
 				}
 			} else {
 				invalid = multierror.Append(invalid, err)
 			}
 		}
 	}
-	for _, policy := range policies {
-		if binder, ok := policy.(constructorBinder); ok {
+	if _, noImplicit := handlerType.MethodByName("NoImplicitProvides"); !noImplicit {
+		addProvides := true
+		for _, ctorPolicy := range ctorPolicies {
+			if _, ok := ctorPolicy.(*Provides); ok {
+				addProvides = false
+				break
+			}
+		}
+		if addProvides {
+			ctorPolicies = append(ctorPolicies, ProvidesPolicy())
+		}
+	}
+	for _, ctorPolicy := range ctorPolicies {
+		if binder, ok := ctorPolicy.(constructorBinder); ok {
 			if ctor, err := binder.newConstructorBinding(
 				handlerType, constructor, ctorSpec); err == nil {
 				if f.visitor != nil {
 					f.visitor.VisitHandlerBinding(descriptor, ctor)
 				}
-				bindings.getBindings(policy).insert(ctor)
+				bindings.getBindings(ctorPolicy).insert(ctor)
 			} else {
 				invalid = multierror.Append(invalid, err)
 			}
 		}
 	}
-	// Add callback types explicitly
+	// Add callback policies explicitly
 	for i := 0; i < handlerType.NumMethod(); i++ {
 		method := handlerType.Method(i)
-		if method.Name == "Constructor" {
+		if method.Name == "Constructor" || method.Name == "NoImplicitProvides" {
 			continue
 		}
 		methodType := method.Type
 		if methodType.NumIn() < 2 {
-			continue // must have a policy/spec
+			continue // must have a ctorPolicy/spec
 		}
 		if spec, err := buildPolicySpec(methodType.In(1)); err == nil {
-			if spec == nil { // not a handler method
+			if spec == nil { // not a handler ctor
 				continue
 			}
 			for _, policy := range spec.policies {

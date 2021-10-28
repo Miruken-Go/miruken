@@ -45,17 +45,8 @@ func (s *scoped) Next(
 	if scp, ok := provider.(*Scoped); ok {
 		rooted = scp.rooted
 	}
-	parent := context.Callback.(*Inquiry).Parent()
-	if parent != nil {
-		if pb := parent.Binding(); pb != nil {
-			for _, filter := range pb.Filters() {
-				if scp, ok := filter.(*Scoped); ok {
-					if !rooted && scp.rooted {
-						return nil, nil
-					}
-				}
-			}
-		}
+	if !s.isCompatibleWithParent(context, rooted) {
+		return nil, nil
 	}
 	var ctx *Context
 	if err := Resolve(context.Composer, &ctx); err != nil {
@@ -133,6 +124,22 @@ func (s *scoped) ContextChanging(
 	}
 	delete(s.cache, oldCtx)
 	s.tryDispose(contextual)
+}
+
+func (s *scoped) isCompatibleWithParent(
+	context  HandleContext,
+	rooted   bool,
+) bool {
+	if parent := context.Callback.(*Inquiry).Parent(); parent != nil {
+		if pb := parent.Binding(); pb != nil {
+			for _, filter := range pb.Filters() {
+				if scoped, ok := filter.(*Scoped); !ok || (!rooted && scoped.rooted) {
+					return false
+				}
+			}
+		}
+	}
+	return true
 }
 
 func (s *scoped) tryDispose(instance interface{}) {

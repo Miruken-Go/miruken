@@ -48,6 +48,8 @@ func (i *Inquiry) CanDispatch(
 		return nil, false
 	}
 	return func(h interface{}, b Binding) func () {
+		i.handler = handler
+		i.binding = binding
 		return func () {
 			i.handler = h
 			i.binding = b
