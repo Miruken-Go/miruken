@@ -447,7 +447,7 @@ func (c *ContextualBase) notify(
 type ctxObserverType uint
 
 const (
-	noCtxObservers = 0
+	noCtxObservers ctxObserverType = 0
 	ctxEnding ctxObserverType = 1 << iota
 	ctxEnded
 	childCtxEnding
@@ -517,7 +517,7 @@ func (f ChildContextEndedObserverFunc) ChildContextEnded(
 type contextualObserverType uint
 
 const (
-	noContextualObservers = 0
+	noContextualObservers contextualObserverType = 0
 	ctxChanging contextualObserverType = 1 << iota
 	ctxChanged
 	allContextualObservers = 1 << iota - 1

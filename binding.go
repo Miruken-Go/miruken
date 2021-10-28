@@ -243,7 +243,7 @@ type bindingFlags uint8
 
 const (
 	bindingNone bindingFlags = 0
-	bindingStrict = 1 << iota
+	bindingStrict bindingFlags = 1 << iota
 	bindingOptional
 	bindingSkipFilters
 )

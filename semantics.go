@@ -4,7 +4,7 @@ type SemanticFlags uint8
 
 const (
 	SemanticNone   SemanticFlags = 0
-	SemanticStrict = 1 << iota
+	SemanticStrict SemanticFlags = 1 << iota
 	SemanticBroadcast
 	SemanticBestEffort
 	SemanticNotify = SemanticBroadcast | SemanticBestEffort
