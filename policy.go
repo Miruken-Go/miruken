@@ -11,9 +11,10 @@ import (
 type Variance uint
 
 const (
-	Covariant Variance = iota
+	Invariant Variance = 0
+	Covariant Variance = 1 << iota
 	Contravariant
-	Invariant
+	Bivariant = Covariant | Contravariant
 )
 
 // Policy defines behaviors for callbacks.
@@ -42,8 +43,7 @@ type PolicyDispatch interface {
 	DispatchPolicy(
 		policy      Policy,
 		callback    interface{},
-		rawCallback interface{},
-		constraint  interface{},
+		rawCallback Callback,
 		greedy      bool,
 		composer    Handler,
 		results     ResultReceiver,
@@ -54,25 +54,20 @@ func DispatchPolicy(
 	policy      Policy,
 	handler     interface{},
 	callback    interface{},
-	rawCallback interface{},
-	constraint  interface{},
+	rawCallback Callback,
 	greedy      bool,
 	composer    Handler,
 	results     ResultReceiver,
 ) HandleResult {
 	if dp, ok := handler.(PolicyDispatch); ok {
 		return dp.DispatchPolicy(
-			policy, callback, rawCallback,
-			constraint, greedy, composer, results)
+			policy, callback, rawCallback, greedy, composer, results)
 	}
 	if factory := GetHandlerDescriptorFactory(composer); factory != nil {
 		handlerType := reflect.TypeOf(handler)
 		if d, err := factory.GetHandlerDescriptor(handlerType); d != nil {
-			if rawCallback == nil {
-				rawCallback = callback
-			}
 			context := HandleContext{callback, rawCallback, composer, results}
-			return d.Dispatch(policy, handler, constraint, greedy, context)
+			return d.Dispatch(policy, handler, greedy, context)
 		} else if err != nil {
 			return NotHandled.WithError(err)
 		}

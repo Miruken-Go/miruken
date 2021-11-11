@@ -183,7 +183,7 @@ func (r *defaultDependencyResolver) Resolve(
 
 type HandleContext struct {
 	Callback    interface{}
-	RawCallback interface{}
+	RawCallback Callback
 	Composer    Handler
 	Results     ResultReceiver
 }

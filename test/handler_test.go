@@ -348,8 +348,8 @@ func (suite *HandlerTestSuite) TestHandles() {
 		handler := miruken.NewRootHandler(
 			miruken.WithHandlerTypes(reflect.TypeOf((*MultiHandler)(nil))),
 			miruken.WithHandlers(multi))
-		foo     := new(Foo)
 
+		foo := new(Foo)
 		for i := 0; i < 4; i++ {
 			result := handler.Handle(foo, false, nil)
 			suite.Equal(miruken.Handled, result)

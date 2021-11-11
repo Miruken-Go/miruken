@@ -88,7 +88,7 @@ func (i *Inquiry) Dispatch(
 		}
 	}
 	count := len(i.results)
-	return DispatchPolicy(i.Policy(), handler, i, i, i.key, greedy, composer, i).
+	return DispatchPolicy(i.Policy(), handler, i, i, greedy, composer, i).
 		OtherwiseHandledIf(len(i.results) > count)
 }
 

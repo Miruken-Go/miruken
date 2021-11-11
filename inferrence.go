@@ -17,8 +17,7 @@ func (h *inferenceHandler) Handle(
 func (h *inferenceHandler) DispatchPolicy(
 	policy      Policy,
 	callback    interface{},
-	rawCallback interface{},
-	constraint  interface{},
+	rawCallback Callback,
 	greedy      bool,
 	composer    Handler,
 	results     ResultReceiver,
@@ -27,7 +26,7 @@ func (h *inferenceHandler) DispatchPolicy(
 		return NotHandled
 	}
 	context := HandleContext{callback, rawCallback, composer, results}
-	return h.descriptor.Dispatch(policy, h, constraint, greedy, context)
+	return h.descriptor.Dispatch(policy, h, greedy, context)
 }
 
 func (h *inferenceHandler) suppressDispatch() {}

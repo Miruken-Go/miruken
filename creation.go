@@ -7,7 +7,7 @@ type Creation struct {
 	typ reflect.Type
 }
 
-func (c *Creation) Type() interface{} {
+func (c *Creation) Key() interface{} {
 	return c.typ
 }
 
@@ -35,7 +35,7 @@ func (c *Creation) Dispatch(
 	composer Handler,
 ) HandleResult {
 	count := len(c.results)
-	return DispatchPolicy(c.Policy(), handler, c, c, c.typ, greedy, composer, c).
+	return DispatchPolicy(c.Policy(), handler, c, c, greedy, composer, c).
 		OtherwiseHandledIf(len(c.results) > count)
 }
 

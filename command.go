@@ -1,5 +1,7 @@
 package miruken
 
+import "reflect"
+
 type Command struct {
 	CallbackBase
 	callback interface{}
@@ -11,6 +13,10 @@ func (c *Command) Callback() interface{} {
 
 func (c *Command) Policy() Policy {
 	return HandlesPolicy()
+}
+
+func (c *Command) Key() interface{} {
+	return reflect.TypeOf(c.callback)
 }
 
 func (c *Command) ReceiveResult(
@@ -57,7 +63,7 @@ func (c *Command) Dispatch(
 	composer Handler,
 ) HandleResult {
 	count := len(c.results)
-	return DispatchPolicy(c.Policy(), handler, c.callback, c, nil, greedy, composer, c).
+	return DispatchPolicy(c.Policy(), handler, c.callback, c, greedy, composer, c).
 		OtherwiseHandledIf(len(c.results) > count)
 }
 

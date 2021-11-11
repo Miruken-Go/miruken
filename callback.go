@@ -7,6 +7,7 @@ import (
 type (
 	// Callback models an action
 	Callback interface {
+		Key() interface{}
 		ResultType() reflect.Type
 		SetResult(result interface{})
 		Result() interface{}

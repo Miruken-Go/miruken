@@ -14,8 +14,8 @@ type Binding interface {
 	Constraint()  interface{}
 
 	Matches(
-		constraint interface{},
-		variance   Variance,
+		key      interface{},
+		variance Variance,
 	) (matched bool)
 
 	Invoke(
@@ -114,23 +114,23 @@ func (b *methodBinding) Constraint() interface{} {
 }
 
 func (b *methodBinding) Matches(
-	constraint interface{},
-	variance   Variance,
+	key      interface{},
+	variance Variance,
 ) (matched bool) {
 	bc := b.Constraint()
-	if bc == constraint {
+	if bc == key {
 		return true
 	} else if b.Strict() {
 		return false
 	}
-	switch ct := constraint.(type) {
+	switch kt := key.(type) {
 	case reflect.Type:
 		if bt, ok := bc.(reflect.Type); ok {
 			switch variance {
 			case Covariant:
-				return bt == _interfaceType || bt.AssignableTo(ct)
+				return bt == _interfaceType || bt.AssignableTo(kt)
 			case Contravariant:
-				return ct.AssignableTo(bt)
+				return kt.AssignableTo(bt)
 			}
 		}
 	}
@@ -167,17 +167,17 @@ func (b *constructorBinding) Constraint() interface{} {
 }
 
 func (b *constructorBinding) Matches(
-	constraint interface{},
-	variance   Variance,
+	key      interface{},
+	variance Variance,
 ) (matched bool) {
 	if variance == Contravariant {
 		return false
 	}
-	if constraint == b.handlerType {
+	if key == b.handlerType {
 		return true
 	}
-	if ct, ok := constraint.(reflect.Type); ok {
-		return b.handlerType.AssignableTo(ct)
+	if kt, ok := key.(reflect.Type); ok {
+		return b.handlerType.AssignableTo(kt)
 	}
 	return false
 }

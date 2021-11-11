@@ -58,12 +58,12 @@ func (p *policyBindings) insert(binding Binding) {
 }
 
 func (p *policyBindings) reduce(
-	constraint interface{},
-	reduce     BindingReducer,
+	key    interface{},
+	reduce BindingReducer,
 ) (result HandleResult) {
 	done := false
 	result = NotHandled
-	if typ, ok := constraint.(reflect.Type); ok {
+	if typ, ok := key.(reflect.Type); ok {
 		elem := p.index[typ]
 		if elem == nil {
 			elem = p.typed.Front()
@@ -73,7 +73,7 @@ func (p *policyBindings) reduce(
 			elem = elem.Next()
 		}
 	} else if p.invar != nil {
-		if bs := p.invar[constraint]; bs != nil {
+		if bs := p.invar[key]; bs != nil {
 			for _, b := range bs {
 				result, done = reduce(b, result)
 				if done { break }
@@ -115,31 +115,26 @@ type HandlerDescriptor struct {
 }
 
 func (d *HandlerDescriptor) Dispatch(
-	policy     Policy,
-	handler    interface{},
-	constraint interface{},
-	greedy     bool,
-	context    HandleContext,
+	policy   Policy,
+	handler  interface{},
+	greedy   bool,
+	context  HandleContext,
 ) (result HandleResult) {
 	if pb, found := d.bindings[policy]; found {
 		callback    := context.Callback
 		rawCallback := context.RawCallback
 		composer    := context.Composer
 		results     := context.Results
-		if constraint == nil {
-			switch typ := callback.(type) {
-			case reflect.Type: constraint = typ
-			default: constraint = reflect.TypeOf(callback)
-			}
-		}
-		return pb.reduce(constraint, func (
+		variance    := policy.Variance()
+		key         := rawCallback.Key()
+		return pb.reduce(key, func (
 			binding Binding,
 			result  HandleResult,
 		) (HandleResult, bool) {
 			if result.stop || (result.handled && !greedy) {
 				return result, true
 			}
-			if binding.Matches(constraint, policy.Variance()) {
+			if binding.Matches(key, variance) {
 				if guard, ok := rawCallback.(CallbackGuard); ok {
 					reset, approve := guard.CanDispatch(handler, binding)
 					defer func() {
