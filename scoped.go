@@ -49,7 +49,7 @@ func (s *scoped) Next(
 		return nil, nil
 	}
 	var ctx *Context
-	if err := Resolve(context.Composer, &ctx); err != nil {
+	if err := Resolve(context.Composer(), &ctx); err != nil {
 		return nil, err
 	} else if ctx == nil {
 		return next.Abort()
@@ -130,7 +130,7 @@ func (s *scoped) isCompatibleWithParent(
 	context  HandleContext,
 	rooted   bool,
 ) bool {
-	if parent := context.Callback.(*Inquiry).Parent(); parent != nil {
+	if parent := context.Callback().(*Inquiry).Parent(); parent != nil {
 		if pb := parent.Binding(); pb != nil {
 			for _, filter := range pb.Filters() {
 				if scoped, ok := filter.(*Scoped); !ok || (!rooted && scoped.rooted) {

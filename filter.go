@@ -324,8 +324,8 @@ func pipeline(
 	filters  []providedFilter,
 	complete CompletePipelineFunc,
 ) (results []interface{}, err error) {
-	callback := context.Callback
-	composer := context.Composer
+	callback := context.Callback()
+	composer := context.Composer()
 	index, length := 0, len(filters)
 
 	var next Next

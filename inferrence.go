@@ -56,10 +56,10 @@ func (b *bindingIntercept) Invoke(
 	if ctor, ok := b.Binding.(*constructorBinding); ok {
 		return ctor.Invoke(context)
 	}
-	builder := new(ResolvingBuilder).WithCallback(context.RawCallback)
+	builder := new(ResolvingBuilder).WithCallback(context.RawCallback())
 	builder.WithKey(b.handlerType)
 	resolving := builder.NewResolving()
-	if result := context.Composer.Handle(resolving, false, nil); result.IsError() {
+	if result := context.Composer().Handle(resolving, false, nil); result.IsError() {
 		return nil, result.Error()
 	} else if !result.handled {
 		return []interface{}{result}, nil

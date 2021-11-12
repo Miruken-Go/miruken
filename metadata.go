@@ -121,12 +121,12 @@ func (d *HandlerDescriptor) Dispatch(
 	context  HandleContext,
 ) (result HandleResult) {
 	if pb, found := d.bindings[policy]; found {
-		callback    := context.Callback
-		rawCallback := context.RawCallback
-		composer    := context.Composer
-		results     := context.Results
+		callback    := context.Callback()
+		rawCallback := context.RawCallback()
+		composer    := context.Composer()
+		results     := context.Results()
 		variance    := policy.Variance()
-		key         := rawCallback.Key()
+		key         := policy.Key(rawCallback)
 		return pb.reduce(key, func (
 			binding Binding,
 			result  HandleResult,

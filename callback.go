@@ -5,15 +5,14 @@ import (
 )
 
 type (
-	// Callback models an action
+	// Callback models an action.
 	Callback interface {
-		Key() interface{}
 		ResultType() reflect.Type
 		SetResult(result interface{})
 		Result() interface{}
 	}
 
-	// CallbackBase is abstract Callback implementation
+	// CallbackBase is abstract Callback implementation.
 	CallbackBase struct {
 		many    bool
 		results []interface{}
@@ -92,10 +91,9 @@ func (b *CallbackBuilder) Callback() CallbackBase {
 	return CallbackBase{many: b.many, accept: b.accept}
 }
 
-// CallbackDispatcher allows customized Callback dispatch
+// CallbackDispatcher allows customized Callback dispatch.
 type CallbackDispatcher interface {
 	Policy() Policy
-
  	Dispatch(
 		handler  interface{},
 		greedy   bool,
@@ -103,12 +101,12 @@ type CallbackDispatcher interface {
 	) HandleResult
 }
 
-// SuppressDispatch marks a type that should not participate in dispatching
+// SuppressDispatch marks a type that should not perform dispatching.
 type SuppressDispatch interface {
 	suppressDispatch()
 }
 
-// CallbackGuard prevents circular actions
+// CallbackGuard prevents circular actions.
 type CallbackGuard interface {
 	CanDispatch(
 		handler interface{},
@@ -116,7 +114,7 @@ type CallbackGuard interface {
 	) (reset func (), approved bool)
 }
 
-// ResultReceiver defines acceptance criteria of results
+// ResultReceiver defines acceptance criteria of results.
 type ResultReceiver interface {
 	ReceiveResult(
 		results  interface{},

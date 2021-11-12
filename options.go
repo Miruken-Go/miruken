@@ -159,8 +159,8 @@ func (o FromOptions) Validate(
 
 func (o FromOptions) Resolve(
 	typ         reflect.Type,
-	rawCallback interface{},
-	dep DependencyArg,
+	rawCallback Callback,
+	dep         DependencyArg,
 	handler     Handler,
 ) (options reflect.Value, err error) {
 	options = reflect.New(typ)

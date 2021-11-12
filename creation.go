@@ -1,13 +1,17 @@
 package miruken
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
+// Creation creates instances Covariantly.
 type Creation struct {
 	CallbackBase
 	typ reflect.Type
 }
 
-func (c *Creation) Key() interface{} {
+func (c *Creation) Type() interface{} {
 	return c.typ
 }
 
@@ -88,3 +92,28 @@ func CreateAll(handler Handler, target interface{}) error {
 	create.CopyResult(tv)
 	return nil
 }
+
+
+// Creates policy for creating instances covariantly.
+type Creates struct {
+	covariantPolicy
+}
+
+func (c *Creates) Key(callback Callback) interface{} {
+	if cr, ok := callback.(*Creation); ok {
+		return cr.Type()
+	}
+	panic(fmt.Sprintf("Unrecognized Creates callback %#v", callback))
+}
+
+func (c *Creates) newConstructorBinding(
+	handlerType  reflect.Type,
+	constructor *reflect.Method,
+	spec        *policySpec,
+) (binding Binding, err error) {
+	return newConstructorBinding(handlerType, constructor, spec, spec != nil)
+}
+
+func CreatesPolicy() Policy { return _creates }
+
+var _creates = RegisterPolicy(new(Creates))

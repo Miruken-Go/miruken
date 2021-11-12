@@ -216,7 +216,7 @@ func (c Configuration) Validate(
 
 func (c Configuration) Resolve(
 	typ         reflect.Type,
-	rawCallback interface{},
+	rawCallback miruken.Callback,
 	dep         miruken.DependencyArg,
 	handler     miruken.Handler,
 ) (reflect.Value, error) {

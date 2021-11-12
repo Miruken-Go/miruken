@@ -81,7 +81,7 @@ func (n NullFilter) Next(
 	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  ([]interface{}, error) {
-	if captured := extractCaptured(context.Callback); captured != nil {
+	if captured := extractCaptured(context.Callback()); captured != nil {
 		captured.AddFilters(n)
 	}
 	return next.Filter()
@@ -108,7 +108,7 @@ func (l *LogFilter) DynNext(
 	provider miruken.FilterProvider,
 	logging Logging,
 )  ([]interface{}, error) {
-	captured := extractCaptured(context.Callback)
+	captured := extractCaptured(context.Callback())
 	logging.Log(
 		fmt.Sprintf("Log callback %#v", captured))
 	if captured != nil {
@@ -129,7 +129,7 @@ func (e *ExceptionFilter) Next(
 	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  ([]interface{}, error) {
-	captured := extractCaptured(context.Callback)
+	captured := extractCaptured(context.Callback())
 	if captured != nil {
 		captured.AddFilters(e)
 	}
@@ -154,7 +154,7 @@ func (a *AbortFilter) Next(
 	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  ([]interface{}, error) {
-	if captured := extractCaptured(context.Callback);
+	if captured := extractCaptured(context.Callback());
 		captured == nil || captured.Handled() > 99 {
 		return next.Abort()
 	}
@@ -217,7 +217,7 @@ func (f FilteringHandler) Next(
 	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  ([]interface{}, error) {
-	if bar, ok := context.Callback.(*BarC); ok {
+	if bar, ok := context.Callback().(*BarC); ok {
 		bar.AddFilters(f)
 		bar.IncHandled(1)
 	}

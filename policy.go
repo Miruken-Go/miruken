@@ -22,9 +22,8 @@ type Policy interface {
 	OrderBinding
 	Filtered
 	Variance() Variance
-	AcceptResults(
-		results []interface{},
-	) (result interface{}, accepted HandleResult)
+	Key(callback Callback) interface{}
+	AcceptResults(results []interface{}) (interface{}, HandleResult)
 }
 
 func RegisterPolicy(policy Policy) Policy {
@@ -275,8 +274,6 @@ func constraintBindingBuilder(
 	return bound, err
 }
 
-// Standard _policies
-
 var (
 	_policies           sync.Map
 	_filterTag          = "filter"
@@ -289,49 +286,4 @@ var (
 	_constraintType     = reflect.TypeOf((*BindingConstraint)(nil)).Elem()
 	_handleResType      = reflect.TypeOf((*HandleResult)(nil)).Elem()
 	_errorType          = reflect.TypeOf((*error)(nil)).Elem()
-	_handles            = RegisterPolicy(new(Handles))
-	_provides           = RegisterPolicy(new(Provides))
-	_creates            = RegisterPolicy(new(Creates))
 )
-
-// Handles policy for handling callbacks contravariantly.
-type Handles struct {
-	contravariantPolicy
-}
-func HandlesPolicy() Policy { return _handles }
-
-// Provides policy for providing instances covariantly.
-type Provides struct {
-	covariantPolicy
-}
-func (p *Provides) newConstructorBinding(
-	handlerType  reflect.Type,
-	constructor *reflect.Method,
-	spec        *policySpec,
-) (binding Binding, err error) {
-	explicitSpec := spec != nil
-	if !explicitSpec {
-		single := new(Singleton)
-		if err = single.Init(); err != nil {
-			return nil, err
-		}
-		spec = &policySpec{
-			filters: []FilterProvider{single},
-		}
-	}
-	return newConstructorBinding(handlerType, constructor, spec, explicitSpec)
-}
-func ProvidesPolicy() Policy { return _provides }
-
-// Creates policy for creating instances covariantly.
-type Creates struct {
-	covariantPolicy
-}
-func (p *Creates) newConstructorBinding(
-	handlerType  reflect.Type,
-	constructor *reflect.Method,
-	spec        *policySpec,
-) (binding Binding, err error) {
-	return newConstructorBinding(handlerType, constructor, spec, spec != nil)
-}
-func CreatesPolicy() Policy { return _creates }

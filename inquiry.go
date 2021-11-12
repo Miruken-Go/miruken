@@ -1,7 +1,11 @@
 package miruken
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
+// Inquiry provides results Covariantly.
 type Inquiry struct {
 	CallbackBase
 	key      interface{}
@@ -224,3 +228,37 @@ func ResolveAll(
 	inquiry.CopyResult(tv)
 	return nil
 }
+
+// Provides policy for providing results covariantly.
+type Provides struct {
+	covariantPolicy
+}
+
+func (p *Provides) Key(callback Callback) interface{} {
+	if i, ok := callback.(*Inquiry); ok {
+		return i.Key()
+	}
+	panic(fmt.Sprintf("Unrecognized Provides callback %#v", callback))
+}
+
+func (p *Provides) newConstructorBinding(
+	handlerType  reflect.Type,
+	constructor *reflect.Method,
+	spec        *policySpec,
+) (binding Binding, err error) {
+	explicitSpec := spec != nil
+	if !explicitSpec {
+		single := new(Singleton)
+		if err = single.Init(); err != nil {
+			return nil, err
+		}
+		spec = &policySpec{
+			filters: []FilterProvider{single},
+		}
+	}
+	return newConstructorBinding(handlerType, constructor, spec, explicitSpec)
+}
+
+func ProvidesPolicy() Policy { return _provides }
+
+var _provides = RegisterPolicy(new(Provides))

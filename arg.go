@@ -31,10 +31,10 @@ func (a callbackArg) resolve(
 	typ     reflect.Type,
 	context HandleContext,
 ) (reflect.Value, error) {
-	if v := reflect.ValueOf(context.Callback); v.Type().AssignableTo(typ) {
+	if v := reflect.ValueOf(context.Callback()); v.Type().AssignableTo(typ) {
 		return v, nil
 	}
-	if v := reflect.ValueOf(context.RawCallback); v.Type().AssignableTo(typ) {
+	if v := reflect.ValueOf(context.RawCallback()); v.Type().AssignableTo(typ) {
 		return v, nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("arg: unable to resolve callback: %v", typ)
@@ -101,14 +101,14 @@ func (d DependencyArg) resolve(
 	typ     reflect.Type,
 	context HandleContext,
 ) (reflect.Value, error) {
-	composer := context.Composer
+	composer := context.Composer()
 	if typ == _handlerType {
 		return reflect.ValueOf(composer), nil
 	}
 	if typ == _handleCtxType {
 		return reflect.ValueOf(context), nil
 	}
-	rawCallback := context.RawCallback
+	rawCallback := context.RawCallback()
 	if rawCallback != nil {
 		if rawType := reflect.TypeOf(rawCallback); rawType.AssignableTo(typ) {
 			return reflect.ValueOf(rawCallback), nil
@@ -128,7 +128,7 @@ func (d DependencyArg) resolve(
 type DependencyResolver interface {
 	Resolve(
 		typ         reflect.Type,
-		rawCallback interface{},
+		rawCallback Callback,
 		dep         DependencyArg,
 		handler     Handler,
 	) (reflect.Value, error)
@@ -139,7 +139,7 @@ type defaultDependencyResolver struct{}
 
 func (r *defaultDependencyResolver) Resolve(
 	typ         reflect.Type,
-	rawCallback interface{},
+	rawCallback Callback,
 	dep         DependencyArg,
 	handler     Handler,
 ) (reflect.Value, error) {
@@ -182,10 +182,26 @@ func (r *defaultDependencyResolver) Resolve(
 }
 
 type HandleContext struct {
-	Callback    interface{}
-	RawCallback Callback
-	Composer    Handler
-	Results     ResultReceiver
+	callback    interface{}
+	rawCallback Callback
+	composer    Handler
+	results     ResultReceiver
+}
+
+func (h HandleContext) Callback() interface{} {
+	return h.callback
+}
+
+func (h HandleContext) RawCallback() Callback {
+	return h.rawCallback
+}
+
+func (h HandleContext) Composer() Handler {
+	return h.composer
+}
+
+func (h HandleContext) Results() ResultReceiver {
+	return h.results
 }
 
 // Dependency typed
