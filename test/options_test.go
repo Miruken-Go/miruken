@@ -46,7 +46,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 			Url:     "https://playsoccer.com",
 			Timeout: 30,
 			Headers: []Header{
-				{"Content-Type", "application/json"},
+				{"Content-Key", "application/json"},
 				{"Content-Encoding", "compress"},
 			},
 		}))
@@ -55,7 +55,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 		suite.Equal("https://playsoccer.com", options.Url)
 		suite.Equal(30, options.Timeout)
 		suite.ElementsMatch([]Header{
-			{"Content-Type", "application/json"},
+			{"Content-Key", "application/json"},
 			{"Content-Encoding", "compress"}}, options.Headers)
 	})
 
@@ -128,7 +128,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 			miruken.WithOptions(ServerOptions{
 				Url:"https://netflix.com",
 				Headers: []Header{
-					{"Content-Type", "application/json"},
+					{"Content-Key", "application/json"},
 					{"Authorization", "Bearer j23j2eh323"},
 				},
 			}),
@@ -143,7 +143,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 		suite.Equal("https://netflix.com", options.Url)
 		suite.Equal(100, options.Timeout)
 		suite.ElementsMatch([]Header{
-			{"Content-Type", "application/json"},
+			{"Content-Key", "application/json"},
 			{"Authorization", "Bearer j23j2eh323"},
 			{"Content-Encoding", "compress"}}, options.Headers)
 	})

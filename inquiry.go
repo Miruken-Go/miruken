@@ -1,7 +1,6 @@
 package miruken
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -232,13 +231,6 @@ func ResolveAll(
 // Provides policy for providing results covariantly.
 type Provides struct {
 	covariantPolicy
-}
-
-func (p *Provides) Key(callback Callback) interface{} {
-	if i, ok := callback.(*Inquiry); ok {
-		return i.Key()
-	}
-	panic(fmt.Sprintf("Unrecognized Provides callback %#v", callback))
 }
 
 func (p *Provides) newConstructorBinding(

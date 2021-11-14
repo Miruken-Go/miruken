@@ -23,8 +23,8 @@ type (
 )
 
 func (p *policyBindings) insert(binding Binding) {
-	constraint := binding.Constraint()
-	if typ, ok := constraint.(reflect.Type); ok {
+	key := binding.Key()
+	if typ, ok := key.(reflect.Type); ok {
 		if typ == _interfaceType {
 			p.typed.PushBack(binding)
 			return
@@ -49,10 +49,10 @@ func (p *policyBindings) insert(binding Binding) {
 	} else {
 		if p.invar == nil {
 			p.invar = make(map[interface{}][]Binding)
-			p.invar[constraint] = []Binding{binding}
+			p.invar[key] = []Binding{binding}
 		} else {
-			bindings := append(p.invar[constraint], binding)
-			p.invar[constraint] = bindings
+			bindings := append(p.invar[key], binding)
+			p.invar[key] = bindings
 		}
 	}
 }
@@ -126,7 +126,7 @@ func (d *HandlerDescriptor) Dispatch(
 		composer    := context.Composer()
 		results     := context.Results()
 		variance    := policy.Variance()
-		key         := policy.Key(rawCallback)
+		key         := rawCallback.Key()
 		return pb.reduce(key, func (
 			binding Binding,
 			result  HandleResult,

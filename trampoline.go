@@ -31,7 +31,7 @@ func (t *Trampoline) SetResult(result interface{}) {
 }
 
 func (t *Trampoline) Policy() Policy {
-	if cb, ok := t.callback.(CallbackDispatcher); ok {
+	if cb, ok := t.callback.(Callback); ok {
 		return cb.Policy()
 	}
 	return nil

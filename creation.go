@@ -11,12 +11,12 @@ type Creation struct {
 	typ reflect.Type
 }
 
-func (c *Creation) Type() interface{} {
-	return c.typ
-}
-
 func (c *Creation) Policy() Policy {
 	return CreatesPolicy()
+}
+
+func (c *Creation) Key() interface{} {
+	return c.typ
 }
 
 func (c *Creation) ReceiveResult(
@@ -101,7 +101,7 @@ type Creates struct {
 
 func (c *Creates) Key(callback Callback) interface{} {
 	if cr, ok := callback.(*Creation); ok {
-		return cr.Type()
+		return cr.Key()
 	}
 	panic(fmt.Sprintf("Unrecognized Creates callback %#v", callback))
 }

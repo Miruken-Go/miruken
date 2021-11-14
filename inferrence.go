@@ -83,7 +83,7 @@ func newInferenceHandler(
 				pb := bindings.getBindings(policy)
 				// Us bs.index vs.typed since inference ONLY needs a
 				// single binding to infer the handler type for a
-				// specific constraint.
+				// specific key.
 				for _, elem := range bs.index {
 					binding := elem.Value.(Binding)
 					_, ctorBinding := binding.(*constructorBinding)

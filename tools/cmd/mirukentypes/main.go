@@ -124,7 +124,7 @@ func parseDir(
         _, _ = fmt.Fprintln(&buf, "")
 
         // Types
-        _, _ = fmt.Fprintf(&buf, "var %s = []reflect.Type{\n", varName)
+        _, _ = fmt.Fprintf(&buf, "var %s = []reflect.Key{\n", varName)
         printTo(&buf, pkg, ast.Typ, "\treflect.TypeOf((*%s)(nil)),\n", suffixes)
         _, _ = fmt.Fprintln(&buf, "}")
         _, _ = fmt.Fprintln(&buf, "")

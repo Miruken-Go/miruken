@@ -22,7 +22,6 @@ type Policy interface {
 	OrderBinding
 	Filtered
 	Variance() Variance
-	Key(callback Callback) interface{}
 	AcceptResults(results []interface{}) (interface{}, HandleResult)
 }
 
@@ -90,7 +89,7 @@ type policySpec struct {
 	policies    []Policy
 	flags       bindingFlags
 	filters     []FilterProvider
-	constraint  interface{}
+	key         interface{}
 }
 
 func (s *policySpec) addPolicy(
@@ -262,11 +261,11 @@ func constraintBindingBuilder(
 		}); ok {
 			if constraint, invalid := newWithTag(ct, field.Tag); invalid != nil {
 				err = fmt.Errorf(
-					"binding: new constraint at index %v failed: %w",
+					"binding: new key at index %v failed: %w",
 					index, invalid)
 			} else if invalid := b.addConstraint(constraint.(BindingConstraint)); invalid != nil {
 				err = fmt.Errorf(
-					"binding: constraint %v at index %v failed: %w",
+					"binding: key %v at index %v failed: %w",
 					constraint, index, invalid)
 			}
 		}

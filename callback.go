@@ -7,9 +7,11 @@ import (
 type (
 	// Callback models an action.
 	Callback interface {
+		Policy() Policy
+		Key() interface{}
 		ResultType() reflect.Type
-		SetResult(result interface{})
 		Result() interface{}
+		SetResult(result interface{})
 	}
 
 	// CallbackBase is abstract Callback implementation.
@@ -93,7 +95,6 @@ func (b *CallbackBuilder) Callback() CallbackBase {
 
 // CallbackDispatcher allows customized Callback dispatch.
 type CallbackDispatcher interface {
-	Policy() Policy
  	Dispatch(
 		handler  interface{},
 		greedy   bool,

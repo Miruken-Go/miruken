@@ -1,7 +1,6 @@
 package miruken
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -17,6 +16,10 @@ func (c *Command) Callback() interface{} {
 
 func (c *Command) Policy() Policy {
 	return HandlesPolicy()
+}
+
+func (c *Command) Key() interface{} {
+	return reflect.TypeOf(c.callback)
 }
 
 func (c *Command) ReceiveResult(
@@ -123,13 +126,6 @@ func InvokeAll(handler Handler, callback interface{}, target interface{}) error 
 // Handles policy for handling callbacks contravariantly.
 type Handles struct {
 	contravariantPolicy
-}
-
-func (h *Handles) Key(callback Callback) interface{} {
-	if cmd, ok := callback.(*Command); ok {
-		return reflect.TypeOf(cmd.Callback())
-	}
-	panic(fmt.Sprintf("Unrecognized Handles callback %#v", callback))
 }
 
 func HandlesPolicy() Policy { return _handles }

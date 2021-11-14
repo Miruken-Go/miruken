@@ -53,10 +53,10 @@ func (p *contravariantPolicy) Less(
 	if otherBinding == nil {
 		panic("otherBinding cannot be be nil")
 	}
-	constraint := binding.Constraint()
-	if otherBinding.Matches(constraint, Invariant) {
+	key := binding.Key()
+	if otherBinding.Matches(key, Invariant) {
 		return false
-	} else if otherBinding.Matches(constraint, Contravariant) {
+	} else if otherBinding.Matches(key, Contravariant) {
 		return true
 	}
 	return false
@@ -70,12 +70,12 @@ func (p *contravariantPolicy) newMethodBinding(
 	numArgs    := methodType.NumIn() - 1  // skip receiver
 	args       := make([]arg, numArgs)
 	args[0]     = zeroArg{}  // policy/binding placeholder
-	constraint := spec.constraint
+	key        := spec.key
 
 	// Callback argument must be present
 	if len(args) > 1 {
-		if constraint == nil {
-			constraint = methodType.In(2)
+		if key == nil {
+			key = methodType.In(2)
 		}
 		args[1] = callbackArg{}
 	} else {
@@ -109,7 +109,7 @@ func (p *contravariantPolicy) newMethodBinding(
 	return &methodBinding{
 		methodInvoke{method, args},
 		FilteredScope{spec.filters},
-		constraint,
+		key,
 		spec.flags,
 	}, nil
 }

@@ -96,7 +96,7 @@ func (n *Named) InitWithTag(tag reflect.StructTag) error {
 		n.name = name
 		return nil
 	}
-	return errors.New("the Named constraint requires a non-empty name:[name] tag")
+	return errors.New("the Named key requires a non-empty name:[name] tag")
 }
 
 func (n *Named) Require(metadata *BindingMetadata) {
@@ -271,7 +271,7 @@ func (b *ConstraintBuilder) WithConstraint(
 	constraint BindingConstraint,
 ) *ConstraintBuilder {
 	if IsNil(constraint) {
-		panic("constraint cannot be nil")
+		panic("key cannot be nil")
 	}
 	constraint.Require(b.Metadata())
 	return b

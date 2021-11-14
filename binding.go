@@ -6,12 +6,12 @@ import (
 	"reflect"
 )
 
-// Binding is the abstraction for constraint handling.
+// Binding is the abstraction for key handling.
 type Binding interface {
 	Filtered
 	Strict()      bool
 	SkipFilters() bool
-	Constraint()  interface{}
+	Key()  interface{}
 
 	Matches(
 		key      interface{},
@@ -93,12 +93,12 @@ func (m methodInvoke) resolveArgs(
 	return resolved, nil
 }
 
-// methodBinding models a `constraint` Binding to a method.
+// methodBinding models a `key` Binding to a method.
 type methodBinding struct {
 	methodInvoke
 	FilteredScope
-	constraint interface{}
-	flags      bindingFlags
+	key   interface{}
+	flags bindingFlags
 }
 
 func (b *methodBinding) Strict() bool {
@@ -109,23 +109,23 @@ func (b *methodBinding) SkipFilters() bool {
 	return b.flags & bindingSkipFilters == bindingSkipFilters
 }
 
-func (b *methodBinding) Constraint() interface{} {
-	return b.constraint
+func (b *methodBinding) Key() interface{} {
+	return b.key
 }
 
 func (b *methodBinding) Matches(
 	key      interface{},
 	variance Variance,
 ) (matched bool) {
-	bc := b.Constraint()
-	if bc == key {
+	bk := b.Key()
+	if bk == key {
 		return true
 	} else if b.Strict() {
 		return false
 	}
 	switch kt := key.(type) {
 	case reflect.Type:
-		if bt, ok := bc.(reflect.Type); ok {
+		if bt, ok := bk.(reflect.Type); ok {
 			switch variance {
 			case Covariant:
 				return bt == _interfaceType || bt.AssignableTo(kt)
@@ -162,7 +162,7 @@ func (b *constructorBinding) SkipFilters() bool {
 	return b.flags & bindingSkipFilters == bindingSkipFilters
 }
 
-func (b *constructorBinding) Constraint() interface{} {
+func (b *constructorBinding) Key() interface{} {
 	return b.handlerType
 }
 
