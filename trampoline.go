@@ -30,13 +30,6 @@ func (t *Trampoline) SetResult(result interface{}) {
 	}
 }
 
-func (t *Trampoline) Policy() Policy {
-	if cb, ok := t.callback.(Callback); ok {
-		return cb.Policy()
-	}
-	return nil
-}
-
 func (t *Trampoline) CanInfer() bool {
 	if infer, ok := t.callback.(interface{CanInfer() bool}); ok {
 		return infer.CanInfer()
@@ -75,7 +68,7 @@ func (t *Trampoline) Dispatch(
 	if cb := t.callback; cb != nil {
 		return DispatchCallback(handler, cb, greedy, composer)
 	}
-	return new(CommandBuilder).
+	return new(HandleBuilder).
 		WithCallback(callback).
-		NewCommand().Dispatch(handler, greedy, composer)
+		NewHandle().Dispatch(handler, greedy, composer)
 }

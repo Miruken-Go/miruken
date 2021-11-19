@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"sync"
 )
 
 // Variance determines how callbacks are handled.
@@ -25,15 +24,39 @@ type Policy interface {
 	AcceptResults(results []interface{}) (interface{}, HandleResult)
 }
 
-func RegisterPolicy(policy Policy) Policy {
+func GetCallbackPolicy(
+	callback Callback,
+	required bool,
+) Policy {
+	if callback == nil {
+		panic("callback cannot be nil")
+	}
+	callbackType := reflect.TypeOf(callback)
+	if policy, ok := _policies[callbackType]; ok {
+		return policy
+	}
+	if required {
+		panic(fmt.Sprintf("no policy registered for [%v]", callbackType))
+	}
+	return nil
+}
+
+func RegisterCallbackPolicy(
+	callback Callback,
+	policy   Policy,
+) error {
+	if callback == nil {
+		panic("callback cannot be nil")
+	}
 	if policy == nil {
 		panic("policy cannot be nil")
 	}
-	policyType := reflect.TypeOf(policy).Elem()
-	if _, loaded := _policies.LoadOrStore(policyType, policy); loaded {
-		panic(fmt.Sprintf("policy: %T already registered", policyType))
+	callbackType := reflect.TypeOf(callback)
+	if _, exists := _policies[callbackType]; exists {
+		return fmt.Errorf("policy already registered for callback [%v]", callbackType)
 	}
-	return policy
+	_policies[callbackType] = policy
+	return nil
 }
 
 // PolicyDispatch allows handlers to override callback dispatch.
@@ -49,7 +72,6 @@ type PolicyDispatch interface {
 }
 
 func DispatchPolicy(
-	policy      Policy,
 	handler     interface{},
 	callback    interface{},
 	rawCallback Callback,
@@ -57,6 +79,7 @@ func DispatchPolicy(
 	composer    Handler,
 	results     ResultReceiver,
 ) HandleResult {
+	policy := GetCallbackPolicy(rawCallback, true)
 	if dp, ok := handler.(PolicyDispatch); ok {
 		return dp.DispatchPolicy(
 			policy, callback, rawCallback, greedy, composer, results)
@@ -73,23 +96,13 @@ func DispatchPolicy(
 	return NotHandled
 }
 
-func isPolicy(typ reflect.Type) bool {
-	return reflect.PtrTo(typ).Implements(_policyType)
-}
-
-func getPolicy(policyType reflect.Type) Policy {
-	if policy, ok := _policies.Load(policyType); ok {
-		return policy.(Policy)
-	}
-	return nil
-}
-
 // policySpec encapsulates policy metadata.
 type policySpec struct {
-	policies    []Policy
-	flags       bindingFlags
-	filters     []FilterProvider
-	key         interface{}
+	policies []Policy
+	flags    bindingFlags
+	filters  []FilterProvider
+	key      interface{}
+	arg      arg
 }
 
 func (s *policySpec) addPolicy(
@@ -147,29 +160,33 @@ var policyBuilders = []bindingBuilder{
 }
 
 func buildPolicySpec(
-	policyType reflect.Type,
+	callbackOrSpec reflect.Type,
 ) (spec *policySpec, err error) {
-	// Is it a policy type already?
-	if isPolicy(policyType) {
-		if policy := getPolicy(policyType); policy != nil {
-			return &policySpec{policies: []Policy{policy}}, nil
+	// Is it a policy spec?
+	if callbackOrSpec.Kind() == reflect.Ptr {
+		if specType := callbackOrSpec.Elem();
+			specType.Name() == "" && // anonymous
+			specType.Kind() == reflect.Struct &&
+			specType.NumField() > 0 {
+			spec = &policySpec{}
+			if err = configureBinding(specType, spec, policyBuilders);
+				err != nil || len(spec.policies) == 0 {
+				return nil, err
+			}
+			spec.arg = zeroArg{} // spec is just a placeholder
+			return spec, nil
 		}
 	}
-	// Is it a *struct policy binding?
-	if policyType.Kind() != reflect.Ptr {
-		return spec, err
-	}
-	policyType = policyType.Elem()
-	if policyType.Kind() == reflect.Struct &&
-		policyType.Name() == "" &&  // anonymous
-		policyType.NumField() > 0 {
-		spec = new(policySpec)
-		if err = configureBinding(policyType, spec, policyBuilders);
-			err != nil || len(spec.policies) == 0 {
-			return nil, err
+	// Is it a callback arg?
+	if callbackOrSpec.Implements(_callbackType) {
+		if policy, ok := _policies[callbackOrSpec]; ok {
+			return &policySpec{
+				policies: []Policy{policy},
+				arg:      rawCallbackArg{},
+			}, nil
 		}
 	}
-	return spec, err
+	return nil, nil
 }
 
 func policyBindingBuilder(
@@ -177,12 +194,12 @@ func policyBindingBuilder(
 	field   reflect.StructField,
 	binding interface{},
 ) (bound bool, err error) {
-	if isPolicy(field.Type) {
+	if cb := coerceToPtr(field.Type, _callbackType); cb != nil {
 		bound = true
 		if b, ok := binding.(interface {
 			addPolicy(policy Policy) error
 		}); ok {
-			if policy := getPolicy(field.Type); policy != nil {
+			if policy, ok := _policies[cb]; ok {
 				if invalid := b.addPolicy(policy); invalid != nil {
 					err = fmt.Errorf(
 						"binding: policy %#v at index %v failed: %w",
@@ -190,8 +207,8 @@ func policyBindingBuilder(
 				}
 			} else {
 				err = fmt.Errorf(
-					"binding: policy %T at index %v not found.  Did you forget to call RegisterPolicy?",
-					_policyType, index)
+					"binding: no policy registered for [%v] at index %v not found.  Did you forget to call RegisterCallbackPolicy?",
+					cb, index)
 			}
 		}
 	}
@@ -273,13 +290,14 @@ func constraintBindingBuilder(
 	return bound, err
 }
 
+var _policies = make(map[reflect.Type]Policy)
+
 var (
-	_policies           sync.Map
 	_filterTag          = "filter"
 	_requiredArg        = "required"
 	_interfaceType      = reflect.TypeOf((*interface{})(nil)).Elem()
 	_interfaceSliceType = reflect.TypeOf((*[]interface{})(nil)).Elem()
-	_policyType         = reflect.TypeOf((*Policy)(nil)).Elem()
+	_callbackType       = reflect.TypeOf((*Callback)(nil)).Elem()
 	_filterType         = reflect.TypeOf((*Filter)(nil)).Elem()
 	_filterProviderType = reflect.TypeOf((*FilterProvider)(nil)).Elem()
 	_constraintType     = reflect.TypeOf((*BindingConstraint)(nil)).Elem()

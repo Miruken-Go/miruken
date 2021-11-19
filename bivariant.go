@@ -7,25 +7,25 @@ import (
 	"reflect"
 )
 
-// bivariantPolicy
+// BivariantPolicy
 
-type bivariantPolicy struct {
+type BivariantPolicy struct {
 	FilteredScope
-	input contravariantPolicy
-	output covariantPolicy
+	input  ContravariantPolicy
+	output CovariantPolicy
 }
 
-func (p *bivariantPolicy) Variance() Variance {
+func (p *BivariantPolicy) Variance() Variance {
 	return Bivariant
 }
 
-func (p *bivariantPolicy) AcceptResults(
+func (p *BivariantPolicy) AcceptResults(
 	results []interface{},
 ) (result interface{}, accepted HandleResult) {
 	return p.output.AcceptResults(results)
 }
 
-func (p *bivariantPolicy) Less(
+func (p *BivariantPolicy) Less(
 	binding, otherBinding Binding,
 ) bool {
 	if binding == nil {
@@ -43,14 +43,14 @@ func (p *bivariantPolicy) Less(
 	return false
 }
 
-func (p *bivariantPolicy) newMethodBinding(
+func (p *BivariantPolicy) NewMethodBinding(
 	method  reflect.Method,
 	spec   *policySpec,
 ) (binding Binding, invalid error) {
 	methodType := method.Type
 	numArgs    := methodType.NumIn() - 1 // skip receiver
 	args       := make([]arg, numArgs)
-	args[0]     = zeroArg{}  // policy/binding placeholder
+	args[0]     = spec.arg
 
 	if err := buildDependencies(methodType, 1, numArgs, args, 1); err != nil {
 		invalid = fmt.Errorf("covariant: %w", err)

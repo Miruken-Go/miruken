@@ -164,7 +164,7 @@ func (a *AbortFilter) Next(
 func extractCaptured(callback interface{}) Captured {
 	switch cb := callback.(type) {
 	case Captured: return cb
-	case *miruken.Command:
+	case *miruken.Handles:
 		if captured, ok := cb.Callback().(Captured); ok {
 			return captured
 		}
@@ -186,8 +186,7 @@ func (f FilteringHandler) HandleBar(
 		LogFilter
 		ExceptionFilter `filter:"required"`
 		AbortFilter
-	  },
-	bar *BarC,
+	  }, bar *BarC,
 ) {
 	bar.IncHandled(1)
 }
@@ -204,8 +203,7 @@ func (f FilteringHandler) HandleBee(
 }
 
 func (f FilteringHandler) HandleStuff(
-	_ miruken.Handles,
-	callback interface{},
+	_ *miruken.Handles, callback interface{},
 ) {
 	if bar, ok := callback.(*BarC); ok {
 		bar.IncHandled(-999)
@@ -294,8 +292,7 @@ func (s *SingletonErrorHandler) Constructor(
 }
 
 func (s *SingletonErrorHandler) HandleBee(
-	_ miruken.Handles,
-	bee *BeeC,
+	_ *miruken.Handles, bee *BeeC,
 ) {
 	bee.IncHandled(3)
 }

@@ -41,9 +41,9 @@ func (e MethodBindingError) Error() string {
 
 func (e MethodBindingError) Unwrap() error { return e.Reason }
 
-// methodBinder creates a binding to the `method`
-type methodBinder interface {
-	newMethodBinding(
+// MethodBinder creates a binding to the `method`
+type MethodBinder interface {
+	NewMethodBinding(
 		method  reflect.Method,
 		spec   *policySpec,
 	) (binding Binding, invalid error)
@@ -137,9 +137,9 @@ func (b *methodBinding) Matches(
 	return false
 }
 
-// constructorBinder creates a constructor binding to `handlerType`.
-type constructorBinder interface {
-	newConstructorBinding(
+// ConstructorBinder creates a constructor binding to `handlerType`.
+type ConstructorBinder interface {
+	NewConstructorBinding(
 		handlerType  reflect.Type,
 		constructor *reflect.Method,
 		spec        *policySpec,

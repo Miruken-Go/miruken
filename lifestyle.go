@@ -18,7 +18,7 @@ func (l *LifestyleProvider) Required() bool {
 func (l *LifestyleProvider) AppliesTo(
 	callback interface{},
 ) bool {
-	_, ok := callback.(*Inquiry)
+	_, ok := callback.(*Provides)
 	return ok
 }
 

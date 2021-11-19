@@ -15,7 +15,7 @@ func (p *provider) Handle(
 	if comp, ok := callback.(*Composition); ok {
 		callback = comp.Callback()
 	}
-	if inquiry, ok := callback.(*Inquiry); ok {
+	if inquiry, ok := callback.(*Provides); ok {
 		if typ, ok := inquiry.key.(reflect.Type); ok {
 			if p.typ.AssignableTo(typ) {
 				return NotHandled.OtherwiseHandledIf(

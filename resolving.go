@@ -1,7 +1,7 @@
 package miruken
 
 type Resolving struct {
-	Inquiry
+	Provides
 	callback  interface{}
 	succeeded bool
 }
@@ -14,7 +14,7 @@ func (r *Resolving) CanDispatch(
 	handler interface{},
 	binding Binding,
 ) (reset func (), approved bool) {
-	if outer, ok := r.Inquiry.CanDispatch(handler, binding); !ok {
+	if outer, ok := r.Provides.CanDispatch(handler, binding); !ok {
 		return outer, false
 	} else if guard, ok := r.callback.(CallbackGuard); !ok {
 		return outer, true
@@ -58,7 +58,7 @@ func (b *ResolvingBuilder) WithCallback(
 
 func (b *ResolvingBuilder) NewResolving() *Resolving {
 	resolving := &Resolving{
-		Inquiry: b.Inquiry(),
+		Provides: b.Inquiry(),
 		callback: b.callback,
 	}
 	resolving.CallbackBase.accept = AcceptResultFunc(resolving.accept)

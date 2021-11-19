@@ -43,7 +43,7 @@ func (i *initializerProvider) AppliesTo(
 	callback interface{},
 ) bool {
 	switch callback.(type) {
-	case *Inquiry, *Creates: return true
+	case *Provides, *Creates: return true
 	default: return false
 	}
 }

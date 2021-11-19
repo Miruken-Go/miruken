@@ -24,7 +24,17 @@ func (a zeroArg) resolve(
 	return reflect.Zero(typ), nil
 }
 
-// callbackArg returns the callback or raw callback.
+// rawCallbackArg returns the raw callback.
+type rawCallbackArg struct {}
+
+func (a rawCallbackArg) resolve(
+	typ     reflect.Type,
+	context HandleContext,
+) (reflect.Value, error) {
+	return reflect.ValueOf(context.RawCallback()), nil
+}
+
+// callbackArg returns the raw callback.
 type callbackArg struct {}
 
 func (a callbackArg) resolve(
@@ -32,9 +42,6 @@ func (a callbackArg) resolve(
 	context HandleContext,
 ) (reflect.Value, error) {
 	if v := reflect.ValueOf(context.Callback()); v.Type().AssignableTo(typ) {
-		return v, nil
-	}
-	if v := reflect.ValueOf(context.RawCallback()); v.Type().AssignableTo(typ) {
 		return v, nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("arg: unable to resolve callback: %v", typ)
@@ -108,12 +115,10 @@ func (d DependencyArg) resolve(
 	if typ == _handleCtxType {
 		return reflect.ValueOf(context), nil
 	}
-	rawCallback := context.RawCallback()
-	if rawCallback != nil {
-		if rawType := reflect.TypeOf(rawCallback); rawType.AssignableTo(typ) {
-			return reflect.ValueOf(rawCallback), nil
-		}
+	if val := reflect.ValueOf(context.Callback()); val.Type().AssignableTo(typ) {
+		return val, nil
 	}
+	rawCallback := context.RawCallback()
 	var resolver DependencyResolver = &_defaultResolver
 	if spec := d.spec; spec != nil {
 		if spec.resolver != nil {
@@ -148,8 +153,8 @@ func (r *defaultDependencyResolver) Resolve(
 		optional = spec.flags & bindingOptional == bindingOptional
 		strict   = spec.flags & bindingStrict == bindingStrict
 	}
-	var inquiry *Inquiry
-	parent, _ := rawCallback.(*Inquiry)
+	var inquiry *Provides
+	parent, _ := rawCallback.(*Provides)
 	builder := new(InquiryBuilder).WithParent(parent)
 	if !strict && typ.Kind() == reflect.Slice {
 		builder.WithKey(typ.Elem()).WithMany()

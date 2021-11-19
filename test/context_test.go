@@ -497,8 +497,7 @@ func (s *ScopedService) SetContext(ctx *miruken.Context) {
 }
 
 func (s *ScopedService) Count(
-	_ miruken.Handles,
-	counter Counter,
+	_ *miruken.Handles, counter Counter,
 ) {
 	if s.Context() == nil {
 		panic("context not assigned")
@@ -506,7 +505,7 @@ func (s *ScopedService) Count(
 	counter.Inc()
 }
 
-func (s *ScopedService) ProvideFoo(_ miruken.Provides) *Foo {
+func (s *ScopedService) ProvideFoo(*miruken.Provides) *Foo {
 	if s.Context() == nil {
 		panic("context not assigned")
 	}
@@ -538,8 +537,7 @@ func (s *RootedService) SetContext(ctx *miruken.Context) {
 }
 
 func (s *RootedService) HandleBar(
-	_ miruken.Handles,
-	bar *Bar,
+	_ *miruken.Handles, bar *Bar,
 ) {
 	if s.Context() == nil {
 		panic("context not assigned")
@@ -548,7 +546,7 @@ func (s *RootedService) HandleBar(
 	bar.Inc()
 }
 
-func (s *RootedService) ProvideCounter(_ miruken.Provides) Counter {
+func (s *RootedService) ProvideCounter(*miruken.Provides) Counter {
 	if s.Context() == nil {
 		panic("context not assigned")
 	}

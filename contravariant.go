@@ -7,17 +7,17 @@ import (
 	"reflect"
 )
 
-// contravariantPolicy
+// ContravariantPolicy
 
-type contravariantPolicy struct {
+type ContravariantPolicy struct {
 	FilteredScope
 }
 
-func (p *contravariantPolicy) Variance() Variance {
+func (p *ContravariantPolicy) Variance() Variance {
 	return Contravariant
 }
 
-func (p *contravariantPolicy) AcceptResults(
+func (p *ContravariantPolicy) AcceptResults(
 	results []interface{},
 ) (result interface{}, accepted HandleResult) {
 	switch len(results) {
@@ -44,7 +44,7 @@ func (p *contravariantPolicy) AcceptResults(
 		errors.New("contravariant policy: cannot accept more than 2 results"))
 }
 
-func (p *contravariantPolicy) Less(
+func (p *ContravariantPolicy) Less(
 	binding, otherBinding Binding,
 ) bool {
 	if binding == nil {
@@ -62,14 +62,14 @@ func (p *contravariantPolicy) Less(
 	return false
 }
 
-func (p *contravariantPolicy) newMethodBinding(
+func (p *ContravariantPolicy) NewMethodBinding(
 	method  reflect.Method,
 	spec   *policySpec,
 ) (binding Binding, invalid error) {
 	methodType := method.Type
 	numArgs    := methodType.NumIn() - 1  // skip receiver
 	args       := make([]arg, numArgs)
-	args[0]     = zeroArg{}  // policy/binding placeholder
+	args[0]     = spec.arg
 	key        := spec.key
 
 	// Callback argument must be present

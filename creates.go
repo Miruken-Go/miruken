@@ -1,25 +1,20 @@
 package miruken
 
 import (
-	"fmt"
 	"reflect"
 )
 
-// Creation creates instances Covariantly.
-type Creation struct {
+// Creates instances Covariantly.
+type Creates struct {
 	CallbackBase
 	typ reflect.Type
 }
 
-func (c *Creation) Policy() Policy {
-	return CreatesPolicy()
-}
-
-func (c *Creation) Key() interface{} {
+func (c *Creates) Key() interface{} {
 	return c.typ
 }
 
-func (c *Creation) ReceiveResult(
+func (c *Creates) ReceiveResult(
 	result   interface{},
 	strict   bool,
 	greedy   bool,
@@ -33,13 +28,13 @@ func (c *Creation) ReceiveResult(
 	return true
 }
 
-func (c *Creation) Dispatch(
+func (c *Creates) Dispatch(
 	handler  interface{},
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	count := len(c.results)
-	return DispatchPolicy(c.Policy(), handler, c, c, greedy, composer, c).
+	return DispatchPolicy(handler, c, c, greedy, composer, c).
 		OtherwiseHandledIf(len(c.results) > count)
 }
 
@@ -55,9 +50,9 @@ func (b *CreationBuilder) WithType(
 	return b
 }
 
-func (b *CreationBuilder) NewCreation() *Creation {
-	return &Creation{
-		CallbackBase: b.Callback(),
+func (b *CreationBuilder) NewCreation() *Creates {
+	return &Creates{
+		CallbackBase: b.CallbackBase(),
 		typ: b.typ,
 	}
 }
@@ -93,20 +88,12 @@ func CreateAll(handler Handler, target interface{}) error {
 	return nil
 }
 
-
-// Creates policy for creating instances covariantly.
-type Creates struct {
-	covariantPolicy
+// createsPolicy for creating instances covariantly.
+type createsPolicy struct {
+	CovariantPolicy
 }
 
-func (c *Creates) Key(callback Callback) interface{} {
-	if cr, ok := callback.(*Creation); ok {
-		return cr.Key()
-	}
-	panic(fmt.Sprintf("Unrecognized Creates callback %#v", callback))
-}
-
-func (c *Creates) newConstructorBinding(
+func (c *createsPolicy) NewConstructorBinding(
 	handlerType  reflect.Type,
 	constructor *reflect.Method,
 	spec        *policySpec,
@@ -114,6 +101,8 @@ func (c *Creates) newConstructorBinding(
 	return newConstructorBinding(handlerType, constructor, spec, spec != nil)
 }
 
-func CreatesPolicy() Policy { return _creates }
-
-var _creates = RegisterPolicy(new(Creates))
+func init() {
+	if err := RegisterCallbackPolicy(&Creates{}, &createsPolicy{}); err != nil {
+		panic(err)
+	}
+}

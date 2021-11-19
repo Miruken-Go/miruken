@@ -7,17 +7,17 @@ import (
 	"reflect"
 )
 
-// covariantPolicy
+// CovariantPolicy
 
-type covariantPolicy struct {
+type CovariantPolicy struct {
 	FilteredScope
 }
 
-func (p *covariantPolicy) Variance() Variance {
+func (p *CovariantPolicy) Variance() Variance {
 	return Covariant
 }
 
-func (p *covariantPolicy) AcceptResults(
+func (p *CovariantPolicy) AcceptResults(
 	results []interface{},
 ) (result interface{}, accepted HandleResult) {
 	switch len(results) {
@@ -54,7 +54,7 @@ func (p *covariantPolicy) AcceptResults(
 		errors.New("covariant policy: cannot accept more than 2 results"))
 }
 
-func (p *covariantPolicy) Less(
+func (p *CovariantPolicy) Less(
 	binding, otherBinding Binding,
 ) bool {
 	if binding == nil {
@@ -63,23 +63,23 @@ func (p *covariantPolicy) Less(
 	if otherBinding == nil {
 		panic("otherBinding cannot be nil")
 	}
-	constraint := binding.Key()
-	if otherBinding.Matches(constraint, Invariant) {
+	key := binding.Key()
+	if otherBinding.Matches(key, Invariant) {
 		return false
-	} else if otherBinding.Matches(constraint, Covariant) {
+	} else if otherBinding.Matches(key, Covariant) {
 		return true
 	}
 	return false
 }
 
-func (p *covariantPolicy) newMethodBinding(
+func (p *CovariantPolicy) NewMethodBinding(
 	method  reflect.Method,
 	spec   *policySpec,
 ) (binding Binding, invalid error) {
 	methodType := method.Type
 	numArgs    := methodType.NumIn() - 1 // skip receiver
 	args       := make([]arg, numArgs)
-	args[0]     = zeroArg{}  // policy/binding placeholder
+	args[0]     = spec.arg
 
 	if err := buildDependencies(methodType, 1, numArgs, args, 1); err != nil {
 		invalid = fmt.Errorf("covariant: %w", err)

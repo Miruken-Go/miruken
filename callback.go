@@ -7,7 +7,6 @@ import (
 type (
 	// Callback models an action.
 	Callback interface {
-		Policy() Policy
 		Key() interface{}
 		ResultType() reflect.Type
 		Result() interface{}
@@ -89,7 +88,7 @@ func (b *CallbackBuilder) WithAcceptResult(
 	return b
 }
 
-func (b *CallbackBuilder) Callback() CallbackBase {
+func (b *CallbackBuilder) CallbackBase() CallbackBase {
 	return CallbackBase{many: b.many, accept: b.accept}
 }
 

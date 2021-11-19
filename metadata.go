@@ -302,18 +302,18 @@ func (f *mutableFactory) newHandlerDescriptor(
 	if _, noImplicit := handlerType.MethodByName("NoImplicitProvides"); !noImplicit {
 		addProvides := true
 		for _, ctorPolicy := range ctorPolicies {
-			if _, ok := ctorPolicy.(*Provides); ok {
+			if _, ok := ctorPolicy.(*providesPolicy); ok {
 				addProvides = false
 				break
 			}
 		}
 		if addProvides {
-			ctorPolicies = append(ctorPolicies, ProvidesPolicy())
+			ctorPolicies = append(ctorPolicies, _providesPolicy)
 		}
 	}
 	for _, ctorPolicy := range ctorPolicies {
-		if binder, ok := ctorPolicy.(constructorBinder); ok {
-			if ctor, err := binder.newConstructorBinding(
+		if binder, ok := ctorPolicy.(ConstructorBinder); ok {
+			if ctor, err := binder.NewConstructorBinding(
 				handlerType, constructor, ctorSpec); err == nil {
 				if f.visitor != nil {
 					f.visitor.VisitHandlerBinding(descriptor, ctor)
@@ -332,16 +332,15 @@ func (f *mutableFactory) newHandlerDescriptor(
 		}
 		methodType := method.Type
 		if methodType.NumIn() < 2 {
-			continue // must have a ctorPolicy/spec
+			continue // must have a callback/spec
 		}
 		if spec, err := buildPolicySpec(methodType.In(1)); err == nil {
 			if spec == nil { // not a handler ctor
 				continue
 			}
 			for _, policy := range spec.policies {
-				if binder, ok := policy.(methodBinder); ok {
-
-					if binding, errBind := binder.newMethodBinding(method, spec); binding != nil {
+				if binder, ok := policy.(MethodBinder); ok {
+					if binding, errBind := binder.NewMethodBinding(method, spec); binding != nil {
 						if f.visitor != nil {
 							f.visitor.VisitHandlerBinding(descriptor, binding)
 						}

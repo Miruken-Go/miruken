@@ -4,85 +4,81 @@ import (
 	"reflect"
 )
 
-// Inquiry provides results Covariantly.
-type Inquiry struct {
+// Provides results Covariantly.
+type Provides struct {
 	CallbackBase
-	key      interface{}
-	parent  *Inquiry
-	handler  interface{}
-	binding  Binding
-	metadata BindingMetadata
+	key       interface{}
+	parent   *Provides
+	handler   interface{}
+	binding   Binding
+	metadata  BindingMetadata
 }
 
-func (i *Inquiry) Key() interface{} {
-	return i.key
+func (p *Provides) Key() interface{} {
+	return p.key
 }
 
-func (i *Inquiry) Parent() *Inquiry {
-	return i.parent
+func (p *Provides) Parent() *Provides {
+	return p.parent
 }
 
-func (i *Inquiry) Policy() Policy {
-	return ProvidesPolicy()
+func (p *Provides) Binding() Binding {
+	return p.binding
 }
 
-func (i *Inquiry) Binding() Binding {
-	return i.binding
+func (p *Provides) Metadata() *BindingMetadata {
+	return &p.metadata
 }
 
-func (i *Inquiry) Metadata() *BindingMetadata {
-	return &i.metadata
-}
-
-func (i *Inquiry) ReceiveResult(
+func (p *Provides) ReceiveResult(
 	result   interface{},
 	strict   bool,
 	greedy   bool,
 	composer Handler,
 ) (accepted bool) {
-	return i.include(result, strict, greedy, composer)
+	return p.include(result, strict, greedy, composer)
 }
 
-func (i *Inquiry) CanDispatch(
+func (p *Provides) CanDispatch(
 	handler interface{},
 	binding Binding,
 ) (reset func (), approved bool) {
-	if i.inProgress(handler, binding) {
+	if p.inProgress(handler, binding) {
 		return nil, false
 	}
 	return func(h interface{}, b Binding) func () {
-		i.handler = handler
-		i.binding = binding
+		p.handler = handler
+		p.binding = binding
 		return func () {
-			i.handler = h
-			i.binding = b
+			p.handler = h
+			p.binding = b
 		}
-	}(i.handler, i.binding), true
+	}(p.handler, p.binding), true
 }
 
-func (i *Inquiry)inProgress(
+func (p *Provides)inProgress(
 	handler interface{},
 	binding Binding,
 ) bool {
-	if i.handler == handler && i.binding == binding {
+	if p.handler == handler && p.binding == binding {
 		return true
 	}
-	if parent := i.parent; parent != nil {
+	if parent := p.parent; parent != nil {
 		return parent.inProgress(handler, binding)
 	}
 	return false
 }
 
-func (i *Inquiry) Dispatch(
+func (p *Provides) Dispatch(
 	handler  interface{},
 	greedy   bool,
 	composer Handler,
 ) (result HandleResult) {
 	result = NotHandled
-	if i.metadata.IsEmpty() {
-		if typ, ok := i.key.(reflect.Type); ok {
+	if p.metadata.IsEmpty() {
+		if typ, ok := p.key.(reflect.Type); ok {
 			if reflect.TypeOf(handler).AssignableTo(typ) {
-				resolved := i.ReceiveResult(handler, false, greedy, composer)
+				resolved := p.ReceiveResult(handler, false, greedy, composer)
 				result = result.OtherwiseHandledIf(resolved)
 				if resolved && !greedy {
 					return result
@@ -90,21 +86,21 @@ func (i *Inquiry) Dispatch(
 			}
 		}
 	}
-	count := len(i.results)
-	return DispatchPolicy(i.Policy(), handler, i, i, greedy, composer, i).
-		OtherwiseHandledIf(len(i.results) > count)
+	count := len(p.results)
+	return DispatchPolicy(handler, p, p, greedy, composer, p).
+		OtherwiseHandledIf(len(p.results) > count)
 }
 
-func (i *Inquiry) Resolve(
+func (p *Provides) Resolve(
 	handler Handler,
 ) (interface{}, error) {
-	if result := handler.Handle(i, i.Many(), nil); result.IsError() {
+	if result := handler.Handle(p, p.Many(), nil); result.IsError() {
 		return nil, result.Error()
 	}
-	return i.Result(), nil
+	return p.Result(), nil
 }
 
-func (i *Inquiry) include(
+func (p *Provides) include(
 	resolution interface{},
 	strict     bool,
 	greedy     bool,
@@ -114,8 +110,8 @@ func (i *Inquiry) include(
 		return false
 	}
 	if strict {
-		if included = i.AcceptResult(resolution, greedy, composer); included {
-			i.results = append(i.results, resolution)
+		if included = p.AcceptResult(resolution, greedy, composer); included {
+			p.results = append(p.results, resolution)
 		}
 		return included
 	}
@@ -123,15 +119,15 @@ func (i *Inquiry) include(
 	case reflect.Slice, reflect.Array:
 		forEach(resolution, func(idx int, value interface{}) {
 			if value != nil {
-				if inc := i.AcceptResult(value, greedy, composer); inc {
-					i.results = append(i.results, value)
+				if inc := p.AcceptResult(value, greedy, composer); inc {
+					p.results = append(p.results, value)
 					included  = true
 				}
 			}
 		})
 	default:
-		if included = i.AcceptResult(resolution, greedy, composer); included {
-			i.results = append(i.results, resolution)
+		if included = p.AcceptResult(resolution, greedy, composer); included {
+			p.results = append(p.results, resolution)
 		}
 	}
 	return included
@@ -140,7 +136,7 @@ func (i *Inquiry) include(
 type InquiryBuilder struct {
 	CallbackBuilder
 	key          interface{}
-	parent      *Inquiry
+	parent      *Provides
 	constraints  []func(*ConstraintBuilder)
 }
 
@@ -152,7 +148,7 @@ func (b *InquiryBuilder) WithKey(
 }
 
 func (b *InquiryBuilder) WithParent(
-	parent *Inquiry,
+	parent *Provides,
 ) *InquiryBuilder {
 	b.parent = parent
 	return b
@@ -167,9 +163,9 @@ func (b *InquiryBuilder) WithConstraints(
 	return b
 }
 
-func (b *InquiryBuilder) Inquiry() Inquiry {
-	inquiry := Inquiry{
-		CallbackBase: b.Callback(),
+func (b *InquiryBuilder) Inquiry() Provides {
+	inquiry := Provides{
+		CallbackBase: b.CallbackBase(),
 		key:          b.key,
 		parent:       b.parent,
 	}
@@ -177,9 +173,9 @@ func (b *InquiryBuilder) Inquiry() Inquiry {
 	return inquiry
 }
 
-func (b *InquiryBuilder) NewInquiry() *Inquiry {
-	inquiry := &Inquiry{
-		CallbackBase: b.Callback(),
+func (b *InquiryBuilder) NewInquiry() *Provides {
+	inquiry := &Provides{
+		CallbackBase: b.CallbackBase(),
 		key:          b.key,
 		parent:       b.parent,
 	}
@@ -228,12 +224,12 @@ func ResolveAll(
 	return nil
 }
 
-// Provides policy for providing results covariantly.
-type Provides struct {
-	covariantPolicy
+// providesPolicy for providing instances with lifestyles covariantly.
+type providesPolicy struct {
+	CovariantPolicy
 }
 
-func (p *Provides) newConstructorBinding(
+func (p *providesPolicy) NewConstructorBinding(
 	handlerType  reflect.Type,
 	constructor *reflect.Method,
 	spec        *policySpec,
@@ -251,6 +247,10 @@ func (p *Provides) newConstructorBinding(
 	return newConstructorBinding(handlerType, constructor, spec, explicitSpec)
 }
 
-func ProvidesPolicy() Policy { return _provides }
+func init() {
+	if err := RegisterCallbackPolicy(&Provides{}, _providesPolicy); err != nil {
+		panic(err)
+	}
+}
 
-var _provides = RegisterPolicy(new(Provides))
+var _providesPolicy Policy = &providesPolicy{}
