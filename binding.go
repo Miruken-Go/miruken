@@ -11,7 +11,7 @@ type Binding interface {
 	Filtered
 	Strict()      bool
 	SkipFilters() bool
-	Key()  interface{}
+	Key()         interface{}
 
 	Matches(
 		key      interface{},

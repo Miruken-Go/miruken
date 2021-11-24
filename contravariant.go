@@ -7,8 +7,7 @@ import (
 	"reflect"
 )
 
-// ContravariantPolicy
-
+// ContravariantPolicy defines related input values.
 type ContravariantPolicy struct {
 	FilteredScope
 }
@@ -56,10 +55,8 @@ func (p *ContravariantPolicy) Less(
 	key := binding.Key()
 	if otherBinding.Matches(key, Invariant) {
 		return false
-	} else if otherBinding.Matches(key, Contravariant) {
-		return true
 	}
-	return false
+	return otherBinding.Matches(key, Contravariant)
 }
 
 func (p *ContravariantPolicy) NewMethodBinding(

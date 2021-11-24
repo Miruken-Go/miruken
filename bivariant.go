@@ -7,22 +7,19 @@ import (
 	"reflect"
 )
 
-// BivariantPolicy
+// DiKey represents a key with input and output parts.
+type DiKey struct {
+	In  interface{}
+	Out interface{}
+}
 
+// BivariantPolicy defines related input and output values.
 type BivariantPolicy struct {
-	FilteredScope
-	input  ContravariantPolicy
-	output CovariantPolicy
+	CovariantPolicy
 }
 
 func (p *BivariantPolicy) Variance() Variance {
 	return Bivariant
-}
-
-func (p *BivariantPolicy) AcceptResults(
-	results []interface{},
-) (result interface{}, accepted HandleResult) {
-	return p.output.AcceptResults(results)
 }
 
 func (p *BivariantPolicy) Less(
@@ -32,15 +29,18 @@ func (p *BivariantPolicy) Less(
 		panic("binding cannot be nil")
 	}
 	if otherBinding == nil {
-		panic("otherBinding cannot be nil")
+		panic("otherBinding cannot be be nil")
 	}
-	key := binding.Key()
-	if otherBinding.Matches(key, Invariant) {
-		return false
-	} else if otherBinding.Matches(key, Covariant) {
-		return true
+	if key, ok := binding.Key().(DiKey); ok {
+		if otherBinding.Matches(key.In, Invariant) {
+			if otherBinding.Matches(key.Out, Invariant) {
+				return false
+			}
+			return otherBinding.Matches(key.Out, Covariant)
+		}
+		return otherBinding.Matches(key.In, Contravariant)
 	}
-	return false
+	panic("expected DiKey for BivariantPolicy binding")
 }
 
 func (p *BivariantPolicy) NewMethodBinding(
@@ -48,18 +48,29 @@ func (p *BivariantPolicy) NewMethodBinding(
 	spec   *policySpec,
 ) (binding Binding, invalid error) {
 	methodType := method.Type
-	numArgs    := methodType.NumIn() - 1 // skip receiver
+	numArgs    := methodType.NumIn() - 1  // skip receiver
 	args       := make([]arg, numArgs)
 	args[0]     = spec.arg
+	key        := spec.key
 
-	if err := buildDependencies(methodType, 1, numArgs, args, 1); err != nil {
-		invalid = fmt.Errorf("covariant: %w", err)
+	// Callback argument must be present
+	if len(args) > 1 {
+		if key == nil {
+			key = methodType.In(2)
+		}
+		args[1] = callbackArg{}
+	} else {
+		invalid = errors.New("bivariant: missing callback argument")
+	}
+
+	if err := buildDependencies(methodType, 2, numArgs, args, 2); err != nil {
+		invalid = multierror.Append(invalid, fmt.Errorf("bivariant: %w", err))
 	}
 
 	switch methodType.NumOut() {
 	case 0:
 		invalid = multierror.Append(invalid,
-			errors.New("covariant: must have a return value"))
+			errors.New("bivariant: must have a return value"))
 	case 1:
 		if err := validateCovariantReturn(methodType.Out(0), spec); err != nil {
 			invalid = multierror.Append(invalid, err)
@@ -72,12 +83,12 @@ func (p *BivariantPolicy) NewMethodBinding(
 		case _errorType, _handleResType: break
 		default:
 			invalid = multierror.Append(invalid, fmt.Errorf(
-				"covariant: when two return values, second must be %v or %v",
+				"bivariant: when two return values, second must be %v or %v",
 				_errorType, _handleResType))
 		}
 	default:
 		invalid = multierror.Append(invalid, fmt.Errorf(
-			"covariant: at most two return values allowed and second must be %v or %v",
+			"bivariant: at most two return values allowed and second must be %v or %v",
 			_errorType, _handleResType))
 	}
 
@@ -88,8 +99,7 @@ func (p *BivariantPolicy) NewMethodBinding(
 	return &methodBinding{
 		methodInvoke{method, args},
 		FilteredScope{spec.filters},
-		spec.key,
+		key,
 		spec.flags,
 	}, nil
 }
-

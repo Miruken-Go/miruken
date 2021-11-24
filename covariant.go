@@ -7,8 +7,7 @@ import (
 	"reflect"
 )
 
-// CovariantPolicy
-
+// CovariantPolicy defines related output values.
 type CovariantPolicy struct {
 	FilteredScope
 }
@@ -66,10 +65,8 @@ func (p *CovariantPolicy) Less(
 	key := binding.Key()
 	if otherBinding.Matches(key, Invariant) {
 		return false
-	} else if otherBinding.Matches(key, Covariant) {
-		return true
 	}
-	return false
+	return otherBinding.Matches(key, Covariant)
 }
 
 func (p *CovariantPolicy) NewMethodBinding(

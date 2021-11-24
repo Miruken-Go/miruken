@@ -59,7 +59,7 @@ func (h *FooHandler) Handle(
 type BarHandler struct {}
 
 func (h *BarHandler) HandleBar(
-	_ *miruken.Handles, bar Bar,
+	_ *miruken.Handles, _ Bar,
 ) {
 }
 
@@ -129,8 +129,7 @@ func (h *EverythingHandler) HandleEverything(
 type SpecificationHandler struct{}
 
 func (h *SpecificationHandler) HandleFoo(
-	_ *struct{ miruken.Handles; miruken.Strict },
-	foo *Foo,
+	_ *struct{ miruken.Handles; miruken.Strict }, foo *Foo,
 ) miruken.HandleResult {
 	foo.Inc()
 	return miruken.Handled
@@ -143,6 +142,9 @@ func (h *DependencyHandler) RequiredDependency(
 	_ *miruken.Handles, foo *Foo,
 	bar *Bar,
 ) {
+	if bar == nil {
+		panic("bar cannot be nil")
+	}
 	foo.Inc()
 }
 
@@ -197,7 +199,7 @@ type Configuration struct {
 
 func (c Configuration) Validate(
 	typ reflect.Type,
-	dep miruken.DependencyArg,
+	_   miruken.DependencyArg,
 ) error {
 	if !reflect.TypeOf(c.config).AssignableTo(typ) {
 		return fmt.Errorf("the Configuration resolver expects a %T field", c.config)
@@ -235,25 +237,25 @@ func (h *DependencyResolverHandler) UseDependencyResolver(
 type InvalidHandler struct {}
 
 func (h *InvalidHandler) MissingDependency(
-	_ *miruken.Handles, bar *Bar,
+	_ *miruken.Handles, _ *Bar,
 	_ *struct{ },
 ) {
 }
 
 func (h *InvalidHandler) TooManyReturnValues(
-	_ *miruken.Handles, bar *Bar,
+	_ *miruken.Handles, _ *Bar,
 ) (int, string, Counter) {
 	return 0, "bad", nil
 }
 
 func (h *InvalidHandler) SecondReturnMustBeErrorOrHandleResult(
-	_ *miruken.Handles, counter *Counter,
+	_ *miruken.Handles, _ *Counter,
 ) (Foo, string) {
 	return Foo{}, "bad"
 }
 
 func (h *InvalidHandler) UntypedInterfaceDependency(
-	_ *miruken.Handles, bar *Bar,
+	_ *miruken.Handles, _ *Bar,
 	any interface{},
 ) miruken.HandleResult {
 	return miruken.Handled
@@ -594,7 +596,7 @@ func (f *FooProvider) ProvideFoo(*miruken.Provides) *Foo {
 }
 
 // ListProvider
-type ListProvider struct {}
+type ListProvider struct{}
 
 func (f *ListProvider) ProvideFooSlice(*miruken.Provides) []*Foo {
 	return []*Foo{{Counted{1}}, {Counted{2}}}
@@ -610,9 +612,7 @@ type MultiProvider struct {
 	bar Bar
 }
 
-func (p *MultiProvider) Constructor(
-	_ *struct{ miruken.Creates },
-) {
+func (p *MultiProvider) Constructor(*miruken.Creates) {
 	p.foo.Inc()
 }
 
@@ -644,7 +644,7 @@ func (p *SpecificationProvider) Constructor(baz Baz) {
 
 func (p *SpecificationProvider) ProvidesFoo(
 	_ *struct{
-		miruken.Provides;
+		miruken.Provides
 		miruken.Creates
 	  },
 ) *Foo {
