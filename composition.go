@@ -14,9 +14,9 @@ func (c *Composition) Dispatch(
 	if cb := c.callback; cb != nil {
 		return DispatchCallback(handler, cb, greedy, composer)
 	}
-	return new(HandleBuilder).
+	return new(HandlesBuilder).
 		WithCallback(c).
-		NewHandle().
+		NewHandles().
 		Dispatch(handler, greedy, composer)
 }
 

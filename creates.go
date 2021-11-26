@@ -42,19 +42,20 @@ func (c *Creates) Dispatch(
 		OtherwiseHandledIf(len(c.results) > count)
 }
 
-type CreationBuilder struct {
+// CreatesBuilder builds Creates callbacks.
+type CreatesBuilder struct {
 	CallbackBuilder
 	typ reflect.Type
 }
 
-func (b *CreationBuilder) WithType(
+func (b *CreatesBuilder) WithType(
 	typ reflect.Type,
-) *CreationBuilder {
+) *CreatesBuilder {
 	b.typ = typ
 	return b
 }
 
-func (b *CreationBuilder) NewCreation() *Creates {
+func (b *CreatesBuilder) NewCreation() *Creates {
 	return &Creates{
 		CallbackBase: b.CallbackBase(),
 		typ: b.typ,
@@ -65,14 +66,14 @@ func Create(handler Handler, target interface{}) error {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
-	tv     := TargetValue(target)
-	create := new(CreationBuilder).
+	tv      := TargetValue(target)
+	creates := new(CreatesBuilder).
 		WithType(tv.Type().Elem()).
 		NewCreation()
-	if result := handler.Handle(create, false, nil); result.IsError() {
+	if result := handler.Handle(creates, false, nil); result.IsError() {
 		return result.Error()
 	}
-	create.CopyResult(tv)
+	creates.CopyResult(tv)
 	return nil
 }
 
@@ -81,14 +82,14 @@ func CreateAll(handler Handler, target interface{}) error {
 		panic("handler cannot be nil")
 	}
 	tv      := TargetSliceValue(target)
-	builder := new(CreationBuilder).
+	builder := new(CreatesBuilder).
 		WithType(tv.Type().Elem().Elem())
 	builder.WithMany()
-	create := builder.NewCreation()
-	if result := handler.Handle(create, true, nil); result.IsError() {
+	creates := builder.NewCreation()
+	if result := handler.Handle(creates, true, nil); result.IsError() {
 		return result.Error()
 	}
-	create.CopyResult(tv)
+	creates.CopyResult(tv)
 	return nil
 }
 

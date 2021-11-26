@@ -70,19 +70,20 @@ func (h *Handles) Dispatch(
 		OtherwiseHandledIf(len(h.results) > count)
 }
 
-type HandleBuilder struct {
+// HandlesBuilder builds Handles callbacks.
+type HandlesBuilder struct {
 	CallbackBuilder
 	callback interface{}
 }
 
-func (b *HandleBuilder) WithCallback(
+func (b *HandlesBuilder) WithCallback(
 	callback interface{},
-) *HandleBuilder {
+) *HandlesBuilder {
 	b.callback = callback
 	return b
 }
 
-func (b *HandleBuilder) NewHandle() *Handles {
+func (b *HandlesBuilder) NewHandles() *Handles {
 	return &Handles{
 		CallbackBase: b.CallbackBase(),
 		callback:     b.callback,
@@ -94,9 +95,9 @@ func Invoke(handler Handler, callback interface{}, target interface{}) error {
 		panic("handler cannot be nil")
 	}
 	tv     := TargetValue(target)
-	handle := new(HandleBuilder).
+	handle := new(HandlesBuilder).
 		WithCallback(callback).
-		NewHandle()
+		NewHandles()
 	if result := handler.Handle(handle, false, nil); result.IsError() {
 		return result.Error()
 	} else if !result.handled {
@@ -111,9 +112,9 @@ func InvokeAll(handler Handler, callback interface{}, target interface{}) error 
 		panic("handler cannot be nil")
 	}
 	tv      := TargetSliceValue(target)
-	builder := new(HandleBuilder).WithCallback(callback)
+	builder := new(HandlesBuilder).WithCallback(callback)
 	builder.WithMany()
-	handle  := builder.NewHandle()
+	handle  := builder.NewHandles()
 	if result := handler.Handle(handle, true, nil); result.IsError() {
 		return result.Error()
 	} else if !result.handled {

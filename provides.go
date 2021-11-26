@@ -137,54 +137,55 @@ func (p *Provides) include(
 	return included
 }
 
-type InquiryBuilder struct {
+// ProvidesBuilder builds Provides callbacks.
+type ProvidesBuilder struct {
 	CallbackBuilder
 	key          interface{}
 	parent      *Provides
 	constraints  []func(*ConstraintBuilder)
 }
 
-func (b *InquiryBuilder) WithKey(
+func (b *ProvidesBuilder) WithKey(
 	key interface{},
-) *InquiryBuilder {
+) *ProvidesBuilder {
 	b.key = key
 	return b
 }
 
-func (b *InquiryBuilder) WithParent(
+func (b *ProvidesBuilder) WithParent(
 	parent *Provides,
-) *InquiryBuilder {
+) *ProvidesBuilder {
 	b.parent = parent
 	return b
 }
 
-func (b *InquiryBuilder) WithConstraints(
+func (b *ProvidesBuilder) WithConstraints(
 	constraints ... func(*ConstraintBuilder),
-) *InquiryBuilder {
+) *ProvidesBuilder {
 	if len(constraints) > 0 {
 		b.constraints = append(b.constraints, constraints...)
 	}
 	return b
 }
 
-func (b *InquiryBuilder) Inquiry() Provides {
-	inquiry := Provides{
+func (b *ProvidesBuilder) Provides() Provides {
+	provides := Provides{
 		CallbackBase: b.CallbackBase(),
 		key:          b.key,
 		parent:       b.parent,
 	}
-	ApplyConstraints(&inquiry, b.constraints...)
-	return inquiry
+	ApplyConstraints(&provides, b.constraints...)
+	return provides
 }
 
-func (b *InquiryBuilder) NewInquiry() *Provides {
-	inquiry := &Provides{
+func (b *ProvidesBuilder) NewProvides() *Provides {
+	provides := &Provides{
 		CallbackBase: b.CallbackBase(),
 		key:          b.key,
 		parent:       b.parent,
 	}
-	ApplyConstraints(inquiry, b.constraints...)
-	return inquiry
+	ApplyConstraints(provides, b.constraints...)
+	return provides
 }
 
 func Resolve(
@@ -196,14 +197,14 @@ func Resolve(
 		panic("handler cannot be nil")
 	}
 	tv       := TargetValue(target)
-	inquiry  := new(InquiryBuilder).
+	provides := new(ProvidesBuilder).
 		WithKey(tv.Type().Elem()).
 		WithConstraints(constraints...).
-		NewInquiry()
-	if result := handler.Handle(inquiry, false, nil); result.IsError() {
+		NewProvides()
+	if result := handler.Handle(provides, false, nil); result.IsError() {
 		return result.Error()
 	}
-	inquiry.CopyResult(tv)
+	provides.CopyResult(tv)
 	return nil
 }
 
@@ -216,15 +217,15 @@ func ResolveAll(
 		panic("handler cannot be nil")
 	}
 	tv      := TargetSliceValue(target)
-	builder := new(InquiryBuilder).
+	builder := new(ProvidesBuilder).
 		WithKey(tv.Type().Elem().Elem()).
 		WithConstraints(constraints...)
 	builder.WithMany()
-	inquiry := builder.NewInquiry()
-	if result := handler.Handle(inquiry, true, nil); result.IsError() {
+	provides := builder.NewProvides()
+	if result := handler.Handle(provides, true, nil); result.IsError() {
 		return result.Error()
 	}
-	inquiry.CopyResult(tv)
+	provides.CopyResult(tv)
 	return nil
 }
 

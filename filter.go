@@ -74,11 +74,11 @@ func (f *FilterSpecProvider) Filters(
 	callback interface{},
 	composer Handler,
 ) ([]Filter, error) {
-	spec    := f.spec
-	inquiry := new(InquiryBuilder).
+	spec     := f.spec
+	provides := new(ProvidesBuilder).
 		WithKey(spec.typ).
-		NewInquiry()
-	result, err := inquiry.Resolve(composer)
+		NewProvides()
+	result, err := provides.Resolve(composer)
 	if result != nil && err == nil {
 		if filter, ok := result.(Filter); ok {
 			if spec.order >= 0 {

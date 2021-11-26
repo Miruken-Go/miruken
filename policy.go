@@ -61,7 +61,7 @@ func DispatchPolicy(
 	return NotHandled
 }
 
-// policySpec encapsulates policy metadata.
+// policySpec captures Policy metadata.
 type policySpec struct {
 	policies []Policy
 	flags    bindingFlags
@@ -144,9 +144,8 @@ func buildPolicySpec(
 	}
 	// Is it a callback arg?
 	if callbackOrSpec.Implements(_callbackType) {
-		policy := policyOfCallback(callbackOrSpec)
 		return &policySpec{
-			policies: []Policy{policy},
+			policies: []Policy{policyOfCallback(callbackOrSpec)},
 			arg:      rawCallbackArg{},
 		}, nil
 	}

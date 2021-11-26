@@ -153,9 +153,9 @@ func (r *defaultDependencyResolver) Resolve(
 		optional = spec.flags & bindingOptional == bindingOptional
 		strict   = spec.flags & bindingStrict == bindingStrict
 	}
-	var inquiry *Provides
+	var provides *Provides
 	parent, _ := rawCallback.(*Provides)
-	builder := new(InquiryBuilder).WithParent(parent)
+	builder := new(ProvidesBuilder).WithParent(parent)
 	if !strict && typ.Kind() == reflect.Slice {
 		builder.WithKey(typ.Elem()).WithMany()
 	} else {
@@ -164,10 +164,10 @@ func (r *defaultDependencyResolver) Resolve(
 	if spec := dep.spec; spec != nil {
 		builder.WithConstraints(spec.constraints...)
 	}
-	inquiry = builder.NewInquiry()
-	if result, err := inquiry.Resolve(handler); err == nil {
+	provides = builder.NewProvides()
+	if result, err := provides.Resolve(handler); err == nil {
 		var val reflect.Value
-		if inquiry.Many() {
+		if provides.Many() {
 			results := result.([]interface{})
 			val = reflect.New(typ).Elem()
 			CopySliceIndirect(results, val)

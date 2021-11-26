@@ -45,7 +45,7 @@ func (r *Resolving) accept(
 }
 
 type ResolvingBuilder struct {
-	InquiryBuilder
+	ProvidesBuilder
 	callback interface{}
 }
 
@@ -58,7 +58,7 @@ func (b *ResolvingBuilder) WithCallback(
 
 func (b *ResolvingBuilder) NewResolving() *Resolving {
 	resolving := &Resolving{
-		Provides: b.Inquiry(),
+		Provides: b.Provides(),
 		callback: b.callback,
 	}
 	resolving.CallbackBase.accept = AcceptResultFunc(resolving.accept)
