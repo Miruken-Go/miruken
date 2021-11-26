@@ -117,14 +117,12 @@ func (s *policySpec) unknownBinding(
 	return nil
 }
 
-var policyBuilders = []bindingBuilder{
-	bindingBuilderFunc(policyBindingBuilder),
-	bindingBuilderFunc(optionsBindingBuilder),
-	bindingBuilderFunc(filterBindingBuilder),
-	bindingBuilderFunc(constraintBindingBuilder),
+// policySpecBuilder builds policySpec from method metadata.
+type policySpecBuilder struct {
+	cache map[reflect.Type]Policy
 }
 
-func buildPolicySpec(
+func (p *policySpecBuilder) BuildSpec(
 	callbackOrSpec reflect.Type,
 ) (spec *policySpec, err error) {
 	// Is it a policy spec?
@@ -134,7 +132,13 @@ func buildPolicySpec(
 			specType.Kind() == reflect.Struct &&
 			specType.NumField() > 0 {
 			spec = &policySpec{}
-			if err = configureBinding(specType, spec, policyBuilders);
+			builders := []bindingBuilder{
+				bindingBuilderFunc(p.binding),
+				bindingBuilderFunc(optionsBindingBuilder),
+				bindingBuilderFunc(filterBindingBuilder),
+				bindingBuilderFunc(constraintBindingBuilder),
+			}
+			if err = configureBinding(specType, spec, builders);
 				err != nil || len(spec.policies) == 0 {
 				return nil, err
 			}
@@ -145,14 +149,14 @@ func buildPolicySpec(
 	// Is it a callback arg?
 	if callbackOrSpec.Implements(_callbackType) {
 		return &policySpec{
-			policies: []Policy{policyOfCallback(callbackOrSpec)},
+			policies: []Policy{p.lookupPolicy(callbackOrSpec)},
 			arg:      rawCallbackArg{},
 		}, nil
 	}
 	return nil, nil
 }
 
-func policyBindingBuilder(
+func (p *policySpecBuilder) binding(
 	index   int,
 	field   reflect.StructField,
 	binding interface{},
@@ -162,7 +166,7 @@ func policyBindingBuilder(
 		if b, ok := binding.(interface {
 			addPolicy(policy Policy) error
 		}); ok {
-			policy := policyOfCallback(cb)
+			policy := p.lookupPolicy(cb)
 			if invalid := b.addPolicy(policy); invalid != nil {
 				err = fmt.Errorf(
 					"binding: policy %#v at index %v failed: %w",
@@ -173,15 +177,21 @@ func policyBindingBuilder(
 	return bound, err
 }
 
-func policyOfCallback(
+func (p *policySpecBuilder)lookupPolicy(
 	callbackType reflect.Type,
 ) Policy {
-	if p, ok := callbackType.MethodByName("Policy"); ok {
-		val := p.Func.Call([]reflect.Value{reflect.Zero(callbackType)})
-		return val[0].Interface().(Policy)
-	} else {
-		panic(fmt.Sprintf("%v is not a valid Callback type", callbackType))
+	if p.cache == nil {
+		p.cache = make(map[reflect.Type]Policy)
+	} else if policy, ok := p.cache[callbackType]; ok {
+		return policy
 	}
+	if pm, ok := callbackType.MethodByName("Policy"); ok {
+		val := pm.Func.Call([]reflect.Value{reflect.Zero(callbackType)})
+		policy := val[0].Interface().(Policy)
+		p.cache[callbackType] = policy
+		return policy
+	}
+	panic(fmt.Sprintf("missing Policy() method for callback %v ", callbackType))
 }
 
 func filterBindingBuilder(

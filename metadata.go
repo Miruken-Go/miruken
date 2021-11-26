@@ -280,6 +280,7 @@ func (f *mutableFactory) newHandlerDescriptor(
 	descriptor = &HandlerDescriptor{
 		handlerType: handlerType,
 	}
+	var builder policySpecBuilder
 	bindings := make(policyBindingsMap)
 	var ctorSpec *policySpec
 	var ctorPolicies []Policy
@@ -289,7 +290,7 @@ func (f *mutableFactory) newHandlerDescriptor(
 		constructor = &ctor
 		ctorType   := ctor.Type
 		if ctorType.NumIn() > 1 {
-			if spec, err := buildPolicySpec(ctorType.In(1)); err == nil {
+			if spec, err := builder.BuildSpec(ctorType.In(1)); err == nil {
 				if spec != nil {
 					ctorSpec     = spec
 					ctorPolicies = spec.policies
@@ -324,7 +325,7 @@ func (f *mutableFactory) newHandlerDescriptor(
 			}
 		}
 	}
-	// Add callback policies explicitly
+	// Add callback builder explicitly
 	for i := 0; i < handlerType.NumMethod(); i++ {
 		method := handlerType.Method(i)
 		if method.Name == "Constructor" || method.Name == "NoImplicitProvides" {
@@ -334,7 +335,7 @@ func (f *mutableFactory) newHandlerDescriptor(
 		if methodType.NumIn() < 2 {
 			continue // must have a callback/spec
 		}
-		if spec, err := buildPolicySpec(methodType.In(1)); err == nil {
+		if spec, err := builder.BuildSpec(methodType.In(1)); err == nil {
 			if spec == nil { // not a handler ctor
 				continue
 			}
