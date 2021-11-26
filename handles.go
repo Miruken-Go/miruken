@@ -18,6 +18,10 @@ func (h *Handles) Key() interface{} {
 	return reflect.TypeOf(h.callback)
 }
 
+func (h *Handles) Policy() Policy {
+	return _handlesPolicy
+}
+
 func (h *Handles) ReceiveResult(
 	result   interface{},
 	strict   bool,
@@ -119,9 +123,4 @@ func InvokeAll(handler Handler, callback interface{}, target interface{}) error 
 	return nil
 }
 
-func init() {
-	if err := RegisterCallbackPolicy(&Handles{}, &ContravariantPolicy{}); err != nil {
-		panic(err)
-	}
-}
-
+var _handlesPolicy Policy = &ContravariantPolicy{}

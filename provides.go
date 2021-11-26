@@ -18,6 +18,10 @@ func (p *Provides) Key() interface{} {
 	return p.key
 }
 
+func (p *Provides) Policy() Policy {
+	return _providesPolicy
+}
+
 func (p *Provides) Parent() *Provides {
 	return p.parent
 }
@@ -245,12 +249,6 @@ func (p *providesPolicy) NewConstructorBinding(
 		}
 	}
 	return newConstructorBinding(handlerType, constructor, spec, explicitSpec)
-}
-
-func init() {
-	if err := RegisterCallbackPolicy(&Provides{}, _providesPolicy); err != nil {
-		panic(err)
-	}
 }
 
 var _providesPolicy Policy = &providesPolicy{}

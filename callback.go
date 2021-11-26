@@ -8,6 +8,7 @@ type (
 	// Callback models an action.
 	Callback interface {
 		Key() interface{}
+		Policy() Policy
 		ResultType() reflect.Type
 		Result() interface{}
 		SetResult(result interface{})

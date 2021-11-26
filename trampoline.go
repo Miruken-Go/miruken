@@ -10,6 +10,13 @@ func (t *Trampoline) Callback() interface{} {
 	return t.callback
 }
 
+func (t *Trampoline) Policy() Policy {
+	if cb, ok := t.callback.(Callback); ok {
+		return cb.Policy()
+	}
+	return nil
+}
+
 func (t *Trampoline) ResultType() reflect.Type {
 	if cb, ok := t.callback.(Callback); ok {
 		return cb.ResultType()

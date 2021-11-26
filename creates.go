@@ -14,6 +14,10 @@ func (c *Creates) Key() interface{} {
 	return c.typ
 }
 
+func (c *Creates) Policy() Policy {
+	return _createsPolicy
+}
+
 func (c *Creates) ReceiveResult(
 	result   interface{},
 	strict   bool,
@@ -101,8 +105,4 @@ func (c *createsPolicy) NewConstructorBinding(
 	return newConstructorBinding(handlerType, constructor, spec, spec != nil)
 }
 
-func init() {
-	if err := RegisterCallbackPolicy(&Creates{}, &createsPolicy{}); err != nil {
-		panic(err)
-	}
-}
+var _createsPolicy Policy = &createsPolicy{}
