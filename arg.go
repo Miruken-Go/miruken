@@ -230,7 +230,7 @@ func buildDependency(
 			"type %v cannot be used as a dependency",
 			_interfaceType)
 	}
-	// Is it a *struct arg bindPolicies?
+	// Is it a *struct arg binding?
 	if argType.Kind() != reflect.Ptr {
 		return arg, nil
 	}

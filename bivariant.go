@@ -26,7 +26,7 @@ func (p *BivariantPolicy) Less(
 	binding, otherBinding Binding,
 ) bool {
 	if binding == nil {
-		panic("bindPolicies cannot be nil")
+		panic("binding cannot be nil")
 	}
 	if otherBinding == nil {
 		panic("otherBinding cannot be be nil")
@@ -40,7 +40,7 @@ func (p *BivariantPolicy) Less(
 		}
 		return otherBinding.Matches(key.In, Contravariant)
 	}
-	panic("expected DiKey for BivariantPolicy bindPolicies")
+	panic("expected DiKey for BivariantPolicy binding")
 }
 
 func (p *BivariantPolicy) NewMethodBinding(

@@ -47,7 +47,7 @@ func (p *ContravariantPolicy) Less(
 	binding, otherBinding Binding,
 ) bool {
 	if binding == nil {
-		panic("bindPolicies cannot be nil")
+		panic("binding cannot be nil")
 	}
 	if otherBinding == nil {
 		panic("otherBinding cannot be be nil")

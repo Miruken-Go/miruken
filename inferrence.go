@@ -81,7 +81,7 @@ func newInferenceHandler(
 			for policy, bs := range descriptor.bindings {
 				pb := bindings.getBindings(policy)
 				// Us bs.index vs.typed since inference ONLY needs a
-				// single bindPolicies to infer the handler type for a
+				// single binding to infer the handler type for a
 				// specific key.
 				for _, elem := range bs.index {
 					binding := elem.Value.(Binding)

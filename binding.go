@@ -28,7 +28,7 @@ type OrderBinding interface {
 	Less(binding, otherBinding Binding) bool
 }
 
-// MethodBindingError reports a failed method bindPolicies.
+// MethodBindingError reports a failed method binding.
 type MethodBindingError struct {
 	Method reflect.Method
 	Reason error
@@ -41,7 +41,7 @@ func (e MethodBindingError) Error() string {
 
 func (e MethodBindingError) Unwrap() error { return e.Reason }
 
-// MethodBinder creates a bindPolicies to the `method`
+// MethodBinder creates a binding to the `method`
 type MethodBinder interface {
 	NewMethodBinding(
 		method  reflect.Method,
@@ -137,7 +137,7 @@ func (b *methodBinding) Matches(
 	return false
 }
 
-// ConstructorBinder creates a constructor bindPolicies to `handlerType`.
+// ConstructorBinder creates a constructor binding to `handlerType`.
 type ConstructorBinder interface {
 	NewConstructorBinding(
 		handlerType  reflect.Type,
@@ -219,7 +219,7 @@ func newConstructorBinding(
 		args       := make([]arg, numArgs)
 		if spec != nil && explicitSpec {
 			startIndex = 1
-			args[0] = zeroArg{} // policy/bindPolicies placeholder
+			args[0] = zeroArg{} // policy/binding placeholder
 		}
 		if err := buildDependencies(methodType, startIndex, numArgs, args, startIndex); err != nil {
 			invalid = fmt.Errorf("constructor: %w", err)
