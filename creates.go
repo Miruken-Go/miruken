@@ -24,12 +24,7 @@ func (c *Creates) ReceiveResult(
 	greedy   bool,
 	composer Handler,
 ) (accepted bool) {
-	if result == nil {
-		return false
-	}
-	c.results = append(c.results, result)
-	c.result  = nil
-	return true
+	return c.AddResult(result)
 }
 
 func (c *Creates) Dispatch(

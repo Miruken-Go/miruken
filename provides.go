@@ -115,7 +115,7 @@ func (p *Provides) include(
 	}
 	if strict {
 		if included = p.AcceptResult(resolution, greedy, composer); included {
-			p.results = append(p.results, resolution)
+			p.AddResult(resolution)
 		}
 		return included
 	}
@@ -124,14 +124,14 @@ func (p *Provides) include(
 		forEach(resolution, func(idx int, value interface{}) {
 			if value != nil {
 				if inc := p.AcceptResult(value, greedy, composer); inc {
-					p.results = append(p.results, value)
+					p.AddResult(value)
 					included  = true
 				}
 			}
 		})
 	default:
 		if included = p.AcceptResult(resolution, greedy, composer); included {
-			p.results = append(p.results, resolution)
+			p.AddResult(resolution)
 		}
 	}
 	return included

@@ -154,7 +154,7 @@ func (d *HandlerDescriptor) Dispatch(
 						}
 					}
 					if providedFilters, err := orderedFilters(
-						composer, binding, callback, binding.Filters(),
+						composer, binding, rawCallback, binding.Filters(),
 						d.Filters(), policy.Filters(), tp);
 						providedFilters != nil && err == nil {
 						filters = providedFilters

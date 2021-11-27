@@ -231,7 +231,7 @@ type providedFilter struct {
 func orderedFilters(
 	handler       Handler,
 	binding       Binding,
-	callback      interface{},
+	callback      Callback,
 	providers ... []FilterProvider,
 ) ([]providedFilter, error) {
 	var options FilterOptions
@@ -261,7 +261,7 @@ func orderedFilters(
 				continue
 			}
 			if ap, ok := p.(interface {
-				AppliesTo(callback interface{}) bool }); ok {
+				AppliesTo(Callback) bool }); ok {
 				if !ap.AppliesTo(callback) {
 					continue
 				}

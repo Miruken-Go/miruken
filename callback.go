@@ -53,6 +53,15 @@ func (c *CallbackBase) SetResult(result interface{}) {
 	c.result = result
 }
 
+func (c *CallbackBase) AddResult(result interface{}) bool {
+	if result == nil {
+		return false
+	}
+	c.results = append(c.results, result)
+	c.result  = nil
+	return true
+}
+
 func (c *CallbackBase) CopyResult(target interface{}) {
 	if c.Many() {
 		CopySliceIndirect(c.Result().([]interface{}), target)

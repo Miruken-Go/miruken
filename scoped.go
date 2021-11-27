@@ -54,7 +54,7 @@ func (s *scoped) Next(
 	} else if ctx == nil {
 		return next.Abort()
 	} else if ctx.State() != ContextActive {
-		return nil, errors.New("cannot scope instances to inactive context")
+		return nil, errors.New("cannot scope instances to an inactive context")
 	} else if rooted {
 		ctx = ctx.Root()
 	}
@@ -148,7 +148,7 @@ func (s *scoped) tryDispose(instance interface{}) {
 	}
 }
 
-// ScopedQualifier constrains scoped lifestyle.
+// ScopedQualifier constrains a scoped lifestyle.
 type ScopedQualifier struct {
 	Qualifier
 }

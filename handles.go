@@ -28,12 +28,7 @@ func (h *Handles) ReceiveResult(
 	greedy   bool,
 	composer Handler,
 ) (accepted bool) {
-	if result == nil {
-		return false
-	}
-	h.results = append(h.results, result)
-	h.result  = nil
-	return true
+	return h.AddResult(result)
 }
 
 func (h *Handles) CanDispatch(

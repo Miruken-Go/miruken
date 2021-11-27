@@ -242,7 +242,7 @@ func (c *ConstraintProvider) Required() bool {
 }
 
 func (c *ConstraintProvider) AppliesTo(
-	callback interface{},
+	callback Callback,
 ) bool {
 	_, ok := callback.(BindingScope)
 	return ok

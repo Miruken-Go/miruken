@@ -40,7 +40,7 @@ func (i *initializerProvider) Required() bool {
 }
 
 func (i *initializerProvider) AppliesTo(
-	callback interface{},
+	callback Callback,
 ) bool {
 	switch callback.(type) {
 	case *Provides, *Creates: return true
