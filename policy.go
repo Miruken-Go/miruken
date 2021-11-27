@@ -51,9 +51,8 @@ func DispatchPolicy(
 	}
 	if factory := GetHandlerDescriptorFactory(composer); factory != nil {
 		handlerType := reflect.TypeOf(handler)
-		if d, err := factory.GetHandlerDescriptor(handlerType); d != nil {
-			context := HandleContext{callback, rawCallback, composer, results}
-			return d.Dispatch(policy, handler, greedy, context)
+		if d, err := factory.HandlerDescriptorOf(handlerType); d != nil {
+			return d.Dispatch(policy, handler, callback, rawCallback, greedy, composer, results)
 		} else if err != nil {
 			return NotHandled.WithError(err)
 		}
@@ -133,10 +132,10 @@ func (p *policySpecBuilder) BuildSpec(
 			specType.NumField() > 0 {
 			spec = &policySpec{}
 			builders := []bindingBuilder{
-				bindingBuilderFunc(p.binding),
-				bindingBuilderFunc(optionsBindingBuilder),
-				bindingBuilderFunc(filterBindingBuilder),
-				bindingBuilderFunc(constraintBindingBuilder),
+				bindingBuilderFunc(p.bindPolicies),
+				bindingBuilderFunc(bindOptions),
+				bindingBuilderFunc(bindFilters),
+				bindingBuilderFunc(bindConstraints),
 			}
 			if err = configureBinding(specType, spec, builders);
 				err != nil || len(spec.policies) == 0 {
@@ -149,14 +148,14 @@ func (p *policySpecBuilder) BuildSpec(
 	// Is it a callback arg?
 	if callbackOrSpec.Implements(_callbackType) {
 		return &policySpec{
-			policies: []Policy{p.lookupPolicy(callbackOrSpec)},
+			policies: []Policy{p.policyOf(callbackOrSpec)},
 			arg:      rawCallbackArg{},
 		}, nil
 	}
 	return nil, nil
 }
 
-func (p *policySpecBuilder) binding(
+func (p *policySpecBuilder) bindPolicies(
 	index   int,
 	field   reflect.StructField,
 	binding interface{},
@@ -166,10 +165,10 @@ func (p *policySpecBuilder) binding(
 		if b, ok := binding.(interface {
 			addPolicy(policy Policy) error
 		}); ok {
-			policy := p.lookupPolicy(cb)
+			policy := p.policyOf(cb)
 			if invalid := b.addPolicy(policy); invalid != nil {
 				err = fmt.Errorf(
-					"binding: policy %#v at index %v failed: %w",
+					"bindPolicies: policy %#v at index %v failed: %w",
 					policy, index, invalid)
 			}
 		}
@@ -177,7 +176,7 @@ func (p *policySpecBuilder) binding(
 	return bound, err
 }
 
-func (p *policySpecBuilder)lookupPolicy(
+func (p *policySpecBuilder) policyOf(
 	callbackType reflect.Type,
 ) Policy {
 	if p.cache == nil {
@@ -194,7 +193,7 @@ func (p *policySpecBuilder)lookupPolicy(
 	panic(fmt.Sprintf("missing Policy() method for callback %v ", callbackType))
 }
 
-func filterBindingBuilder(
+func bindFilters(
 	index   int,
 	field   reflect.StructField,
 	binding interface{},
@@ -221,7 +220,7 @@ func filterBindingBuilder(
 			provider := &FilterSpecProvider{spec}
 			if invalid := b.addFilterProvider(provider); invalid != nil {
 				err = fmt.Errorf(
-					"binding: filter spec provider %v at index %v failed: %w",
+					"bindFilters: filter spec provider %v at index %v failed: %w",
 					provider, index, invalid)
 			}
 		}
@@ -232,11 +231,11 @@ func filterBindingBuilder(
 		}); ok {
 			if provider, invalid := newWithTag(fp, field.Tag); invalid != nil {
 				err = fmt.Errorf(
-					"binding: new filter provider at index %v failed: %w",
+					"bindFilters: new filter provider at index %v failed: %w",
 					index, invalid)
 			} else if invalid := b.addFilterProvider(provider.(FilterProvider)); invalid != nil {
 				err = fmt.Errorf(
-					"binding: filter provider %v at index %v failed: %w",
+					"bindFilters: filter provider %v at index %v failed: %w",
 					provider, index, invalid)
 			}
 		}
@@ -244,7 +243,7 @@ func filterBindingBuilder(
 	return bound, err
 }
 
-func constraintBindingBuilder(
+func bindConstraints(
 	index   int,
 	field   reflect.StructField,
 	binding interface{},
@@ -257,12 +256,10 @@ func constraintBindingBuilder(
 		}); ok {
 			if constraint, invalid := newWithTag(ct, field.Tag); invalid != nil {
 				err = fmt.Errorf(
-					"binding: new key at index %v failed: %w",
-					index, invalid)
+					"bindConstraints: new key at index %v failed: %w", index, invalid)
 			} else if invalid := b.addConstraint(constraint.(BindingConstraint)); invalid != nil {
 				err = fmt.Errorf(
-					"binding: key %v at index %v failed: %w",
-					constraint, index, invalid)
+					"bindConstraints: key %v at index %v failed: %w", constraint, index, invalid)
 			}
 		}
 	}

@@ -139,7 +139,7 @@ type DependencyResolver interface {
 	) (reflect.Value, error)
 }
 
-// defaultDependencyResolver retrieves the value from the Handler.
+// defaultDependencyResolver resolves the value from the Handler.
 type defaultDependencyResolver struct{}
 
 func (r *defaultDependencyResolver) Resolve(
@@ -189,6 +189,7 @@ func (r *defaultDependencyResolver) Resolve(
 type HandleContext struct {
 	callback    interface{}
 	rawCallback Callback
+	binding     Binding
 	composer    Handler
 	results     ResultReceiver
 }
@@ -199,6 +200,10 @@ func (h HandleContext) Callback() interface{} {
 
 func (h HandleContext) RawCallback() Callback {
 	return h.rawCallback
+}
+
+func (h HandleContext) Binding() Binding {
+	return h.binding
 }
 
 func (h HandleContext) Composer() Handler {
@@ -212,9 +217,9 @@ func (h HandleContext) Results() ResultReceiver {
 // Dependency typed
 
 var dependencyBuilders = []bindingBuilder{
-	bindingBuilderFunc(optionsBindingBuilder),
-	bindingBuilderFunc(resolverBindingBuilder),
-	bindingBuilderFunc(constraintBindingBuilder),
+	bindingBuilderFunc(bindOptions),
+	bindingBuilderFunc(bindResolver),
+	bindingBuilderFunc(bindConstraints),
 }
 
 func buildDependency(
@@ -225,7 +230,7 @@ func buildDependency(
 			"type %v cannot be used as a dependency",
 			_interfaceType)
 	}
-	// Is it a *struct arg binding?
+	// Is it a *struct arg bindPolicies?
 	if argType.Kind() != reflect.Ptr {
 		return arg, nil
 	}
@@ -288,7 +293,7 @@ func buildDependencies(
 	return invalid
 }
 
-func resolverBindingBuilder(
+func bindResolver(
 	index   int,
 	field   reflect.StructField,
 	binding interface{},
@@ -300,11 +305,11 @@ func resolverBindingBuilder(
 		}); ok {
 			if resolver, invalid := newWithTag(dr, field.Tag); invalid != nil {
 				err = fmt.Errorf(
-					"binding: new dependency resolver at field %v (%v) failed: %w",
+					"bindResolver: new dependency resolver at field %v (%v) failed: %w",
 					field.Name, index, invalid)
 			} else if invalid := b.setResolver(resolver.(DependencyResolver)); invalid != nil {
 				err = fmt.Errorf(
-					"binding: dependency resolver %#v at field %v (%v) failed: %w",
+					"bindResolver: dependency resolver %#v at field %v (%v) failed: %w",
 					resolver, field.Name, index, invalid)
 			}
 		}

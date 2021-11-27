@@ -25,8 +25,7 @@ func (h *inferenceHandler) DispatchPolicy(
 	if infer, ok := rawCallback.(interface{CanInfer() bool}); ok && !infer.CanInfer() {
 		return NotHandled
 	}
-	context := HandleContext{callback, rawCallback, composer, results}
-	return h.descriptor.Dispatch(policy, h, greedy, context)
+	return h.descriptor.Dispatch(policy, h, callback, rawCallback, greedy, composer, results)
 }
 
 func (h *inferenceHandler) suppressDispatch() {}
@@ -82,7 +81,7 @@ func newInferenceHandler(
 			for policy, bs := range descriptor.bindings {
 				pb := bindings.getBindings(policy)
 				// Us bs.index vs.typed since inference ONLY needs a
-				// single binding to infer the handler type for a
+				// single bindPolicies to infer the handler type for a
 				// specific key.
 				for _, elem := range bs.index {
 					binding := elem.Value.(Binding)

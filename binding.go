@@ -28,7 +28,7 @@ type OrderBinding interface {
 	Less(binding, otherBinding Binding) bool
 }
 
-// MethodBindingError reports a failed method binding.
+// MethodBindingError reports a failed method bindPolicies.
 type MethodBindingError struct {
 	Method reflect.Method
 	Reason error
@@ -41,7 +41,7 @@ func (e MethodBindingError) Error() string {
 
 func (e MethodBindingError) Unwrap() error { return e.Reason }
 
-// MethodBinder creates a binding to the `method`
+// MethodBinder creates a bindPolicies to the `method`
 type MethodBinder interface {
 	NewMethodBinding(
 		method  reflect.Method,
@@ -137,7 +137,7 @@ func (b *methodBinding) Matches(
 	return false
 }
 
-// ConstructorBinder creates a constructor binding to `handlerType`.
+// ConstructorBinder creates a constructor bindPolicies to `handlerType`.
 type ConstructorBinder interface {
 	NewConstructorBinding(
 		handlerType  reflect.Type,
@@ -219,7 +219,7 @@ func newConstructorBinding(
 		args       := make([]arg, numArgs)
 		if spec != nil && explicitSpec {
 			startIndex = 1
-			args[0] = zeroArg{} // policy/binding placeholder
+			args[0] = zeroArg{} // policy/bindPolicies placeholder
 		}
 		if err := buildDependencies(methodType, startIndex, numArgs, args, startIndex); err != nil {
 			invalid = fmt.Errorf("constructor: %w", err)
@@ -300,7 +300,7 @@ func configureBinding(
 	return err
 }
 
-func optionsBindingBuilder(
+func bindOptions(
 	index   int,
 	field   reflect.StructField,
 	binding interface{},
@@ -313,7 +313,7 @@ func optionsBindingBuilder(
 		}); ok {
 			if invalid := b.setStrict(index, field, true); invalid != nil {
 				err = multierror.Append(err, fmt.Errorf(
-					"binding: strict binding on field %v (%v) failed: %w",
+					"bindOptions: strict field %v (%v) failed: %w",
 					field.Name, index, invalid))
 			}
 		}
@@ -324,7 +324,7 @@ func optionsBindingBuilder(
 		}); ok {
 			if invalid := b.setOptional(index, field, true); invalid != nil {
 				err = multierror.Append(err, fmt.Errorf(
-					"binding: optional binding on field %v (%v) failed: %w",
+					"bindOptions: optional field %v (%v) failed: %w",
 					field.Name, index, invalid))
 			}
 		}
@@ -335,7 +335,7 @@ func optionsBindingBuilder(
 		}); ok {
 			if invalid := b.setSkipFilters(index, field, true); invalid != nil {
 				err = multierror.Append(err, fmt.Errorf(
-					"binding: skipFilters binding on field %v (%v) failed: %w",
+					"bindOptions: skipFilters on field %v (%v) failed: %w",
 					field.Name, index, invalid))
 			}
 		}
