@@ -24,7 +24,7 @@ func IsNil(val interface{}) bool {
 }
 
 // TargetValue validates the interface contains a
-// non-nil typed pointer and return the reflect.Value.
+// non-nil typed pointer and return reflect.Value.
 func TargetValue(target interface{}) reflect.Value {
 	if target == nil {
 		panic("target cannot be nil")
@@ -38,7 +38,7 @@ func TargetValue(target interface{}) reflect.Value {
 }
 
 // TargetSliceValue validates the interface contains a
-// non-nil typed slice pointer and return the reflect.Value.
+// non-nil typed slice pointer and return reflect.Value.
 func TargetSliceValue(target interface{}) reflect.Value {
 	val := TargetValue(target)
 	typ := val.Type()

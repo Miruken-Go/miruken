@@ -46,6 +46,9 @@ type CreatesBuilder struct {
 func (b *CreatesBuilder) WithType(
 	typ reflect.Type,
 ) *CreatesBuilder {
+	if IsNil(typ) {
+		panic("type cannot be nil")
+	}
 	b.typ = typ
 	return b
 }

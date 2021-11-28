@@ -115,7 +115,7 @@ func (p *Provides) include(
 	}
 	if strict {
 		if included = p.AcceptResult(resolution, greedy, composer); included {
-			p.AddResult(resolution)
+			included = p.AddResult(resolution)
 		}
 		return included
 	}
@@ -124,14 +124,13 @@ func (p *Provides) include(
 		forEach(resolution, func(idx int, value interface{}) {
 			if value != nil {
 				if inc := p.AcceptResult(value, greedy, composer); inc {
-					p.AddResult(value)
-					included  = true
+					included = p.AddResult(value) || included
 				}
 			}
 		})
 	default:
 		if included = p.AcceptResult(resolution, greedy, composer); included {
-			p.AddResult(resolution)
+			included = p.AddResult(resolution)
 		}
 	}
 	return included
@@ -148,6 +147,9 @@ type ProvidesBuilder struct {
 func (b *ProvidesBuilder) WithKey(
 	key interface{},
 ) *ProvidesBuilder {
+	if IsNil(key) {
+		panic("key cannot be nil")
+	}
 	b.key = key
 	return b
 }

@@ -74,6 +74,9 @@ type HandlesBuilder struct {
 func (b *HandlesBuilder) WithCallback(
 	callback interface{},
 ) *HandlesBuilder {
+	if IsNil(callback) {
+		panic("callback cannot be nil")
+	}
 	b.callback = callback
 	return b
 }
