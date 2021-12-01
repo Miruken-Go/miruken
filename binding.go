@@ -6,18 +6,12 @@ import (
 	"reflect"
 )
 
-// Binding is the abstraction for key handling.
+// Binding abstracts a Callback method.
 type Binding interface {
 	Filtered
 	Strict()      bool
 	SkipFilters() bool
 	Key()         interface{}
-
-	Matches(
-		key      interface{},
-		variance Variance,
-	) (matched bool)
-
 	Invoke(
 		context  HandleContext,
 		explicitArgs ... interface{},
@@ -53,6 +47,10 @@ type MethodBinder interface {
 type methodInvoke struct {
 	method reflect.Method
 	args   []arg
+}
+
+func (m methodInvoke) Method() reflect.Method {
+	return m.method
 }
 
 func (m methodInvoke) Invoke(
@@ -113,30 +111,6 @@ func (b *methodBinding) Key() interface{} {
 	return b.key
 }
 
-func (b *methodBinding) Matches(
-	key      interface{},
-	variance Variance,
-) (matched bool) {
-	bk := b.Key()
-	if bk == key {
-		return true
-	} else if b.Strict() {
-		return false
-	}
-	switch kt := key.(type) {
-	case reflect.Type:
-		if bt, ok := bk.(reflect.Type); ok {
-			switch variance {
-			case Covariant:
-				return bt == _interfaceType || bt.AssignableTo(kt)
-			case Contravariant:
-				return kt.AssignableTo(bt)
-			}
-		}
-	}
-	return false
-}
-
 // ConstructorBinder creates a constructor binding to `handlerType`.
 type ConstructorBinder interface {
 	NewConstructorBinding(
@@ -164,22 +138,6 @@ func (b *constructorBinding) SkipFilters() bool {
 
 func (b *constructorBinding) Key() interface{} {
 	return b.handlerType
-}
-
-func (b *constructorBinding) Matches(
-	key      interface{},
-	variance Variance,
-) (matched bool) {
-	if variance == Contravariant {
-		return false
-	}
-	if key == b.handlerType {
-		return true
-	}
-	if kt, ok := key.(reflect.Type); ok {
-		return b.handlerType.AssignableTo(kt)
-	}
-	return false
 }
 
 func (b *constructorBinding) Invoke(

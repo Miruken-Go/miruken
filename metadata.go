@@ -124,8 +124,7 @@ func (d *HandlerDescriptor) Dispatch(
 	results     ResultReceiver,
 ) (result HandleResult) {
 	if pb, found := d.bindings[policy]; found {
-		variance    := policy.Variance()
-		key         := rawCallback.Key()
+		key := rawCallback.Key()
 		return pb.reduce(key, func (
 			binding Binding,
 			result  HandleResult,
@@ -133,7 +132,7 @@ func (d *HandlerDescriptor) Dispatch(
 			if result.stop || (result.handled && !greedy) {
 				return result, true
 			}
-			if binding.Matches(key, variance) {
+			if matches, _ := policy.Matches(binding.Key(), key, binding.Strict()); matches {
 				if guard, ok := rawCallback.(CallbackGuard); ok {
 					reset, approve := guard.CanDispatch(handler, binding)
 					defer func() {

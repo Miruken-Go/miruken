@@ -6,21 +6,11 @@ import (
 	"strings"
 )
 
-// Variance determines how callbacks are handled.
-type Variance uint
-
-const (
-	Invariant Variance = 0
-	Covariant Variance = 1 << iota
-	Contravariant
-	Bivariant = Covariant | Contravariant
-)
-
 // Policy defines behaviors for callbacks.
 type Policy interface {
 	OrderBinding
 	Filtered
-	Variance() Variance
+	Matches(key, otherKey interface{}, strict bool) (bool, bool)
 	AcceptResults(results []interface{}) (interface{}, HandleResult)
 }
 

@@ -12,8 +12,35 @@ type CovariantPolicy struct {
 	FilteredScope
 }
 
-func (p *CovariantPolicy) Variance() Variance {
-	return Covariant
+func (p *CovariantPolicy) Matches(
+	key, otherKey interface{},
+	strict        bool,
+) (matches bool, exact bool) {
+	if key == otherKey {
+		return true, true
+	} else if strict {
+		return false, false
+	}
+	switch kt := otherKey.(type) {
+	case reflect.Type:
+		if bt, isType := key.(reflect.Type); isType {
+			return bt == _interfaceType || bt.AssignableTo(kt), false
+		}
+	}
+	return false, false
+}
+
+func (p *CovariantPolicy) Less(
+	binding, otherBinding Binding,
+) bool {
+	if binding == nil {
+		panic("binding cannot be nil")
+	}
+	if otherBinding == nil {
+		panic("otherBinding cannot be nil")
+	}
+	matches, exact := p.Matches(otherBinding.Key(), binding.Key(), otherBinding.Strict())
+	return !exact && matches
 }
 
 func (p *CovariantPolicy) AcceptResults(
@@ -51,22 +78,6 @@ func (p *CovariantPolicy) AcceptResults(
 	}
 	return nil, NotHandled.WithError(
 		errors.New("covariant policy: cannot accept more than 2 results"))
-}
-
-func (p *CovariantPolicy) Less(
-	binding, otherBinding Binding,
-) bool {
-	if binding == nil {
-		panic("binding cannot be nil")
-	}
-	if otherBinding == nil {
-		panic("otherBinding cannot be nil")
-	}
-	key := binding.Key()
-	if otherBinding.Matches(key, Invariant) {
-		return false
-	}
-	return otherBinding.Matches(key, Covariant)
 }
 
 func (p *CovariantPolicy) NewMethodBinding(

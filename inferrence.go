@@ -32,9 +32,9 @@ func (h *inferenceHandler) suppressDispatch() {}
 
 // bindingIntercept intercepts Binding invocations to handler inference.
 type bindingIntercept struct {
+	Binding
 	handlerType reflect.Type
 	skipFilters bool
-	Binding
 }
 
 func (b *bindingIntercept) Filters() []FilterProvider {
@@ -87,17 +87,17 @@ func newInferenceHandler(
 					binding := elem.Value.(Binding)
 					_, ctorBinding := binding.(*constructorBinding)
 					pb.insert(&bindingIntercept{
+						binding,
 						descriptor.handlerType,
 						!ctorBinding,
-						binding,
 					})
 				}
-				for _, bs := range pb.invar {
+				for _, bs := range bs.invar {
 					if len(bs) > 0 {
 						b := bs[0]  // only need first
 						_, ctorBinding := b.(*constructorBinding)
 						pb.insert(&bindingIntercept{
-							descriptor.handlerType, !ctorBinding, b,
+							b, descriptor.handlerType, !ctorBinding,
 						})
 					}
 				}

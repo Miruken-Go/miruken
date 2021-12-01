@@ -92,11 +92,11 @@ func (n *Named) Name() string {
 }
 
 func (n *Named) InitWithTag(tag reflect.StructTag) error {
-	if name, ok := tag.Lookup("name"); ok && len(name) > 0 {
+	if name, ok := tag.Lookup("name"); ok && len(strings.TrimSpace(name)) > 0 {
 		n.name = name
 		return nil
 	}
-	return errors.New("the Named key requires a non-empty name:[name] tag")
+	return errors.New("the Named constraint requires a non-empty `name:[name]` tag")
 }
 
 func (n *Named) Require(metadata *BindingMetadata) {
