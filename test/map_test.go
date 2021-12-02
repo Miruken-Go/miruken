@@ -31,10 +31,10 @@ type EntityMapping struct{}
 func (m *EntityMapping) MapPlayerData(
 	maps *miruken.Maps, entity *PlayerEntity,
 ) *PlayerData {
-	if data, ok := maps.Target().(*PlayerData); ok && data != nil {
-		data.Id   = entity.Id
-		data.Name = entity.Name
-		return data
+	if data, ok := maps.Target().(**PlayerData); ok && *data != nil {
+		(*data).Id   = entity.Id
+		(*data).Name = entity.Name
+		return *data
 	}
 	return &PlayerData{
 		Id:   entity.Id,
@@ -76,7 +76,7 @@ func (suite *MapTestSuite) TestMap() {
 	suite.Run("Maps", func () {
 		suite.Run("Implicit", func() {
 			handler := suite.InferenceRoot()
-			entity := &PlayerEntity{
+			entity  := &PlayerEntity{
 				Entity{ Id: 1 },
 				"Tim Howard",
 			}
@@ -89,12 +89,25 @@ func (suite *MapTestSuite) TestMap() {
 
 		suite.Run("Into", func() {
 			handler := suite.InferenceRoot()
-			entity := &PlayerEntity{
+			entity  := &PlayerEntity{
 				Entity{ Id: 1 },
 				"Tim Howard",
 			}
 			var data PlayerData
 			err := miruken.Map(handler, entity, &data)
+			suite.Nil(err)
+			suite.Equal(1, data.Id)
+			suite.Equal("Tim Howard", data.Name)
+		})
+
+		suite.Run("IntoPtr", func() {
+			handler := suite.InferenceRoot()
+			entity  := &PlayerEntity{
+				Entity{ Id: 1 },
+				"Tim Howard",
+			}
+			data := new(PlayerData)
+			err  := miruken.Map(handler, entity, &data)
 			suite.Nil(err)
 			suite.Equal(1, data.Id)
 			suite.Equal("Tim Howard", data.Name)

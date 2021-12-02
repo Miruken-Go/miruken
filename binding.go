@@ -9,18 +9,20 @@ import (
 // Binding abstracts a Callback method.
 type Binding interface {
 	Filtered
+	Key()         interface{}
 	Strict()      bool
 	SkipFilters() bool
-	Key()         interface{}
 	Invoke(
-		context  HandleContext,
+		context HandleContext,
 		explicitArgs ... interface{},
 	) (results []interface{}, err error)
 }
 
-type OrderBinding interface {
-	Less(binding, otherBinding Binding) bool
-}
+// BindingReducer aggregates Binding results.
+type BindingReducer func(
+	binding Binding,
+	result  HandleResult,
+) (HandleResult, bool)
 
 // MethodBindingError reports a failed method binding.
 type MethodBindingError struct {
@@ -99,16 +101,16 @@ type methodBinding struct {
 	flags bindingFlags
 }
 
+func (b *methodBinding) Key() interface{} {
+	return b.key
+}
+
 func (b *methodBinding) Strict() bool {
 	return b.flags & bindingStrict == bindingStrict
 }
 
 func (b *methodBinding) SkipFilters() bool {
 	return b.flags & bindingSkipFilters == bindingSkipFilters
-}
-
-func (b *methodBinding) Key() interface{} {
-	return b.key
 }
 
 // ConstructorBinder creates a constructor binding to `handlerType`.
@@ -128,16 +130,16 @@ type constructorBinding struct {
 	flags        bindingFlags
 }
 
+func (b *constructorBinding) Key() interface{} {
+	return b.handlerType
+}
+
 func (b *constructorBinding) Strict() bool {
 	return false
 }
 
 func (b *constructorBinding) SkipFilters() bool {
 	return b.flags & bindingSkipFilters == bindingSkipFilters
-}
-
-func (b *constructorBinding) Key() interface{} {
-	return b.handlerType
 }
 
 func (b *constructorBinding) Invoke(

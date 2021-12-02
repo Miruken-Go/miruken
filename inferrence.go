@@ -79,8 +79,8 @@ func newInferenceHandler(
 			panic(err)
 		} else if added {
 			for policy, bs := range descriptor.bindings {
-				pb := bindings.getBindings(policy)
-				// Us bs.index vs.typed since inference ONLY needs a
+				pb := bindings.forPolicy(policy)
+				// Us bs.index vs.variant since inference ONLY needs a
 				// single binding to infer the handler type for a
 				// specific key.
 				for _, elem := range bs.index {
@@ -92,7 +92,7 @@ func newInferenceHandler(
 						!ctorBinding,
 					})
 				}
-				for _, bs := range bs.invar {
+				for _, bs := range bs.invariant {
 					if len(bs) > 0 {
 						b := bs[0]  // only need first
 						_, ctorBinding := b.(*constructorBinding)

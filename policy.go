@@ -6,10 +6,11 @@ import (
 	"strings"
 )
 
-// Policy defines behaviors for callbacks.
+// Policy manages behaviors and callback Binding's.
 type Policy interface {
-	OrderBinding
 	Filtered
+	IsVariantKey(key interface{}) (bool, bool)
+	Less(binding, otherBinding Binding) bool
 	Matches(key, otherKey interface{}, strict bool) (bool, bool)
 	AcceptResults(results []interface{}) (interface{}, HandleResult)
 }

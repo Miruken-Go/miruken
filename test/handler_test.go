@@ -673,6 +673,16 @@ func (p *GenericProvider) Provide(
 	return nil
 }
 
+// ResultProvider
+type ResultProvider struct{}
+
+func (f *ResultProvider) ProvideFoo(provides *miruken.Provides) *Foo {
+	foo := Foo{}
+	foo.Inc()
+	provides.AddResult(&foo)
+	return nil
+}
+
 // InvalidProvider
 type InvalidProvider struct {}
 
@@ -807,6 +817,15 @@ func (suite *HandlerTestSuite) TestProvides() {
 			suite.NotNil(bars)
 			suite.Equal(2, len(bars))
 		})
+	})
+
+	suite.Run("Results", func () {
+		handler := miruken.NewRootHandler(
+			miruken.WithHandlerTypes(reflect.TypeOf((*ResultProvider)(nil))))
+		var foo *Foo
+		err := miruken.Resolve(handler, &foo)
+		suite.Nil(err)
+		suite.Equal(1, foo.Count())
 	})
 
 	suite.Run("Lists", func () {

@@ -12,6 +12,15 @@ type CovariantPolicy struct {
 	FilteredScope
 }
 
+func (p *CovariantPolicy) IsVariantKey(
+	key interface{},
+) (variant bool, unknown bool) {
+	if typ, ok := key.(reflect.Type); ok {
+		return true, typ == _interfaceType
+	}
+	return false, false
+}
+
 func (p *CovariantPolicy) Matches(
 	key, otherKey interface{},
 	strict        bool,

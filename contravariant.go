@@ -12,6 +12,15 @@ type ContravariantPolicy struct {
 	FilteredScope
 }
 
+func (p *ContravariantPolicy) IsVariantKey(
+	key interface{},
+) (variant bool, unknown bool) {
+	if typ, ok := key.(reflect.Type); ok {
+		return true, typ == _interfaceType
+	}
+	return false, false
+}
+
 func (p *ContravariantPolicy) Matches(
 	key, otherKey interface{},
 	strict        bool,

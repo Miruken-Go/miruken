@@ -8,74 +8,71 @@ import (
 	"sync"
 )
 
-type (
-	policyBindings struct {
-		order OrderBinding
-		typed *list.List
-		index map[reflect.Type]*list.Element
-		invar map[interface{}][]Binding
-	}
-
-	BindingReducer func(
-		binding Binding,
-		result  HandleResult,
-	) (HandleResult, bool)
-)
+// policyBindings maintains Binding's for a Policy.
+type policyBindings struct {
+	policy    Policy
+	variant   *list.List
+	index     map[interface{}]*list.Element
+	invariant map[interface{}][]Binding
+}
 
 func (p *policyBindings) insert(binding Binding) {
 	key := binding.Key()
-	if typ, ok := key.(reflect.Type); ok {
-		if typ == _interfaceType {
-			p.typed.PushBack(binding)
+	if variant, unknown := p.policy.IsVariantKey(key); variant {
+		if unknown {
+			p.variant.PushBack(binding)
 			return
 		}
-		indexedElem := p.index[typ]
+		indexedElem := p.index[key]
 		insert := indexedElem
 		if insert == nil {
-			insert = p.typed.Front()
+			insert = p.variant.Front()
 		}
-		for insert != nil && !p.order.Less(binding, insert.Value.(Binding)) {
+		for insert != nil && !p.policy.Less(binding, insert.Value.(Binding)) {
 			insert = insert.Next()
 		}
 		var elem *list.Element
 		if insert != nil {
-			elem = p.typed.InsertBefore(binding, insert)
+			elem = p.variant.InsertBefore(binding, insert)
 		} else {
-			elem = p.typed.PushBack(binding)
+			elem = p.variant.PushBack(binding)
 		}
 		if indexedElem == nil {
-			p.index[typ] = elem
+			p.index[key] = elem
 		}
 	} else {
-		if p.invar == nil {
-			p.invar = make(map[interface{}][]Binding)
-			p.invar[key] = []Binding{binding}
+		if p.invariant == nil {
+			p.invariant = make(map[interface{}][]Binding)
+			p.invariant[key] = []Binding{binding}
 		} else {
-			bindings := append(p.invar[key], binding)
-			p.invar[key] = bindings
+			bindings := append(p.invariant[key], binding)
+			p.invariant[key] = bindings
 		}
 	}
 }
 
 func (p *policyBindings) reduce(
-	key    interface{},
-	reduce BindingReducer,
+	key     interface{},
+	reducer BindingReducer,
 ) (result HandleResult) {
+	if reducer == nil {
+		panic("reducer cannot be nil")
+	}
 	done := false
 	result = NotHandled
-	if typ, ok := key.(reflect.Type); ok {
-		elem := p.index[typ]
+	if variant, _ := p.policy.IsVariantKey(key); variant {
+		elem := p.index[key]
 		if elem == nil {
-			elem = p.typed.Front()
+			elem = p.variant.Front()
 		}
 		for !done && elem != nil {
-			result, done = reduce(elem.Value.(Binding), result)
+			result, done = reducer(elem.Value.(Binding), result)
 			elem = elem.Next()
 		}
-	} else if p.invar != nil {
-		if bs := p.invar[key]; bs != nil {
+	} else if p.invariant != nil {
+		if bs := p.invariant[key]; bs != nil {
 			for _, b := range bs {
-				result, done = reduce(b, result)
+				result, done = reducer(b, result)
 				if done { break }
 			}
 		}
@@ -83,28 +80,21 @@ func (p *policyBindings) reduce(
 	return result
 }
 
-func newPolicyBindings(order OrderBinding) *policyBindings {
-	if order == nil {
-		panic("order cannot be nil")
-	}
-	return &policyBindings{
-		order,
-		list.New(),
-		make(map[reflect.Type]*list.Element),
-		nil,
-	}
-}
-
 // policyBindingsMap maps Policy's to Binding's.
 type policyBindingsMap map[Policy]*policyBindings
 
-func (p policyBindingsMap) getBindings(policy Policy) *policyBindings {
-	policyBindings, found := p[policy]
+func (p policyBindingsMap) forPolicy(policy Policy) *policyBindings {
+	bindings, found := p[policy]
 	if !found {
-		policyBindings = newPolicyBindings(policy)
-		p[policy] = policyBindings
+		bindings = &policyBindings{
+			policy,
+			list.New(),
+			make(map[interface{}]*list.Element),
+			nil,
+		}
+		p[policy] = bindings
 	}
-	return policyBindings
+	return bindings
 }
 
 // HandlerDescriptor describes the Binding's of a Handler.
@@ -317,7 +307,7 @@ func (f *mutableDescriptorFactory) newHandlerDescriptor(
 				if f.visitor != nil {
 					f.visitor.VisitHandlerBinding(descriptor, ctor)
 				}
-				bindings.getBindings(ctorPolicy).insert(ctor)
+				bindings.forPolicy(ctorPolicy).insert(ctor)
 			} else {
 				invalid = multierror.Append(invalid, err)
 			}
@@ -343,7 +333,7 @@ func (f *mutableDescriptorFactory) newHandlerDescriptor(
 						if f.visitor != nil {
 							f.visitor.VisitHandlerBinding(descriptor, binding)
 						}
-						bindings.getBindings(policy).insert(binding)
+						bindings.forPolicy(policy).insert(binding)
 					} else if errBind != nil {
 						invalid = multierror.Append(invalid, errBind)
 					}

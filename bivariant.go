@@ -20,6 +20,13 @@ type BivariantPolicy struct {
 	out CovariantPolicy
 }
 
+func (p *BivariantPolicy) IsVariantKey(
+	key interface{},
+) (variant bool, unknown bool) {
+	_, ok := key.(DiKey)
+	return ok, false
+}
+
 func (p *BivariantPolicy) Matches(
 	key, otherKey interface{},
 	strict        bool,
