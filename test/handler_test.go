@@ -753,9 +753,9 @@ func (p *SpecificationProvider) ProvidesBar(
 	return []*Bar{&p.bar, {}}
 }
 
-type GenericProvider struct{}
+type OpenProvider struct{}
 
-func (p *GenericProvider) Provide(
+func (p *OpenProvider) Provide(
 	provides *miruken.Provides,
 ) interface{} {
 	if provides.Key() == reflect.TypeOf((*Foo)(nil)) {
@@ -854,10 +854,10 @@ func (suite *HandlerTestSuite) TestProvides() {
 		suite.Nil(foo)
 	})
 
-	suite.Run("Generic", func () {
+	suite.Run("Open", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*GenericProvider)(nil))),
-			miruken.WithHandlers(new(GenericProvider)))
+			miruken.WithHandlerTypes(reflect.TypeOf((*OpenProvider)(nil))),
+			miruken.WithHandlers(new(OpenProvider)))
 		var foo *Foo
 		err := miruken.Resolve(handler, &foo)
 		suite.Nil(err)

@@ -54,7 +54,7 @@ func (c *CallbackBase) SetResult(result interface{}) {
 }
 
 func (c *CallbackBase) AddResult(result interface{}) bool {
-	if result == nil {
+	if IsNil(result) {
 		return false
 	}
 	c.results = append(c.results, result)

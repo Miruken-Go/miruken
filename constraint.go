@@ -216,7 +216,7 @@ func (c *ConstraintFilter) Next(
 	if cp, ok := provider.(interface {
 		Constraint() BindingConstraint
 	}); ok {
-		if scope, ok := context.Callback().(BindingScope); ok {
+		if scope, ok := context.RawCallback().(BindingScope); ok {
 			metadata := scope.Metadata()
 			if metadata != nil && !cp.Constraint().Matches(metadata) {
 				return next.Abort()

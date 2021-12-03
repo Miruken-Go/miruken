@@ -175,9 +175,7 @@ func Map(
 		return NotHandledError{maps}
 	}
 	tv := TargetValue(target)
-	if tv.Elem().Kind() == reflect.Ptr {
-		maps.CopyResult(tv)
-	}
+	maps.CopyResult(tv)
 	return nil
 }
 

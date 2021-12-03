@@ -18,7 +18,7 @@ var HandlerTestTypes = []reflect.Type{
 	reflect.TypeOf((*FooHandler)(nil)),
 	reflect.TypeOf((*FooOptionsHandler)(nil)),
 	reflect.TypeOf((*FooProvider)(nil)),
-	reflect.TypeOf((*GenericProvider)(nil)),
+	reflect.TypeOf((*OpenProvider)(nil)),
 	reflect.TypeOf((*InvalidHandler)(nil)),
 	reflect.TypeOf((*InvalidProvider)(nil)),
 	reflect.TypeOf((*ListProvider)(nil)),
