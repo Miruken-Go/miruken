@@ -27,7 +27,7 @@ func (p *BivariantPolicy) IsVariantKey(
 	return ok, false
 }
 
-func (p *BivariantPolicy) Matches(
+func (p *BivariantPolicy) MatchesKey(
 	key, otherKey interface{},
 	strict        bool,
 ) (matches bool, exact bool) {
@@ -38,9 +38,9 @@ func (p *BivariantPolicy) Matches(
 			} else if strict {
 				return false, false
 			}
-			matches, exact := p.in.Matches(bk.In, ok.In, false)
+			matches, exact := p.in.MatchesKey(bk.In, ok.In, false)
 			if exact {
-				matches, exact = p.out.Matches(bk.Out, ok.Out, false)
+				matches, exact = p.out.MatchesKey(bk.Out, ok.Out, false)
 			}
 			return matches, false
 		} else {
@@ -61,7 +61,7 @@ func (p *BivariantPolicy) Less(
 	if otherBinding == nil {
 		panic("otherBinding cannot be be nil")
 	}
-	matches, exact := p.Matches(otherBinding.Key(), binding.Key(), otherBinding.Strict())
+	matches, exact := p.MatchesKey(otherBinding.Key(), binding.Key(), otherBinding.Strict())
 	return !exact && matches
 }
 
@@ -80,15 +80,19 @@ func (p *BivariantPolicy) NewMethodBinding(
 	args       := make([]arg, numArgs)
 	args[0]     = spec.arg
 	key        := spec.key
+	in         := _interfaceType
+	index      := 1
 
-	// Callback argument must be present
+	// Callback argument must be present if spec
 	if len(args) > 1 {
+		in      = methodType.In(2)
 		args[1] = callbackArg{}
-	} else {
+		index++
+	} else if _, isSpec := spec.arg.(zeroArg); isSpec {
 		invalid = errors.New("bivariant: missing callback argument")
 	}
 
-	if err := buildDependencies(methodType, 2, numArgs, args, 2); err != nil {
+	if err := buildDependencies(methodType, index, numArgs, args, index); err != nil {
 		invalid = multierror.Append(invalid, fmt.Errorf("bivariant: %w", err))
 	}
 
@@ -123,7 +127,7 @@ func (p *BivariantPolicy) NewMethodBinding(
 
 	if key == nil {
 		key = DiKey{
-			In:  methodType.In(2),
+			In:  in,
 			Out: methodType.Out(0),
 		}
 	}

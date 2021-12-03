@@ -9,9 +9,9 @@ import (
 // Policy manages behaviors and callback Binding's.
 type Policy interface {
 	Filtered
-	IsVariantKey(key interface{}) (bool, bool)
 	Less(binding, otherBinding Binding) bool
-	Matches(key, otherKey interface{}, strict bool) (bool, bool)
+	IsVariantKey(key interface{}) (bool, bool)
+	MatchesKey(key, otherKey interface{}, strict bool) (bool, bool)
 	AcceptResults(results []interface{}) (interface{}, HandleResult)
 }
 

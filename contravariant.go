@@ -21,7 +21,7 @@ func (p *ContravariantPolicy) IsVariantKey(
 	return false, false
 }
 
-func (p *ContravariantPolicy) Matches(
+func (p *ContravariantPolicy) MatchesKey(
 	key, otherKey interface{},
 	strict        bool,
 ) (matches bool, exact bool) {
@@ -48,7 +48,7 @@ func (p *ContravariantPolicy) Less(
 	if otherBinding == nil {
 		panic("otherBinding cannot be nil")
 	}
-	matches, exact := p.Matches(otherBinding.Key(), binding.Key(), otherBinding.Strict())
+	matches, exact := p.MatchesKey(otherBinding.Key(), binding.Key(), otherBinding.Strict())
 	return !exact && matches
 }
 
@@ -88,18 +88,22 @@ func (p *ContravariantPolicy) NewMethodBinding(
 	args       := make([]arg, numArgs)
 	args[0]     = spec.arg
 	key        := spec.key
+	index      := 1
 
-	// Callback argument must be present
+	// Callback argument must be present if spec
 	if len(args) > 1 {
 		if key == nil {
 			key = methodType.In(2)
 		}
 		args[1] = callbackArg{}
-	} else {
+		index++
+	} else if _, isSpec := spec.arg.(zeroArg); isSpec {
 		invalid = errors.New("contravariant: missing callback argument")
+	} else if key == nil {
+		key = _interfaceType
 	}
 
-	if err := buildDependencies(methodType, 2, numArgs, args, 2); err != nil {
+	if err := buildDependencies(methodType, index, numArgs, args, index); err != nil {
 		invalid = multierror.Append(invalid, fmt.Errorf("contravariant: %w", err))
 	}
 

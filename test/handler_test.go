@@ -112,13 +112,53 @@ type EverythingHandler struct{}
 func (h *EverythingHandler) HandleEverything(
 	_ *miruken.Handles, callback interface{},
 ) miruken.HandleResult {
-	switch f := callback.(type) {
+	switch cb := callback.(type) {
 	case *Foo:
-		f.Inc()
+		cb.Inc()
 		return miruken.Handled
 	case Counter:
-		f.Inc()
-		f.Inc()
+		cb.Inc()
+		cb.Inc()
+		return miruken.Handled
+	default:
+		return miruken.NotHandled
+	}
+}
+
+// EverythingImplicitHandler
+type EverythingImplicitHandler struct{}
+
+func (h *EverythingImplicitHandler) HandleEverything(
+	handles *miruken.Handles,
+) miruken.HandleResult {
+	switch cb := handles.Callback().(type) {
+	case *Bar:
+		cb.Inc()
+		cb.Inc()
+		return miruken.Handled
+	case Counter:
+		cb.Inc()
+		cb.Inc()
+		cb.Inc()
+		return miruken.Handled
+	default:
+		return miruken.NotHandled
+	}
+}
+
+// EverythingSpecHandler
+type EverythingSpecHandler struct{}
+
+func (h *EverythingSpecHandler) HandleEverything(
+	_ *struct { miruken.Handles }, callback interface{},
+) miruken.HandleResult {
+	switch cb := callback.(type) {
+	case *Baz:
+		cb.Inc()
+		return miruken.Handled
+	case Counter:
+		cb.Inc()
+		cb.Inc()
 		return miruken.Handled
 	default:
 		return miruken.NotHandled
@@ -261,6 +301,12 @@ func (h *InvalidHandler) UntypedInterfaceDependency(
 	return miruken.Handled
 }
 
+func (h *InvalidHandler) MissingCallbackArgument(
+	_ *struct{ miruken.Handles },
+) miruken.HandleResult {
+	return miruken.Handled
+}
+
 type HandlerTestSuite struct {
 	suite.Suite
 	HandleTypes []reflect.Type
@@ -362,6 +408,52 @@ func (suite *HandlerTestSuite) TestHandles() {
 			suite.False(result.IsError())
 			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, foo.Count())
+		})
+
+		suite.Run("Contravariant", func () {
+			bar    := new(Bar)
+			result := handler.Handle(bar, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(miruken.Handled, result)
+			suite.Equal(2, bar.Count())
+		})
+	})
+
+	suite.Run("EverythingImplicit", func () {
+		handler := miruken.NewRootHandler(
+			miruken.WithHandlerTypes(reflect.TypeOf((*EverythingImplicitHandler)(nil))),
+			miruken.WithHandlers(new(EverythingImplicitHandler)))
+
+		suite.Run("Invariant", func () {
+			bar    := new(Bar)
+			result := handler.Handle(bar, false, nil)
+
+			suite.False(result.IsError())
+			suite.Equal(miruken.Handled, result)
+			suite.Equal(2, bar.Count())
+		})
+
+		suite.Run("Contravariant", func () {
+			foo    := new(Foo)
+			result := handler.Handle(foo, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(miruken.Handled, result)
+			suite.Equal(3, foo.Count())
+		})
+	})
+
+	suite.Run("EverythingSpec", func () {
+		handler := miruken.NewRootHandler(
+			miruken.WithHandlerTypes(reflect.TypeOf((*EverythingSpecHandler)(nil))),
+			miruken.WithHandlers(new(EverythingSpecHandler)))
+
+		suite.Run("Invariant", func () {
+			baz    := new(Baz)
+			result := handler.Handle(baz, false, nil)
+
+			suite.False(result.IsError())
+			suite.Equal(miruken.Handled, result)
+			suite.Equal(1, baz.Count())
 		})
 
 		suite.Run("Contravariant", func () {
@@ -566,22 +658,24 @@ func (suite *HandlerTestSuite) TestHandles() {
 	})
 
 	suite.Run("Invalid", func () {
+		failures := 0
 		defer func() {
 			if r := recover(); r != nil {
 				if err, ok := r.(*miruken.HandlerDescriptorError); ok {
-					failures := 0
 					var errMethod miruken.MethodBindingError
 					for reason := errors.Unwrap(err.Reason);
 						errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 						failures++
 					}
-					suite.Equal(5, failures)
 				} else {
 					suite.Fail("Expected HandlerDescriptorError")
 				}
 			}
 		}()
-		miruken.NewRootHandler(miruken.WithHandlers(new(InvalidHandler)))
+		miruken.NewRootHandler(
+			miruken.WithHandlerTypes(reflect.TypeOf((*InvalidHandler)(nil))),
+			miruken.WithHandlers(new(InvalidHandler)))
+		suite.Equal(5, failures)
 	})
 }
 
@@ -943,23 +1037,24 @@ func (suite *HandlerTestSuite) TestProvides() {
 	})
 
 	suite.Run("Invalid", func () {
+		failures := 0
 		defer func() {
 			if r := recover(); r != nil {
 				if err, ok := r.(*miruken.HandlerDescriptorError); ok {
-					failures := 0
 					var errMethod miruken.MethodBindingError
 					for reason := errors.Unwrap(err.Reason);
 						errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 						failures++
 					}
-					suite.Equal(6, failures)
 				} else {
 					suite.Fail("Expected HandlerDescriptorError")
 				}
 			}
 		}()
-
-		miruken.NewRootHandler(miruken.WithHandlers(new(InvalidProvider)))
+		miruken.NewRootHandler(
+			miruken.WithHandlerTypes(reflect.TypeOf((*InvalidProvider)(nil))),
+			miruken.WithHandlers(new(InvalidProvider)))
+		suite.Equal(6, failures)
 	})
 }
 

@@ -26,9 +26,9 @@ type MapTestSuite struct {
 	HandleTypes []reflect.Type
 }
 
-type EntityMapping struct{}
+type EntityMapper struct{}
 
-func (m *EntityMapping) MapPlayerData(
+func (m *EntityMapper) MapPlayerData(
 	maps *miruken.Maps, entity *PlayerEntity,
 ) *PlayerData {
 	if data, ok := maps.Target().(**PlayerData); ok && *data != nil {
@@ -42,7 +42,7 @@ func (m *EntityMapping) MapPlayerData(
 	}
 }
 
-func (m *EntityMapping) MapIntoPlayerData(
+func (m *EntityMapper) MapIntoPlayerData(
 	maps *miruken.Maps, entity *PlayerEntity,
 ) PlayerData {
 	if data, ok := maps.Target().(*PlayerData); ok && data != nil {
@@ -58,7 +58,7 @@ func (m *EntityMapping) MapIntoPlayerData(
 
 func (suite *MapTestSuite) SetupTest() {
 	handleTypes := []reflect.Type{
-		reflect.TypeOf((*EntityMapping)(nil)),
+		reflect.TypeOf((*EntityMapper)(nil)),
 	}
 	suite.HandleTypes = handleTypes
 }
@@ -90,27 +90,27 @@ func (suite *MapTestSuite) TestMap() {
 		suite.Run("Into", func() {
 			handler := suite.InferenceRoot()
 			entity  := &PlayerEntity{
-				Entity{ Id: 1 },
-				"Tim Howard",
+				Entity{ Id: 2 },
+				"David Silva",
 			}
 			var data PlayerData
 			err := miruken.Map(handler, entity, &data)
 			suite.Nil(err)
-			suite.Equal(1, data.Id)
-			suite.Equal("Tim Howard", data.Name)
+			suite.Equal(2, data.Id)
+			suite.Equal("David Silva", data.Name)
 		})
 
 		suite.Run("IntoPtr", func() {
 			handler := suite.InferenceRoot()
 			entity  := &PlayerEntity{
-				Entity{ Id: 1 },
-				"Tim Howard",
+				Entity{ Id: 3 },
+				"Franz Beckenbauer",
 			}
 			data := new(PlayerData)
 			err  := miruken.Map(handler, entity, &data)
 			suite.Nil(err)
-			suite.Equal(1, data.Id)
-			suite.Equal("Tim Howard", data.Name)
+			suite.Equal(3, data.Id)
+			suite.Equal("Franz Beckenbauer", data.Name)
 		})
 	})
 }

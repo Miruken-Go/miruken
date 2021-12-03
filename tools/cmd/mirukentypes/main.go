@@ -39,7 +39,7 @@ func main() {
 
     suffixes := []string{
         "Handler", "Provider", "Consumer", "Receiver",
-        "Validator", "Filter", "Service",
+        "Validator", "Mapper", "Filter", "Service",
     }
 
     if suffixFlag == "*" {
