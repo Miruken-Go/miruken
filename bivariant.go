@@ -85,8 +85,12 @@ func (p *BivariantPolicy) NewMethodBinding(
 
 	// Callback argument must be present if spec
 	if len(args) > 1 {
-		in      = methodType.In(2)
-		args[1] = callbackArg{}
+		if arg := methodType.In(2); arg.AssignableTo(_callbackType) {
+			args[1] = rawCallbackArg{}
+		} else {
+			args[1] = callbackArg{}
+			in      = arg
+		}
 		index++
 	} else if _, isSpec := spec.arg.(zeroArg); isSpec {
 		invalid = errors.New("bivariant: missing callback argument")

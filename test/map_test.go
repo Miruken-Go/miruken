@@ -115,12 +115,23 @@ func (m *FormatMapper) FromPlayerJson(
 		miruken.Maps
 		miruken.Format `as:"application/json"`
 	  }, jsonString string,
-) PlayerData {
+) (PlayerData, error) {
 	data := PlayerData{}
-	if err := json.Unmarshal([]byte(jsonString), &data); err != nil {
-		panic(err)
+	err  := json.Unmarshal([]byte(jsonString), &data)
+	return data, err
+}
+
+func (m *FormatMapper) ToJson(
+	_ *struct{
+		miruken.Maps
+		miruken.Format `as:"application/json"`
+	  }, maps *miruken.Maps,
+) (string, error) {
+	if data, err := json.Marshal(maps.Source()); err == nil {
+		return string(data), nil
+	} else {
+		return "", err
 	}
-	return data
 }
 
 // InvalidMapper
@@ -273,8 +284,23 @@ func (suite *MapTestSuite) TestMap() {
 
 				var data2 PlayerData
 				err = miruken.Map(handler, jsonString, &data2, "application/json")
+				suite.Nil(err)
 				suite.Equal(1, data.Id)
 				suite.Equal("Tim Howard", data.Name)
+			})
+
+			suite.Run("Open", func() {
+				data := struct{
+					Name string
+					Age  int
+				}{
+					"John Smith",
+					23,
+				}
+				var jsonString string
+				err := miruken.Map(handler, data, &jsonString, "application/json")
+				suite.Nil(err)
+				suite.Equal("{\"Name\":\"John Smith\",\"Age\":23}", jsonString)
 			})
 		})
 

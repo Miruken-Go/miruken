@@ -26,7 +26,7 @@ func IsNil(val interface{}) bool {
 // TargetValue validates the interface contains a
 // non-nil typed pointer and return reflect.Value.
 func TargetValue(target interface{}) reflect.Value {
-	if target == nil {
+	if IsNil(target) {
 		panic("target cannot be nil")
 	}
 	val := reflect.ValueOf(target)

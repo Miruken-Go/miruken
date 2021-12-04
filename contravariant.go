@@ -92,10 +92,12 @@ func (p *ContravariantPolicy) NewMethodBinding(
 
 	// Callback argument must be present if spec
 	if len(args) > 1 {
-		if key == nil {
-			key = methodType.In(2)
+		if arg := methodType.In(2); arg.AssignableTo(_callbackType) {
+			args[1] = rawCallbackArg{}
+		} else {
+			if key == nil { key = arg }
+			args[1] = callbackArg{}
 		}
-		args[1] = callbackArg{}
 		index++
 	} else if _, isSpec := spec.arg.(zeroArg); isSpec {
 		invalid = errors.New("contravariant: missing callback argument")
