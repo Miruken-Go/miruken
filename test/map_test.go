@@ -79,7 +79,14 @@ func (m *EntityMapper) FromPlayerMap(
 }
 
 // OpenMapper
-type OpenMapper struct{}
+type (
+	OpenMapper struct{}
+
+	JsonOptions struct{
+		Prefix string
+		Indent string
+	}
+)
 
 func (m *OpenMapper) Map(
 	maps *miruken.Maps,
@@ -126,12 +133,19 @@ func (m *FormatMapper) ToJson(
 		miruken.Maps
 		miruken.Format `as:"application/json"`
 	  }, maps *miruken.Maps,
-) (string, error) {
-	if data, err := json.Marshal(maps.Source()); err == nil {
-		return string(data), nil
+	_ *struct{
+		miruken.Optional
+		miruken.FromOptions
+	  }, options JsonOptions,
+) (js string, err error) {
+	var data []byte
+	if len(options.Prefix) > 0 || len(options.Indent) > 0 {
+		data, err = json.MarshalIndent(
+			maps.Source(), options.Prefix, options.Indent)
 	} else {
-		return "", err
+		data, err = json.Marshal(maps.Source())
 	}
+	return string(data), err
 }
 
 // InvalidMapper
@@ -301,6 +315,22 @@ func (suite *MapTestSuite) TestMap() {
 				err := miruken.Map(handler, data, &jsonString, "application/json")
 				suite.Nil(err)
 				suite.Equal("{\"Name\":\"John Smith\",\"Age\":23}", jsonString)
+			})
+
+			suite.Run("Options", func() {
+				data := struct{
+					Name string
+					Age  int
+				}{
+					"Sarah Conner",
+					38,
+				}
+				var jsonString string
+				err := miruken.Map(
+					miruken.Build(handler, miruken.WithOptions(JsonOptions{Indent: "  "})),
+					data, &jsonString, "application/json")
+				suite.Nil(err)
+				suite.Equal("{\n  \"Name\": \"Sarah Conner\",\n  \"Age\": 38\n}", jsonString)
 			})
 		})
 

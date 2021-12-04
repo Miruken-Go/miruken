@@ -104,6 +104,14 @@ type DependencyArg struct {
 	spec *dependencySpec
 }
 
+func (d DependencyArg) Optional() bool {
+	return d.spec != nil && d.spec.flags & bindingOptional == bindingOptional
+}
+
+func (d DependencyArg) Strict() bool {
+	return d.spec != nil && d.spec.flags & bindingStrict == bindingStrict
+}
+
 func (d DependencyArg) resolve(
 	typ     reflect.Type,
 	context HandleContext,
@@ -148,15 +156,10 @@ func (r *defaultDependencyResolver) Resolve(
 	dep         DependencyArg,
 	handler     Handler,
 ) (reflect.Value, error) {
-	optional, strict := false, false
-	if spec := dep.spec; spec != nil {
-		optional = spec.flags & bindingOptional == bindingOptional
-		strict   = spec.flags & bindingStrict == bindingStrict
-	}
 	var provides *Provides
 	parent, _ := rawCallback.(*Provides)
 	builder := new(ProvidesBuilder).WithParent(parent)
-	if !strict && typ.Kind() == reflect.Slice {
+	if !dep.Strict() && typ.Kind() == reflect.Slice {
 		builder.WithKey(typ.Elem()).WithMany()
 	} else {
 		builder.WithKey(typ)
@@ -173,7 +176,7 @@ func (r *defaultDependencyResolver) Resolve(
 			CopySliceIndirect(results, val)
 		} else if result != nil {
 			val = reflect.ValueOf(result)
-		} else if optional {
+		} else if dep.Optional() {
 			val = reflect.Zero(typ)
 		} else {
 			return reflect.ValueOf(nil), fmt.Errorf(

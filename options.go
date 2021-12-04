@@ -164,12 +164,15 @@ func (o FromOptions) Resolve(
 	handler     Handler,
 ) (options reflect.Value, err error) {
 	options = reflect.New(typ)
-	if !GetOptions(handler, options.Interface()) {
-		return reflect.ValueOf(nil), fmt.Errorf(
-			"FromOptions: unable to resolve options %v", typ)
+	if GetOptions(handler, options.Interface()) {
+		if typ.Kind() == reflect.Ptr {
+			return options, nil
+		}
+		return reflect.Indirect(options), nil
 	}
-	if typ.Kind() == reflect.Ptr {
-		return options, nil
+	if dep.Optional() {
+		return reflect.Zero(typ), nil
 	}
-	return reflect.Indirect(options), nil
+	return reflect.ValueOf(nil), fmt.Errorf(
+		"FromOptions: unable to resolve options %v", typ)
 }
