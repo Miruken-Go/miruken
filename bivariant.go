@@ -81,6 +81,7 @@ func (p *BivariantPolicy) NewMethodBinding(
 	args[0]     = spec.arg
 	key        := spec.key
 	in         := _interfaceType
+	out        := _interfaceType
 	index      := 1
 
 	// Callback argument must be present if spec
@@ -102,14 +103,15 @@ func (p *BivariantPolicy) NewMethodBinding(
 
 	switch methodType.NumOut() {
 	case 0:
-		invalid = multierror.Append(invalid,
-			errors.New("bivariant: must have a return value"))
+		// open return
 	case 1:
-		if err := validateBivariantReturn(methodType.Out(0)); err != nil {
+		out = methodType.Out(0)
+		if err := validateBivariantReturn(out); err != nil {
 			invalid = multierror.Append(invalid, err)
 		}
 	case 2:
-		if err := validateBivariantReturn(methodType.Out(0)); err != nil {
+		out = methodType.Out(0)
+		if err := validateBivariantReturn(out); err != nil {
 			invalid = multierror.Append(invalid, err)
 		}
 		switch methodType.Out(1) {
@@ -130,10 +132,7 @@ func (p *BivariantPolicy) NewMethodBinding(
 	}
 
 	if key == nil {
-		key = DiKey{
-			In:  in,
-			Out: methodType.Out(0),
-		}
+		key = DiKey{ In: in, Out: out }
 	}
 
 	return &methodBinding{

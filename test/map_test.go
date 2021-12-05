@@ -343,6 +343,7 @@ func (suite *MapTestSuite) TestMap() {
 							errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 							failures++
 						}
+						suite.Equal(5, failures)
 					} else {
 						suite.Fail("Expected HandlerDescriptorError")
 					}
@@ -350,7 +351,7 @@ func (suite *MapTestSuite) TestMap() {
 			}()
 			miruken.NewRootHandler(
 				miruken.WithHandlerTypes(reflect.TypeOf((*InvalidMapper)(nil))))
-			suite.Equal(5, failures)
+			suite.Fail("should cause panic")
 		})
 	})
 }

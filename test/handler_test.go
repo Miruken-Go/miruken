@@ -667,6 +667,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 						errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 						failures++
 					}
+					suite.Equal(5, failures)
 				} else {
 					suite.Fail("Expected HandlerDescriptorError")
 				}
@@ -675,7 +676,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 		miruken.NewRootHandler(
 			miruken.WithHandlerTypes(reflect.TypeOf((*InvalidHandler)(nil))),
 			miruken.WithHandlers(new(InvalidHandler)))
-		suite.Equal(5, failures)
+		suite.Fail("should cause panic")
 	})
 }
 
@@ -1046,6 +1047,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 						errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 						failures++
 					}
+					suite.Equal(5, failures)
 				} else {
 					suite.Fail("Expected HandlerDescriptorError")
 				}
@@ -1054,7 +1056,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 		miruken.NewRootHandler(
 			miruken.WithHandlerTypes(reflect.TypeOf((*InvalidProvider)(nil))),
 			miruken.WithHandlers(new(InvalidProvider)))
-		suite.Equal(6, failures)
+		suite.Fail("should cause panic")
 	})
 }
 
