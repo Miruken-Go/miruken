@@ -75,9 +75,8 @@ func (f *FilterSpecProvider) Filters(
 	composer Handler,
 ) ([]Filter, error) {
 	spec     := f.spec
-	provides := new(ProvidesBuilder).
-		WithKey(spec.typ).
-		NewProvides()
+	var builder ProvidesBuilder
+	provides := builder.WithKey(spec.typ).NewProvides()
 	result, err := provides.Resolve(composer)
 	if result != nil && err == nil {
 		if filter, ok := result.(Filter); ok {

@@ -64,8 +64,9 @@ func Create(handler Handler, target interface{}) error {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
-	tv      := TargetValue(target)
-	creates := new(CreatesBuilder).
+	tv := TargetValue(target)
+	var builder CreatesBuilder
+	creates := builder.
 		WithType(tv.Type().Elem()).
 		NewCreation()
 	if result := handler.Handle(creates, false, nil); result.IsError() {
@@ -79,10 +80,9 @@ func CreateAll(handler Handler, target interface{}) error {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
-	tv      := TargetSliceValue(target)
-	builder := new(CreatesBuilder).
-		WithType(tv.Type().Elem().Elem())
-	builder.WithMany()
+	tv := TargetSliceValue(target)
+	var builder CreatesBuilder
+	builder.WithType(tv.Type().Elem().Elem()).WithMany()
 	creates := builder.NewCreation()
 	if result := handler.Handle(creates, true, nil); result.IsError() {
 		return result.Error()

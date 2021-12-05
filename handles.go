@@ -93,7 +93,8 @@ func Invoke(handler Handler, callback interface{}, target interface{}) error {
 		panic("handler cannot be nil")
 	}
 	tv     := TargetValue(target)
-	handle := new(HandlesBuilder).
+	var builder HandlesBuilder
+	handle := builder.
 		WithCallback(callback).
 		NewHandles()
 	if result := handler.Handle(handle, false, nil); result.IsError() {
@@ -110,8 +111,8 @@ func InvokeAll(handler Handler, callback interface{}, target interface{}) error 
 		panic("handler cannot be nil")
 	}
 	tv      := TargetSliceValue(target)
-	builder := new(HandlesBuilder).WithCallback(callback)
-	builder.WithMany()
+	var builder HandlesBuilder
+	builder.WithCallback(callback).WithMany()
 	handle  := builder.NewHandles()
 	if result := handler.Handle(handle, true, nil); result.IsError() {
 		return result.Error()

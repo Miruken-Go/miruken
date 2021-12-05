@@ -162,11 +162,11 @@ func Map(
 	if len(format) > 1 {
 		panic("only one format is allowed")
 	}
-	builder := new(MapsBuilder).
-		FromSource(source).
-		ToTarget(target)
+	var builder MapsBuilder
+	builder.FromSource(source).
+		    ToTarget(target)
 	if len(format) == 1 {
-		builder = builder.WithFormat(format[0])
+		builder.WithFormat(format[0])
 	}
 	maps := builder.NewMaps()
 	if result := handler.Handle(maps, false, nil); result.IsError() {
@@ -195,11 +195,10 @@ func MapAll(
 	tt      := tv.Type().Elem().Elem()
 	results := make([]interface{}, len(source))
 	for i, src := range source {
-		builder := new(MapsBuilder).
-			FromSource(src).
-			ToTarget(tt)
+		var builder MapsBuilder
+		builder.FromSource(src).ToTarget(tt)
 		if len(format) == 1 {
-			builder = builder.WithFormat(format[0])
+			builder.WithFormat(format[0])
 		}
 		maps := builder.NewMaps()
 		if result := handler.Handle(maps, false, nil); result.IsError() {

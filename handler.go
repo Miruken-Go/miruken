@@ -72,7 +72,8 @@ func DispatchCallback(
 	case SuppressDispatch:
 		return NotHandled
 	}
-	return new(HandlesBuilder).
+	var builder HandlesBuilder
+	return builder.
 		WithCallback(callback).
 		NewHandles().
 		Dispatch(handler, greedy, composer)

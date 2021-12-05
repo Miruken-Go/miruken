@@ -158,7 +158,8 @@ func (r *defaultDependencyResolver) Resolve(
 ) (reflect.Value, error) {
 	var provides *Provides
 	parent, _ := rawCallback.(*Provides)
-	builder := new(ProvidesBuilder).WithParent(parent)
+	var builder ProvidesBuilder
+	builder.WithParent(parent)
 	if !dep.Strict() && typ.Kind() == reflect.Slice {
 		builder.WithKey(typ.Elem()).WithMany()
 	} else {

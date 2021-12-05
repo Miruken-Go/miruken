@@ -75,7 +75,8 @@ func (t *Trampoline) Dispatch(
 	if cb := t.callback; cb != nil {
 		return DispatchCallback(handler, cb, greedy, composer)
 	}
-	return new(HandlesBuilder).
+	var builder HandlesBuilder
+	return builder.
 		WithCallback(callback).
 		NewHandles().Dispatch(handler, greedy, composer)
 }

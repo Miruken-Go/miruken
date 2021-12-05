@@ -198,8 +198,9 @@ func Resolve(
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
-	tv       := TargetValue(target)
-	provides := new(ProvidesBuilder).
+	tv := TargetValue(target)
+	var builder ProvidesBuilder
+	provides := builder.
 		WithKey(tv.Type().Elem()).
 		WithConstraints(constraints...).
 		NewProvides()
@@ -218,10 +219,10 @@ func ResolveAll(
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
-	tv      := TargetSliceValue(target)
-	builder := new(ProvidesBuilder).
-		WithKey(tv.Type().Elem().Elem()).
-		WithConstraints(constraints...)
+	tv := TargetSliceValue(target)
+	var builder ProvidesBuilder
+	builder.WithKey(tv.Type().Elem().Elem()).
+		    WithConstraints(constraints...)
 	builder.WithMany()
 	provides := builder.NewProvides()
 	if result := handler.Handle(provides, true, nil); result.IsError() {
