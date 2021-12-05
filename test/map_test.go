@@ -79,14 +79,7 @@ func (m *EntityMapper) FromPlayerMap(
 }
 
 // OpenMapper
-type (
-	OpenMapper struct{}
-
-	JsonOptions struct{
-		Prefix string
-		Indent string
-	}
-)
+type OpenMapper struct{}
 
 func (m *OpenMapper) Map(
 	maps *miruken.Maps,
@@ -106,7 +99,14 @@ func (m *OpenMapper) Map(
 }
 
 // FormatMapper
-type FormatMapper struct{}
+type (
+	FormatMapper struct{}
+
+	JsonOptions struct{
+		Prefix string
+		Indent string
+	}
+)
 
 func (m *FormatMapper) ToPlayerJson(
 	_ *struct{
@@ -139,9 +139,8 @@ func (m *FormatMapper) ToJson(
 	  }, options JsonOptions,
 ) (js string, err error) {
 	var data []byte
-	if len(options.Prefix) > 0 || len(options.Indent) > 0 {
-		data, err = json.MarshalIndent(
-			maps.Source(), options.Prefix, options.Indent)
+	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
+		data, err = json.MarshalIndent(maps.Source(), prefix, indent)
 	} else {
 		data, err = json.Marshal(maps.Source())
 	}
@@ -350,8 +349,7 @@ func (suite *MapTestSuite) TestMap() {
 				}
 			}()
 			miruken.NewRootHandler(
-				miruken.WithHandlerTypes(reflect.TypeOf((*InvalidMapper)(nil))),
-				miruken.WithHandlers(new(InvalidMapper)))
+				miruken.WithHandlerTypes(reflect.TypeOf((*InvalidMapper)(nil))))
 			suite.Equal(5, failures)
 		})
 	})

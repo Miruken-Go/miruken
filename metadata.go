@@ -65,8 +65,10 @@ func (p *policyBindings) reduce(
 		if elem == nil {
 			elem = p.variant.Front()
 		}
-		for !done && elem != nil {
-			result, done = reducer(elem.Value.(Binding), result)
+		for elem != nil {
+			if result, done = reducer(elem.Value.(Binding), result); done {
+				break
+			}
 			elem = elem.Next()
 		}
 	} else if p.invariant != nil {
@@ -171,7 +173,7 @@ func (d *HandlerDescriptor) Dispatch(
 					result = result.Or(accepted)
 				}
 			}
-			return result, false
+			return result, result.stop || (result.handled && !greedy)
 		})
 	}
 	return NotHandled

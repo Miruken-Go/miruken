@@ -110,7 +110,7 @@ func (p *Provides) include(
 	greedy     bool,
 	composer   Handler,
 ) (included bool) {
-	if resolution == nil {
+	if IsNil(resolution) {
 		return false
 	}
 	if strict {

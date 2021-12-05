@@ -164,8 +164,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 
 	suite.Run("FromOptions", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*FooOptionsHandler)(nil))),
-			miruken.WithHandlers(new(FooOptionsHandler)))
+			miruken.WithHandlerTypes(reflect.TypeOf((*FooOptionsHandler)(nil))))
 		foo     := new(Foo)
 		result  := miruken.Build(handler, miruken.WithOptions(FooOptions{2})).
 			Handle(foo, false, nil)

@@ -60,10 +60,9 @@ func (b *bindingIntercept) Invoke(
 	resolving := builder.NewResolving()
 	if result := context.Composer().Handle(resolving, false, nil); result.IsError() {
 		return nil, result.Error()
-	} else if !result.handled {
+	} else {
 		return []interface{}{result}, nil
 	}
-	return nil, nil
 }
 
 func newInferenceHandler(
