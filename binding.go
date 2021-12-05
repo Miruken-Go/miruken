@@ -13,7 +13,7 @@ type Binding interface {
 	Strict()      bool
 	SkipFilters() bool
 	Invoke(
-		context HandleContext,
+		ctx HandleContext,
 		explicitArgs ... interface{},
 	) (results []interface{}, err error)
 }

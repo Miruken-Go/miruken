@@ -57,12 +57,12 @@ func (p *CovariantPolicy) AcceptResults(
 ) (result interface{}, accepted HandleResult) {
 	switch len(results) {
 	case 0:
-		if results == nil {
+		if IsNil(results) {
 			return nil, NotHandled
 		}
 		return nil, Handled
 	case 1:
-		if result = results[0]; result == nil {
+		if result = results[0]; IsNil(result) {
 			return nil, NotHandled
 		} else if r, ok := result.(HandleResult); ok {
 			return nil, r
@@ -74,12 +74,12 @@ func (p *CovariantPolicy) AcceptResults(
 		case error:
 			return result, NotHandled.WithError(err)
 		case HandleResult:
-			if result == nil {
+			if IsNil(result) {
 				return nil, err.And(NotHandled)
 			}
 			return result, err
 		default:
-			if result == nil {
+			if IsNil(result) {
 				return nil, NotHandled
 			}
 			return result, Handled

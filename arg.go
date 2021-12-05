@@ -9,8 +9,8 @@ import (
 // arg models a parameter of a method.
 type arg interface {
 	resolve(
-		typ     reflect.Type,
-		context HandleContext,
+		typ reflect.Type,
+		ctx HandleContext,
 	) (reflect.Value, error)
 }
 
@@ -18,8 +18,8 @@ type arg interface {
 type zeroArg struct {}
 
 func (a zeroArg) resolve(
-	typ     reflect.Type,
-	context HandleContext,
+	typ reflect.Type,
+	ctx HandleContext,
 ) (reflect.Value, error) {
 	return reflect.Zero(typ), nil
 }
@@ -28,20 +28,20 @@ func (a zeroArg) resolve(
 type rawCallbackArg struct {}
 
 func (a rawCallbackArg) resolve(
-	typ     reflect.Type,
-	context HandleContext,
+	typ reflect.Type,
+	ctx HandleContext,
 ) (reflect.Value, error) {
-	return reflect.ValueOf(context.RawCallback()), nil
+	return reflect.ValueOf(ctx.RawCallback()), nil
 }
 
 // callbackArg returns the raw callback.
 type callbackArg struct {}
 
 func (a callbackArg) resolve(
-	typ     reflect.Type,
-	context HandleContext,
+	typ reflect.Type,
+	ctx HandleContext,
 ) (reflect.Value, error) {
-	if v := reflect.ValueOf(context.Callback()); v.Type().AssignableTo(typ) {
+	if v := reflect.ValueOf(ctx.Callback()); v.Type().AssignableTo(typ) {
 		return v, nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("arg: unable to resolve callback: %v", typ)
@@ -113,20 +113,20 @@ func (d DependencyArg) Strict() bool {
 }
 
 func (d DependencyArg) resolve(
-	typ     reflect.Type,
-	context HandleContext,
+	typ reflect.Type,
+	ctx HandleContext,
 ) (reflect.Value, error) {
-	composer := context.Composer()
+	composer := ctx.Composer()
 	if typ == _handlerType {
 		return reflect.ValueOf(composer), nil
 	}
 	if typ == _handleCtxType {
-		return reflect.ValueOf(context), nil
+		return reflect.ValueOf(ctx), nil
 	}
-	if val := reflect.ValueOf(context.Callback()); val.Type().AssignableTo(typ) {
+	if val := reflect.ValueOf(ctx.Callback()); val.Type().AssignableTo(typ) {
 		return val, nil
 	}
-	rawCallback := context.RawCallback()
+	rawCallback := ctx.RawCallback()
 	var resolver DependencyResolver = &_defaultResolver
 	if spec := d.spec; spec != nil {
 		if spec.resolver != nil {
@@ -195,7 +195,6 @@ type HandleContext struct {
 	rawCallback Callback
 	binding     Binding
 	composer    Handler
-	results     ResultReceiver
 }
 
 func (h HandleContext) Callback() interface{} {
@@ -212,10 +211,6 @@ func (h HandleContext) Binding() Binding {
 
 func (h HandleContext) Composer() Handler {
 	return h.composer
-}
-
-func (h HandleContext) Results() ResultReceiver {
-	return h.results
 }
 
 // Dependency typed

@@ -28,7 +28,7 @@ func (h *Handles) ReceiveResult(
 	greedy   bool,
 	composer Handler,
 ) (accepted bool) {
-	return h.AddResult(result)
+	return h.AddResult(result, greedy, composer)
 }
 
 func (h *Handles) CanDispatch(
@@ -61,7 +61,7 @@ func (h *Handles) Dispatch(
 	composer Handler,
 ) HandleResult {
 	count := len(h.results)
-	return DispatchPolicy(handler, h.callback, h, greedy, composer, h).
+	return DispatchPolicy(handler, h.callback, h, greedy, composer).
 		OtherwiseHandledIf(len(h.results) > count)
 }
 

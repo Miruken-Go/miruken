@@ -113,7 +113,6 @@ func (d *HandlerDescriptor) Dispatch(
 	rawCallback Callback,
 	greedy      bool,
 	composer    Handler,
-	results     ResultReceiver,
 ) (result HandleResult) {
 	if pb, found := d.bindings[policy]; found {
 		key := rawCallback.Key()
@@ -155,19 +154,19 @@ func (d *HandlerDescriptor) Dispatch(
 				}
 				var out []interface{}
 				var err error
-				context := HandleContext{callback, rawCallback, binding, composer, results}
+				context := HandleContext{callback, rawCallback, binding, composer}
 				if len(filters) == 0 {
 					out, err = binding.Invoke(context, handler)
 				} else {
 					out, err = pipeline(context, filters,
-						func(context HandleContext) ([]interface{}, error) {
-							return binding.Invoke(context, handler)
+						func(ctx HandleContext) ([]interface{}, error) {
+							return binding.Invoke(ctx, handler)
 					})
 				}
 				if err == nil {
 					res, accepted := policy.AcceptResults(out)
-					if accepted.IsHandled() && res != nil && results != nil &&
-						!results.ReceiveResult(res, binding.Strict(), greedy, composer) {
+					if accepted.IsHandled() && res != nil &&
+						!rawCallback.ReceiveResult(res, binding.Strict(), greedy, composer) {
 						accepted = accepted.And(NotHandled)
 					}
 					result = result.Or(accepted)

@@ -47,7 +47,7 @@ func (m *Maps) ReceiveResult(
 	greedy   bool,
 	composer Handler,
 ) (accepted bool) {
-	return m.AddResult(result)
+	return m.AddResult(result, greedy, composer)
 }
 
 func (m *Maps) Dispatch(
@@ -55,7 +55,7 @@ func (m *Maps) Dispatch(
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
-	return DispatchPolicy(handler, m.source, m, greedy, composer, m).
+	return DispatchPolicy(handler, m.source, m, greedy, composer).
 		OtherwiseHandledIf(!IsNil(m.Result()))
 }
 

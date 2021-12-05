@@ -61,6 +61,6 @@ func (b *ResolvingBuilder) NewResolving() *Resolving {
 		Provides: b.Provides(),
 		callback: b.callback,
 	}
-	resolving.CallbackBase.accept = AcceptResultFunc(resolving.accept)
+	resolving.CallbackBase.accept = resolving.accept
 	return resolving
 }

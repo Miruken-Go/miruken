@@ -23,7 +23,6 @@ type PolicyDispatch interface {
 		rawCallback Callback,
 		greedy      bool,
 		composer    Handler,
-		results     ResultReceiver,
 	) HandleResult
 }
 
@@ -33,17 +32,16 @@ func DispatchPolicy(
 	rawCallback Callback,
 	greedy      bool,
 	composer    Handler,
-	results     ResultReceiver,
 ) HandleResult {
 	policy := rawCallback.Policy()
 	if dp, ok := handler.(PolicyDispatch); ok {
 		return dp.DispatchPolicy(
-			policy, callback, rawCallback, greedy, composer, results)
+			policy, callback, rawCallback, greedy, composer)
 	}
 	if factory := GetHandlerDescriptorFactory(composer); factory != nil {
 		handlerType := reflect.TypeOf(handler)
 		if d, err := factory.HandlerDescriptorOf(handlerType); d != nil {
-			return d.Dispatch(policy, handler, callback, rawCallback, greedy, composer, results)
+			return d.Dispatch(policy, handler, callback, rawCallback, greedy, composer)
 		} else if err != nil {
 			return NotHandled.WithError(err)
 		}

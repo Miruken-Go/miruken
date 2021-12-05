@@ -24,7 +24,7 @@ func (c *Creates) ReceiveResult(
 	greedy   bool,
 	composer Handler,
 ) (accepted bool) {
-	return c.AddResult(result)
+	return c.AddResult(result, greedy, composer)
 }
 
 func (c *Creates) Dispatch(
@@ -33,7 +33,7 @@ func (c *Creates) Dispatch(
 	composer Handler,
 ) HandleResult {
 	count := len(c.results)
-	return DispatchPolicy(handler, c, c, greedy, composer, c).
+	return DispatchPolicy(handler, c, c, greedy, composer).
 		OtherwiseHandledIf(len(c.results) > count)
 }
 

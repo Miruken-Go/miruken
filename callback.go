@@ -5,21 +5,34 @@ import (
 )
 
 type (
-	// Callback models an action.
+	// Callback represents an action.
 	Callback interface {
 		Key() interface{}
 		Policy() Policy
 		ResultType() reflect.Type
 		Result() interface{}
 		SetResult(result interface{})
+		ReceiveResult(
+			result   interface{},
+			strict   bool,
+			greedy   bool,
+			composer Handler,
+		) (accepted bool)
 	}
+
+	// AcceptResultFunc validates callback results.
+	AcceptResultFunc func (
+		result   interface{},
+		greedy   bool,
+		composer Handler,
+	) bool
 
 	// CallbackBase is abstract Callback implementation.
 	CallbackBase struct {
 		many    bool
 		results []interface{}
 		result  interface{}
-		accept  AcceptResult
+		accept  AcceptResultFunc
 	}
 )
 
@@ -53,8 +66,13 @@ func (c *CallbackBase) SetResult(result interface{}) {
 	c.result = result
 }
 
-func (c *CallbackBase) AddResult(result interface{}) bool {
-	if IsNil(result) {
+func (c *CallbackBase) AddResult(
+	result   interface{},
+	greedy   bool,
+	composer Handler,
+) bool {
+	if IsNil(result) ||
+		(c.accept != nil && !c.accept(result, greedy, composer)) {
 		return false
 	}
 	c.results = append(c.results, result)
@@ -70,20 +88,9 @@ func (c *CallbackBase) CopyResult(target interface{}) {
 	}
 }
 
-func (c *CallbackBase) AcceptResult(
-	result   interface{},
-	greedy   bool,
-	composer Handler,
-) bool {
-	if c.accept != nil {
-		return c.accept.Accept(result, greedy, composer)
-	}
-	return true
-}
-
 type CallbackBuilder struct {
 	many   bool
-	accept AcceptResult
+	accept AcceptResultFunc
 }
 
 func (b *CallbackBuilder) WithMany() *CallbackBuilder {
@@ -92,7 +99,7 @@ func (b *CallbackBuilder) WithMany() *CallbackBuilder {
 }
 
 func (b *CallbackBuilder) WithAcceptResult(
-	accept AcceptResult,
+	accept AcceptResultFunc,
 ) *CallbackBuilder {
 	b.accept = accept
 	return b
@@ -123,49 +130,3 @@ type CallbackGuard interface {
 		binding Binding,
 	) (reset func (), approved bool)
 }
-
-// ResultReceiver defines acceptance criteria of results.
-type ResultReceiver interface {
-	ReceiveResult(
-		results  interface{},
-		strict   bool,
-		greedy   bool,
-		composer Handler,
-	) (accepted bool)
-}
-
-type ResultReceiverFunc func(
-	result   interface{},
-	strict   bool,
-	greedy   bool,
-	composer Handler,
-) (accepted bool)
-
-func (f ResultReceiverFunc) ReceiveResult(
-	results  interface{},
-	strict   bool,
-	greedy   bool,
-	composer Handler,
-) (accepted bool) {
-	return f(results, strict, greedy, composer)
-}
-
-type AcceptResult interface {
-	Accept(
-		result   interface{},
-		greedy   bool,
-		composer Handler,
-	) bool
-}
-
-type AcceptResultFunc func (
-	result   interface{},
-	greedy   bool,
-	composer Handler,
-) bool
-
-func (f AcceptResultFunc) Accept(
-	result   interface{},
-	greedy   bool,
-	composer Handler,
-) bool { return f(result, greedy, composer)}

@@ -91,7 +91,7 @@ func (p *Provides) Dispatch(
 		}
 	}
 	count := len(p.results)
-	return DispatchPolicy(handler, p, p, greedy, composer, p).
+	return DispatchPolicy(handler, p, p, greedy, composer).
 		OtherwiseHandledIf(len(p.results) > count)
 }
 
@@ -114,24 +114,17 @@ func (p *Provides) include(
 		return false
 	}
 	if strict {
-		if included = p.AcceptResult(resolution, greedy, composer); included {
-			included = p.AddResult(resolution)
-		}
-		return included
+		return p.AddResult(resolution, greedy, composer)
 	}
 	switch reflect.TypeOf(resolution).Kind() {
 	case reflect.Slice, reflect.Array:
 		forEach(resolution, func(idx int, value interface{}) {
 			if value != nil {
-				if inc := p.AcceptResult(value, greedy, composer); inc {
-					included = p.AddResult(value) || included
-				}
+				included = p.AddResult(value, greedy, composer) || included
 			}
 		})
 	default:
-		if included = p.AcceptResult(resolution, greedy, composer); included {
-			included = p.AddResult(resolution)
-		}
+		included = p.AddResult(resolution, greedy, composer)
 	}
 	return included
 }

@@ -759,10 +759,9 @@ type OpenProvider struct{}
 func (p *OpenProvider) Provide(
 	provides *miruken.Provides,
 ) interface{} {
-	if provides.Key() == reflect.TypeOf((*Foo)(nil)) {
+	if key := provides.Key(); key == reflect.TypeOf((*Foo)(nil)) {
 		return &Foo{}
-	}
-	if provides.Key() == reflect.TypeOf((*Bar)(nil)) {
+	} else if key == reflect.TypeOf((*Bar)(nil)) {
 		return &Bar{}
 	}
 	return nil
@@ -774,8 +773,24 @@ type ResultProvider struct{}
 func (f *ResultProvider) ProvideFoo(provides *miruken.Provides) *Foo {
 	foo := Foo{}
 	foo.Inc()
-	provides.AddResult(&foo)
+	provides.ReceiveResult(&foo, false, provides.Many(), nil)
 	return nil
+}
+
+func (f *ResultProvider) ProvideAnything(
+	provides *miruken.Provides,
+) {
+	if key := provides.Key(); key == reflect.TypeOf((*Foo)(nil)) {
+		provides.ReceiveResult(&Foo{}, false, provides.Many(), nil)
+	} else if key == reflect.TypeOf((*Bar)(nil)) {
+		provides.ReceiveResult(&Bar{}, false, provides.Many(), nil)
+	} else if key == reflect.TypeOf((*Baz)(nil)) {
+		provides.ReceiveResult(&Baz{}, false, provides.Many(), nil)
+	} else if key == reflect.TypeOf((*Bam)(nil)) {
+		provides.ReceiveResult(&Bam{}, false, provides.Many(), nil)
+	} else if key == reflect.TypeOf((*Bar)(nil)) {
+		provides.ReceiveResult(&Bar{}, false, provides.Many(), nil)
+	}
 }
 
 // InvalidProvider
@@ -917,10 +932,13 @@ func (suite *HandlerTestSuite) TestProvides() {
 	suite.Run("Results", func () {
 		handler := miruken.NewRootHandler(
 			miruken.WithHandlerTypes(reflect.TypeOf((*ResultProvider)(nil))))
-		var foo *Foo
-		err := miruken.Resolve(handler, &foo)
-		suite.Nil(err)
-		suite.Equal(1, foo.Count())
+
+		suite.Run("Invariant", func () {
+			var foo *Foo
+			err := miruken.Resolve(handler, &foo)
+			suite.Nil(err)
+			suite.Equal(1, foo.Count())
+		})
 	})
 
 	suite.Run("Lists", func () {

@@ -20,12 +20,11 @@ func (h *inferenceHandler) DispatchPolicy(
 	rawCallback Callback,
 	greedy      bool,
 	composer    Handler,
-	results     ResultReceiver,
 ) HandleResult {
 	if infer, ok := rawCallback.(interface{CanInfer() bool}); ok && !infer.CanInfer() {
 		return NotHandled
 	}
-	return h.descriptor.Dispatch(policy, h, callback, rawCallback, greedy, composer, results)
+	return h.descriptor.Dispatch(policy, h, callback, rawCallback, greedy, composer)
 }
 
 func (h *inferenceHandler) suppressDispatch() {}
@@ -55,8 +54,10 @@ func (b *bindingIntercept) Invoke(
 	if ctor, ok := b.Binding.(*constructorBinding); ok {
 		return ctor.Invoke(context)
 	}
-	builder := new(ResolvingBuilder).WithCallback(context.RawCallback())
-	builder.WithKey(b.handlerType)
+	var builder ResolvingBuilder
+	builder.
+		WithCallback(context.RawCallback()).
+		WithKey(b.handlerType)
 	resolving := builder.NewResolving()
 	if result := context.Composer().Handle(resolving, false, nil); result.IsError() {
 		return nil, result.Error()
