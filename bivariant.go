@@ -103,7 +103,8 @@ func (p *BivariantPolicy) NewMethodBinding(
 
 	switch methodType.NumOut() {
 	case 0:
-		// open return
+		invalid = multierror.Append(invalid,
+			errors.New("bivariant: must have a return value"))
 	case 1:
 		out = methodType.Out(0)
 		if err := validateBivariantReturn(out); err != nil {

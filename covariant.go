@@ -104,7 +104,8 @@ func (p *CovariantPolicy) NewMethodBinding(
 
 	switch methodType.NumOut() {
 	case 0:
-		spec.key = _interfaceType
+		invalid = multierror.Append(invalid,
+			errors.New("covariant: must have a return value"))
 	case 1:
 		if err := validateCovariantReturn(methodType.Out(0), spec); err != nil {
 			invalid = multierror.Append(invalid, err)

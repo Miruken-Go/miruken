@@ -767,32 +767,6 @@ func (p *OpenProvider) Provide(
 	return nil
 }
 
-// ResultProvider
-type ResultProvider struct{}
-
-func (f *ResultProvider) ProvideFoo(provides *miruken.Provides) *Foo {
-	foo := Foo{}
-	foo.Inc()
-	provides.ReceiveResult(&foo, false, provides.Many(), nil)
-	return nil
-}
-
-func (f *ResultProvider) ProvideAnything(
-	provides *miruken.Provides,
-) {
-	if key := provides.Key(); key == reflect.TypeOf((*Foo)(nil)) {
-		provides.ReceiveResult(&Foo{}, false, provides.Many(), nil)
-	} else if key == reflect.TypeOf((*Bar)(nil)) {
-		provides.ReceiveResult(&Bar{}, false, provides.Many(), nil)
-	} else if key == reflect.TypeOf((*Baz)(nil)) {
-		provides.ReceiveResult(&Baz{}, false, provides.Many(), nil)
-	} else if key == reflect.TypeOf((*Bam)(nil)) {
-		provides.ReceiveResult(&Bam{}, false, provides.Many(), nil)
-	} else if key == reflect.TypeOf((*Bar)(nil)) {
-		provides.ReceiveResult(&Bar{}, false, provides.Many(), nil)
-	}
-}
-
 // InvalidProvider
 type InvalidProvider struct {}
 
@@ -929,18 +903,6 @@ func (suite *HandlerTestSuite) TestProvides() {
 		})
 	})
 
-	suite.Run("Results", func () {
-		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*ResultProvider)(nil))))
-
-		suite.Run("Invariant", func () {
-			var foo *Foo
-			err := miruken.Resolve(handler, &foo)
-			suite.Nil(err)
-			suite.Equal(1, foo.Count())
-		})
-	})
-
 	suite.Run("Lists", func () {
 		handler := miruken.NewRootHandler(
 			miruken.WithHandlerTypes(reflect.TypeOf((*ListProvider)(nil))),
@@ -1065,7 +1027,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 						errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 						failures++
 					}
-					suite.Equal(5, failures)
+					suite.Equal(6, failures)
 				} else {
 					suite.Fail("Expected HandlerDescriptorError")
 				}

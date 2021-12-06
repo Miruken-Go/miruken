@@ -32,7 +32,6 @@ var HandlerTestTypes = []reflect.Type{
 	reflect.TypeOf((*OpenMapper)(nil)),
 	reflect.TypeOf((*OpenProvider)(nil)),
 	reflect.TypeOf((*PersonProvider)(nil)),
-	reflect.TypeOf((*ResultProvider)(nil)),
 	reflect.TypeOf((*RootedService)(nil)),
 	reflect.TypeOf((*ScopedService)(nil)),
 	reflect.TypeOf((*SingletonErrorHandler)(nil)),

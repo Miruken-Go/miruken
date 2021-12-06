@@ -55,8 +55,7 @@ func (m *Maps) Dispatch(
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
-	return DispatchPolicy(handler, m.source, m, greedy, composer).
-		OtherwiseHandledIf(!IsNil(m.Result()))
+	return DispatchPolicy(handler, m.source, m, greedy, composer)
 }
 
 type Format struct {

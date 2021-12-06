@@ -156,6 +156,9 @@ func (h *InvalidMapper) MissingDependency(
 ) {
 }
 
+func (p *InvalidMapper) MissingReturnValue(*miruken.Provides) {
+}
+
 func (h *InvalidMapper) TooManyReturnValues(
 	_ *miruken.Handles, _ *Bar,
 ) (int, string, Counter) {
@@ -343,7 +346,7 @@ func (suite *MapTestSuite) TestMap() {
 							errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 							failures++
 						}
-						suite.Equal(5, failures)
+						suite.Equal(6, failures)
 					} else {
 						suite.Fail("Expected HandlerDescriptorError")
 					}
