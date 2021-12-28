@@ -287,7 +287,7 @@ func (suite *MapTestSuite) TestMap() {
 
 			suite.Run("Implicit", func() {
 				data  := PlayerData{
-					Id: 1,
+					Id:   1,
 					Name: "Tim Howard",
 				}
 				var jsonString string

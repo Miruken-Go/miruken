@@ -51,11 +51,12 @@ func DispatchPolicy(
 
 // policySpec captures Policy metadata.
 type policySpec struct {
-	policies []Policy
-	flags    bindingFlags
-	filters  []FilterProvider
-	key      interface{}
-	arg      arg
+	policies    []Policy
+	flags       bindingFlags
+	filters     []FilterProvider
+	constraints []BindingConstraint
+	key         interface{}
+	arg         arg
 }
 
 func (s *policySpec) addPolicy(
@@ -75,8 +76,14 @@ func (s *policySpec) addFilterProvider(
 func (s *policySpec) addConstraint(
 	constraint BindingConstraint,
 ) error {
-	provider := ConstraintProvider{constraint}
-	s.filters = append(s.filters, &provider)
+	for _, c := range s.constraints {
+		if merge, ok := c.(interface {
+			Merge(BindingConstraint) bool
+		}); ok && merge.Merge(constraint) {
+			return nil
+		}
+	}
+	s.constraints = append(s.constraints, constraint)
 	return nil
 }
 
@@ -98,10 +105,11 @@ func (s *policySpec) setSkipFilters(
 	return nil
 }
 
-func (s *policySpec) unknownBinding(
-	index int,
-	field reflect.StructField,
-) error {
+func (s *policySpec) complete() error {
+	if len(s.constraints) > 0 {
+		provider := ConstraintProvider{s.constraints}
+		s.filters = append(s.filters, &provider)
+	}
 	return nil
 }
 
@@ -120,8 +128,7 @@ func (p *policySpecBuilder) BuildSpec(
 			specType.Kind() == reflect.Struct &&
 			specType.NumField() > 0 {
 			spec = &policySpec{}
-			builders := []bindingBuilder{
-				bindingBuilderFunc(p.bindPolicies),
+			builders := []bindingBuilder{p,
 				bindingBuilderFunc(bindOptions),
 				bindingBuilderFunc(bindFilters),
 				bindingBuilderFunc(bindConstraints),
@@ -144,7 +151,7 @@ func (p *policySpecBuilder) BuildSpec(
 	return nil, nil
 }
 
-func (p *policySpecBuilder) bindPolicies(
+func (p *policySpecBuilder) configure(
 	index   int,
 	field   reflect.StructField,
 	binding interface{},

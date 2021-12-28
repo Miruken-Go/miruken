@@ -65,16 +65,24 @@ type Format struct {
 func (f *Format) InitWithTag(tag reflect.StructTag) error {
 	if as, ok := tag.Lookup("as"); ok {
 		f.as = make(map[interface{}]struct{})
-		for _, format := range strings.Split(as, ",") {
-			if format = strings.TrimSpace(format); len(format) > 0 {
-				f.as[format] = struct{}{}
-			}
+		if format := strings.TrimSpace(as); len(format) > 0 {
+			f.as[format] = struct{}{}
 		}
 	}
 	if len(f.as) == 0 {
-		return errors.New("the Format constraint requires a non-empty `as:[formats]` tag")
+		return errors.New("the Format constraint requires a non-empty `as:format` tag")
 	}
 	return nil
+}
+
+func (f *Format) Merge(constraint BindingConstraint) bool {
+	if format, ok := constraint.(*Format); ok {
+		for format := range format.as {
+			f.as[format] = struct{}{}
+		}
+		return true
+	}
+	return false
 }
 
 func (f *Format) Require(metadata *BindingMetadata) {

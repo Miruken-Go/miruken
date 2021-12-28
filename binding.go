@@ -249,12 +249,19 @@ func configureBinding(
 		}
 		if !bound {
 			if b, ok := binding.(interface {
-				unknownBinding(int, reflect.StructField) error
+				unknown(int, reflect.StructField) error
 			}); ok {
-				if invalid := b.unknownBinding(i, field); invalid != nil {
+				if invalid := b.unknown(i, field); invalid != nil {
 					err = multierror.Append(err, invalid)
 				}
 			}
+		}
+	}
+	if err == nil {
+		if b, ok := binding.(interface {
+			complete() error
+		}); ok {
+			err = b.complete()
 		}
 	}
 	return err

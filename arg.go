@@ -92,13 +92,6 @@ func (s *dependencySpec) addConstraint(
 	return nil
 }
 
-func (s *dependencySpec) unknownBinding(
-	index int,
-	field reflect.StructField,
-) error {
-	return nil
-}
-
 // DependencyArg is a parameter resolved at runtime.
 type DependencyArg struct {
 	spec *dependencySpec

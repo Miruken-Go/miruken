@@ -214,12 +214,16 @@ func (c *ConstraintFilter) Next(
 	provider FilterProvider,
 )  (result []interface{}, err error) {
 	if cp, ok := provider.(interface {
-		Constraint() BindingConstraint
+		Constraints() []BindingConstraint
 	}); ok {
 		if scope, ok := context.RawCallback().(BindingScope); ok {
 			metadata := scope.Metadata()
-			if metadata != nil && !cp.Constraint().Matches(metadata) {
-				return next.Abort()
+			if metadata != nil {
+				for _, c := range cp.Constraints() {
+					if !c.Matches(metadata) {
+						return next.Abort()
+					}
+				}
 			}
 		}
 	}
@@ -230,11 +234,11 @@ var _constraintFilter = []Filter{&ConstraintFilter{}}
 
 // ConstraintProvider is a FilterProvider for constraints.
 type ConstraintProvider struct {
-	constraint BindingConstraint
+	constraints []BindingConstraint
 }
 
-func (c *ConstraintProvider) Constraint() BindingConstraint {
-	return c.constraint
+func (c *ConstraintProvider) Constraints() []BindingConstraint {
+	return c.constraints
 }
 
 func (c *ConstraintProvider) Required() bool {
