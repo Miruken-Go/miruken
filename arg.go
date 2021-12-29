@@ -120,6 +120,9 @@ func (d DependencyArg) resolve(
 		return val, nil
 	}
 	rawCallback := ctx.RawCallback()
+	if val := reflect.ValueOf(rawCallback); val.Type().AssignableTo(typ) {
+		return val, nil
+	}
 	var resolver DependencyResolver = &_defaultResolver
 	if spec := d.spec; spec != nil {
 		if spec.resolver != nil {

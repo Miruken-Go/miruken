@@ -38,9 +38,8 @@ func (p *BivariantPolicy) MatchesKey(
 			} else if strict {
 				return false, false
 			}
-			matches, exact := p.in.MatchesKey(bk.In, ok.In, false)
-			if exact {
-				matches, exact = p.out.MatchesKey(bk.Out, ok.Out, false)
+			if matches, _ = p.in.MatchesKey(bk.In, ok.In, false); matches {
+				matches, _ = p.out.MatchesKey(bk.Out, ok.Out, false)
 			}
 			return matches, false
 		} else {

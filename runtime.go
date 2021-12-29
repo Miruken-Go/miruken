@@ -57,12 +57,15 @@ func CopyIndirect(src interface{}, target interface{}) {
 	} else {
 		val = TargetValue(target)
 	}
+	srcVal := reflect.ValueOf(src)
+	if val == srcVal {
+		return
+	}
 	val = reflect.Indirect(val)
 	typ := val.Type()
 	if src != nil {
-		resultValue := reflect.ValueOf(src)
-		if resultType := resultValue.Type(); resultType.AssignableTo(typ) {
-			val.Set(resultValue)
+		if srcType := srcVal.Type(); srcType.AssignableTo(typ) {
+			val.Set(srcVal)
 		} else {
 			panic(fmt.Sprintf("%T must be assignable to %v", src, typ))
 		}

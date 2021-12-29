@@ -24,11 +24,6 @@ type PlayerData struct {
 	Name string
 }
 
-type MapTestSuite struct {
-	suite.Suite
-	HandleTypes []reflect.Type
-}
-
 // EntityMapper
 type EntityMapper struct{}
 
@@ -101,11 +96,6 @@ func (m *OpenMapper) Map(
 // FormatMapper
 type (
 	FormatMapper struct{}
-
-	JsonOptions struct{
-		Prefix string
-		Indent string
-	}
 )
 
 func (m *FormatMapper) ToPlayerJson(
@@ -126,25 +116,6 @@ func (m *FormatMapper) FromPlayerJson(
 	data := PlayerData{}
 	err  := json.Unmarshal([]byte(jsonString), &data)
 	return data, err
-}
-
-func (m *FormatMapper) ToJson(
-	_ *struct{
-		miruken.Maps
-		miruken.Format `as:"application/json"`
-	  }, maps *miruken.Maps,
-	_ *struct{
-		miruken.Optional
-		miruken.FromOptions
-	  }, options JsonOptions,
-) (js string, err error) {
-	var data []byte
-	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
-		data, err = json.MarshalIndent(maps.Source(), prefix, indent)
-	} else {
-		data, err = json.Marshal(maps.Source())
-	}
-	return string(data), err
 }
 
 // InvalidMapper
@@ -182,6 +153,11 @@ func (h *InvalidMapper) MissingCallbackArgument(
 	_ *struct{ miruken.Handles },
 ) miruken.HandleResult {
 	return miruken.Handled
+}
+
+type MapTestSuite struct {
+	suite.Suite
+	HandleTypes []reflect.Type
 }
 
 func (suite *MapTestSuite) SetupTest() {
@@ -285,55 +261,23 @@ func (suite *MapTestSuite) TestMap() {
 			handler := miruken.NewRootHandler(
 				miruken.WithHandlerTypes(reflect.TypeOf((*FormatMapper)(nil))))
 
-			suite.Run("Implicit", func() {
-				data  := PlayerData{
-					Id:   1,
-					Name: "Tim Howard",
-				}
-				var jsonString string
-				err := miruken.Map(handler, &data, &jsonString, "application/json")
-				suite.Nil(err)
-				suite.Equal("{\"id\":1,\"name\":\"Tim Howard\"}", jsonString)
+			data  := PlayerData{
+				Id:   1,
+				Name: "Tim Howard",
+			}
+			var jsonString string
+			err := miruken.Map(handler, &data, &jsonString, "application/json")
+			suite.Nil(err)
+			suite.Equal("{\"id\":1,\"name\":\"Tim Howard\"}", jsonString)
 
-				err = miruken.Map(handler, &data, &jsonString, "foo")
-				suite.Error(miruken.NotHandledError{}, err)
+			err = miruken.Map(handler, &data, &jsonString, "foo")
+			suite.Error(miruken.NotHandledError{}, err)
 
-				var data2 PlayerData
-				err = miruken.Map(handler, jsonString, &data2, "application/json")
-				suite.Nil(err)
-				suite.Equal(1, data.Id)
-				suite.Equal("Tim Howard", data.Name)
-			})
-
-			suite.Run("Open", func() {
-				data := struct{
-					Name string
-					Age  int
-				}{
-					"John Smith",
-					23,
-				}
-				var jsonString string
-				err := miruken.Map(handler, data, &jsonString, "application/json")
-				suite.Nil(err)
-				suite.Equal("{\"Name\":\"John Smith\",\"Age\":23}", jsonString)
-			})
-
-			suite.Run("Options", func() {
-				data := struct{
-					Name string
-					Age  int
-				}{
-					"Sarah Conner",
-					38,
-				}
-				var jsonString string
-				err := miruken.Map(
-					miruken.Build(handler, miruken.WithOptions(JsonOptions{Indent: "  "})),
-					data, &jsonString, "application/json")
-				suite.Nil(err)
-				suite.Equal("{\n  \"Name\": \"Sarah Conner\",\n  \"Age\": 38\n}", jsonString)
-			})
+			var data2 PlayerData
+			err = miruken.Map(handler, jsonString, &data2, "application/json")
+			suite.Nil(err)
+			suite.Equal(1, data.Id)
+			suite.Equal("Tim Howard", data.Name)
 		})
 
 		suite.Run("Invalid", func () {
