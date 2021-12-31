@@ -7,18 +7,20 @@ import (
 	"reflect"
 )
 
-// DiKey represents a key with input and output parts.
-type DiKey struct {
-	In  interface{}
-	Out interface{}
-}
+type (
+	// DiKey represents a key with input and output parts.
+	DiKey struct {
+		In  interface{}
+		Out interface{}
+	}
 
-// BivariantPolicy defines related input and output values.
-type BivariantPolicy struct {
-	FilteredScope
-	in  ContravariantPolicy
-	out CovariantPolicy
-}
+	// BivariantPolicy defines related input and output values.
+	BivariantPolicy struct {
+		FilteredScope
+		in  ContravariantPolicy
+		out CovariantPolicy
+	}
+)
 
 func (p *BivariantPolicy) IsVariantKey(
 	key interface{},

@@ -5,14 +5,16 @@ import (
 	"io"
 )
 
-// JsonMapper formats to and from json.
-type JsonMapper struct{}
+type (
+	// JsonMapper formats to and from json.
+	JsonMapper struct{}
 
-// JsonOptions customizes json formatting.
-type JsonOptions struct {
-	Prefix string
-	Indent string
-}
+	// JsonOptions customizes json formatting.
+	JsonOptions struct {
+		Prefix string
+		Indent string
+	}
+)
 
 func (m *JsonMapper) ToJson(
 	_ *struct{
@@ -37,11 +39,11 @@ func (m *JsonMapper) ToJsonStream(
 	_ *struct{
 		Maps
 		Format `as:"application/json"`
-	}, maps *Maps,
+	  }, maps *Maps,
 	_ *struct{
 		Optional
 		FromOptions
-	}, options JsonOptions,
+	  }, options JsonOptions,
 ) (stream io.Writer, err error) {
 	if writer, ok := maps.target.(*io.Writer); ok && !IsNil(writer) {
 		enc := json.NewEncoder(*writer)
@@ -68,9 +70,9 @@ func (m *JsonMapper) FromJson(
 
 func (m *JsonMapper) FromJsonStream(
 	_ *struct{
-	Maps
-	Format `as:"application/json"`
-}, stream io.Reader,
+		Maps
+		Format `as:"application/json"`
+	  }, stream io.Reader,
 	maps *Maps,
 ) (interface{}, error) {
 	target := maps.Target()

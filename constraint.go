@@ -8,13 +8,16 @@ import (
 	"strings"
 )
 
-type KeyValues map[interface{}]interface{}
+type (
+	// KeyValues is an alias for key/value map.
+	KeyValues map[interface{}]interface{}
 
-// BindingMetadata is a key/value container.
-type BindingMetadata struct {
-	name   string
-	values KeyValues
-}
+	// BindingMetadata is a key/value container.
+	BindingMetadata struct {
+		name   string
+		values KeyValues
+	}
+)
 
 func (b *BindingMetadata) Name() string {
 	return b.name

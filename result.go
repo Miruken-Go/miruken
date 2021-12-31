@@ -9,13 +9,17 @@ var (
 	NotHandledAndStop = HandleResult{false, true,  nil}
 )
 
-type HandleResult struct {
-	handled bool
-	stop    bool
-	err     error
-}
+type (
+	// HandleResult describes the result of an operation.
+	HandleResult struct {
+		handled bool
+		stop    bool
+		err     error
+	}
 
-type HandleResultBlock func(HandleResult) HandleResult
+	// HandleResultBlock combines a HandleResult with an action.
+	HandleResultBlock func(HandleResult) HandleResult
+)
 
 func (r HandleResult) IsHandled() bool {
 	return r.handled

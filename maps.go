@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Maps callbacks Bivariantly.
+// Maps callbacks bivariantly.
 type Maps struct {
 	CallbackBase
 	source   interface{}

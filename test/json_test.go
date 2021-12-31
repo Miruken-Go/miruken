@@ -2,7 +2,7 @@ package test
 
 import (
 	"bytes"
-	"errors"
+	"fmt"
 	"github.com/stretchr/testify/suite"
 	"io"
 	"miruken.com/miruken"
@@ -10,6 +10,17 @@ import (
 	"strings"
 	"testing"
 )
+
+type PlayerMapper struct{}
+
+func (m *PlayerMapper) ToPlayerJson(
+	_ *struct{
+	miruken.Maps
+	miruken.Format `as:"application/json"`
+}, data PlayerData,
+) string {
+	return fmt.Sprintf("{\"id\":%v,\"name\":\"%v\"}", data.Id, data.Name)
+}
 
 type JsonTestSuite struct {
 	suite.Suite
@@ -35,8 +46,7 @@ func (suite *JsonTestSuite) InferenceRootWith(
 func (suite *JsonTestSuite) TestJson() {
 	suite.Run("Maps", func () {
 		suite.Run("Json", func() {
-			handler := miruken.NewRootHandler(
-				miruken.WithHandlerTypes(reflect.TypeOf((*miruken.JsonMapper)(nil))))
+			handler := suite.InferenceRoot()
 
 			suite.Run("ToJson", func() {
 				data := struct{
@@ -66,6 +76,17 @@ func (suite *JsonTestSuite) TestJson() {
 					data, &jsonString, "application/json")
 				suite.Nil(err)
 				suite.Equal("{\n  \"Name\": \"Sarah Conner\",\n  \"Age\": 38\n}", jsonString)
+			})
+
+			suite.Run("ToJsonMap", func() {
+				data := map[string]interface{}{
+					"Id":    2,
+					"Name": "George Best",
+				}
+				var jsonString string
+				err := miruken.Map(handler, data, &jsonString, "application/json")
+				suite.Nil(err)
+				suite.Equal("{\"Id\":2,\"Name\":\"George Best\"}", jsonString)
 			})
 
 			suite.Run("ToJsonStream", func() {
@@ -100,6 +121,21 @@ func (suite *JsonTestSuite) TestJson() {
 				suite.Equal("{\n  \"Name\": \"James Webb\",\n  \"Age\": 85\n}\n", b.String())
 			})
 
+			suite.Run("ToJsonOverride", func() {
+				handler := suite.InferenceRootWith(
+					reflect.TypeOf((*miruken.JsonMapper)(nil)),
+					reflect.TypeOf((*PlayerMapper)(nil)))
+
+				data :=  PlayerData{
+					Id:   1,
+					Name: "Tim Howard",
+				}
+				var jsonString string
+				err := miruken.Map(handler, data, &jsonString, "application/json")
+				suite.Nil(err)
+				suite.Equal("{\"id\":1,\"name\":\"Tim Howard\"}", jsonString)
+			})
+
 			suite.Run("FromJson", func() {
 				type Data struct {
 					Name string
@@ -111,6 +147,15 @@ func (suite *JsonTestSuite) TestJson() {
 				suite.Nil(err)
 				suite.Equal("Ralph Hall", data.Name)
 				suite.Equal(84, data.Age)
+			})
+
+			suite.Run("FromJsonMap", func() {
+				jsonString := "{\"Name\":\"Ralph Hall\",\"Age\":84}"
+				var data map[string]interface{}
+				err := miruken.Map(handler, jsonString, &data, "application/json")
+				suite.Nil(err)
+				suite.Equal(84.0, data["Age"])
+				suite.Equal("Ralph Hall", data["Name"])
 			})
 
 			suite.Run("FromJsonStream", func() {
@@ -125,27 +170,6 @@ func (suite *JsonTestSuite) TestJson() {
 				suite.Equal("Ralph Hall", data.Name)
 				suite.Equal(84, data.Age)
 			})
-		})
-
-		suite.Run("Invalid", func () {
-			failures := 0
-			defer func() {
-				if r := recover(); r != nil {
-					if err, ok := r.(*miruken.HandlerDescriptorError); ok {
-						var errMethod miruken.MethodBindingError
-						for reason := errors.Unwrap(err.Reason);
-							errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
-							failures++
-						}
-						suite.Equal(6, failures)
-					} else {
-						suite.Fail("Expected HandlerDescriptorError")
-					}
-				}
-			}()
-			miruken.NewRootHandler(
-				miruken.WithHandlerTypes(reflect.TypeOf((*InvalidMapper)(nil))))
-			suite.Fail("should cause panic")
 		})
 	})
 }

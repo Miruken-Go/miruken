@@ -4,7 +4,7 @@ import (
 	"reflect"
 )
 
-// Provides results Covariantly.
+// Provides results covariantly.
 type Provides struct {
 	CallbackBase
 	key       interface{}

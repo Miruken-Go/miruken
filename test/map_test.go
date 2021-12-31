@@ -218,8 +218,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("Open", func() {
-			handler := miruken.NewRootHandler(
-				miruken.WithHandlerTypes(reflect.TypeOf((*OpenMapper)(nil))))
+			handler := suite.InferenceRootWith(reflect.TypeOf((*OpenMapper)(nil)))
 			entity  := PlayerEntity{
 				Entity{ Id: 1 },
 				"Tim Howard",
@@ -258,8 +257,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("Format", func() {
-			handler := miruken.NewRootHandler(
-				miruken.WithHandlerTypes(reflect.TypeOf((*FormatMapper)(nil))))
+			handler := suite.InferenceRootWith(reflect.TypeOf((*FormatMapper)(nil)))
 
 			data  := PlayerData{
 				Id:   1,

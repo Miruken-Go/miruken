@@ -4,8 +4,33 @@ import (
 	"sync"
 )
 
-// ContextState represents the state of a Context.
-type ContextState uint
+type (
+	// ContextState represents the state of a Context.
+	ContextState uint
+
+	// ContextReason identifies the cause for the notification.
+	ContextReason uint
+
+	// Contextual represents anything with a Context.
+	Contextual interface {
+		Context() *Context
+		SetContext(ctx *Context)
+		Observe(observer ContextObserver) Disposable
+	}
+
+	// A Context represents the scope at a give point in time.
+	// It has a beginning and an end and can handle callbacks as well as
+	// notify observers of lifecycle changes.  In addition, it maintains
+	// parent-child relationships and thus can form a graph.
+	Context struct {
+		mutableHandlers
+		parent    *Context
+		state      ContextState
+		children   []Traversing
+		observers  map[ctxObserverType][]ContextObserver
+		lock       sync.RWMutex
+	}
+)
 
 const (
 	ContextActive ContextState = iota
@@ -13,34 +38,11 @@ const (
 	ContextEnded
 )
 
-// ContextReason identifies the cause for the notification.
-type ContextReason uint
-
 const (
 	ContextAlreadyEnded ContextReason = iota
 	ContextUnwinded
 	ContextDisposed
 )
-
-// Contextual represents anything with a Context.
-type Contextual interface {
-	Context() *Context
-	SetContext(ctx *Context)
-    Observe(observer ContextObserver) Disposable
-}
-
-// A Context represents the scope at a give point in time.
-// It has a beginning and an end and can handle callbacks as well as
-// notify observers of lifecycle changes.  In addition, it maintains
-// parent-child relationships and thus can form a graph.
-type Context struct {
-	mutableHandlers
-	parent    *Context
-	state      ContextState
-	children   []Traversing
-	observers  map[ctxObserverType][]ContextObserver
-	lock       sync.RWMutex
-}
 
 func (c *Context) Parent() Traversing {
 	return c.parent

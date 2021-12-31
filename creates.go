@@ -4,7 +4,7 @@ import (
 	"reflect"
 )
 
-// Creates instances Covariantly.
+// Creates instances covariantly.
 type Creates struct {
 	CallbackBase
 	typ reflect.Type

@@ -1,21 +1,23 @@
 package miruken
 
-// HandlerAxis extends Handler with traversal.
-type HandlerAxis interface {
-	Handler
-	HandleAxis(
-		axis     TraversingAxis,
-		callback interface{},
-		greedy   bool,
-		composer Handler,
-	) HandleResult
-}
+type (
+	// HandlerAxis extends Handler with traversal.
+	HandlerAxis interface {
+		Handler
+		HandleAxis(
+			axis     TraversingAxis,
+			callback interface{},
+			greedy   bool,
+			composer Handler,
+		) HandleResult
+	}
 
-// axisScope applies axis traversal to a Handler.
-type axisScope struct {
-	HandlerAxis
-	axis TraversingAxis
-}
+	// axisScope applies axis traversal to a Handler.
+ 	axisScope struct {
+		HandlerAxis
+		axis TraversingAxis
+	}
+)
 
 func (a *axisScope) Handle(
 	callback interface{},

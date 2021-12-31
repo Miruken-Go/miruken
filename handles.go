@@ -4,7 +4,7 @@ import (
 	"reflect"
 )
 
-// Handles callbacks Covariantly.
+// Handles callbacks contravariantly.
 type Handles struct {
 	CallbackBase
 	callback interface{}
