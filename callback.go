@@ -80,6 +80,15 @@ func (c *CallbackBase) AddResult(
 	return true
 }
 
+func (c *CallbackBase) ReceiveResult(
+	result   interface{},
+	strict   bool,
+	greedy   bool,
+	composer Handler,
+) (accepted bool) {
+	return c.AddResult(result, greedy, composer)
+}
+
 func (c *CallbackBase) CopyResult(target interface{}) {
 	if c.Many() {
 		CopySliceIndirect(c.Result().([]interface{}), target)

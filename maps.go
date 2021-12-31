@@ -41,15 +41,6 @@ func (m *Maps) Metadata() *BindingMetadata {
 	return &m.metadata
 }
 
-func (m *Maps) ReceiveResult(
-	result   interface{},
-	strict   bool,
-	greedy   bool,
-	composer Handler,
-) (accepted bool) {
-	return m.AddResult(result, greedy, composer)
-}
-
 func (m *Maps) Dispatch(
 	handler  interface{},
 	greedy   bool,
@@ -181,29 +172,33 @@ func Map(
 	} else if !result.handled {
 		return NotHandledError{maps}
 	}
-	tv := TargetValue(target)
-	maps.CopyResult(tv)
+	maps.CopyResult(TargetValue(target))
 	return nil
 }
 
 func MapAll(
 	handler Handler,
-	source []interface{},
+	source interface{},
 	target interface{},
 	format ... interface{},
 ) error {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
+	if IsNil(source) || reflect.TypeOf(source).Kind() != reflect.Slice {
+		panic("source must be a non-nil slice")
+	}
 	if len(format) > 1 {
 		panic("only one format is allowed")
 	}
+	ts      := reflect.ValueOf(source)
 	tv      := TargetSliceValue(target)
 	tt      := tv.Type().Elem().Elem()
-	results := make([]interface{}, len(source))
-	for i, src := range source {
+	te      := reflect.New(tt).Interface()
+	results := make([]interface{}, ts.Len())
+	for i := 0; i < ts.Len(); i++ {
 		var builder MapsBuilder
-		builder.FromSource(src).ToTarget(tt)
+		builder.FromSource(ts.Index(i).Interface()).ToTarget(te)
 		if len(format) == 1 {
 			builder.WithFormat(format[0])
 		}

@@ -22,15 +22,6 @@ func (h *Handles) Policy() Policy {
 	return _handlesPolicy
 }
 
-func (h *Handles) ReceiveResult(
-	result   interface{},
-	strict   bool,
-	greedy   bool,
-	composer Handler,
-) (accepted bool) {
-	return h.AddResult(result, greedy, composer)
-}
-
 func (h *Handles) CanDispatch(
 	handler     interface{},
 	binding     Binding,

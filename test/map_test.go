@@ -28,7 +28,8 @@ type PlayerData struct {
 type EntityMapper struct{}
 
 func (m *EntityMapper) MapPlayerData(
-	maps *miruken.Maps, entity *PlayerEntity,
+	maps   *miruken.Maps,
+	entity *PlayerEntity,
 ) *PlayerData {
 	if data, ok := maps.Target().(**PlayerData); ok && *data != nil {
 		(*data).Id   = entity.Id
@@ -121,35 +122,35 @@ func (m *FormatMapper) FromPlayerJson(
 // InvalidMapper
 type InvalidMapper struct {}
 
-func (h *InvalidMapper) MissingDependency(
+func (m *InvalidMapper) MissingDependency(
 	_ *miruken.Handles, _ *Bar,
 	_ *struct{ },
 ) {
 }
 
-func (p *InvalidMapper) MissingReturnValue(*miruken.Provides) {
+func (m *InvalidMapper) MissingReturnValue(*miruken.Provides) {
 }
 
-func (h *InvalidMapper) TooManyReturnValues(
+func (m *InvalidMapper) TooManyReturnValues(
 	_ *miruken.Handles, _ *Bar,
 ) (int, string, Counter) {
 	return 0, "bad", nil
 }
 
-func (h *InvalidMapper) SecondReturnMustBeErrorOrHandleResult(
+func (m *InvalidMapper) SecondReturnMustBeErrorOrHandleResult(
 	_ *miruken.Handles, _ *Counter,
 ) (Foo, string) {
 	return Foo{}, "bad"
 }
 
-func (h *InvalidMapper) UntypedInterfaceDependency(
+func (m *InvalidMapper) UntypedInterfaceDependency(
 	_ *miruken.Handles, _ *Bar,
 	any interface{},
 ) miruken.HandleResult {
 	return miruken.Handled
 }
 
-func (h *InvalidMapper) MissingCallbackArgument(
+func (m *InvalidMapper) MissingCallbackArgument(
 	_ *struct{ miruken.Handles },
 ) miruken.HandleResult {
 	return miruken.Handled
@@ -276,6 +277,43 @@ func (suite *MapTestSuite) TestMap() {
 			suite.Nil(err)
 			suite.Equal(1, data.Id)
 			suite.Equal("Tim Howard", data.Name)
+		})
+
+		suite.Run("All", func() {
+			handler  := suite.InferenceRoot()
+			entities := []*PlayerEntity{
+				{
+					Entity{ Id: 1 },
+					"Christian Pulisic",
+				},
+				{
+					Entity{ Id: 2 },
+					"Weston Mckennie",
+				},
+				{
+					Entity{ Id: 3 },
+					"Josh Sargent",
+				},
+			}
+
+			var data []*PlayerData
+			err := miruken.MapAll(handler, entities, &data)
+			suite.Nil(err)
+			suite.Len(data, len(entities))
+			suite.True(reflect.DeepEqual(data, []*PlayerData{
+				{
+					Id:   1,
+					Name: "Christian Pulisic",
+				},
+				{
+					Id: 2,
+					Name: "Weston Mckennie",
+				},
+				{
+					Id: 3,
+					Name: "Josh Sargent",
+				},
+			}))
 		})
 
 		suite.Run("Invalid", func () {

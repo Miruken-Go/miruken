@@ -18,15 +18,6 @@ func (c *Creates) Policy() Policy {
 	return _createsPolicy
 }
 
-func (c *Creates) ReceiveResult(
-	result   interface{},
-	strict   bool,
-	greedy   bool,
-	composer Handler,
-) (accepted bool) {
-	return c.AddResult(result, greedy, composer)
-}
-
 func (c *Creates) Dispatch(
 	handler  interface{},
 	greedy   bool,
