@@ -32,7 +32,7 @@ func (s *Scoped) Constraint() BindingConstraint {
 type scoped struct {
 	Lifestyle
 	Qualifier
-	cache  map[*Context][]interface{}
+	cache  map[*Context][]any
 	lock   sync.RWMutex
 }
 
@@ -40,7 +40,7 @@ func (s *scoped) Next(
 	next     Next,
 	context  HandleContext,
 	provider FilterProvider,
-)  ([]interface{}, error) {
+)  ([]any, error) {
 	rooted := false
 	if scp, ok := provider.(*Scoped); ok {
 		rooted = scp.rooted
@@ -58,7 +58,7 @@ func (s *scoped) Next(
 	} else if rooted {
 		ctx = ctx.Root()
 	}
-	var instance []interface{}
+	var instance []any
 	s.lock.RLock()
 	if s.cache != nil {
 		instance = s.cache[ctx]
@@ -78,7 +78,7 @@ func (s *scoped) Next(
 				return instance, nil
 			}
 		} else {
-			s.cache = map[*Context][]interface{}{}
+			s.cache = map[*Context][]any{}
 		}
 		instance     = res
 		s.cache[ctx] = res
@@ -87,7 +87,7 @@ func (s *scoped) Next(
 	if contextual, ok := instance[0].(Contextual); ok {
 		contextual.SetContext(ctx)
 		unsubscribe := contextual.Observe(s)
-		ctx.Observe(ContextEndedObserverFunc(func (*Context, interface{}) {
+		ctx.Observe(ContextEndedObserverFunc(func (*Context, any) {
 			s.lock.Lock()
 			delete(s.cache, ctx)
 			s.lock.Unlock()
@@ -96,7 +96,7 @@ func (s *scoped) Next(
 			contextual.SetContext(nil)
 		}))
 	} else {
-		ctx.Observe(ContextEndedObserverFunc(func (*Context, interface{}) {
+		ctx.Observe(ContextEndedObserverFunc(func (*Context, any) {
 			s.lock.Lock()
 			delete(s.cache, ctx)
 			s.lock.Unlock()
@@ -142,7 +142,7 @@ func (s *scoped) isCompatibleWithParent(
 	return true
 }
 
-func (s *scoped) tryDispose(instance interface{}) {
+func (s *scoped) tryDispose(instance any) {
 	if disposable, ok := instance.(Disposable); ok {
 		disposable.Dispose()
 	}

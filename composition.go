@@ -7,7 +7,7 @@ type Composition struct {
 }
 
 func (c *Composition) Dispatch(
-	handler  interface{},
+	handler  any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
@@ -28,7 +28,7 @@ type compositionScope struct {
 }
 
 func (c *compositionScope) Handle(
-	callback interface{},
+	callback any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {

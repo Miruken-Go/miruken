@@ -3,12 +3,12 @@ package miruken
 import "reflect"
 
 type provider struct {
-	value interface{}
+	value any
 	typ   reflect.Type
 }
 
 func (p *provider) Handle(
-	callback interface{},
+	callback any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
@@ -28,7 +28,7 @@ func (p *provider) Handle(
 
 func (p *provider) suppressDispatch() {}
 
-func NewProvider(value interface{}) Handler {
+func NewProvider(value any) Handler {
 	if value == nil {
 		panic("value cannot be nil")
 	}

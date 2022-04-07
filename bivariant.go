@@ -10,8 +10,8 @@ import (
 type (
 	// DiKey represents a key with input and output parts.
 	DiKey struct {
-		In  interface{}
-		Out interface{}
+		In  any
+		Out any
 	}
 
 	// BivariantPolicy defines related input and output values.
@@ -23,14 +23,14 @@ type (
 )
 
 func (p *BivariantPolicy) IsVariantKey(
-	key interface{},
+	key any,
 ) (variant bool, unknown bool) {
 	_, ok := key.(DiKey)
 	return ok, false
 }
 
 func (p *BivariantPolicy) MatchesKey(
-	key, otherKey interface{},
+	key, otherKey any,
 	strict        bool,
 ) (matches bool, exact bool) {
 	if bk, valid := key.(DiKey); valid {
@@ -67,8 +67,8 @@ func (p *BivariantPolicy) Less(
 }
 
 func (p *BivariantPolicy) AcceptResults(
-	results []interface{},
-) (result interface{}, accepted HandleResult) {
+	results []any,
+) (result any, accepted HandleResult) {
 	return p.out.AcceptResults(results)
 }
 

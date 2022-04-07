@@ -7,7 +7,7 @@ import (
 )
 
 type treeNode struct {
-	data interface{}
+	data any
 	parent miruken.Traversing
 	children []miruken.Traversing
 }

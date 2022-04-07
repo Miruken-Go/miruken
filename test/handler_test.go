@@ -42,7 +42,7 @@ type (
 type FooHandler struct{}
 
 func (h *FooHandler) Handle(
-	callback interface{},
+	callback any,
 	greedy   bool,
 	composer miruken.Handler,
 ) miruken.HandleResult {
@@ -110,7 +110,7 @@ func (h *MultiHandler) HandleBar(
 type EverythingHandler struct{}
 
 func (h *EverythingHandler) HandleEverything(
-	_ *miruken.Handles, callback interface{},
+	_ *miruken.Handles, callback any,
 ) miruken.HandleResult {
 	switch cb := callback.(type) {
 	case *Foo:
@@ -150,7 +150,7 @@ func (h *EverythingImplicitHandler) HandleEverything(
 type EverythingSpecHandler struct{}
 
 func (h *EverythingSpecHandler) HandleEverything(
-	_ *struct { miruken.Handles }, callback interface{},
+	_ *struct { miruken.Handles }, callback any,
 ) miruken.HandleResult {
 	switch cb := callback.(type) {
 	case *Baz:
@@ -296,7 +296,7 @@ func (h *InvalidHandler) SecondReturnMustBeErrorOrHandleResult(
 
 func (h *InvalidHandler) UntypedInterfaceDependency(
 	_ *miruken.Handles, _ *Bar,
-	any interface{},
+	any any,
 ) miruken.HandleResult {
 	return miruken.Handled
 }
@@ -497,7 +497,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 		suite.Run("RequiredSlice", func () {
 			boo    := new(Boo)
-			bars := []interface{}{new(Bar), new(Bar)}
+			bars := []any{new(Bar), new(Bar)}
 			result := miruken.Build(handler, miruken.With(bars...)).Handle(boo, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(miruken.Handled, result)
@@ -527,7 +527,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 		suite.Run("OptionalSlice", func () {
 			baz    := new(Baz)
-			bars   := []interface{}{new(Bar), new(Bar)}
+			bars   := []any{new(Bar), new(Bar)}
 			result := handler.Handle(baz, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(miruken.Handled, result)
@@ -543,7 +543,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 		suite.Run("StrictSlice", func () {
 			bam    := new(Bam)
-			bars1  := []interface{}{new(Bar), new(Bar)}
+			bars1  := []any{new(Bar), new(Bar)}
 			result := miruken.Build(handler, miruken.With(bars1...)).Handle(bam, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(miruken.NotHandled, result)
@@ -617,7 +617,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 			})
 
 			suite.Run("Contravariant", func() {
-				var foo interface{}
+				var foo any
 				if err := miruken.Invoke(handler, new(Foo), &foo); err == nil {
 					suite.NotNil(foo)
 					suite.IsType(&Foo{}, foo)
@@ -758,7 +758,7 @@ type OpenProvider struct{}
 
 func (p *OpenProvider) Provide(
 	provides *miruken.Provides,
-) interface{} {
+) any {
 	if key := provides.Key(); key == reflect.TypeOf((*Foo)(nil)) {
 		return &Foo{}
 	} else if key == reflect.TypeOf((*Bar)(nil)) {
@@ -799,7 +799,7 @@ func (p *InvalidProvider) SecondReturnMustBeErrorOrHandleResult(
 
 func (p *InvalidProvider) UntypedInterfaceDependency(
 	_ *miruken.Provides,
-	any interface{},
+	any any,
 ) *Foo {
 	return &Foo{}
 }

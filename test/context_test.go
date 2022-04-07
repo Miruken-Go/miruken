@@ -9,20 +9,20 @@ import (
 
 type ContextObserver struct {
 	contextEnding bool
-	contextEndingReason interface{}
+	contextEndingReason any
 	contextEnded bool
-	contextEndedReason interface{}
+	contextEndedReason any
 	childContextEnding bool
 	childContextEndingContext *miruken.Context
-	childContextEndingReason interface{}
+	childContextEndingReason any
 	childContextEnded bool
 	childContextEndedContext *miruken.Context
-	childContextEndedReason interface{}
+	childContextEndedReason any
 }
 
 func (o *ContextObserver) ContextEnding(
 	ctx    *miruken.Context,
-	reason  interface{},
+	reason  any,
 ) {
 	o.contextEnding       = true
 	o.contextEndingReason = reason
@@ -30,7 +30,7 @@ func (o *ContextObserver) ContextEnding(
 
 func (o *ContextObserver) ContextEnded(
 	ctx    *miruken.Context,
-	reason  interface{},
+	reason  any,
 ) {
 	o.contextEnded       = true
 	o.contextEndedReason = reason
@@ -38,7 +38,7 @@ func (o *ContextObserver) ContextEnded(
 
 func (o *ContextObserver) ChildContextEnding(
 	childCtx *miruken.Context,
-	reason    interface{},
+	reason    any,
 ) {
 	o.childContextEnding        = true
 	o.childContextEndingContext = childCtx
@@ -47,7 +47,7 @@ func (o *ContextObserver) ChildContextEnding(
 
 func (o *ContextObserver) ChildContextEnded(
 	childCtx *miruken.Context,
-	reason    interface{},
+	reason    any,
 ) {
 	o.childContextEnded        = true
 	o.childContextEndedContext = childCtx

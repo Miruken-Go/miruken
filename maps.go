@@ -9,25 +9,25 @@ import (
 // Maps callbacks bivariantly.
 type Maps struct {
 	CallbackBase
-	source   interface{}
-	target   interface{}
-	format   interface{}
+	source   any
+	target   any
+	format   any
 	metadata BindingMetadata
 }
 
-func (m *Maps) Source() interface{} {
+func (m *Maps) Source() any {
 	return m.source
 }
 
-func (m *Maps) Target() interface{} {
+func (m *Maps) Target() any {
 	return m.target
 }
 
-func (m *Maps) Format() interface{} {
+func (m *Maps) Format() any {
 	return m.format
 }
 
-func (m *Maps) Key() interface{} {
+func (m *Maps) Key() any {
 	in  := reflect.TypeOf(m.source)
 	out := reflect.TypeOf(m.target).Elem()
 	return DiKey{in, out}
@@ -42,7 +42,7 @@ func (m *Maps) Metadata() *BindingMetadata {
 }
 
 func (m *Maps) Dispatch(
-	handler  interface{},
+	handler  any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
@@ -50,12 +50,12 @@ func (m *Maps) Dispatch(
 }
 
 type Format struct {
-	as map[interface{}]struct{}
+	as map[any]struct{}
 }
 
 func (f *Format) InitWithTag(tag reflect.StructTag) error {
 	if as, ok := tag.Lookup("as"); ok {
-		f.as = make(map[interface{}]struct{})
+		f.as = make(map[any]struct{})
 		if format := strings.TrimSpace(as); len(format) > 0 {
 			f.as[format] = struct{}{}
 		}
@@ -97,13 +97,13 @@ func (f *Format) Matches(metadata *BindingMetadata) bool {
 // MapsBuilder builds Maps callbacks.
 type MapsBuilder struct {
 	CallbackBuilder
-	source interface{}
-	target interface{}
-	format interface{}
+	source any
+	target any
+	format any
 }
 
 func (b *MapsBuilder) FromSource(
-	source interface{},
+	source any,
 ) *MapsBuilder {
 	if IsNil(source) {
 		panic("source cannot be nil")
@@ -113,7 +113,7 @@ func (b *MapsBuilder) FromSource(
 }
 
 func (b *MapsBuilder) ToTarget(
-	target interface{},
+	target any,
 ) *MapsBuilder {
 	if IsNil(target) {
 		panic("target cannot be nil")
@@ -123,7 +123,7 @@ func (b *MapsBuilder) ToTarget(
 }
 
 func (b *MapsBuilder) WithFormat(
-	format interface{},
+	format any,
 ) *MapsBuilder {
 	if IsNil(format) {
 		panic("format cannot be nil")
@@ -141,7 +141,7 @@ func (b *MapsBuilder) NewMaps() *Maps {
 	if format := b.format; format != nil {
 		maps.format   = format
 		maps.metadata = BindingMetadata{}
-		(&Format{as: map[interface{}]struct{}{
+		(&Format{as: map[any]struct{}{
 			format: {},
 		}}).Require(&maps.metadata)
 	}
@@ -150,9 +150,9 @@ func (b *MapsBuilder) NewMaps() *Maps {
 
 func Map(
 	handler Handler,
-	source interface{},
-	target interface{},
-	format ... interface{},
+	source any,
+	target any,
+	format ... any,
 ) error {
 	if handler == nil {
 		panic("handler cannot be nil")
@@ -178,9 +178,9 @@ func Map(
 
 func MapAll(
 	handler Handler,
-	source interface{},
-	target interface{},
-	format ... interface{},
+	source any,
+	target any,
+	format ... any,
 ) error {
 	if handler == nil {
 		panic("handler cannot be nil")
@@ -195,7 +195,7 @@ func MapAll(
 	tv      := TargetSliceValue(target)
 	tt      := tv.Type().Elem().Elem()
 	te      := reflect.New(tt).Interface()
-	results := make([]interface{}, ts.Len())
+	results := make([]any, ts.Len())
 	for i := 0; i < ts.Len(); i++ {
 		var builder MapsBuilder
 		builder.FromSource(ts.Index(i).Interface()).ToTarget(te)

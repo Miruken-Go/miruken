@@ -80,7 +80,7 @@ func (n NullFilter) Next(
 	next     miruken.Next,
 	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  ([]interface{}, error) {
+)  ([]any, error) {
 	if captured := extractCaptured(context.Callback()); captured != nil {
 		captured.AddFilters(n)
 	}
@@ -98,7 +98,7 @@ func (l *LogFilter) Next(
 	next     miruken.Next,
 	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  ([]interface{}, error) {
+)  ([]any, error) {
 	return miruken.DynNext(l, next, context, provider)
 }
 
@@ -107,7 +107,7 @@ func (l *LogFilter) DynNext(
 	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
 	logging Logging,
-)  ([]interface{}, error) {
+)  ([]any, error) {
 	captured := extractCaptured(context.Callback())
 	logging.Log(
 		fmt.Sprintf("Log callback %#v", captured))
@@ -128,7 +128,7 @@ func (e *ExceptionFilter) Next(
 	next     miruken.Next,
 	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  ([]interface{}, error) {
+)  ([]any, error) {
 	captured := extractCaptured(context.Callback())
 	if captured != nil {
 		captured.AddFilters(e)
@@ -153,7 +153,7 @@ func (a *AbortFilter) Next(
 	next     miruken.Next,
 	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  ([]interface{}, error) {
+)  ([]any, error) {
 	if captured := extractCaptured(context.Callback());
 		captured == nil || captured.Handled() > 99 {
 		return next.Abort()
@@ -161,7 +161,7 @@ func (a *AbortFilter) Next(
 	return next.Filter()
 }
 
-func extractCaptured(callback interface{}) Captured {
+func extractCaptured(callback any) Captured {
 	switch cb := callback.(type) {
 	case Captured: return cb
 	case *miruken.Handles:
@@ -203,7 +203,7 @@ func (f FilteringHandler) HandleBee(
 }
 
 func (f FilteringHandler) HandleStuff(
-	_ *miruken.Handles, callback interface{},
+	_ *miruken.Handles, callback any,
 ) {
 	if bar, ok := callback.(*BarC); ok {
 		bar.IncHandled(-999)
@@ -214,7 +214,7 @@ func (f FilteringHandler) Next(
 	next     miruken.Next,
 	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  ([]interface{}, error) {
+)  ([]any, error) {
 	if bar, ok := context.Callback().(*BarC); ok {
 		bar.AddFilters(f)
 		bar.IncHandled(1)

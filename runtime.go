@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-func IsNil(val interface{}) bool {
+func IsNil(val any) bool {
 	if val == nil {
 		return true
 	}
@@ -25,7 +25,7 @@ func IsNil(val interface{}) bool {
 
 // TargetValue validates the interface contains a
 // non-nil typed pointer and return reflect.Value.
-func TargetValue(target interface{}) reflect.Value {
+func TargetValue(target any) reflect.Value {
 	if IsNil(target) {
 		panic("target cannot be nil")
 	}
@@ -39,7 +39,7 @@ func TargetValue(target interface{}) reflect.Value {
 
 // TargetSliceValue validates the interface contains a
 // non-nil typed slice pointer and return reflect.Value.
-func TargetSliceValue(target interface{}) reflect.Value {
+func TargetSliceValue(target any) reflect.Value {
 	val := TargetValue(target)
 	typ := val.Type()
 	if typ.Elem().Kind() != reflect.Slice {
@@ -50,7 +50,7 @@ func TargetSliceValue(target interface{}) reflect.Value {
 
 // CopyIndirect copies the contents of src into the
 // target pointer or reflect.Value.
-func CopyIndirect(src interface{}, target interface{}) {
+func CopyIndirect(src any, target any) {
 	var val reflect.Value
 	if v, ok := target.(reflect.Value); ok {
 		val = v
@@ -76,7 +76,7 @@ func CopyIndirect(src interface{}, target interface{}) {
 
 // CopySliceIndirect copies the contents of src slice into
 // the target pointer or reflect.Value.
-func CopySliceIndirect(src []interface{}, target interface{}) {
+func CopySliceIndirect(src []any, target any) {
 	var val reflect.Value
 	if v, ok := target.(reflect.Value); ok {
 		val = v
@@ -103,7 +103,7 @@ func CopySliceIndirect(src []interface{}, target interface{}) {
 	val.Set(slice)
 }
 
-func forEach(iter interface{}, f func(i int, val interface{})) {
+func forEach(iter any, f func(i int, val any)) {
 	v := reflect.ValueOf(iter)
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -137,8 +137,8 @@ func coerceToPtr(
 func newWithTag(
 	typ reflect.Type,
 	tag reflect.StructTag,
-) (interface{}, error) {
-	var val interface{}
+) (any, error) {
+	var val any
 	if typ.Kind() == reflect.Ptr {
 		val = reflect.New(typ.Elem()).Interface()
 	} else {

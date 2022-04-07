@@ -62,7 +62,7 @@ func (m *JsonMapper) FromJson(
 		Format `as:"application/json"`
 	  }, jsonString string,
 	maps *Maps,
-) (interface{}, error) {
+) (any, error) {
 	target := maps.Target()
 	err    := json.Unmarshal([]byte(jsonString), target)
 	return target, err
@@ -74,7 +74,7 @@ func (m *JsonMapper) FromJsonStream(
 		Format `as:"application/json"`
 	  }, stream io.Reader,
 	maps *Maps,
-) (interface{}, error) {
+) (any, error) {
 	target := maps.Target()
 	dec    := json.NewDecoder(stream)
 	err    := dec.Decode(target)

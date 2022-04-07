@@ -24,7 +24,7 @@ func (l *LifestyleProvider) AppliesTo(
 
 func (l *LifestyleProvider) Filters(
 	binding  Binding,
-	callback interface{},
+	callback any,
 	composer Handler,
 ) ([]Filter, error) {
 	return l.filters, nil
@@ -60,7 +60,7 @@ func (s *Singleton) Init() error {
 // singleton is a Filter that caches an instance.
 type singleton struct {
 	Lifestyle
-	instance []interface{}
+	instance []any
 	once     *sync.Once
 }
 
@@ -68,7 +68,7 @@ func (s *singleton) Next(
 	next     Next,
 	context  HandleContext,
 	provider FilterProvider,
-)  (result []interface{}, err error) {
+)  (result []any, err error) {
 	s.once.Do(func() {
 		defer func() {
 			if r := recover(); r != nil {

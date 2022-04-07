@@ -10,7 +10,7 @@ import (
 
 type (
 	// KeyValues is an alias for key/value map.
-	KeyValues map[interface{}]interface{}
+	KeyValues map[any]any
 
 	// BindingMetadata is a key/value container.
 	BindingMetadata struct {
@@ -31,7 +31,7 @@ func (b *BindingMetadata) IsEmpty() bool {
 	return b.name == "" && len(b.values) == 0
 }
 
-func (b *BindingMetadata) Has(key interface{}) bool {
+func (b *BindingMetadata) Has(key any) bool {
 	if key == nil {
 		panic("key cannot be nil")
 	}
@@ -42,7 +42,7 @@ func (b *BindingMetadata) Has(key interface{}) bool {
 	return ok
 }
 
-func (b *BindingMetadata) Get(key interface{}) (interface{}, bool) {
+func (b *BindingMetadata) Get(key any) (any, bool) {
 	if key == nil {
 		panic("key cannot be nil")
 	}
@@ -53,7 +53,7 @@ func (b *BindingMetadata) Get(key interface{}) (interface{}, bool) {
 	return val, ok
 }
 
-func (b *BindingMetadata) Set(key interface{}, val interface{}) {
+func (b *BindingMetadata) Set(key any, val any) {
 	if key == nil {
 		panic("key cannot be nil")
 	}
@@ -191,14 +191,14 @@ func (m *Metadata) Matches(metadata *BindingMetadata) bool {
 type Qualifier struct {}
 
 func (q Qualifier) RequireQualifier(
-	qualifier  interface{},
+	qualifier  any,
 	metadata  *BindingMetadata,
 ) {
 	metadata.Set(reflect.TypeOf(qualifier), nil)
 }
 
 func (q Qualifier) MatchesQualifier(
-	qualifier  interface{},
+	qualifier  any,
 	metadata  *BindingMetadata,
 ) bool {
 	return metadata.IsEmpty() || metadata.Has(reflect.TypeOf(qualifier))
@@ -215,7 +215,7 @@ func (c *ConstraintFilter) Next(
 	next     Next,
 	context  HandleContext,
 	provider FilterProvider,
-)  (result []interface{}, err error) {
+)  (result []any, err error) {
 	if cp, ok := provider.(interface {
 		Constraints() []BindingConstraint
 	}); ok {
@@ -257,7 +257,7 @@ func (c *ConstraintProvider) AppliesTo(
 
 func (c *ConstraintProvider) Filters(
 	binding  Binding,
-	callback interface{},
+	callback any,
 	composer Handler,
 ) ([]Filter, error) {
 	return _constraintFilter, nil

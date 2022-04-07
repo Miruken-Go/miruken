@@ -5,7 +5,7 @@ import "fmt"
 // Handler is the uniform metaphor for processing.
 type Handler interface {
 	Handle(
-		callback interface{},
+		callback any,
 		greedy   bool,
 		composer Handler,
 	) HandleResult
@@ -13,30 +13,32 @@ type Handler interface {
 
 // handlerAdapter adapts an ordinary type to a Handler.
 type handlerAdapter struct {
-	handler interface{}
+	handler any
 }
 
 func (h handlerAdapter) Handle(
-	callback interface{},
+	callback any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	return DispatchCallback(h.handler, callback, greedy, composer)
 }
 
-func ToHandler(handler interface{}) Handler {
+func ToHandler(handler any) Handler {
 	switch h := handler.(type) {
-	case Handler: return h
-	default: return handlerAdapter{handler}
+	case Handler:
+		return h
+	default:
+		return handlerAdapter{handler}
 	}
 }
 
 // NotHandledError reports a failed callback.
 type NotHandledError struct {
-	callback interface{}
+	callback any
 }
 
-func (e NotHandledError) Callback() interface{} {
+func (e NotHandledError) Callback() any {
 	return e.callback
 }
 
@@ -46,10 +48,10 @@ func (e NotHandledError) Error() string {
 
 // RejectedError reports a rejected callback.
 type RejectedError struct {
-	callback interface{}
+	callback any
 }
 
-func (e RejectedError) Callback() interface{} {
+func (e RejectedError) Callback() any {
 	return e.callback
 }
 
@@ -58,9 +60,9 @@ func (e RejectedError) Error() string {
 }
 
 func DispatchCallback(
-	handler  interface{},
-	callback interface{},
-	greedy   bool,
+	handler any,
+	callback any,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if handler == nil {

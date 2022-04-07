@@ -2,7 +2,7 @@ package miruken
 
 type Resolving struct {
 	Provides
-	callback  interface{}
+	callback  any
 	succeeded bool
 }
 
@@ -11,7 +11,7 @@ func (r *Resolving) Succeeded() bool {
 }
 
 func (r *Resolving) CanDispatch(
-	handler interface{},
+	handler any,
 	binding Binding,
 ) (reset func (), approved bool) {
 	if outer, ok := r.Provides.CanDispatch(handler, binding); !ok {
@@ -30,7 +30,7 @@ func (r *Resolving) CanDispatch(
 }
 
 func (r *Resolving) accept(
-	result   interface{},
+	result   any,
 	greedy   bool,
 	composer Handler,
 ) bool {
@@ -46,11 +46,11 @@ func (r *Resolving) accept(
 
 type ResolvingBuilder struct {
 	ProvidesBuilder
-	callback interface{}
+	callback any
 }
 
 func (b *ResolvingBuilder) WithCallback(
-	callback interface{},
+	callback any,
 ) *ResolvingBuilder {
 	b.callback = callback
 	return b

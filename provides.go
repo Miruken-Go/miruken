@@ -7,14 +7,14 @@ import (
 // Provides results covariantly.
 type Provides struct {
 	CallbackBase
-	key       interface{}
+	key       any
 	parent   *Provides
-	handler   interface{}
+	handler   any
 	binding   Binding
 	metadata  BindingMetadata
 }
 
-func (p *Provides) Key() interface{} {
+func (p *Provides) Key() any {
 	return p.key
 }
 
@@ -35,7 +35,7 @@ func (p *Provides) Metadata() *BindingMetadata {
 }
 
 func (p *Provides) ReceiveResult(
-	result   interface{},
+	result   any,
 	strict   bool,
 	greedy   bool,
 	composer Handler,
@@ -44,13 +44,13 @@ func (p *Provides) ReceiveResult(
 }
 
 func (p *Provides) CanDispatch(
-	handler interface{},
+	handler any,
 	binding Binding,
 ) (reset func (), approved bool) {
 	if p.inProgress(handler, binding) {
 		return nil, false
 	}
-	return func(h interface{}, b Binding) func () {
+	return func(h any, b Binding) func () {
 		p.handler = handler
 		p.binding = binding
 		return func () {
@@ -61,7 +61,7 @@ func (p *Provides) CanDispatch(
 }
 
 func (p *Provides)inProgress(
-	handler interface{},
+	handler any,
 	binding Binding,
 ) bool {
 	if p.handler == handler && p.binding == binding {
@@ -74,7 +74,7 @@ func (p *Provides)inProgress(
 }
 
 func (p *Provides) Dispatch(
-	handler  interface{},
+	handler  any,
 	greedy   bool,
 	composer Handler,
 ) (result HandleResult) {
@@ -95,7 +95,7 @@ func (p *Provides) Dispatch(
 
 func (p *Provides) Resolve(
 	handler Handler,
-) (interface{}, error) {
+) (any, error) {
 	if result := handler.Handle(p, p.Many(), nil); result.IsError() {
 		return nil, result.Error()
 	}
@@ -103,7 +103,7 @@ func (p *Provides) Resolve(
 }
 
 func (p *Provides) include(
-	resolution interface{},
+	resolution any,
 	strict     bool,
 	greedy     bool,
 	composer   Handler,
@@ -116,7 +116,7 @@ func (p *Provides) include(
 	}
 	switch reflect.TypeOf(resolution).Kind() {
 	case reflect.Slice, reflect.Array:
-		forEach(resolution, func(idx int, value interface{}) {
+		forEach(resolution, func(idx int, value any) {
 			if value != nil {
 				included = p.AddResult(value, greedy, composer) || included
 			}
@@ -130,13 +130,13 @@ func (p *Provides) include(
 // ProvidesBuilder builds Provides callbacks.
 type ProvidesBuilder struct {
 	CallbackBuilder
-	key          interface{}
+	key          any
 	parent      *Provides
 	constraints  []func(*ConstraintBuilder)
 }
 
 func (b *ProvidesBuilder) WithKey(
-	key interface{},
+	key any,
 ) *ProvidesBuilder {
 	if IsNil(key) {
 		panic("key cannot be nil")
@@ -183,7 +183,7 @@ func (b *ProvidesBuilder) NewProvides() *Provides {
 
 func Resolve(
 	handler     Handler,
-	target      interface{},
+	target      any,
 	constraints ... func(*ConstraintBuilder),
 ) error {
 	if handler == nil {
@@ -204,7 +204,7 @@ func Resolve(
 
 func ResolveAll(
 	handler     Handler,
-	target      interface{},
+	target      any,
 	constraints ... func(*ConstraintBuilder),
 ) error {
 	if handler == nil {

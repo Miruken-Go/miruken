@@ -80,10 +80,10 @@ func (c *Context) NewChild() *Context {
 		state: ContextActive,
 	}
 	child.AddHandlers(NewProvider(child))
-	child.Observe(ContextEndingObserverFunc(func (ctx *Context, reason interface{}) {
+	child.Observe(ContextEndingObserverFunc(func (ctx *Context, reason any) {
 		c.notify(childCtxEnding, ctx, reason)
 	}))
-	child.Observe(ContextEndedObserverFunc(func (ctx *Context, reason interface{}) {
+	child.Observe(ContextEndedObserverFunc(func (ctx *Context, reason any) {
 		c.removeChild(ctx)
 		c.notify(childCtxEnded, ctx, reason)
 	}))
@@ -93,7 +93,7 @@ func (c *Context) NewChild() *Context {
 	return child
 }
 
-func (c *Context) Store(values ... interface{}) *Context {
+func (c *Context) Store(values ... any) *Context {
 	for _, val := range values {
 		c.AddHandlers(NewProvider(val))
 	}
@@ -101,7 +101,7 @@ func (c *Context) Store(values ... interface{}) *Context {
 }
 
 func (c *Context) Handle(
-	callback interface{},
+	callback any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
@@ -119,7 +119,7 @@ func (c *Context) Handle(
 
 func (c *Context) HandleAxis(
 	axis     TraversingAxis,
-	callback interface{},
+	callback any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
@@ -183,11 +183,11 @@ func (c *Context) Traverse(
 	return TraverseAxis(c, axis, visitor)
 }
 
-func (c *Context) UnwindToRoot(reason interface{}) *Context {
+func (c *Context) UnwindToRoot(reason any) *Context {
 	return c.Root().Unwind(reason)
 }
 
-func (c *Context) Unwind(reason interface{}) *Context {
+func (c *Context) Unwind(reason any) *Context {
 	if reason == nil {
 		reason = ContextUnwinded
 	}
@@ -197,7 +197,7 @@ func (c *Context) Unwind(reason interface{}) *Context {
 	return c
 }
 
-func (c *Context) End(reason interface{}) {
+func (c *Context) End(reason any) {
 	if c.state != ContextActive {
 		return
 	}
@@ -276,7 +276,7 @@ func (c *Context) removeObserver(
 func (c *Context) notify(
 	obsType  ctxObserverType,
 	ctx     *Context,
-	reason   interface{},
+	reason   any,
 ) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
@@ -463,53 +463,53 @@ type (
 
 	// ContextEndingObserver reports Context is ending.
 	ContextEndingObserver interface {
-		ContextEnding(ctx *Context, reason interface{})
+		ContextEnding(ctx *Context, reason any)
 	}
-	ContextEndingObserverFunc func(ctx *Context, reason interface{})
+	ContextEndingObserverFunc func(ctx *Context, reason any)
 
 	// ContextEndedObserver reports Context ended.
 	ContextEndedObserver interface {
-		ContextEnded(ctx *Context, reason interface{})
+		ContextEnded(ctx *Context, reason any)
 	}
-	ContextEndedObserverFunc func(ctx *Context, reason interface{})
+	ContextEndedObserverFunc func(ctx *Context, reason any)
 
 	// ChildContextEndingObserver reports child Context is ending.
 	ChildContextEndingObserver interface {
-		ChildContextEnding(childCtx *Context, reason interface{})
+		ChildContextEnding(childCtx *Context, reason any)
 	}
-	ChildContextEndingObserverFunc func(ctx *Context, reason interface{})
+	ChildContextEndingObserverFunc func(ctx *Context, reason any)
 
 	// ChildContextEndedObserver reports child Context ended.
 	ChildContextEndedObserver interface {
-		ChildContextEnded(childCtx *Context, reason interface{})
+		ChildContextEnded(childCtx *Context, reason any)
 	}
-	ChildContextEndedObserverFunc func(ctx *Context, reason interface{})
+	ChildContextEndedObserverFunc func(ctx *Context, reason any)
 )
 
 func (f ContextEndingObserverFunc) ContextEnding(
 	ctx    *Context,
-	reason  interface{},
+	reason  any,
 ) {
 	f(ctx, reason)
 }
 
 func (f ContextEndedObserverFunc) ContextEnded(
 	ctx    *Context,
-	reason  interface{},
+	reason  any,
 ) {
 	f(ctx, reason)
 }
 
 func (f ChildContextEndingObserverFunc) ChildContextEnding(
 	ctx    *Context,
-	reason  interface{},
+	reason  any,
 ) {
 	f(ctx, reason)
 }
 
 func (f ChildContextEndedObserverFunc) ChildContextEnded(
 	ctx    *Context,
-	reason  interface{},
+	reason  any,
 ) {
 	f(ctx, reason)
 }

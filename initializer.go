@@ -16,10 +16,10 @@ func (i *initializer) Next(
 	next     Next,
 	context  HandleContext,
 	provider FilterProvider,
-)  ([]interface{}, error) {
+)  ([]any, error) {
 	instance, err := next.Filter()
 	if err == nil && len(instance) > 0 {
-		var results []interface{}
+		var results []any
 		results, err = i.constructor.Invoke(context, instance[0])
 		if len(results) > 0 {
 			if e, ok := results[len(results)-1].(error); ok {
@@ -50,7 +50,7 @@ func (i *initializerProvider) AppliesTo(
 
 func (i *initializerProvider) Filters(
 	binding  Binding,
-	callback interface{},
+	callback any,
 	composer Handler,
 ) ([]Filter, error) {
 	return i.filters, nil

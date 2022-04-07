@@ -5,14 +5,14 @@ import "reflect"
 // Validates callbacks contravariantly.
 type Validates struct {
 	CallbackBase
-	target interface{}
+	target any
 }
 
-func (v *Validates) Target() interface{} {
+func (v *Validates) Target() any {
 	return v.target
 }
 
-func (v *Validates) Key() interface{} {
+func (v *Validates) Key() any {
 	return reflect.TypeOf(v.target)
 }
 
@@ -21,7 +21,7 @@ func (v *Validates) Policy() Policy {
 }
 
 func (v *Validates) Dispatch(
-	handler  interface{},
+	handler  any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {

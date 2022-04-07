@@ -13,7 +13,7 @@ type ContravariantPolicy struct {
 }
 
 func (p *ContravariantPolicy) IsVariantKey(
-	key interface{},
+	key any,
 ) (variant bool, unknown bool) {
 	if typ, ok := key.(reflect.Type); ok {
 		return true, typ == _interfaceType
@@ -22,7 +22,7 @@ func (p *ContravariantPolicy) IsVariantKey(
 }
 
 func (p *ContravariantPolicy) MatchesKey(
-	key, otherKey interface{},
+	key, otherKey any,
 	strict        bool,
 ) (matches bool, exact bool) {
 	if key == otherKey {
@@ -53,8 +53,8 @@ func (p *ContravariantPolicy) Less(
 }
 
 func (p *ContravariantPolicy) AcceptResults(
-	results []interface{},
-) (result interface{}, accepted HandleResult) {
+	results []any,
+) (result any, accepted HandleResult) {
 	switch len(results) {
 	case 0:
 		return nil, Handled

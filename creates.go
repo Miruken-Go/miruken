@@ -10,7 +10,7 @@ type Creates struct {
 	typ reflect.Type
 }
 
-func (c *Creates) Key() interface{} {
+func (c *Creates) Key() any {
 	return c.typ
 }
 
@@ -19,7 +19,7 @@ func (c *Creates) Policy() Policy {
 }
 
 func (c *Creates) Dispatch(
-	handler  interface{},
+	handler  any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
@@ -51,7 +51,7 @@ func (b *CreatesBuilder) NewCreation() *Creates {
 	}
 }
 
-func Create(handler Handler, target interface{}) error {
+func Create(handler Handler, target any) error {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
@@ -67,7 +67,7 @@ func Create(handler Handler, target interface{}) error {
 	return nil
 }
 
-func CreateAll(handler Handler, target interface{}) error {
+func CreateAll(handler Handler, target any) error {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}

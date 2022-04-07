@@ -7,7 +7,7 @@ type inferenceHandler struct {
 }
 
 func (h *inferenceHandler) Handle(
-	callback interface{},
+	callback any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
@@ -16,7 +16,7 @@ func (h *inferenceHandler) Handle(
 
 func (h *inferenceHandler) DispatchPolicy(
 	policy      Policy,
-	callback    interface{},
+	callback    any,
 	rawCallback Callback,
 	greedy      bool,
 	composer    Handler,
@@ -49,8 +49,8 @@ func (b *bindingIntercept) SkipFilters() bool {
 
 func (b *bindingIntercept) Invoke(
 	context      HandleContext,
-	explicitArgs ... interface{},
-) ([]interface{}, error) {
+	explicitArgs ... any,
+) ([]any, error) {
 	if ctor, ok := b.Binding.(*constructorBinding); ok {
 		return ctor.Invoke(context)
 	}
@@ -62,7 +62,7 @@ func (b *bindingIntercept) Invoke(
 	if result := context.Composer().Handle(resolving, false, nil); result.IsError() {
 		return nil, result.Error()
 	} else {
-		return []interface{}{result}, nil
+		return []any{result}, nil
 	}
 }
 

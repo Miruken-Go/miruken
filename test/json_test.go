@@ -79,7 +79,7 @@ func (suite *JsonTestSuite) TestJson() {
 			})
 
 			suite.Run("ToJsonMap", func() {
-				data := map[string]interface{}{
+				data := map[string]any{
 					"Id":    2,
 					"Name": "George Best",
 				}
@@ -151,7 +151,7 @@ func (suite *JsonTestSuite) TestJson() {
 
 			suite.Run("FromJsonMap", func() {
 				jsonString := "{\"Name\":\"Ralph Hall\",\"Age\":84}"
-				var data map[string]interface{}
+				var data map[string]any
 				err := miruken.Map(handler, jsonString, &data, "application/json")
 				suite.Nil(err)
 				suite.Equal(84.0, data["Age"])

@@ -12,8 +12,8 @@ import (
 type policyBindings struct {
 	policy    Policy
 	variant   *list.List
-	index     map[interface{}]*list.Element
-	invariant map[interface{}][]Binding
+	index     map[any]*list.Element
+	invariant map[any][]Binding
 }
 
 func (p *policyBindings) insert(binding Binding) {
@@ -42,7 +42,7 @@ func (p *policyBindings) insert(binding Binding) {
 		}
 	} else {
 		if p.invariant == nil {
-			p.invariant = make(map[interface{}][]Binding)
+			p.invariant = make(map[any][]Binding)
 			p.invariant[key] = []Binding{binding}
 		} else {
 			bindings := append(p.invariant[key], binding)
@@ -52,7 +52,7 @@ func (p *policyBindings) insert(binding Binding) {
 }
 
 func (p *policyBindings) reduce(
-	key     interface{},
+	key     any,
 	reducer BindingReducer,
 ) (result HandleResult) {
 	if reducer == nil {
@@ -91,7 +91,7 @@ func (p policyBindingsMap) forPolicy(policy Policy) *policyBindings {
 		bindings = &policyBindings{
 			policy,
 			list.New(),
-			make(map[interface{}]*list.Element),
+			make(map[any]*list.Element),
 			nil,
 		}
 		p[policy] = bindings
@@ -108,8 +108,8 @@ type HandlerDescriptor struct {
 
 func (d *HandlerDescriptor) Dispatch(
 	policy      Policy,
-	handler     interface{},
-	callback    interface{},
+	handler     any,
+	callback    any,
 	rawCallback Callback,
 	greedy      bool,
 	composer    Handler,
@@ -152,14 +152,14 @@ func (d *HandlerDescriptor) Dispatch(
 						return result, false
 					}
 				}
-				var out []interface{}
+				var out []any
 				var err error
 				context := HandleContext{callback, rawCallback, binding, composer}
 				if len(filters) == 0 {
 					out, err = binding.Invoke(context, handler)
 				} else {
 					out, err = pipeline(context, filters,
-						func(ctx HandleContext) ([]interface{}, error) {
+						func(ctx HandleContext) ([]any, error) {
 							return binding.Invoke(ctx, handler)
 					})
 				}
@@ -412,7 +412,7 @@ type getHandlerDescriptorFactory struct {
 }
 
 func (g *getHandlerDescriptorFactory) Handle(
-	callback interface{},
+	callback any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {

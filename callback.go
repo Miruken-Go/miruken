@@ -7,13 +7,13 @@ import (
 type (
 	// Callback represents an action.
 	Callback interface {
-		Key() interface{}
+		Key() any
 		Policy() Policy
 		ResultType() reflect.Type
-		Result() interface{}
-		SetResult(result interface{})
+		Result() any
+		SetResult(result any)
 		ReceiveResult(
-			result   interface{},
+			result   any,
 			strict   bool,
 			greedy   bool,
 			composer Handler,
@@ -22,7 +22,7 @@ type (
 
 	// AcceptResultFunc validates callback results.
 	AcceptResultFunc func (
-		result   interface{},
+		result   any,
 		greedy   bool,
 		composer Handler,
 	) bool
@@ -30,8 +30,8 @@ type (
 	// CallbackBase is abstract Callback implementation.
 	CallbackBase struct {
 		many    bool
-		results []interface{}
-		result  interface{}
+		results []any
+		result  any
 		accept  AcceptResultFunc
 	}
 )
@@ -44,11 +44,11 @@ func (c *CallbackBase) ResultType() reflect.Type {
 	return nil
 }
 
-func (c *CallbackBase) Result() interface{} {
+func (c *CallbackBase) Result() any {
 	if result := c.result; result == nil {
 		if c.many {
 			if c.results == nil {
-				c.results = make([]interface{}, 0, 0)
+				c.results = make([]any, 0, 0)
 			}
 			c.result = c.results
 		} else {
@@ -62,12 +62,12 @@ func (c *CallbackBase) Result() interface{} {
 	return c.result
 }
 
-func (c *CallbackBase) SetResult(result interface{}) {
+func (c *CallbackBase) SetResult(result any) {
 	c.result = result
 }
 
 func (c *CallbackBase) AddResult(
-	result   interface{},
+	result   any,
 	greedy   bool,
 	composer Handler,
 ) bool {
@@ -81,7 +81,7 @@ func (c *CallbackBase) AddResult(
 }
 
 func (c *CallbackBase) ReceiveResult(
-	result   interface{},
+	result   any,
 	strict   bool,
 	greedy   bool,
 	composer Handler,
@@ -89,9 +89,9 @@ func (c *CallbackBase) ReceiveResult(
 	return c.AddResult(result, greedy, composer)
 }
 
-func (c *CallbackBase) CopyResult(target interface{}) {
+func (c *CallbackBase) CopyResult(target any) {
 	if c.Many() {
-		CopySliceIndirect(c.Result().([]interface{}), target)
+		CopySliceIndirect(c.Result().([]any), target)
 	} else {
 		CopyIndirect(c.Result(), target)
 	}
@@ -121,7 +121,7 @@ func (b *CallbackBuilder) CallbackBase() CallbackBase {
 // CallbackDispatcher allows customized Callback dispatch.
 type CallbackDispatcher interface {
  	Dispatch(
-		handler  interface{},
+		handler  any,
 		greedy   bool,
 		composer Handler,
 	) HandleResult
@@ -135,7 +135,7 @@ type SuppressDispatch interface {
 // CallbackGuard prevents circular actions.
 type CallbackGuard interface {
 	CanDispatch(
-		handler interface{},
+		handler any,
 		binding Binding,
 	) (reset func (), approved bool)
 }

@@ -168,7 +168,7 @@ func (r *defaultDependencyResolver) Resolve(
 	if result, err := provides.Resolve(handler); err == nil {
 		var val reflect.Value
 		if provides.Many() {
-			results := result.([]interface{})
+			results := result.([]any)
 			val = reflect.New(typ).Elem()
 			CopySliceIndirect(results, val)
 		} else if result != nil {
@@ -187,13 +187,13 @@ func (r *defaultDependencyResolver) Resolve(
 }
 
 type HandleContext struct {
-	callback    interface{}
+	callback    any
 	rawCallback Callback
 	binding     Binding
 	composer    Handler
 }
 
-func (h HandleContext) Callback() interface{} {
+func (h HandleContext) Callback() any {
 	return h.callback
 }
 
@@ -291,7 +291,7 @@ func buildDependencies(
 func bindResolver(
 	index   int,
 	field   reflect.StructField,
-	binding interface{},
+	binding any,
 ) (bound bool, err error) {
 	if dr := coerceToPtr(field.Type, _depResolverType); dr != nil {
 		bound = true

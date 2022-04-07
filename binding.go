@@ -9,13 +9,13 @@ import (
 // Binding abstracts a Callback method.
 type Binding interface {
 	Filtered
-	Key()         interface{}
+	Key()         any
 	Strict()      bool
 	SkipFilters() bool
 	Invoke(
 		ctx HandleContext,
-		explicitArgs ... interface{},
-	) (results []interface{}, err error)
+		explicitArgs ... any,
+	) (results []any, err error)
 }
 
 // BindingReducer aggregates Binding results.
@@ -57,8 +57,8 @@ func (m methodInvoke) Method() reflect.Method {
 
 func (m methodInvoke) Invoke(
 	context      HandleContext,
-	explicitArgs ... interface{},
-) ([]interface{}, error) {
+	explicitArgs ... any,
+) ([]any, error) {
 	fromIndex := len(explicitArgs)
 	if args, err := m.resolveArgs(fromIndex, m.args, context); err != nil {
 		return nil, err
@@ -68,7 +68,7 @@ func (m methodInvoke) Invoke(
 			values = append(values, reflect.ValueOf(arg))
 		}
 		res := m.method.Func.Call(append(values, args...))
-		results := make([]interface{}, len(res))
+		results := make([]any, len(res))
 		for i, v := range res {
 			results[i] = v.Interface()
 		}
@@ -97,11 +97,11 @@ func (m methodInvoke) resolveArgs(
 type methodBinding struct {
 	methodInvoke
 	FilteredScope
-	key   interface{}
+	key   any
 	flags bindingFlags
 }
 
-func (b *methodBinding) Key() interface{} {
+func (b *methodBinding) Key() any {
 	return b.key
 }
 
@@ -130,7 +130,7 @@ type constructorBinding struct {
 	flags        bindingFlags
 }
 
-func (b *constructorBinding) Key() interface{} {
+func (b *constructorBinding) Key() any {
 	return b.handlerType
 }
 
@@ -144,19 +144,19 @@ func (b *constructorBinding) SkipFilters() bool {
 
 func (b *constructorBinding) Invoke(
 	context      HandleContext,
-	explicitArgs ... interface{},
-) ([]interface{}, error) {
+	explicitArgs ... any,
+) ([]any, error) {
 	if len(explicitArgs) > 0 {
 		return nil, nil  // return nothing if not called as constructor
 	}
-	var handler interface{}
+	var handler any
 	handlerType := b.handlerType
 	if handlerType.Kind() == reflect.Ptr {
 		handler = reflect.New(handlerType.Elem()).Interface()
 	} else {
 		handler = reflect.New(handlerType).Elem().Interface()
 	}
-	return []interface{}{handler}, nil
+	return []any{handler}, nil
 }
 
 func newConstructorBinding(
@@ -212,27 +212,27 @@ type bindingBuilder interface {
 	configure(
 		index   int,
 		field   reflect.StructField,
-		binding interface{},
+		binding any,
 	) (bound bool, err error)
 }
 
 type bindingBuilderFunc func (
 	index   int,
 	field   reflect.StructField,
-	binding interface{},
+	binding any,
 ) (bound bool, err error)
 
 func (b bindingBuilderFunc) configure(
 	index   int,
 	field   reflect.StructField,
-	binding interface{},
+	binding any,
 ) (bound bool, err error) {
 	return b(index, field, binding)
 }
 
 func configureBinding(
 	source   reflect.Type,
-	binding  interface{},
+	binding  any,
 	builders []bindingBuilder,
 ) (err error) {
 	for i := 0; i < source.NumField(); i++ {
@@ -270,7 +270,7 @@ func configureBinding(
 func bindOptions(
 	index   int,
 	field   reflect.StructField,
-	binding interface{},
+	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
 	if typ == _strictType {

@@ -69,7 +69,7 @@ func Build(handler Handler, builders ... Builder) Handler {
 
 func AddHandlers(
 	parent Handler,
-	handlers ... interface{},
+	handlers ... any,
 ) Handler {
 	if parent == nil {
 		panic("cannot add handlers to a nil parent")
@@ -87,9 +87,9 @@ func AddHandlers(
 	}
 }
 
-func With(values ... interface{}) Builder {
+func With(values ... any) Builder {
 	return BuilderFunc(func (handler Handler) Handler {
-		var valueHandlers []interface{}
+		var valueHandlers []any
 		for _, val := range values {
 			if val != nil {
 				valueHandlers = append(valueHandlers, NewProvider(val))
@@ -109,7 +109,7 @@ type withHandler struct {
 }
 
 func (w *withHandler) Handle(
-	callback interface{},
+	callback any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
@@ -132,7 +132,7 @@ type withHandlers struct {
 }
 
 func (w *withHandlers) Handle(
-	callback interface{},
+	callback any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
@@ -164,7 +164,7 @@ type mutableHandlers struct {
 }
 
 func (m *mutableHandlers) AddHandlers(
-	handlers ... interface{},
+	handlers ... any,
 ) *mutableHandlers {
 	if len(handlers) > 0 {
 		m.lock.Lock()
@@ -177,7 +177,7 @@ func (m *mutableHandlers) AddHandlers(
 
 func (m *mutableHandlers) InsertHandlers(
 	index        int,
-	handlers ... interface{},
+	handlers ... any,
 ) *mutableHandlers {
 	if index < 0 {
 		panic("index must be >= 0")
@@ -192,7 +192,7 @@ func (m *mutableHandlers) InsertHandlers(
 }
 
 func (m *mutableHandlers) RemoveHandlers(
-	handlers ... interface{},
+	handlers ... any,
 ) *mutableHandlers {
 	if len(handlers) > 0 {
 		m.lock.Lock()
@@ -216,7 +216,7 @@ func (m *mutableHandlers) RemoveHandlers(
 }
 
 func (m *mutableHandlers) Handle(
-	callback interface{},
+	callback any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
@@ -245,7 +245,7 @@ func (m *mutableHandlers) Handle(
 
 func (m *mutableHandlers) suppressDispatch() {}
 
-func WithHandlers(handlers ... interface{}) Builder {
+func WithHandlers(handlers ... any) Builder {
 	return BuilderFunc(func (handler Handler) Handler {
 		return AddHandlers(handler, handlers...)
 	})
@@ -262,7 +262,7 @@ func WithHandlerTypes(types ... reflect.Type) Builder {
 }
 
 type FilterFunc = func(
-	callback interface{},
+	callback any,
 	composer Handler,
 	proceed  func() HandleResult,
 ) HandleResult
@@ -275,7 +275,7 @@ type filterHandler struct {
 }
 
 func (f *filterHandler) Handle(
-	callback interface{},
+	callback any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
@@ -319,7 +319,7 @@ func NewRootHandler(builders ... Builder) Handler {
 	return Build(handler, builders...)
 }
 
-func normalizeHandlers(handlers []interface{}) []Handler {
+func normalizeHandlers(handlers []any) []Handler {
 	hs := make([]Handler, len(handlers))
 	for i, v := range handlers {
 		hs[i] = ToHandler(v)

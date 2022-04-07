@@ -3,10 +3,10 @@ package miruken
 import "reflect"
 
 type Trampoline struct {
-	callback interface{}
+	callback any
 }
 
-func (t *Trampoline) Callback() interface{} {
+func (t *Trampoline) Callback() any {
 	return t.callback
 }
 
@@ -24,14 +24,14 @@ func (t *Trampoline) ResultType() reflect.Type {
 	return nil
 }
 
-func (t *Trampoline) Result() interface{} {
+func (t *Trampoline) Result() any {
 	if cb, ok := t.callback.(Callback); ok {
 		return cb.Result()
 	}
 	return nil
 }
 
-func (t *Trampoline) SetResult(result interface{}) {
+func (t *Trampoline) SetResult(result any) {
 	if cb, ok := t.callback.(Callback); ok {
 		cb.SetResult(result)
 	}
@@ -52,7 +52,7 @@ func (t *Trampoline) CanFilter() bool {
 }
 
 func (t *Trampoline) CanDispatch(
-	handler interface{},
+	handler any,
 	binding Binding,
 ) (reset func (), approved bool) {
 	if cb := t.callback; cb != nil {
@@ -64,8 +64,8 @@ func (t *Trampoline) CanDispatch(
 }
 
 func (t *Trampoline) Dispatch(
-	callback interface{},
-	handler  interface{},
+	callback any,
+	handler  any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {

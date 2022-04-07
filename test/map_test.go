@@ -58,15 +58,15 @@ func (m *EntityMapper) MapIntoPlayerData(
 
 func (m *EntityMapper) ToPlayerMap(
 	_ *miruken.Maps, entity *PlayerEntity,
-) map[string]interface{} {
-	return map[string]interface{}{
+) map[string]any {
+	return map[string]any{
 		"Id":   entity.Id,
 		"Name": entity.Name,
 	}
 }
 
 func (m *EntityMapper) FromPlayerMap(
-	_ *miruken.Maps, data map[string]interface{},
+	_ *miruken.Maps, data map[string]any,
 ) *PlayerEntity {
 	return &PlayerEntity{
 		Entity{Id: data["Id"].(int)},
@@ -79,7 +79,7 @@ type OpenMapper struct{}
 
 func (m *OpenMapper) Map(
 	maps *miruken.Maps,
-) interface{} {
+) any {
 	if entity, ok := maps.Source().(*PlayerEntity); ok {
 		if data, ok := maps.Target().(**PlayerData); ok && *data != nil {
 			(*data).Id   = entity.Id
@@ -145,7 +145,7 @@ func (m *InvalidMapper) SecondReturnMustBeErrorOrHandleResult(
 
 func (m *InvalidMapper) UntypedInterfaceDependency(
 	_ *miruken.Handles, _ *Bar,
-	any interface{},
+	any any,
 ) miruken.HandleResult {
 	return miruken.Handled
 }
@@ -237,7 +237,7 @@ func (suite *MapTestSuite) TestMap() {
 				Entity{ Id: 1 },
 				"Marco Royce",
 			}
-			var data map[string]interface{}
+			var data map[string]any
 			err := miruken.Map(handler, &entity, &data)
 			suite.Nil(err)
 			suite.Equal(1, data["Id"])
@@ -246,7 +246,7 @@ func (suite *MapTestSuite) TestMap() {
 
 		suite.Run("FromMap", func() {
 			handler := suite.InferenceRoot()
-			data    := map[string]interface{}{
+			data    := map[string]any{
 				"Id":    2,
 				"Name": "George Best",
 			}

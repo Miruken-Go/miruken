@@ -30,7 +30,7 @@ type OptionsTestSuite struct {
 func (suite *OptionsTestSuite) TestOptions() {
 	type Header struct{
 		key   string
-		value interface{}
+		value any
 	}
 
 	type ServerOptions struct {

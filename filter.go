@@ -19,17 +19,17 @@ const (
 type Next func (
 	composer Handler,
 	proceed  bool,
-) ([]interface{}, error)
+) ([]any, error)
 
-func (n Next) Filter() ([]interface{}, error) {
+func (n Next) Filter() ([]any, error) {
 	return n(nil, true)
 }
 
-func (n Next) WithComposer(composer Handler) ([]interface{}, error) {
+func (n Next) WithComposer(composer Handler) ([]any, error) {
 	return n(composer, true)
 }
 
-func (n Next) Abort() ([]interface{}, error) {
+func (n Next) Abort() ([]any, error) {
 	return n(nil, false)
 }
 
@@ -40,7 +40,7 @@ type Filter interface {
 		next     Next,
 		context  HandleContext,
 		provider FilterProvider,
-	)  ([]interface{}, error)
+	)  ([]any, error)
 }
 
 // FilterProvider provides one or more Filter's.
@@ -48,7 +48,7 @@ type FilterProvider interface {
 	Required() bool
 	Filters(
 		binding  Binding,
-		callback interface{},
+		callback any,
 		composer Handler,
 	) ([]Filter, error)
 }
@@ -71,7 +71,7 @@ func (f *FilterSpecProvider) Required() bool {
 
 func (f *FilterSpecProvider) Filters(
 	binding  Binding,
-	callback interface{},
+	callback any,
 	composer Handler,
 ) ([]Filter, error) {
 	spec     := f.spec
@@ -103,7 +103,7 @@ func (f *FilterInstanceProvider) Required() bool {
 
 func (f *FilterInstanceProvider) Filters(
 	binding  Binding,
-	callback interface{},
+	callback any,
 	composer Handler,
 ) ([]Filter, error) {
 	return f.filters, nil
@@ -316,13 +316,13 @@ func orderedFilters(
 	return allFilters, nil
 }
 
-type CompletePipelineFunc func(HandleContext) ([]interface{}, error)
+type CompletePipelineFunc func(HandleContext) ([]any, error)
 
 func pipeline(
 	context  HandleContext,
 	filters  []providedFilter,
 	complete CompletePipelineFunc,
-) (results []interface{}, err error) {
+) (results []any, err error) {
 	callback := context.Callback()
 	composer := context.Composer()
 	index, length := 0, len(filters)
@@ -331,7 +331,7 @@ func pipeline(
 	next = func(
 		comp     Handler,
 		proceed  bool,
-	) ([]interface{}, error) {
+	) ([]any, error) {
 		if !proceed {
 			return nil, RejectedError{callback}
 		}
@@ -354,7 +354,7 @@ func DynNext(
 	next     Next,
 	context  HandleContext,
 	provider FilterProvider,
-)  (results []interface{}, invalid error) {
+)  (results []any, invalid error) {
 	typ := reflect.TypeOf(filter)
 	_dynNextLock.RLock()
 	binding := _dynNextBinding[typ]
@@ -389,7 +389,7 @@ func DynNext(
 	if results, invalid = binding.Invoke(context, filter, next, context, provider); invalid != nil {
 		return nil, invalid
 	} else {
-		res, _ := results[0].([]interface{})
+		res, _ := results[0].([]any)
 		err, _ := results[1].(error)
 		return res, err
 	}

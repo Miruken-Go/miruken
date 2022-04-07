@@ -7,14 +7,14 @@ import (
 // Handles callbacks contravariantly.
 type Handles struct {
 	CallbackBase
-	callback interface{}
+	callback any
 }
 
-func (h *Handles) Callback() interface{} {
+func (h *Handles) Callback() any {
 	return h.callback
 }
 
-func (h *Handles) Key() interface{} {
+func (h *Handles) Key() any {
 	return reflect.TypeOf(h.callback)
 }
 
@@ -23,7 +23,7 @@ func (h *Handles) Policy() Policy {
 }
 
 func (h *Handles) CanDispatch(
-	handler     interface{},
+	handler     any,
 	binding     Binding,
 ) (reset func (), approved bool) {
 	if guard, ok := h.callback.(CallbackGuard); ok {
@@ -47,7 +47,7 @@ func (h *Handles) CanFilter() bool {
 }
 
 func (h *Handles) Dispatch(
-	handler  interface{},
+	handler  any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
@@ -59,11 +59,11 @@ func (h *Handles) Dispatch(
 // HandlesBuilder builds Handles callbacks.
 type HandlesBuilder struct {
 	CallbackBuilder
-	callback interface{}
+	callback any
 }
 
 func (b *HandlesBuilder) WithCallback(
-	callback interface{},
+	callback any,
 ) *HandlesBuilder {
 	if IsNil(callback) {
 		panic("callback cannot be nil")
@@ -79,7 +79,7 @@ func (b *HandlesBuilder) NewHandles() *Handles {
 	}
 }
 
-func Invoke(handler Handler, callback interface{}, target interface{}) error {
+func Invoke(handler Handler, callback any, target any) error {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
@@ -97,7 +97,7 @@ func Invoke(handler Handler, callback interface{}, target interface{}) error {
 	return nil
 }
 
-func InvokeAll(handler Handler, callback interface{}, target interface{}) error {
+func InvokeAll(handler Handler, callback any, target any) error {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}

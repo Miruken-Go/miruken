@@ -10,16 +10,16 @@ import (
 type Policy interface {
 	Filtered
 	Less(binding, otherBinding Binding) bool
-	IsVariantKey(key interface{}) (bool, bool)
-	MatchesKey(key, otherKey interface{}, strict bool) (bool, bool)
-	AcceptResults(results []interface{}) (interface{}, HandleResult)
+	IsVariantKey(key any) (bool, bool)
+	MatchesKey(key, otherKey any, strict bool) (bool, bool)
+	AcceptResults(results []any) (any, HandleResult)
 }
 
 // PolicyDispatch allows handlers to override callback dispatch.
 type PolicyDispatch interface {
 	DispatchPolicy(
 		policy      Policy,
-		callback    interface{},
+		callback    any,
 		rawCallback Callback,
 		greedy      bool,
 		composer    Handler,
@@ -27,8 +27,8 @@ type PolicyDispatch interface {
 }
 
 func DispatchPolicy(
-	handler     interface{},
-	callback    interface{},
+	handler     any,
+	callback    any,
 	rawCallback Callback,
 	greedy      bool,
 	composer    Handler,
@@ -55,7 +55,7 @@ type policySpec struct {
 	flags       bindingFlags
 	filters     []FilterProvider
 	constraints []BindingConstraint
-	key         interface{}
+	key         any
 	arg         arg
 }
 
@@ -154,7 +154,7 @@ func (p *policySpecBuilder) BuildSpec(
 func (p *policySpecBuilder) configure(
 	index   int,
 	field   reflect.StructField,
-	binding interface{},
+	binding any,
 ) (bound bool, err error) {
 	if cb := coerceToPtr(field.Type, _callbackType); cb != nil {
 		bound = true
@@ -192,7 +192,7 @@ func (p *policySpecBuilder) policyOf(
 func bindFilters(
 	index   int,
 	field   reflect.StructField,
-	binding interface{},
+	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
 	if filter := coerceToPtr(typ, _filterType); filter != nil {
@@ -242,7 +242,7 @@ func bindFilters(
 func bindConstraints(
 	index   int,
 	field   reflect.StructField,
-	binding interface{},
+	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
 	if ct := coerceToPtr(typ, _constraintType); ct != nil {
@@ -265,8 +265,8 @@ func bindConstraints(
 var (
 	_filterTag          = "filter"
 	_requiredArg        = "required"
-	_interfaceType      = reflect.TypeOf((*interface{})(nil)).Elem()
-	_interfaceSliceType = reflect.TypeOf((*[]interface{})(nil)).Elem()
+	_interfaceType      = reflect.TypeOf((*any)(nil)).Elem()
+	_interfaceSliceType = reflect.TypeOf((*[]any)(nil)).Elem()
 	_callbackType       = reflect.TypeOf((*Callback)(nil)).Elem()
 	_filterType         = reflect.TypeOf((*Filter)(nil)).Elem()
 	_filterProviderType = reflect.TypeOf((*FilterProvider)(nil)).Elem()

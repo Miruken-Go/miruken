@@ -27,7 +27,7 @@ func (b OptionBool) Bool() bool {
 
 // Options represent extensible settings.
 type options struct {
-	options interface{}
+	options any
 }
 
 func (o *options) CanInfer() bool {
@@ -38,19 +38,19 @@ func (o *options) CanFilter() bool {
 	return false
 }
 
-func (o *options) mergeFrom(options interface{}) bool {
+func (o *options) mergeFrom(options any) bool {
 	return MergeOptions(options, o.options)
 }
 
 // optionsHandler merges compatible options.
 type optionsHandler struct {
 	Handler
-	options interface{}
+	options any
 	optionsType reflect.Type
 }
 
 func (c *optionsHandler) Handle(
-	callback interface{},
+	callback any,
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
@@ -68,7 +68,7 @@ func (c *optionsHandler) Handle(
 		if reflect.TypeOf(options).Elem().AssignableTo(c.optionsType) {
 			merged := false
 			if o, ok := options.(interface {
-				MergeFrom(options interface{}) bool
+				MergeFrom(options any) bool
 			}); ok {
 				merged = o.MergeFrom(c.options)
 			} else {
@@ -85,11 +85,11 @@ func (c *optionsHandler) Handle(
 	return c.Handler.Handle(callback, greedy, composer)
 }
 
-func MergeOptions(from, into interface{}) bool {
+func MergeOptions(from, into any) bool {
 	return mergo.Merge(into, from, mergo.WithAppendSlice) == nil
 }
 
-func WithOptions(options interface{}) Builder {
+func WithOptions(options any) Builder {
 	optType := reflect.TypeOf(options)
 	if optType == nil {
 		panic("options cannot be nil")
@@ -105,7 +105,7 @@ func WithOptions(options interface{}) Builder {
 	})
 }
 
-func GetOptions(handler Handler, target interface{}) bool {
+func GetOptions(handler Handler, target any) bool {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
