@@ -265,12 +265,12 @@ func bindConstraints(
 var (
 	_filterTag          = "filter"
 	_requiredArg        = "required"
-	_interfaceType      = reflect.TypeOf((*any)(nil)).Elem()
-	_interfaceSliceType = reflect.TypeOf((*[]any)(nil)).Elem()
-	_callbackType       = reflect.TypeOf((*Callback)(nil)).Elem()
-	_filterType         = reflect.TypeOf((*Filter)(nil)).Elem()
-	_filterProviderType = reflect.TypeOf((*FilterProvider)(nil)).Elem()
-	_constraintType     = reflect.TypeOf((*BindingConstraint)(nil)).Elem()
-	_handleResType      = reflect.TypeOf((*HandleResult)(nil)).Elem()
-	_errorType          = reflect.TypeOf((*error)(nil)).Elem()
+	_anyType            = TypeOf[any]()
+	_anySliceType       = TypeOf[[]any]()
+	_errorType          = TypeOf[error]()
+	_callbackType       = TypeOf[Callback]()
+	_filterType         = TypeOf[Filter]()
+	_filterProviderType = TypeOf[FilterProvider]()
+	_constraintType     = TypeOf[BindingConstraint]()
+	_handleResType      = TypeOf[HandleResult]()
 )

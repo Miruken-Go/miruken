@@ -370,7 +370,7 @@ func DynNext(
 		} else if dynNextType.In(1) != reflect.TypeOf(next) ||
 			dynNextType.In(2) != _handleCtxType ||
 			dynNextType.In(3) != _filterProviderType ||
-			dynNextType.Out(0) != _interfaceSliceType ||
+			dynNextType.Out(0) != _anySliceType ||
 			dynNextType.Out(1) != _errorType {
 			goto Invalid
 		} else {

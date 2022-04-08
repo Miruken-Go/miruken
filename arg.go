@@ -220,10 +220,10 @@ var dependencyBuilders = []bindingBuilder{
 func buildDependency(
 	argType reflect.Type,
 ) (arg DependencyArg, err error) {
-	if argType == _interfaceType {
+	if argType == _anyType {
 		return arg, fmt.Errorf(
 			"type %v cannot be used as a dependency",
-			_interfaceType)
+			_anyType)
 	}
 	// Is it a *struct arg binding?
 	if argType.Kind() != reflect.Ptr {
@@ -313,8 +313,8 @@ func bindResolver(
 }
 
 var (
-	_handlerType     = reflect.TypeOf((*Handler)(nil)).Elem()
-	_handleCtxType   = reflect.TypeOf((*HandleContext)(nil)).Elem()
-	_depResolverType = reflect.TypeOf((*DependencyResolver)(nil)).Elem()
+	_handlerType     = TypeOf[Handler]()
+	_handleCtxType   = TypeOf[HandleContext]()
+	_depResolverType = TypeOf[DependencyResolver]()
 	_defaultResolver = defaultDependencyResolver{}
 )

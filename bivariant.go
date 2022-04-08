@@ -81,8 +81,8 @@ func (p *BivariantPolicy) NewMethodBinding(
 	args       := make([]arg, numArgs)
 	args[0]     = spec.arg
 	key        := spec.key
-	in         := _interfaceType
-	out        := _interfaceType
+	in         := _anyType
+	out        := _anyType
 	index      := 1
 
 	// Callback argument must be present if spec

@@ -317,14 +317,14 @@ type FilterTestSuite struct {
 
 func (suite *FilterTestSuite) SetupTest() {
 	handleTypes := []reflect.Type{
-		reflect.TypeOf((*FilteringHandler)(nil)),
-		reflect.TypeOf((*SpecialFilteringHandler)(nil)),
-		reflect.TypeOf((*SingletonHandler)(nil)),
-		reflect.TypeOf((*LogFilter)(nil)),
-		reflect.TypeOf((*ConsoleLogger)(nil)),
-		reflect.TypeOf((*ExceptionFilter)(nil)),
-		reflect.TypeOf((*AbortFilter)(nil)),
-		reflect.TypeOf((*NullFilter)(nil)).Elem(),
+		miruken.TypeOf[*FilteringHandler](),
+		miruken.TypeOf[*SpecialFilteringHandler](),
+		miruken.TypeOf[*SingletonHandler](),
+		miruken.TypeOf[*LogFilter](),
+		miruken.TypeOf[*ConsoleLogger](),
+		miruken.TypeOf[*ExceptionFilter](),
+		miruken.TypeOf[*AbortFilter](),
+		miruken.TypeOf[NullFilter](),
 	}
 	suite.HandleTypes = handleTypes
 }
@@ -424,9 +424,9 @@ func (suite *FilterTestSuite) TestFilters() {
 
 		suite.Run("Infer", func() {
 			handler := suite.InferenceRootWith(
-				reflect.TypeOf((*SingletonHandler)(nil)),
-				reflect.TypeOf((*ConsoleLogger)(nil)),
-				reflect.TypeOf((*LogFilter)(nil)),
+				miruken.TypeOf[*SingletonHandler](),
+				miruken.TypeOf[*ConsoleLogger](),
+				miruken.TypeOf[*LogFilter](),
 			)
 			bar := new(BarC)
 			bar.IncHandled(10)
@@ -438,7 +438,7 @@ func (suite *FilterTestSuite) TestFilters() {
 
 		suite.Run("Error", func() {
 			handler := suite.InferenceRootWith(
-				reflect.TypeOf((*SingletonErrorHandler)(nil)),
+				miruken.TypeOf[*SingletonErrorHandler](),
 			)
 			bee := new(BeeC)
 			result := handler.Handle(bee, false, nil)
@@ -452,7 +452,7 @@ func (suite *FilterTestSuite) TestFilters() {
 
 		suite.Run("Panic", func() {
 			handler := suite.InferenceRootWith(
-				reflect.TypeOf((*SingletonErrorHandler)(nil)),
+				miruken.TypeOf[*SingletonErrorHandler](),
 			)
 			bee := new(BeeC)
 			result := handler.Handle(bee, false, nil)
@@ -469,8 +469,8 @@ func (suite *FilterTestSuite) TestFilters() {
 
 	suite.Run("Missing Dependencies", func () {
 		handler := suite.InferenceRootWith(
-			reflect.TypeOf((*BadHandler)(nil)),
-			reflect.TypeOf((*LogFilter)(nil)),
+			miruken.TypeOf[*BadHandler](),
+			miruken.TypeOf[*LogFilter](),
 		)
 		bar   := new(BarC)
 		result := handler.Handle(bar, false, nil)

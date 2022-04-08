@@ -3,7 +3,6 @@ package test
 import (
 	"github.com/stretchr/testify/suite"
 	"miruken.com/miruken"
-	"reflect"
 	"testing"
 )
 
@@ -164,7 +163,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 
 	suite.Run("FromOptions", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*FooOptionsHandler)(nil))))
+			miruken.WithHandlerTypes(miruken.TypeOf[*FooOptionsHandler]()))
 		foo     := new(Foo)
 		result  := miruken.Build(handler, miruken.WithOptions(FooOptions{2})).
 			Handle(foo, false, nil)

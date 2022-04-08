@@ -163,7 +163,7 @@ type MapTestSuite struct {
 
 func (suite *MapTestSuite) SetupTest() {
 	handleTypes := []reflect.Type{
-		reflect.TypeOf((*EntityMapper)(nil)),
+		miruken.TypeOf[*EntityMapper](),
 	}
 	suite.HandleTypes = handleTypes
 }
@@ -219,7 +219,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("Open", func() {
-			handler := suite.InferenceRootWith(reflect.TypeOf((*OpenMapper)(nil)))
+			handler := suite.InferenceRootWith(miruken.TypeOf[*OpenMapper]())
 			entity  := PlayerEntity{
 				Entity{ Id: 1 },
 				"Tim Howard",
@@ -258,7 +258,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("Format", func() {
-			handler := suite.InferenceRootWith(reflect.TypeOf((*FormatMapper)(nil)))
+			handler := suite.InferenceRootWith(miruken.TypeOf[*FormatMapper]())
 
 			data  := PlayerData{
 				Id:   1,
@@ -333,7 +333,7 @@ func (suite *MapTestSuite) TestMap() {
 				}
 			}()
 			miruken.NewRootHandler(
-				miruken.WithHandlerTypes(reflect.TypeOf((*InvalidMapper)(nil))))
+				miruken.WithHandlerTypes(miruken.TypeOf[*InvalidMapper]()))
 			suite.Fail("should cause panic")
 		})
 	})

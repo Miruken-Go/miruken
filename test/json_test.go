@@ -29,7 +29,7 @@ type JsonTestSuite struct {
 
 func (suite *JsonTestSuite) SetupTest() {
 	handleTypes := []reflect.Type{
-		reflect.TypeOf((*miruken.JsonMapper)(nil)),
+		miruken.TypeOf[*miruken.JsonMapper](),
 	}
 	suite.HandleTypes = handleTypes
 }
@@ -123,8 +123,8 @@ func (suite *JsonTestSuite) TestJson() {
 
 			suite.Run("ToJsonOverride", func() {
 				handler := suite.InferenceRootWith(
-					reflect.TypeOf((*miruken.JsonMapper)(nil)),
-					reflect.TypeOf((*PlayerMapper)(nil)))
+					miruken.TypeOf[*miruken.JsonMapper](),
+					miruken.TypeOf[*PlayerMapper]())
 
 				data :=  PlayerData{
 					Id:   1,

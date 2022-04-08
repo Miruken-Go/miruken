@@ -5,6 +5,19 @@ import (
 	"reflect"
 )
 
+// TypeOf returns reflect.Type of generic argument.
+func TypeOf[T any]() reflect.Type {
+	return reflect.TypeOf((*T)(nil)).Elem()
+}
+
+// ValueAs returns the value of v as the type T.
+// It panics if the value isn't assignable to T.
+func ValueAs[T any](v reflect.Value) (r T) {
+	reflect.ValueOf(&r).Elem().Set(v)
+	return
+}
+
+// IsNil determine if the val is typed or untyped nil.
 func IsNil(val any) bool {
 	if val == nil {
 		return true

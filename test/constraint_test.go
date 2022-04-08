@@ -160,11 +160,11 @@ type ConstraintTestSuite struct {
 
 func (suite *ConstraintTestSuite) SetupTest() {
 	handleTypes := []reflect.Type{
-		reflect.TypeOf((*PersonProvider)(nil)),
-		reflect.TypeOf((*LocalSettings)(nil)),
-		reflect.TypeOf((*RemoteSettings)(nil)),
-		reflect.TypeOf((*Hospital)(nil)),
-		reflect.TypeOf((*Client)(nil)),
+		miruken.TypeOf[*PersonProvider](),
+		miruken.TypeOf[*LocalSettings](),
+		miruken.TypeOf[*RemoteSettings](),
+		miruken.TypeOf[*Hospital](),
+		miruken.TypeOf[*Client](),
 	}
 	suite.HandleTypes = handleTypes
 }

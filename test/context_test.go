@@ -61,8 +61,8 @@ type ContextTestSuite struct {
 
 func (suite *ContextTestSuite) SetupTest() {
 	handleTypes := []reflect.Type{
-		reflect.TypeOf((*ScopedService)(nil)),
-		reflect.TypeOf((*RootedService)(nil)),
+		miruken.TypeOf[*ScopedService](),
+		miruken.TypeOf[*RootedService](),
 	}
 	suite.HandleTypes = handleTypes
 }
@@ -848,7 +848,7 @@ func (suite *ContextTestSuite) TestContextual() {
 			})
 
 			suite.Run("Covariant", func() {
-				root := suite.RootContextWith(reflect.TypeOf((*RootedService)(nil)))
+				root := suite.RootContextWith(miruken.TypeOf[*RootedService]())
 				var counter Counter
 				err := miruken.Resolve(root, &counter)
 				suite.Nil(err)
@@ -858,8 +858,8 @@ func (suite *ContextTestSuite) TestContextual() {
 
 		suite.Run("RejectScopedDependencyInSingleton", func() {
 			root := suite.RootContextWith(
-				reflect.TypeOf((*ScopedService)(nil)),
-				reflect.TypeOf((*LifestyleMismatch)(nil)))
+				miruken.TypeOf[*ScopedService](),
+				miruken.TypeOf[*LifestyleMismatch]())
 			var mismatch *LifestyleMismatch
 			err := miruken.Resolve(root, &mismatch)
 			suite.Nil(err)

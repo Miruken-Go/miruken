@@ -16,7 +16,7 @@ func (p *ContravariantPolicy) IsVariantKey(
 	key any,
 ) (variant bool, unknown bool) {
 	if typ, ok := key.(reflect.Type); ok {
-		return true, typ == _interfaceType
+		return true, typ == _anyType
 	}
 	return false, false
 }
@@ -102,7 +102,7 @@ func (p *ContravariantPolicy) NewMethodBinding(
 	} else if _, isSpec := spec.arg.(zeroArg); isSpec {
 		invalid = errors.New("contravariant: missing callback argument")
 	} else if key == nil {
-		key = _interfaceType
+		key = _anyType
 	}
 
 	if err := buildDependencies(methodType, index, numArgs, args, index); err != nil {

@@ -16,7 +16,7 @@ func (p *CovariantPolicy) IsVariantKey(
 	key any,
 ) (variant bool, unknown bool) {
 	if typ, ok := key.(reflect.Type); ok {
-		return true, typ == _interfaceType
+		return true, typ == _anyType
 	}
 	return false, false
 }
@@ -33,7 +33,7 @@ func (p *CovariantPolicy) MatchesKey(
 	switch kt := otherKey.(type) {
 	case reflect.Type:
 		if bt, isType := key.(reflect.Type); isType {
-			return bt == _interfaceType || bt.AssignableTo(kt), false
+			return bt == _anyType || bt.AssignableTo(kt), false
 		}
 	}
 	return false, false

@@ -112,4 +112,4 @@ func newInferenceHandler(
 	}
 }
 
-var _inferenceHandlerType = reflect.TypeOf((*inferenceHandler)(nil)).Elem()
+var _inferenceHandlerType = TypeOf[inferenceHandler]()

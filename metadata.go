@@ -428,4 +428,4 @@ func (g *getHandlerDescriptorFactory) Handle(
 
 func (g *getHandlerDescriptorFactory) suppressDispatch() {}
 
-var _suppressDispatchType = reflect.TypeOf((*SuppressDispatch)(nil)).Elem()
+var _suppressDispatchType = TypeOf[SuppressDispatch]()

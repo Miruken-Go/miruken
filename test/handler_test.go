@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/stretchr/testify/suite"
-	miruken "miruken.com/miruken"
+	"miruken.com/miruken"
 	"reflect"
 	"strings"
 	"testing"
@@ -329,8 +329,8 @@ func (suite *HandlerTestSuite) TestHandles() {
 	suite.Run("Invariant", func () {
 		handler := miruken.NewRootHandler(
 			miruken.WithHandlerTypes(
-				reflect.TypeOf((*FooHandler)(nil)),
-				reflect.TypeOf((*BarHandler)(nil))),
+				miruken.TypeOf[*FooHandler](),
+				miruken.TypeOf[*BarHandler]()),
 			miruken.WithHandlers(new(FooHandler), new(BarHandler)))
 		foo     := new(Foo)
 		result  := handler.Handle(foo, false, nil)
@@ -341,7 +341,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 	suite.Run("Contravariant", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*CounterHandler)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*CounterHandler]()),
 			miruken.WithHandlers(new(CounterHandler)))
 		foo    := new(Foo)
 		result := handler.Handle(foo, false, nil)
@@ -352,7 +352,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 	suite.Run("HandleResult", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*CounterHandler)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*CounterHandler]()),
 			miruken.WithHandlers(new(CounterHandler)))
 		suite.Run("Handled", func() {
 			foo := new(Foo)
@@ -375,7 +375,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 	suite.Run("Multiple", func () {
 		multi   := new(MultiHandler)
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*MultiHandler)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*MultiHandler]()),
 			miruken.WithHandlers(multi))
 
 		foo := new(Foo)
@@ -398,7 +398,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 	suite.Run("Everything", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*EverythingHandler)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*EverythingHandler]()),
 			miruken.WithHandlers(new(EverythingHandler)))
 
 		suite.Run("Invariant", func () {
@@ -421,7 +421,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 	suite.Run("EverythingImplicit", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*EverythingImplicitHandler)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*EverythingImplicitHandler]()),
 			miruken.WithHandlers(new(EverythingImplicitHandler)))
 
 		suite.Run("Invariant", func () {
@@ -444,7 +444,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 	suite.Run("EverythingSpec", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*EverythingSpecHandler)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*EverythingSpecHandler]()),
 			miruken.WithHandlers(new(EverythingSpecHandler)))
 
 		suite.Run("Invariant", func () {
@@ -467,7 +467,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 	suite.Run("Specification", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*SpecificationHandler)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*SpecificationHandler]()),
 			miruken.WithHandlers(new(SpecificationHandler)))
 		suite.Run("Strict", func() {
 			foo    := new(Foo)
@@ -480,7 +480,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 	suite.Run("Dependencies", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*DependencyHandler)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*DependencyHandler]()),
 			miruken.WithHandlers(new(DependencyHandler)))
 		suite.Run("Required", func () {
 			defer func() {
@@ -559,7 +559,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 		suite.Run("CustomResolver", func() {
 			handler := miruken.NewRootHandler(
-				miruken.WithHandlerTypes(reflect.TypeOf((*DependencyResolverHandler)(nil))),
+				miruken.WithHandlerTypes(miruken.TypeOf[*DependencyResolverHandler]()),
 				miruken.WithHandlers(new(DependencyResolverHandler)))
 			var config *Config
 			if err := miruken.Invoke(handler, new(Foo), &config); err == nil {
@@ -585,8 +585,8 @@ func (suite *HandlerTestSuite) TestHandles() {
 		suite.Run("Broadcast", func () {
 			handler := miruken.NewRootHandler(
 				miruken.WithHandlerTypes(
-					reflect.TypeOf((*FooHandler)(nil)),
-					reflect.TypeOf((*BarHandler)(nil))),
+					miruken.TypeOf[*FooHandler](),
+					miruken.TypeOf[*BarHandler]()),
 				miruken.WithHandlers(new(FooHandler), new(FooHandler), new(BarHandler)))
 			foo     := new(Foo)
 			result  := handler.Handle(foo, false, nil)
@@ -603,7 +603,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 	suite.Run("Handles", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*CounterHandler)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*CounterHandler]()),
 			miruken.WithHandlers(new(CounterHandler)))
 		suite.Run("Invoke", func () {
 			suite.Run("Invariant", func() {
@@ -641,8 +641,8 @@ func (suite *HandlerTestSuite) TestHandles() {
 		suite.Run("InvokeAll", func () {
 			handler := miruken.NewRootHandler(
 				miruken.WithHandlerTypes(
-					reflect.TypeOf((*CounterHandler)(nil)),
-					reflect.TypeOf((*SpecificationHandler)(nil))),
+					miruken.TypeOf[*CounterHandler](),
+					miruken.TypeOf[*SpecificationHandler]()),
 				miruken.WithHandlers(new(CounterHandler), new(SpecificationHandler)))
 			suite.Run("Invariant", func () {
 				var foo []*Foo
@@ -674,7 +674,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 			}
 		}()
 		miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*InvalidHandler)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*InvalidHandler]()),
 			miruken.WithHandlers(new(InvalidHandler)))
 		suite.Fail("should cause panic")
 	})
@@ -759,9 +759,9 @@ type OpenProvider struct{}
 func (p *OpenProvider) Provide(
 	provides *miruken.Provides,
 ) any {
-	if key := provides.Key(); key == reflect.TypeOf((*Foo)(nil)) {
+	if key := provides.Key(); key == miruken.TypeOf[*Foo]() {
 		return &Foo{}
-	} else if key == reflect.TypeOf((*Bar)(nil)) {
+	} else if key == miruken.TypeOf[*Bar]() {
 		return &Bar{}
 	}
 	return nil
@@ -815,7 +815,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 
 	suite.Run("Invariant", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*FooProvider)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*FooProvider]()),
 			miruken.WithHandlers(new(FooProvider)))
 		var foo *Foo
 		err := miruken.Resolve(handler, &foo)
@@ -825,7 +825,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 
 	suite.Run("Covariant", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*FooProvider)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*FooProvider]()),
 			miruken.WithHandlers(new(FooProvider)))
 		var counter Counter
 		err := miruken.Resolve(handler, &counter)
@@ -846,7 +846,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 
 	suite.Run("Open", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*OpenProvider)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*OpenProvider]()),
 			miruken.WithHandlers(new(OpenProvider)))
 		var foo *Foo
 		err := miruken.Resolve(handler, &foo)
@@ -860,7 +860,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 
 	suite.Run("Multiple", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*MultiProvider)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*MultiProvider]()),
 			miruken.WithHandlers(new(MultiProvider)))
 		var foo *Foo
 		err := miruken.Resolve(handler, &foo)
@@ -879,7 +879,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 
 	suite.Run("Specification", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*SpecificationProvider)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*SpecificationProvider]()),
 			miruken.WithHandlers(new(SpecificationProvider)))
 
 		suite.Run("Invariant", func () {
@@ -905,7 +905,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 
 	suite.Run("Lists", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*ListProvider)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*ListProvider]()),
 			miruken.WithHandlers(new(ListProvider)))
 
 		suite.Run("Slice", func () {
@@ -942,7 +942,8 @@ func (suite *HandlerTestSuite) TestProvides() {
 		})
 
 		suite.Run("ConstructorDependencies", func () {
-			handler := miruken.NewRootHandler(miruken.WithHandlerTypes(reflect.TypeOf((*SpecificationProvider)(nil))))
+			handler := miruken.NewRootHandler(miruken.WithHandlerTypes(
+				miruken.TypeOf[*SpecificationProvider]()))
 			var specProvider *SpecificationProvider
 			err := miruken.Resolve(miruken.Build(handler, miruken.With(Baz{Counted{2}})), &specProvider)
 			suite.NotNil(specProvider)
@@ -968,9 +969,9 @@ func (suite *HandlerTestSuite) TestProvides() {
 		suite.Run("Invariant", func () {
 			handler := miruken.NewRootHandler(
 				miruken.WithHandlerTypes(
-					reflect.TypeOf((*FooProvider)(nil)),
-					reflect.TypeOf((*MultiProvider)(nil)),
-					reflect.TypeOf((*SpecificationProvider)(nil))),
+					miruken.TypeOf[*FooProvider](),
+					miruken.TypeOf[*MultiProvider](),
+					miruken.TypeOf[*SpecificationProvider]()),
 				miruken.WithHandlers(
 					new(FooProvider), new(MultiProvider), new (SpecificationProvider)))
 
@@ -986,7 +987,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 
 		suite.Run("Covariant", func () {
 			handler := miruken.NewRootHandler(
-				miruken.WithHandlerTypes(reflect.TypeOf((*ListProvider)(nil))),
+				miruken.WithHandlerTypes(miruken.TypeOf[*ListProvider]()),
 				miruken.WithHandlers(new(ListProvider)))
 			var counted []Counter
 			if err := miruken.ResolveAll(handler, &counted); err == nil {
@@ -1034,7 +1035,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 			}
 		}()
 		miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*InvalidProvider)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*InvalidProvider]()),
 			miruken.WithHandlers(new(InvalidProvider)))
 		suite.Fail("should cause panic")
 	})
@@ -1043,7 +1044,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 func (suite *HandlerTestSuite) TestCreates() {
 	suite.Run("Invariant", func() {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(reflect.TypeOf((*SpecificationProvider)(nil))),
+			miruken.WithHandlerTypes(miruken.TypeOf[*SpecificationProvider]()),
 			miruken.WithHandlers(&SpecificationProvider{foo: Foo{Counted{10}}}))
 		var foo *Foo
 		err := miruken.Create(handler, &foo)

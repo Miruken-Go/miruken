@@ -311,7 +311,7 @@ func bindOptions(
 }
 
 var (
-	_strictType      = reflect.TypeOf((*Strict)(nil)).Elem()
-	_optionalType    = reflect.TypeOf((*Optional)(nil)).Elem()
-	_skipFiltersType = reflect.TypeOf((*SkipFilters)(nil)).Elem()
+	_strictType      = TypeOf[Strict]()
+	_optionalType    = TypeOf[Optional]()
+	_skipFiltersType = TypeOf[SkipFilters]()
 )
