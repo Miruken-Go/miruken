@@ -2,10 +2,8 @@
 
 package test
 
-import (
-	"miruken.com/miruken"
-	"reflect"
-)
+import "github.com/miruken-go/miruken"
+import "reflect"
 
 var HandlerTestTypes = []reflect.Type{
 	miruken.TypeOf[*AbortFilter](),

@@ -1,4 +1,4 @@
-module miruken.com/miruken
+module github.com/miruken-go/miruken
 
 go 1.18
 

@@ -3,8 +3,8 @@ package test
 import (
 	"errors"
 	"github.com/hashicorp/go-multierror"
+	"github.com/miruken-go/miruken"
 	"github.com/stretchr/testify/assert"
-	"miruken.com/miruken"
 	"testing"
 )
 

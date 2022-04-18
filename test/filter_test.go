@@ -3,9 +3,9 @@ package test
 import (
 	"errors"
 	"fmt"
+	"github.com/miruken-go/miruken"
 	"github.com/stretchr/testify/suite"
 	"math"
-	"miruken.com/miruken"
 	"reflect"
 	"testing"
 )

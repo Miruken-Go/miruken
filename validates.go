@@ -28,4 +28,9 @@ func (v *Validates) Dispatch(
 	return DispatchPolicy(handler, v.target, v, greedy, composer)
 }
 
+// ValidationResult captures structured validation errors.
+type ValidationResult struct {
+
+}
+
 var _validatesPolicy Policy = &ContravariantPolicy{}

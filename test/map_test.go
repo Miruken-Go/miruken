@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/miruken-go/miruken"
 	"github.com/stretchr/testify/suite"
-	"miruken.com/miruken"
 	"reflect"
 	"testing"
 )
