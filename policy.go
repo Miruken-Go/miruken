@@ -159,7 +159,7 @@ func (p *policySpecBuilder) configure(
 	if cb := coerceToPtr(field.Type, _callbackType); cb != nil {
 		bound = true
 		if b, ok := binding.(interface {
-			addPolicy(policy Policy) error
+			addPolicy(Policy) error
 		}); ok {
 			policy := p.policyOf(cb)
 			if invalid := b.addPolicy(policy); invalid != nil {
@@ -198,7 +198,7 @@ func bindFilters(
 	if filter := coerceToPtr(typ, _filterType); filter != nil {
 		bound = true
 		if b, ok := binding.(interface {
-			addFilterProvider(provider FilterProvider) error
+			addFilterProvider(FilterProvider) error
 		}); ok {
 			spec := filterSpec{filter, false, -1}
 			if f, ok := field.Tag.Lookup(_filterTag); ok {
@@ -223,7 +223,7 @@ func bindFilters(
 	} else if fp := coerceToPtr(typ, _filterProviderType); fp != nil {
 		bound = true
 		if b, ok := binding.(interface {
-			addFilterProvider(provider FilterProvider) error
+			addFilterProvider(FilterProvider) error
 		}); ok {
 			if provider, invalid := newWithTag(fp, field.Tag); invalid != nil {
 				err = fmt.Errorf(

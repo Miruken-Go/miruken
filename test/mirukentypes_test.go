@@ -34,6 +34,7 @@ var HandlerTestTypes = []reflect.Type{
 	miruken.TypeOf[*OpenProvider](),
 	miruken.TypeOf[*PersonProvider](),
 	miruken.TypeOf[*PlayerMapper](),
+	miruken.TypeOf[*PlayerValidator](),
 	miruken.TypeOf[*RootedService](),
 	miruken.TypeOf[*ScopedService](),
 	miruken.TypeOf[*SingletonErrorHandler](),

@@ -296,7 +296,7 @@ func bindResolver(
 	if dr := coerceToPtr(field.Type, _depResolverType); dr != nil {
 		bound = true
 		if b, ok := binding.(interface {
-			setResolver(resolver DependencyResolver) error
+			setResolver(DependencyResolver) error
 		}); ok {
 			if resolver, invalid := newWithTag(dr, field.Tag); invalid != nil {
 				err = fmt.Errorf(

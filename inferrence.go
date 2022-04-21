@@ -6,6 +6,11 @@ type inferenceHandler struct {
 	descriptor *HandlerDescriptor
 }
 
+type inference struct {
+	callback any
+	resolved map[reflect.Type]struct{}
+}
+
 func (h *inferenceHandler) Handle(
 	callback any,
 	greedy   bool,
@@ -21,10 +26,11 @@ func (h *inferenceHandler) DispatchPolicy(
 	greedy      bool,
 	composer    Handler,
 ) HandleResult {
-	if infer, ok := rawCallback.(interface{CanInfer() bool}); ok && !infer.CanInfer() {
+	if test, ok := rawCallback.(interface{CanInfer() bool}); ok && !test.CanInfer() {
 		return NotHandled
 	}
-	return h.descriptor.Dispatch(policy, h, callback, rawCallback, greedy, composer)
+	infer := &inference{callback: callback}
+	return h.descriptor.Dispatch(policy, h, infer, rawCallback, greedy, composer)
 }
 
 func (h *inferenceHandler) suppressDispatch() {}
@@ -54,12 +60,24 @@ func (b *bindingIntercept) Invoke(
 	if ctor, ok := b.Binding.(*constructorBinding); ok {
 		return ctor.Invoke(context)
 	}
+	handlerType := b.handlerType
+	if infer, ok := context.Callback().(*inference); ok {
+		if visited := infer.resolved; visited == nil {
+			infer.resolved = map[reflect.Type]struct{} {
+				handlerType: {},
+			}
+		} else if _, ok := visited[handlerType]; ok {
+			return nil, nil
+		} else {
+			visited[handlerType] = struct{}{}
+		}
+	}
 	var builder ResolvingBuilder
 	builder.
 		WithCallback(context.RawCallback()).
 		WithKey(b.handlerType)
 	resolving := builder.NewResolving()
-	if result := context.Composer().Handle(resolving, false, nil); result.IsError() {
+	if result := context.Composer().Handle(resolving, true, nil); result.IsError() {
 		return nil, result.Error()
 	} else {
 		return []any{result}, nil
@@ -97,7 +115,9 @@ func newInferenceHandler(
 						b := bs[0]  // only need first
 						_, ctorBinding := b.(*constructorBinding)
 						pb.insert(&bindingIntercept{
-							b, descriptor.handlerType, !ctorBinding,
+							b,
+							descriptor.handlerType,
+							!ctorBinding,
 						})
 					}
 				}

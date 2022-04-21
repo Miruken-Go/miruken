@@ -12,16 +12,16 @@ type Person interface {
 	LastName()  string
 }
 
-type PersonStruct struct {
+type PersonData struct {
 	firstName string
 	lastName  string
 }
 
-func (p *PersonStruct) FirstName() string {
+func (p *PersonData) FirstName() string {
 	return p.firstName
 }
 
-func (p *PersonStruct) LastName() string {
+func (p *PersonData) LastName() string {
 	return p.lastName
 }
 
@@ -85,7 +85,7 @@ func (p *PersonProvider) Doctor(
 		Doctor
       },
 ) Person {
-	return &PersonStruct{"Jack", "Zigler"}
+	return &PersonData{"Jack", "Zigler"}
 }
 
 func (p *PersonProvider) Programmer(
@@ -95,7 +95,7 @@ func (p *PersonProvider) Programmer(
 		Programmer
       },
 ) Person {
-	return &PersonStruct{"Paul", "Allen"}
+	return &PersonData{"Paul", "Allen"}
 }
 
 type AppSettings interface {

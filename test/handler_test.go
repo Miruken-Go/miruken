@@ -643,13 +643,20 @@ func (suite *HandlerTestSuite) TestHandles() {
 				miruken.WithHandlerTypes(
 					miruken.TypeOf[*CounterHandler](),
 					miruken.TypeOf[*SpecificationHandler]()),
-				miruken.WithHandlers(new(CounterHandler), new(SpecificationHandler)))
+				miruken.WithHandlers(&CounterHandler{}, &SpecificationHandler{}))
 			suite.Run("Invariant", func () {
 				var foo []*Foo
 				if err := miruken.InvokeAll(handler, new(Foo), &foo); err == nil {
 					suite.NotNil(foo)
+					// 1 from explicit return of *CounterHandler
+					// 1 from inference of *CounterHandler
+					// third call to *CounterHandler doesn't return based on rule
 					suite.Len(foo, 2)
-					suite.Equal(5, foo[0].Count())
+					// 2 from each of the 2 explicit instances (1) on line 646
+					// 2 for inference of *CounterHandler (1) which includes explicit instance (1)
+					// 2 for inference of *SpecificationHandler (1) which includes explicit instance (1)
+					// 6 total
+					suite.Equal(6, foo[0].Count())
 				} else {
 					suite.Failf("unexpected error", err.Error())
 				}
@@ -978,7 +985,13 @@ func (suite *HandlerTestSuite) TestProvides() {
 			var foo []*Foo
 			if err := miruken.ResolveAll(handler, &foo); err == nil {
 				suite.NotNil(foo)
-				suite.Len(foo, 6)
+				// 3 from each of the 3 explicit instances (1) on line 980
+				// 2 for inference of *FooProvider (1) which includes explicit instance (1)
+				// 2 for inference of *MultiProvider (1) which includes explicit instance (1)
+				// 1 for inference of *SpecificationProvider (1) which excludes constructed
+				//   instance since it has an unsatisfied dependency on Baz
+				// 8 total
+				suite.Len(foo, 8)
 				suite.True(foo[0] != foo[1])
 			} else {
 				suite.Failf("unexpected error", err.Error())
@@ -992,7 +1005,10 @@ func (suite *HandlerTestSuite) TestProvides() {
 			var counted []Counter
 			if err := miruken.ResolveAll(handler, &counted); err == nil {
 				suite.NotNil(counted)
-				suite.Len(counted, 8)
+				// 4 from 2 methods on explicit *ListProvider (2) on line 1000
+				// 8 for inference of *ListProvider (4) which includes explicit instance (4)
+				// 12 total
+				suite.Len(counted, 12)
 			} else {
 				suite.Failf("unexpected error", err.Error())
 			}

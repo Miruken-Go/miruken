@@ -204,14 +204,14 @@ func (q Qualifier) MatchesQualifier(
 	return metadata.IsEmpty() || metadata.Has(reflect.TypeOf(qualifier))
 }
 
-// ConstraintFilter enforces constraints.
-type ConstraintFilter struct{}
+// constraintFilter enforces constraints.
+type constraintFilter struct{}
 
-func (c *ConstraintFilter) Order() int {
+func (c *constraintFilter) Order() int {
 	return FilterStage
 }
 
-func (c *ConstraintFilter) Next(
+func (c *constraintFilter) Next(
 	next     Next,
 	context  HandleContext,
 	provider FilterProvider,
@@ -233,7 +233,7 @@ func (c *ConstraintFilter) Next(
 	return next.Filter()
 }
 
-var _constraintFilter = []Filter{&ConstraintFilter{}}
+var _constraintFilter = []Filter{&constraintFilter{}}
 
 // ConstraintProvider is a FilterProvider for constraints.
 type ConstraintProvider struct {

@@ -50,17 +50,16 @@ func (m *Maps) Dispatch(
 }
 
 type Format struct {
-	as map[any]struct{}
+	as any
 }
 
 func (f *Format) InitWithTag(tag reflect.StructTag) error {
 	if as, ok := tag.Lookup("as"); ok {
-		f.as = make(map[any]struct{})
 		if format := strings.TrimSpace(as); len(format) > 0 {
-			f.as[format] = struct{}{}
+			f.as = format
 		}
 	}
-	if len(f.as) == 0 {
+	if IsNil(f.as){
 		return errors.New("the Format constraint requires a non-empty `as:format` tag")
 	}
 	return nil
@@ -68,30 +67,23 @@ func (f *Format) InitWithTag(tag reflect.StructTag) error {
 
 func (f *Format) Merge(constraint BindingConstraint) bool {
 	if format, ok := constraint.(*Format); ok {
-		for format := range format.as {
-			f.as[format] = struct{}{}
-		}
+		f.as = format.as
 		return true
 	}
 	return false
 }
 
 func (f *Format) Require(metadata *BindingMetadata) {
-	if as := f.as; len(as) == 1 {
-		for format := range as {
-			metadata.Set(reflect.TypeOf(f), format)
-		}
-	} else {
-		panic("Format can only be required for a single format")
+	if as := f.as; !IsNil(as) {
+		metadata.Set(reflect.TypeOf(f), as)
 	}
 }
 
 func (f *Format) Matches(metadata *BindingMetadata) bool {
-	var found bool
 	if format, ok := metadata.Get(reflect.TypeOf(f)); ok {
-		_, found = f.as[format]
+		return format == f.as
 	}
-	return found
+	return false
 }
 
 // MapsBuilder builds Maps callbacks.
@@ -141,9 +133,7 @@ func (b *MapsBuilder) NewMaps() *Maps {
 	if format := b.format; format != nil {
 		maps.format   = format
 		maps.metadata = BindingMetadata{}
-		(&Format{as: map[any]struct{}{
-			format: {},
-		}}).Require(&maps.metadata)
+		(&Format{as: format}).Require(&maps.metadata)
 	}
 	return maps
 }

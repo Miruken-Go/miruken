@@ -2,7 +2,7 @@ package miruken
 
 type Resolving struct {
 	Provides
-	callback  any
+	callback  Callback
 	succeeded bool
 }
 
@@ -34,10 +34,9 @@ func (r *Resolving) accept(
 	greedy   bool,
 	composer Handler,
 ) bool {
-	if r.succeeded && !greedy {
+	if many := r.callback.Many(); !many && r.succeeded {
 		return true
-	}
-	if DispatchCallback(result, r.callback, greedy, composer).handled {
+	} else if DispatchCallback(result, r.callback, many, composer).handled {
 		r.succeeded = true
 		return true
 	}
@@ -46,17 +45,18 @@ func (r *Resolving) accept(
 
 type ResolvingBuilder struct {
 	ProvidesBuilder
-	callback any
+	callback Callback
 }
 
 func (b *ResolvingBuilder) WithCallback(
-	callback any,
+	callback Callback,
 ) *ResolvingBuilder {
 	b.callback = callback
 	return b
 }
 
 func (b *ResolvingBuilder) NewResolving() *Resolving {
+	b.WithMany()
 	resolving := &Resolving{
 		Provides: b.Provides(),
 		callback: b.callback,

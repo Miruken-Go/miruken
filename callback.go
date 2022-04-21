@@ -8,6 +8,7 @@ type (
 	// Callback represents an action.
 	Callback interface {
 		Key() any
+		Many() bool
 		Policy() Policy
 		ResultType() reflect.Type
 		Result() any
