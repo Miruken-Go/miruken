@@ -1,4 +1,4 @@
-package test
+package miruken_test
 
 import (
 	"errors"
