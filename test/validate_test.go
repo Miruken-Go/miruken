@@ -49,7 +49,7 @@ type Team struct {
 // PlayerValidator
 type PlayerValidator struct{}
 
-func (p *PlayerValidator) ShouldHaveFullName(
+func (v *PlayerValidator) MustHaveNameAndDOB(
 	validates *miruken.Validates, player *Player,
 ) {
 	outcome := validates.Outcome()
@@ -67,7 +67,7 @@ func (p *PlayerValidator) ShouldHaveFullName(
 	}
 }
 
-func (p *PlayerValidator) MustBeTenOrUnder(
+func (v *PlayerValidator) MustBeTenOrUnder(
 	_ *struct{
 		miruken.Validates
 		miruken.Scope `scope:"Recreational"`
@@ -79,6 +79,33 @@ func (p *PlayerValidator) MustBeTenOrUnder(
 			validates.Outcome().AddError("DOB",
 				errors.New("player must be 10 years old or younger"))
 		}
+	}
+}
+
+// TeamValidator
+type TeamValidator struct{}
+
+func (v *TeamValidator) MustHaveName(
+	validates *miruken.Validates, team *Team,
+) {
+	if name := team.Name; len(name) == 0 {
+		validates.Outcome().AddError("Name", errors.New(`"Name" is required`))
+	}
+}
+
+func (v *TeamValidator) MustHaveLicensedCoach(
+	_ *struct{
+		miruken.Validates
+		miruken.Scope `scope:"ECNL"`
+	  }, team *Team,
+	validates *miruken.Validates,
+) {
+	outcome := validates.Outcome()
+
+	if coach := team.Coach; coach == nil {
+		outcome.AddError("Coach", errors.New(`"Coach" is required`))
+	} else if license := coach.License; len(license) == 0 {
+		outcome.AddError("Coach.License", errors.New("licensed Coach is required"))
 	}
 }
 
@@ -105,14 +132,14 @@ func (suite *ValidateTestSuite) InferenceRootWith(
 
 func (suite *ValidateTestSuite) TestValidation() {
 	suite.Run("ValidationOutcome", func () {
-		suite.Run("Simple Error", func() {
+		suite.Run("Simple Errors", func() {
 			outcome := &miruken.ValidationOutcome{}
 			outcome.AddError("Name", errors.New(`"Name" can't be empty`))
 			suite.Equal(`Name: "Name" can't be empty`, outcome.Error())
 			suite.Equal([]string{"Name"}, outcome.Culprits())
 		})
 
-		suite.Run("Nested Error", func() {
+		suite.Run("Nested Errors", func() {
 			outcome := &miruken.ValidationOutcome{}
 			outcome.AddError("Company.Name", errors.New(`"Name" can't be empty`))
 			suite.Equal(`Company: (Name: "Name" can't be empty)`, outcome.Error())
@@ -131,6 +158,18 @@ func (suite *ValidateTestSuite) TestValidation() {
 			outcome.AddError("Company.Name", errors.New(`"Name" can't be empty`))
 			suite.Equal(`Company: (Name: "Name" can't be empty); Name: "Name" can't be empty`, outcome.Error())
 			suite.ElementsMatch([]string{"Name", "Company"}, outcome.Culprits())
+		})
+
+		suite.Run("Collection Errors", func() {
+			outcome := &miruken.ValidationOutcome{}
+			outcome.AddError("Players[0]", errors.New(`"Players[0]" can't be empty`))
+			suite.Equal(`Players: (0: "Players[0]" can't be empty)`, outcome.Error())
+			suite.Equal([]string{"Players"}, outcome.Culprits())
+			errors := outcome.PathErrors("Players")
+			suite.Len(errors, 1)
+			suite.IsType(&miruken.ValidationOutcome{}, errors[0])
+			index0 := errors[0].(*miruken.ValidationOutcome)
+			suite.Equal(`0: "Players[0]" can't be empty`, index0.Error())
 		})
 	})
 

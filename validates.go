@@ -228,7 +228,7 @@ func (v *ValidationOutcome) parsePath(
 	parent = v
 	for parent != nil {
 		if index, rest := v.parseIndexer(path); len(index) > 0 {
-			if len(rest) > 0 {
+			if len(rest) == 0 {
 				return parent, index
 			}
 			parent = parent.nestedOutcome(index, createIfMissing)
