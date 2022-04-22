@@ -132,6 +132,9 @@ func (v *ValidationOutcome) AddError(
 	if err == nil {
 		panic("err cannot be nil")
 	}
+	if _, ok := err.(*ValidationOutcome); ok {
+		panic("cannot add child ValidationOutcome directly")
+	}
 	if parent, key := v.parsePath(path, true); parent == v {
 		if v.errors == nil {
 			v.errors = map[string][]error{key: {err}}
@@ -161,6 +164,23 @@ func (v *ValidationOutcome) PathErrors(
 		}
 	}
 	return empty
+}
+
+func (v *ValidationOutcome) Child(
+	path string,
+) *ValidationOutcome {
+	if len(path) == 0 {
+		panic("path cannot be empty")
+	}
+	if v.errors == nil {
+		return nil
+	}
+	if parent, key := v.parsePath(path, false); parent == v {
+		return v.childOutcome(key, false)
+	} else if parent != nil {
+		return parent.Child(key)
+	}
+	return nil
 }
 
 func (v *ValidationOutcome) Error() string {
@@ -196,7 +216,7 @@ func (v *ValidationOutcome) Error() string {
 	return s.String()
 }
 
-func (v *ValidationOutcome) nestedOutcome(
+func (v *ValidationOutcome) childOutcome(
 	key             string,
 	createIfMissing bool,
 ) *ValidationOutcome {
@@ -216,9 +236,12 @@ func (v *ValidationOutcome) nestedOutcome(
 			}
 		}
 	}
-	outcome := &ValidationOutcome{}
-	v.errors[key] = append(keyErrors, outcome)
-	return outcome
+	if createIfMissing {
+		outcome := &ValidationOutcome{}
+		v.errors[key] = append(keyErrors, outcome)
+		return outcome
+	}
+	return nil
 }
 
 func (v *ValidationOutcome) parsePath(
@@ -231,7 +254,7 @@ func (v *ValidationOutcome) parsePath(
 			if len(rest) == 0 {
 				return parent, index
 			}
-			parent = parent.nestedOutcome(index, createIfMissing)
+			parent = parent.childOutcome(index, createIfMissing)
 		} else {
 			dot  := strings.IndexRune(path, '.')
 			open := strings.IndexRune(path, '[')
@@ -245,7 +268,7 @@ func (v *ValidationOutcome) parsePath(
 				if len(rest) == 0 {
 					return parent, path
 				}
-				parent, path = parent.nestedOutcome(path, createIfMissing), rest
+				parent, path = parent.childOutcome(path, createIfMissing), rest
 			} else {
 				return parent, path
 			}

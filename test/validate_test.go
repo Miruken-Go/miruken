@@ -144,10 +144,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 			outcome.AddError("Company.Name", errors.New(`"Name" can't be empty`))
 			suite.Equal(`Company: (Name: "Name" can't be empty)`, outcome.Error())
 			suite.Equal([]string{"Company"}, outcome.Culprits())
-			errors := outcome.PathErrors("Company")
-			suite.Len(errors, 1)
-			suite.IsType(&miruken.ValidationOutcome{}, errors[0])
-			company := errors[0].(*miruken.ValidationOutcome)
+			company := outcome.Child("Company")
 			suite.Equal(`Name: "Name" can't be empty`, company.Error())
 			suite.Equal([]string{"Name"}, company.Culprits())
 		})
@@ -165,11 +162,19 @@ func (suite *ValidateTestSuite) TestValidation() {
 			outcome.AddError("Players[0]", errors.New(`"Players[0]" can't be empty`))
 			suite.Equal(`Players: (0: "Players[0]" can't be empty)`, outcome.Error())
 			suite.Equal([]string{"Players"}, outcome.Culprits())
-			errors := outcome.PathErrors("Players")
-			suite.Len(errors, 1)
-			suite.IsType(&miruken.ValidationOutcome{}, errors[0])
-			index0 := errors[0].(*miruken.ValidationOutcome)
-			suite.Equal(`0: "Players[0]" can't be empty`, index0.Error())
+			players := outcome.Child("Players")
+			suite.Equal(`0: "Players[0]" can't be empty`, players.Error())
+		})
+
+		suite.Run("Cannot add child outcome", func() {
+			defer func() {
+				if r := recover(); r != nil {
+					suite.Equal("cannot add child ValidationOutcome directly", r)
+				}
+			}()
+			outcome := &miruken.ValidationOutcome{}
+			outcome.AddError("Foo", &miruken.ValidationOutcome{})
+			suite.Fail("Expected panic")
 		})
 	})
 

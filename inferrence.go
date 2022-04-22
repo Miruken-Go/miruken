@@ -62,14 +62,12 @@ func (b *bindingIntercept) Invoke(
 	}
 	handlerType := b.handlerType
 	if infer, ok := context.Callback().(*inference); ok {
-		if visited := infer.resolved; visited == nil {
-			infer.resolved = map[reflect.Type]struct{} {
-				handlerType: {},
-			}
-		} else if _, ok := visited[handlerType]; ok {
-			return nil, nil
+		if resolved := infer.resolved; resolved == nil {
+			infer.resolved = map[reflect.Type]struct{} { handlerType: {} }
+		} else if _, found := resolved[handlerType]; !found {
+			resolved[handlerType] = struct{}{}
 		} else {
-			visited[handlerType] = struct{}{}
+			return nil, nil
 		}
 	}
 	var builder ResolvingBuilder
@@ -132,4 +130,4 @@ func newInferenceHandler(
 	}
 }
 
-var _inferenceHandlerType = TypeOf[inferenceHandler]()
+var _inferenceHandlerType = TypeOf[*inferenceHandler]()
