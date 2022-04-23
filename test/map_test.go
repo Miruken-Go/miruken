@@ -1,4 +1,4 @@
-package miruken_test
+package test
 
 import (
 	"encoding/json"
