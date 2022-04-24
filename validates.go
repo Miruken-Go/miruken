@@ -11,9 +11,9 @@ import (
 // Validates callbacks contravariantly.
 type Validates struct {
 	CallbackBase
-	target   any
-	scopes   []any
-	outcome  ValidationOutcome
+	target  any
+	groups  []any
+	outcome ValidationOutcome
 	metadata BindingMetadata
 }
 
@@ -21,8 +21,20 @@ func (v *Validates) Target() any {
 	return v.target
 }
 
-func (v *Validates) Scopes() []any {
-	return v.scopes
+func (v *Validates) Groups() []any {
+	return v.groups
+}
+
+func (v *Validates) InGroup(group any) bool {
+	if len(v.groups) == 0 {
+		return false
+	}
+	for _, grp := range v.groups {
+		if grp == group {
+			return true
+		}
+	}
+	return false
 }
 
 func (v *Validates) Outcome() *ValidationOutcome {
@@ -49,49 +61,55 @@ func (v *Validates) Dispatch(
 	return DispatchPolicy(handler, v.target, v, greedy, composer)
 }
 
-type Scope struct {
-	scopes map[any]struct{}
+type Group struct {
+	groups map[any]struct{}
 }
 
-func (s *Scope) InitWithTag(tag reflect.StructTag) error {
-	if sc, ok := tag.Lookup("scope"); ok {
-		s.scopes = make(map[any]struct{})
-		if scope := strings.TrimSpace(sc); len(scope) > 0 {
-			s.scopes[scope] = struct{}{}
+func (g *Group) InitWithTag(tag reflect.StructTag) error {
+	if name, ok := tag.Lookup("name"); ok {
+		g.groups = make(map[any]struct{})
+		if group := strings.TrimSpace(name); len(group) > 0 {
+			g.groups[group] = struct{}{}
 		}
 	}
-	if len(s.scopes) == 0 {
-		return errors.New("the Scope constraint requires a non-empty `scope:scope` tag")
+	if len(g.groups) == 0 {
+		return errors.New("the Group constraint requires a non-empty `name:group` tag")
 	}
 	return nil
 }
 
-func (s *Scope) Merge(constraint BindingConstraint) bool {
-	if scope, ok := constraint.(*Scope); ok {
-		for scope := range scope.scopes {
-			s.scopes[scope] = struct{}{}
+func (g *Group) Merge(constraint BindingConstraint) bool {
+	if group, ok := constraint.(*Group); ok {
+		for grp := range group.groups {
+			g.groups[grp] = struct{}{}
 		}
 		return true
 	}
 	return false
 }
 
-func (s *Scope) Require(metadata *BindingMetadata) {
-	if scopes := s.scopes; len(scopes) > 0 {
-		keys, i := make([]any, len(scopes)), 0
-		for key := range scopes {
-			keys[i] = key
+func (g *Group) Require(metadata *BindingMetadata) {
+	if groups := g.groups; len(groups) > 0 {
+		gs, i := make([]any, len(groups)), 0
+		for grp := range groups {
+			gs[i] = grp
 			i++
 		}
-		metadata.Set(reflect.TypeOf(s), keys)
+		metadata.Set(_groupType, gs)
 	}
 }
 
-func (s *Scope) Matches(metadata *BindingMetadata) bool {
-	if m, ok := metadata.Get(reflect.TypeOf(s)); ok {
-		if scopes, ok := m.([]any); ok {
-			for _, scope := range scopes {
-				if _, found := s.scopes[scope]; found {
+func (g *Group) Matches(metadata *BindingMetadata) bool {
+	if m, ok := metadata.Get(_groupType); ok {
+		if _, all := g.groups[_anyGroup]; all {
+			return true
+		}
+		if groups, ok := m.([]any); ok {
+			for _, group := range groups {
+				if group == _anyGroup {
+					return true
+				}
+				if _, found := g.groups[group]; found {
 					return true
 				}
 			}
@@ -126,9 +144,6 @@ func (v *ValidationOutcome) AddError(
 	path string,
 	err  error,
 ) {
-	if len(path) == 0 {
-		panic("path cannot be empty")
-	}
 	if err == nil {
 		panic("err cannot be nil")
 	}
@@ -149,9 +164,6 @@ func (v *ValidationOutcome) AddError(
 func (v *ValidationOutcome) PathErrors(
 	path string,
 ) []error {
-	if len(path) == 0 {
-		panic("path cannot be empty")
-	}
 	var empty []error
 	if parent, key := v.parsePath(path, true); parent == nil {
 		return empty
@@ -169,12 +181,6 @@ func (v *ValidationOutcome) PathErrors(
 func (v *ValidationOutcome) Child(
 	path string,
 ) *ValidationOutcome {
-	if len(path) == 0 {
-		panic("path cannot be empty")
-	}
-	if v.errors == nil {
-		return nil
-	}
 	if parent, key := v.parsePath(path, false); parent == v {
 		return v.childOutcome(key, false)
 	} else if parent != nil {
@@ -361,7 +367,7 @@ func NewValidateProvider(withResult bool) *ValidateProvider {
 type ValidatesBuilder struct {
 	CallbackBuilder
 	target any
-	scopes []any
+	groups []any
 }
 
 func (b *ValidatesBuilder) Target(
@@ -374,10 +380,10 @@ func (b *ValidatesBuilder) Target(
 	return b
 }
 
-func (b *ValidatesBuilder) WithScopes(
-	scopes ... any,
+func (b *ValidatesBuilder) WithGroups(
+	groups ... any,
 ) *ValidatesBuilder {
-	b.scopes = scopes
+	b.groups = groups
 	return b
 }
 
@@ -386,14 +392,14 @@ func (b *ValidatesBuilder) NewValidates() *Validates {
 		CallbackBase: b.CallbackBase(),
 		target:       b.target,
 	}
-	if scopes := b.scopes; len(scopes) > 0 {
-		validates.scopes   = scopes
+	if groups := b.groups; len(groups) > 0 {
+		validates.groups = groups
 		validates.metadata = BindingMetadata{}
-		scopeMap := make(map[any]struct{})
-		for _, scope := range scopes {
-			scopeMap[scope] = struct{}{}
+		groupMap := make(map[any]struct{})
+		for _, group := range groups {
+			groupMap[group] = struct{}{}
 		}
-		(&Scope{scopes: scopeMap}).Require(&validates.metadata)
+		(&Group{groups: groupMap}).Require(&validates.metadata)
 	}
 	return validates
 }
@@ -401,15 +407,15 @@ func (b *ValidatesBuilder) NewValidates() *Validates {
 func Validate(
 	handler Handler,
 	target  any,
-	scopes  ... any,
+	groups ... any,
 ) (*ValidationOutcome, error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
 	var builder ValidatesBuilder
 	builder.Target(target).WithMany()
-	if len(scopes) > 0 {
-		builder.WithScopes(scopes...)
+	if len(groups) > 0 {
+		builder.WithGroups(groups...)
 	}
 	validates := builder.NewValidates()
 	if result := handler.Handle(validates, true, nil); result.IsError() {
@@ -428,5 +434,7 @@ func Validate(
 
 var (
 	_validatesPolicy Policy = &ContravariantPolicy{}
-	_validateFilter = []Filter{validateFilter{}}
+	_validateFilter         = []Filter{validateFilter{}}
+	_groupType              = TypeOf[*Group]()
+	_anyGroup               = "*"
 )

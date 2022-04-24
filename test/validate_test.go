@@ -70,7 +70,7 @@ func (v *PlayerValidator) MustHaveNameAndDOB(
 func (v *PlayerValidator) MustBeTenOrUnder(
 	_ *struct{
 		miruken.Validates
-		miruken.Scope `scope:"Recreational"`
+		miruken.Group `name:"Recreational"`
 	  }, player *Player,
 	validates *miruken.Validates,
 ) {
@@ -96,7 +96,7 @@ func (v *TeamValidator) MustHaveName(
 func (v *TeamValidator) MustHaveLicensedCoach(
 	_ *struct{
 		miruken.Validates
-		miruken.Scope `scope:"ECNL"`
+		miruken.Group `name:"ECNL"`
 	  }, team *Team,
 	validates *miruken.Validates,
 ) {
@@ -132,6 +132,13 @@ func (suite *ValidateTestSuite) InferenceRootWith(
 
 func (suite *ValidateTestSuite) TestValidation() {
 	suite.Run("ValidationOutcome", func () {
+		suite.Run("Root Errors", func() {
+			outcome := &miruken.ValidationOutcome{}
+			outcome.AddError("", errors.New("player not found"))
+			suite.Equal(": player not found", outcome.Error())
+			suite.Equal([]string{""}, outcome.Culprits())
+		})
+
 		suite.Run("Simple Errors", func() {
 			outcome := &miruken.ValidationOutcome{}
 			outcome.AddError("Name", errors.New(`"Name" can't be empty`))
@@ -192,7 +199,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 			suite.Equal(`FirstName: "First Name" is required; LastName: "Last Name" is required`, outcome.Error())
 		})
 
-		suite.Run("Scope", func() {
+		suite.Run("Group", func() {
 			handler := suite.InferenceRoot()
 			player  := Player{
 				FirstName: "Matthew",

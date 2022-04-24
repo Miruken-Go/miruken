@@ -75,12 +75,12 @@ func (f *Format) Merge(constraint BindingConstraint) bool {
 
 func (f *Format) Require(metadata *BindingMetadata) {
 	if as := f.as; !IsNil(as) {
-		metadata.Set(reflect.TypeOf(f), as)
+		metadata.Set(_formatType, as)
 	}
 }
 
 func (f *Format) Matches(metadata *BindingMetadata) bool {
-	if format, ok := metadata.Get(reflect.TypeOf(f)); ok {
+	if format, ok := metadata.Get(_formatType); ok {
 		return format == f.as
 	}
 	return false
@@ -204,4 +204,7 @@ func MapAll(
 	return nil
 }
 
-var _mapsPolicy Policy = &BivariantPolicy{}
+var (
+	_mapsPolicy Policy = &BivariantPolicy{}
+	_formatType        = TypeOf[*Format]()
+)
