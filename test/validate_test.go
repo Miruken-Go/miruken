@@ -132,6 +132,15 @@ func (v *TeamValidator) CreateTeam(
 	}
 }
 
+func (v *TeamValidator) RemoveTeam(
+	validates *miruken.Validates, remove *RemoveTeam,
+) {
+	if remove.Team.Id <= 0 {
+		outcome := validates.Outcome()
+		outcome.AddError("Id", errors.New(`"Id" must be greater than 0`))
+	}
+}
+
 type TeamHandler struct {
 	teamId int
 }
@@ -141,7 +150,16 @@ func (h *TeamHandler) CreateTeam(
 ) Team {
 	team := create.Team
 	h.teamId++
-	team.Id = h.teamId
+	team.Id     = h.teamId
+	team.Active = true
+	return team
+}
+
+func (h *TeamHandler) RemoveTeam(
+	_ *miruken.Handles, remove *RemoveTeam,
+) Team {
+	team := remove.Team
+	team.Active = false
 	return team
 }
 
@@ -271,6 +289,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 			}}}
 			if err := miruken.Invoke(handler, &create, &team); err == nil {
 				suite.Equal(1, team.Id)
+				suite.True(team.Active)
 				outcome := create.ValidationOutcome()
 				suite.NotNil(outcome)
 				suite.True(outcome.Valid())
@@ -283,12 +302,29 @@ func (suite *ValidateTestSuite) TestValidation() {
 			var team Team
 			var create CreateTeam
 			if err := miruken.Invoke(handler, &create, &team); err != nil {
+				suite.IsType(&miruken.ValidationOutcome{}, err)
 				suite.Equal(0, team.Id)
 				outcome := create.ValidationOutcome()
 				suite.NotNil(outcome)
 				suite.False(outcome.Valid())
+				suite.Equal(`Name: "Name" is required`, outcome.Error())
 			} else {
 				suite.Failf("expected validation error", err.Error())
+			}
+		})
+
+		suite.Run("Rejects Another Command", func() {
+			var team Team
+			remove := &RemoveTeam{}
+			if err := miruken.Invoke(handler, remove, &team); err != nil {
+				suite.IsType(&miruken.ValidationOutcome{}, err)
+				suite.False(team.Active)
+				outcome := remove.ValidationOutcome()
+				suite.NotNil(outcome)
+				suite.False(outcome.Valid())
+				suite.Equal(`Id: "Id" must be greater than 0`, outcome.Error())
+			} else {
+				suite.Failf("unexpected error", err.Error())
 			}
 		})
 	})
