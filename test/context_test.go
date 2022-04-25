@@ -762,7 +762,8 @@ func (suite *ContextTestSuite) TestContextual() {
 			suite.True(service.disposed)
 			var service2 *ScopedService
 			err = miruken.Resolve(root, &service2)
-			suite.Nil(err)
+			suite.NotNil(err)
+			suite.Equal("cannot scope instances to an inactive context", err.Error())
 			suite.Nil(service2)
 		})
 

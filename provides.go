@@ -39,7 +39,7 @@ func (p *Provides) ReceiveResult(
 	strict   bool,
 	greedy   bool,
 	composer Handler,
-) (accepted bool) {
+) HandleResult {
 	return p.include(result, strict, greedy, composer)
 }
 
@@ -82,9 +82,8 @@ func (p *Provides) Dispatch(
 	if p.metadata.IsEmpty() {
 		if typ, ok := p.key.(reflect.Type); ok {
 			if reflect.TypeOf(handler).AssignableTo(typ) {
-				resolved := p.ReceiveResult(handler, false, greedy, composer)
-				result = result.OtherwiseHandledIf(resolved)
-				if resolved && !greedy {
+				result = result.Or(p.ReceiveResult(handler, false, greedy, composer))
+				if result.stop || (result.handled && !greedy) {
 					return result
 				}
 			}
@@ -107,24 +106,27 @@ func (p *Provides) include(
 	strict     bool,
 	greedy     bool,
 	composer   Handler,
-) (included bool) {
+) (result HandleResult) {
 	if IsNil(resolution) {
-		return false
+		return NotHandled
 	}
 	if strict {
 		return p.AddResult(resolution, greedy, composer)
 	}
+	result = NotHandled
 	switch reflect.TypeOf(resolution).Kind() {
 	case reflect.Slice, reflect.Array:
-		forEach(resolution, func(idx int, value any) {
+		forEach(resolution, func(idx int, value any) bool {
 			if value != nil {
-				included = p.AddResult(value, greedy, composer) || included
+				result = result.Or(p.AddResult(value, greedy, composer))
+				return result.stop
 			}
+			return false
 		})
 	default:
-		included = p.AddResult(resolution, greedy, composer)
+		return p.AddResult(resolution, greedy, composer)
 	}
-	return included
+	return result
 }
 
 // ProvidesBuilder builds Provides callbacks.

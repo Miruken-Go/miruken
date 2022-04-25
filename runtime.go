@@ -116,7 +116,7 @@ func CopySliceIndirect(src []any, target any) {
 	val.Set(slice)
 }
 
-func forEach(iter any, f func(i int, val any)) {
+func forEach(iter any, f func(i int, val any) bool) {
 	v := reflect.ValueOf(iter)
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -125,7 +125,9 @@ func forEach(iter any, f func(i int, val any)) {
 	case reflect.Slice, reflect.Array:
 		for i := 0; i < v.Len(); i++ {
 			val := v.Index(i).Interface()
-			f(i, val)
+			if f(i, val) {
+				return
+			}
 		}
 	default:
 		panic(fmt.Errorf("forEach: expected iter or array, found %q", v.Kind().String()))

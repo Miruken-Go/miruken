@@ -165,11 +165,19 @@ func (d *HandlerDescriptor) Dispatch(
 				}
 				if err == nil {
 					res, accepted := policy.AcceptResults(out)
-					if accepted.IsHandled() && res != nil &&
-						!rawCallback.ReceiveResult(res, binding.Strict(), greedy, composer) {
-						accepted = accepted.And(NotHandled)
+					if res != nil {
+						accepted = accepted.And(rawCallback.ReceiveResult(res, binding.Strict(), greedy, composer))
 					}
 					result = result.Or(accepted)
+				} else {
+					switch err.(type) {
+					case RejectedError:
+					case NotHandledError:
+					case MethodBindingError:
+						break
+					default:
+						result = result.WithError(err)
+					}
 				}
 			}
 			return result, result.stop || (result.handled && !greedy)

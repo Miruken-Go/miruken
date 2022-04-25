@@ -70,7 +70,7 @@ func (h *CounterHandler) HandleCounted(
 	_ *miruken.Handles, counter Counter,
 ) (Counter, miruken.HandleResult) {
 	switch c := counter.Inc(); {
-	case c % 3 == 0:
+	case c > 0 && c % 3 == 0:
 		err := fmt.Errorf("%v is divisible by 3", c)
 		return nil, miruken.NotHandled.WithError(err)
 	case c % 2 == 0: return nil, miruken.NotHandled
@@ -352,9 +352,15 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 	suite.Run("HandleResult", func () {
 		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(miruken.TypeOf[*CounterHandler]()),
-			miruken.WithHandlers(new(CounterHandler)))
+			miruken.WithHandlerTypes(miruken.TypeOf[*CounterHandler]()))
 		suite.Run("Handled", func() {
+			foo := new(Foo)
+			result := handler.Handle(foo, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(miruken.Handled, result)
+		})
+
+		suite.Run("NotHandled", func() {
 			foo := new(Foo)
 			foo.Inc()
 			result := handler.Handle(foo, false, nil)
@@ -362,12 +368,13 @@ func (suite *HandlerTestSuite) TestHandles() {
 			suite.Equal(miruken.NotHandled, result)
 		})
 
-		suite.Run("NotHandled", func() {
+		suite.Run("NotHandled With Error", func() {
 			foo := new(Foo)
 			foo.Inc()
 			foo.Inc()
 			result := handler.Handle(foo, false, nil)
 			suite.True(result.IsError())
+			suite.Equal(miruken.NotHandledAndStop, result.WithoutError())
 			suite.Equal("3 is divisible by 3", result.Error().Error())
 		})
 	})
@@ -644,9 +651,10 @@ func (suite *HandlerTestSuite) TestHandles() {
 					miruken.TypeOf[*CounterHandler](),
 					miruken.TypeOf[*SpecificationHandler]()),
 				miruken.WithHandlers(&CounterHandler{}, &SpecificationHandler{}))
+
 			suite.Run("Invariant", func () {
 				var foo []*Foo
-				if err := miruken.InvokeAll(handler, new(Foo), &foo); err == nil {
+				if err := miruken.InvokeAll(handler, &Foo{Counted{-4}}, &foo); err == nil {
 					suite.NotNil(foo)
 					// 1 from explicit return of *CounterHandler
 					// 1 from inference of *CounterHandler
@@ -655,10 +663,21 @@ func (suite *HandlerTestSuite) TestHandles() {
 					// 2 from each of the 2 explicit instances (1) on line 646
 					// 2 for inference of *CounterHandler (1) which includes explicit instance (1)
 					// 2 for inference of *SpecificationHandler (1) which includes explicit instance (1)
-					// 6 total
-					suite.Equal(6, foo[0].Count())
+					// 6 - 4 = 2 total
+					suite.Equal(2, foo[0].Count())
 				} else {
 					suite.Failf("unexpected error", err.Error())
+				}
+			})
+
+			suite.Run("Invariant Error", func () {
+				var foo []*Foo
+				if err := miruken.InvokeAll(handler, new(Foo), &foo); err != nil {
+					suite.NotNil(err)
+					// *CounterHandler returns error based on rule
+					suite.Equal("6 is divisible by 3", err.Error())
+				} else {
+					suite.Fail("expected error")
 				}
 			})
 		})
@@ -724,11 +743,12 @@ func (p *MultiProvider) ProvideFoo(*miruken.Provides) *Foo {
 }
 
 func (p *MultiProvider) ProvideBar(*miruken.Provides) (*Bar, miruken.HandleResult) {
-	if p.bar.Inc() % 3 == 0 {
+	count := p.bar.Inc()
+	if count % 3 == 0 {
 		return &p.bar, miruken.NotHandled.WithError(
 			fmt.Errorf("%v is divisible by 3", p.bar.Count()))
 	}
-	if p.bar.Inc() % 2 == 0 {
+	if count % 2 == 0 {
 		return &p.bar, miruken.NotHandled
 	}
 	return &p.bar, miruken.Handled
@@ -877,11 +897,11 @@ func (suite *HandlerTestSuite) TestProvides() {
 		var bar *Bar
 		err = miruken.Resolve(handler, &bar)
 		suite.Nil(err)
-		suite.Nil(bar)
+		suite.Equal(1, bar.Count())
 
 		err = miruken.Resolve(handler, &bar)
-		suite.Nil(err)
-		suite.Equal(5, bar.Count())
+		suite.NotNil(err)
+		suite.Equal(3, bar.Count())
 	})
 
 	suite.Run("Specification", func () {

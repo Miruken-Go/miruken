@@ -18,7 +18,7 @@ type (
 			strict   bool,
 			greedy   bool,
 			composer Handler,
-		) (accepted bool)
+		) HandleResult
 	}
 
 	// AcceptResultFunc validates callback results.
@@ -26,7 +26,7 @@ type (
 		result   any,
 		greedy   bool,
 		composer Handler,
-	) bool
+	) HandleResult
 
 	// CallbackBase is abstract Callback implementation.
 	CallbackBase struct {
@@ -71,14 +71,16 @@ func (c *CallbackBase) AddResult(
 	result   any,
 	greedy   bool,
 	composer Handler,
-) bool {
-	if IsNil(result) ||
-		(c.accept != nil && !c.accept(result, greedy, composer)) {
-		return false
+) HandleResult {
+	if IsNil(result) {
+		return NotHandled
+	}
+	if c.accept != nil {
+		return c.accept(result, greedy, composer)
 	}
 	c.results = append(c.results, result)
 	c.result  = nil
-	return true
+	return Handled
 }
 
 func (c *CallbackBase) ReceiveResult(
@@ -86,7 +88,7 @@ func (c *CallbackBase) ReceiveResult(
 	strict   bool,
 	greedy   bool,
 	composer Handler,
-) (accepted bool) {
+) HandleResult {
 	return c.AddResult(result, greedy, composer)
 }
 

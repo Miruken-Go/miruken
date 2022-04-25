@@ -41,9 +41,22 @@ type Team struct {
 	Active     bool
 	Name       string
 	Division   string
-	Coach      *Coach
-	Players    []*Player
+	Coach      Coach
+	Players    []Player
 	Registered bool
+}
+
+type TeamAction struct {
+	Model
+	Team Team
+}
+
+type CreateTeam struct {
+	TeamAction
+}
+
+type RemoveTeam struct {
+	TeamAction
 }
 
 // PlayerValidator
@@ -102,11 +115,34 @@ func (v *TeamValidator) MustHaveLicensedCoach(
 ) {
 	outcome := validates.Outcome()
 
-	if coach := team.Coach; coach == nil {
+	if coach := team.Coach; reflect.ValueOf(coach).IsZero() {
 		outcome.AddError("Coach", errors.New(`"Coach" is required`))
 	} else if license := coach.License; len(license) == 0 {
 		outcome.AddError("Coach.License", errors.New("licensed Coach is required"))
 	}
+}
+
+func (v *TeamValidator) CreateTeam(
+	validates *miruken.Validates, create *CreateTeam,
+) {
+	team := &create.Team
+	v.MustHaveName(validates, team)
+	if validates.InGroup("ECNL") {
+		v.MustHaveLicensedCoach(nil, team, validates)
+	}
+}
+
+type TeamHandler struct {
+	teamId int
+}
+
+func (h *TeamHandler) CreateTeam(
+	_ *miruken.Handles, create *CreateTeam,
+) Team {
+	team := create.Team
+	h.teamId++
+	team.Id = h.teamId
+	return team
 }
 
 type ValidateTestSuite struct {
@@ -117,6 +153,8 @@ type ValidateTestSuite struct {
 func (suite *ValidateTestSuite) SetupTest() {
 	handleTypes := []reflect.Type{
 		miruken.TypeOf[*PlayerValidator](),
+		miruken.TypeOf[*TeamValidator](),
+		miruken.TypeOf[*TeamHandler](),
 	}
 	suite.HandleTypes = handleTypes
 }
@@ -214,6 +252,44 @@ func (suite *ValidateTestSuite) TestValidation() {
 			suite.Same(outcome, player.ValidationOutcome())
 			suite.Equal([]string{"DOB"}, outcome.Culprits())
 			suite.Equal("DOB: player must be 10 years old or younger", outcome.Error())
+		})
+	})
+	suite.Run("ValidateFilter", func () {
+		handler := suite.InferenceRoot()
+		var handles miruken.Handles
+		handles.Policy().AddFilters(miruken.NewValidateProvider(false))
+
+		suite.Run("Validates Command", func() {
+			var team Team
+			create := CreateTeam{TeamAction{ Team: Team{
+				Name: "Liverpool",
+				Coach: Coach{
+					FirstName: "Zinedine",
+					LastName:  "Zidane",
+					License:   "A",
+				},
+			}}}
+			if err := miruken.Invoke(handler, &create, &team); err == nil {
+				suite.Equal(1, team.Id)
+				outcome := create.ValidationOutcome()
+				suite.NotNil(outcome)
+				suite.True(outcome.Valid())
+			} else {
+				suite.Failf("unexpected error", err.Error())
+			}
+		})
+
+		suite.Run("Rejects Command", func() {
+			var team Team
+			var create CreateTeam
+			if err := miruken.Invoke(handler, &create, &team); err != nil {
+				suite.Equal(0, team.Id)
+				outcome := create.ValidationOutcome()
+				suite.NotNil(outcome)
+				suite.False(outcome.Valid())
+			} else {
+				suite.Failf("expected validation error", err.Error())
+			}
 		})
 	})
 }

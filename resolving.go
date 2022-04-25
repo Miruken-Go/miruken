@@ -33,14 +33,14 @@ func (r *Resolving) accept(
 	result   any,
 	greedy   bool,
 	composer Handler,
-) bool {
+) HandleResult {
 	if many := r.callback.Many(); !many && r.succeeded {
-		return true
-	} else if DispatchCallback(result, r.callback, many, composer).handled {
-		r.succeeded = true
-		return true
+		return Handled
+	} else {
+		hr := DispatchCallback(result, r.callback, many, composer)
+		r.succeeded = hr.handled
+		return hr
 	}
-	return false
 }
 
 type ResolvingBuilder struct {

@@ -102,7 +102,7 @@ func (r HandleResult) OtherwiseIf(
 		panic("block cannot be nil")
 	}
 
-	if (r.handled || r.stop) && !condition {
+	if r.stop || (r.handled && !condition) {
 		return r
 	} else {
 		return r.Or(block(r))

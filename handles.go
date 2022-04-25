@@ -101,7 +101,7 @@ func InvokeAll(handler Handler, callback any, target any) error {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
-	tv      := TargetSliceValue(target)
+	tv := TargetSliceValue(target)
 	var builder HandlesBuilder
 	builder.WithCallback(callback).WithMany()
 	handle  := builder.NewHandles()
