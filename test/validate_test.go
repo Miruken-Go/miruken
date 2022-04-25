@@ -141,6 +141,15 @@ func (v *TeamValidator) RemoveTeam(
 	}
 }
 
+// OpenValidator
+type OpenValidator struct {}
+
+func (v *OpenValidator) Validate(
+	validates *miruken.Validates, target any,
+) {
+
+}
+
 type TeamHandler struct {
 	teamId int
 }
@@ -170,9 +179,10 @@ type ValidateTestSuite struct {
 
 func (suite *ValidateTestSuite) SetupTest() {
 	handleTypes := []reflect.Type{
-		miruken.TypeOf[*PlayerValidator](),
-		miruken.TypeOf[*TeamValidator](),
-		miruken.TypeOf[*TeamHandler](),
+		miruken.TypeOf[*OpenValidator](),
+		//miruken.TypeOf[*PlayerValidator](),
+		//miruken.TypeOf[*TeamValidator](),
+		//miruken.TypeOf[*TeamHandler](),
 	}
 	suite.HandleTypes = handleTypes
 }

@@ -32,6 +32,7 @@ var HandlerTestTypes = []reflect.Type{
 	miruken.TypeOf[*NullFilter](),
 	miruken.TypeOf[*OpenMapper](),
 	miruken.TypeOf[*OpenProvider](),
+	miruken.TypeOf[*OpenValidator](),
 	miruken.TypeOf[*PersonProvider](),
 	miruken.TypeOf[*PlayerMapper](),
 	miruken.TypeOf[*PlayerValidator](),
@@ -42,6 +43,7 @@ var HandlerTestTypes = []reflect.Type{
 	miruken.TypeOf[*SpecialFilteringHandler](),
 	miruken.TypeOf[*SpecificationHandler](),
 	miruken.TypeOf[*SpecificationProvider](),
+	miruken.TypeOf[*TeamHandler](),
 	miruken.TypeOf[*TeamValidator](),
 }
 
