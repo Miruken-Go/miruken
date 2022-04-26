@@ -38,7 +38,7 @@ func (r *Resolving) accept(
 		return Handled
 	} else {
 		hr := DispatchCallback(result, r.callback, many, composer)
-		r.succeeded = hr.handled
+		r.succeeded = r.succeeded || hr.handled
 		return hr
 	}
 }

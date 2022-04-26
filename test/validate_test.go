@@ -180,9 +180,9 @@ type ValidateTestSuite struct {
 func (suite *ValidateTestSuite) SetupTest() {
 	handleTypes := []reflect.Type{
 		miruken.TypeOf[*OpenValidator](),
-		//miruken.TypeOf[*PlayerValidator](),
-		//miruken.TypeOf[*TeamValidator](),
-		//miruken.TypeOf[*TeamHandler](),
+		miruken.TypeOf[*PlayerValidator](),
+		miruken.TypeOf[*TeamValidator](),
+		miruken.TypeOf[*TeamHandler](),
 	}
 	suite.HandleTypes = handleTypes
 }

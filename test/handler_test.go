@@ -764,7 +764,7 @@ func (p *SpecificationProvider) Constructor(baz Baz) {
 	p.foo.count = baz.Count()
 }
 
-func (p *SpecificationProvider) ProvidesFoo(
+func (p *SpecificationProvider) ProvideFoo(
 	_ *struct{
 		miruken.Provides
 		miruken.Creates
@@ -774,7 +774,7 @@ func (p *SpecificationProvider) ProvidesFoo(
 	return &p.foo
 }
 
-func (p *SpecificationProvider) ProvidesBar(
+func (p *SpecificationProvider) ProvideBar(
 	_ *struct{ miruken.Provides; miruken.Strict },
 ) []*Bar {
 	p.bar.Inc()
@@ -982,13 +982,27 @@ func (suite *HandlerTestSuite) TestProvides() {
 
 	suite.Run("Infer", func () {
 		handler := suite.InferenceRoot()
-
 		suite.Run("Invariant", func() {
 			foo := new(Foo)
 			result := handler.Handle(foo, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, foo.Count())
+		})
+
+		suite.Run("Open", func () {
+			handler := suite.InferenceRoot()
+			var foo []*Foo
+			err := miruken.ResolveAll(handler, &foo)
+			suite.Nil(err)
+			// 1 from FooProvider.ProvideFoo
+			// 2 from ListProvider.ProvideFooSlice
+			// 1 from MultiProvider.ProvideFoo
+			// 1 from OpenProvider.Provides
+			// None from SpecificationProvider.ProvideFoo since it
+			//   depends on an unsatisfied Baz
+			// 5 total
+			suite.Equal(5, len(foo))
 		})
 	})
 

@@ -11,7 +11,7 @@ import (
 // policyBindings maintains Binding's for a Policy.
 type policyBindings struct {
 	policy    Policy
-	variant   *list.List
+	variant   list.List
 	index     map[any]*list.Element
 	invariant map[any][]Binding
 }
@@ -89,10 +89,8 @@ func (p policyBindingsMap) forPolicy(policy Policy) *policyBindings {
 	bindings, found := p[policy]
 	if !found {
 		bindings = &policyBindings{
-			policy,
-			list.New(),
-			make(map[any]*list.Element),
-			nil,
+			policy: policy,
+			index:  make(map[any]*list.Element),
 		}
 		p[policy] = bindings
 	}

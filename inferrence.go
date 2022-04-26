@@ -70,9 +70,12 @@ func (b *bindingIntercept) Invoke(
 			return nil, nil
 		}
 	}
+	rawCallback := context.RawCallback()
+	parent, _   := rawCallback.(*Provides)
 	var builder ResolvingBuilder
 	builder.
-		WithCallback(context.RawCallback()).
+		WithCallback(rawCallback).
+		WithParent(parent).
 		WithKey(b.handlerType)
 	resolving := builder.NewResolving()
 	if result := context.Composer().Handle(resolving, true, nil); result.IsError() {
@@ -108,15 +111,30 @@ func newInferenceHandler(
 						!ctorBinding,
 					})
 				}
+				// Only need the first of each invariant since it is
+				// just to link the actual handler descriptor.
 				for _, bs := range bs.invariant {
 					if len(bs) > 0 {
-						b := bs[0]  // only need first
+						b := bs[0]
 						_, ctorBinding := b.(*constructorBinding)
 						pb.insert(&bindingIntercept{
 							b,
 							descriptor.handlerType,
 							!ctorBinding,
 						})
+					}
+				}
+				// Only need one unknown binding to create link.
+				if last := bs.variant.Back(); last != nil {
+					binding := last.Value.(Binding)
+					if _, ctorBinding := binding.(*constructorBinding); !ctorBinding {
+						if binding.Key() == _anyType {
+							pb.insert(&bindingIntercept{
+								binding,
+								descriptor.handlerType,
+								true,
+							})
+						}
 					}
 				}
 			}
