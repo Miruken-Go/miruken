@@ -59,6 +59,15 @@ type RemoveTeam struct {
 	TeamAction
 }
 
+func (c *CreateTeam) ValidateMe(
+	validates *miruken.Validates,
+) {
+	if c.Team.Name == "Breakaway" {
+		validates.Outcome().
+			AddError("Name", errors.New(`"Breakaway" is a reserved name`))
+	}
+}
+
 // PlayerValidator
 type PlayerValidator struct{}
 
@@ -147,7 +156,11 @@ type OpenValidator struct {}
 func (v *OpenValidator) Validate(
 	validates *miruken.Validates, target any,
 ) {
-
+	if v, ok := target.(interface {
+		ValidateMe(*miruken.Validates)
+	}); ok {
+		v.ValidateMe(validates)
+	}
 }
 
 type TeamHandler struct {
@@ -304,7 +317,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 				suite.NotNil(outcome)
 				suite.True(outcome.Valid())
 			} else {
-				suite.Failf("unexpected error", err.Error())
+				suite.Failf("unexpected error: %v", err.Error())
 			}
 		})
 
@@ -319,7 +332,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 				suite.False(outcome.Valid())
 				suite.Equal(`Name: "Name" is required`, outcome.Error())
 			} else {
-				suite.Failf("expected validation error", err.Error())
+				suite.Fail("expected validation error")
 			}
 		})
 
@@ -334,8 +347,28 @@ func (suite *ValidateTestSuite) TestValidation() {
 				suite.False(outcome.Valid())
 				suite.Equal(`Id: "Id" must be greater than 0`, outcome.Error())
 			} else {
-				suite.Failf("unexpected error", err.Error())
+				suite.Failf("unexpected error: %v", err.Error())
 			}
+
+			suite.Run("Validates Open", func() {
+				var team Team
+				create := CreateTeam{TeamAction{ Team: Team{
+					Name: "Breakaway",
+					Coach: Coach{
+						FirstName: "Frank",
+						LastName:  "Lampaerd",
+						License:   "B",
+					},
+				}}}
+				if err := miruken.Invoke(handler, &create, &team); err != nil {
+					outcome := create.ValidationOutcome()
+					suite.NotNil(outcome)
+					suite.False(outcome.Valid())
+					suite.Equal(`Name: "Breakaway" is a reserved name`, outcome.Error())
+				} else {
+					suite.Fail("expected validation error")
+				}
+			})
 		})
 	})
 }
