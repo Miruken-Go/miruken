@@ -200,13 +200,14 @@ func (suite *ValidateTestSuite) SetupTest() {
 	suite.HandleTypes = handleTypes
 }
 
-func (suite *ValidateTestSuite) InferenceRoot() miruken.Handler {
-	return miruken.NewRootHandler(miruken.WithHandlerTypes(suite.HandleTypes...))
+func (suite *ValidateTestSuite) Register() miruken.Handler {
+	return suite.RegisterWith(suite.HandleTypes...)
 }
 
-func (suite *ValidateTestSuite) InferenceRootWith(
-	handlerTypes ... reflect.Type) miruken.Handler {
-	return miruken.NewRootHandler(miruken.WithHandlerTypes(handlerTypes...))
+func (suite *ValidateTestSuite) RegisterWith(handlerTypes ... reflect.Type) miruken.Handler {
+	return miruken.NewRegistration(
+		miruken.WithHandlerTypes(handlerTypes...),
+	).Build()
 }
 
 func (suite *ValidateTestSuite) TestValidation() {
@@ -266,7 +267,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 
 	suite.Run("Validates", func () {
 		suite.Run("Default", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			player  := Player{DOB:  time.Date(2007, time.June,
 				14, 13, 26, 00, 0, time.Local) }
 			outcome, err := miruken.Validate(handler, &player)
@@ -279,7 +280,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 		})
 
 		suite.Run("Group", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			player  := Player{
 				FirstName: "Matthew",
 				LastName:  "Dudley",
@@ -296,7 +297,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 		})
 	})
 	suite.Run("ValidateFilter", func () {
-		handler := suite.InferenceRoot()
+		handler := suite.Register()
 		var handles miruken.Handles
 		handles.Policy().AddFilters(miruken.NewValidateProvider(false))
 

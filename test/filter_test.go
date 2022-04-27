@@ -329,13 +329,14 @@ func (suite *FilterTestSuite) SetupTest() {
 	suite.HandleTypes = handleTypes
 }
 
-func (suite *FilterTestSuite) InferenceRoot() miruken.Handler {
-	return miruken.NewRootHandler(miruken.WithHandlerTypes(suite.HandleTypes...))
+func (suite *FilterTestSuite) Register() miruken.Handler {
+	return suite.RegisterWith(suite.HandleTypes...)
 }
 
-func (suite *FilterTestSuite) InferenceRootWith(
-	handlerTypes ... reflect.Type) miruken.Handler {
-	return miruken.NewRootHandler(miruken.WithHandlerTypes(handlerTypes...))
+func (suite *FilterTestSuite) RegisterWith(handlerTypes ... reflect.Type) miruken.Handler {
+	return miruken.NewRegistration(
+		miruken.WithHandlerTypes(handlerTypes...),
+	).Build()
 }
 
 func (suite *FilterTestSuite) TestFilters() {
@@ -362,7 +363,7 @@ func (suite *FilterTestSuite) TestFilters() {
 	})
 
 	suite.Run("Create Pipeline", func () {
-		handler := suite.InferenceRoot()
+		handler := suite.Register()
 		bar     := new(BarC)
 		result  := handler.Handle(bar, false, nil)
 		suite.False(result.IsError())
@@ -376,7 +377,7 @@ func (suite *FilterTestSuite) TestFilters() {
 	})
 
 	suite.Run("Abort Pipeline", func () {
-		handler := suite.InferenceRoot()
+		handler := suite.Register()
 		bar := new(BarC)
 		bar.IncHandled(100)
 		result := handler.Handle(bar, false, nil)
@@ -387,7 +388,7 @@ func (suite *FilterTestSuite) TestFilters() {
 
 	suite.Run("Skip Pipeline", func () {
 		suite.Run("Implicit", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			bee := new(BeeC)
 			result := handler.Handle(bee, false, nil)
 			suite.False(result.IsError())
@@ -397,7 +398,7 @@ func (suite *FilterTestSuite) TestFilters() {
 		})
 
 		suite.Run("Explicit", func() {
-			handler := miruken.Build(suite.InferenceRoot(), miruken.DisableFilters)
+			handler := miruken.Build(suite.Register(), miruken.DisableFilters)
 			bar     := new(BarC)
 			result  := handler.Handle(bar, false, nil)
 			suite.False(result.IsError())
@@ -411,7 +412,7 @@ func (suite *FilterTestSuite) TestFilters() {
 
 	suite.Run("Singleton", func () {
 		suite.Run("Implicit", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			var singletonHandler *SingletonHandler
 			err := miruken.Resolve(handler, &singletonHandler)
 			suite.Nil(err)
@@ -423,7 +424,7 @@ func (suite *FilterTestSuite) TestFilters() {
 		})
 
 		suite.Run("Infer", func() {
-			handler := suite.InferenceRootWith(
+			handler := suite.RegisterWith(
 				miruken.TypeOf[*SingletonHandler](),
 				miruken.TypeOf[*ConsoleLogger](),
 				miruken.TypeOf[*LogFilter](),
@@ -437,7 +438,7 @@ func (suite *FilterTestSuite) TestFilters() {
 		})
 
 		suite.Run("Error", func() {
-			handler := suite.InferenceRootWith(
+			handler := suite.RegisterWith(
 				miruken.TypeOf[*SingletonErrorHandler](),
 			)
 			bee := new(BeeC)
@@ -452,7 +453,7 @@ func (suite *FilterTestSuite) TestFilters() {
 		})
 
 		suite.Run("Panic", func() {
-			handler := suite.InferenceRootWith(
+			handler := suite.RegisterWith(
 				miruken.TypeOf[*SingletonErrorHandler](),
 			)
 			bee := new(BeeC)
@@ -471,7 +472,7 @@ func (suite *FilterTestSuite) TestFilters() {
 	})
 
 	suite.Run("Missing Dependencies", func () {
-		handler := suite.InferenceRootWith(
+		handler := suite.RegisterWith(
 			miruken.TypeOf[*BadHandler](),
 			miruken.TypeOf[*LogFilter](),
 		)

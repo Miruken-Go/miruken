@@ -34,19 +34,20 @@ func (suite *JsonTestSuite) SetupTest() {
 	suite.HandleTypes = handleTypes
 }
 
-func (suite *JsonTestSuite) InferenceRoot() miruken.Handler {
-	return miruken.NewRootHandler(miruken.WithHandlerTypes(suite.HandleTypes...))
+func (suite *JsonTestSuite) Register() miruken.Handler {
+	return suite.RegisterWith(suite.HandleTypes...)
 }
 
-func (suite *JsonTestSuite) InferenceRootWith(
-	handlerTypes ... reflect.Type) miruken.Handler {
-	return miruken.NewRootHandler(miruken.WithHandlerTypes(handlerTypes...))
+func (suite *JsonTestSuite) RegisterWith(handlerTypes ... reflect.Type) miruken.Handler {
+	return miruken.NewRegistration(
+		miruken.WithHandlerTypes(handlerTypes...),
+	).Build()
 }
 
 func (suite *JsonTestSuite) TestJson() {
 	suite.Run("Maps", func () {
 		suite.Run("Json", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 
 			suite.Run("ToJson", func() {
 				data := struct{
@@ -122,7 +123,7 @@ func (suite *JsonTestSuite) TestJson() {
 			})
 
 			suite.Run("ToJsonOverride", func() {
-				handler := suite.InferenceRootWith(
+				handler := suite.RegisterWith(
 					miruken.TypeOf[*miruken.JsonMapper](),
 					miruken.TypeOf[*PlayerMapper]())
 

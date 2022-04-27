@@ -1,7 +1,6 @@
 package miruken
 
 import (
-	"reflect"
 	"sync"
 )
 
@@ -16,45 +15,39 @@ func (f BuilderFunc) Build(
 	handler Handler,
 ) Handler { return f(handler) }
 
-var nullBuilder BuilderFunc = func(handler Handler) Handler {
-	return handler
-}
-
-func composeBuilder2(builder1 Builder, builder2 Builder) Builder {
+func composeBuilder2(builder1, builder2 Builder) Builder {
+	if builder1 == nil {
+		return builder2
+	} else if builder2 == nil {
+		return builder1
+	}
 	return BuilderFunc(func(handler Handler) Handler {
-		if builder2 != nil {
-			handler = builder2.Build(handler)
-		}
-		if builder1 != nil {
-			handler = builder1.Build(handler)
-		}
-		return handler
+		return builder1.Build(builder2.Build(handler))
 	})
 }
 
-func ComposeBuilders(builders ... Builder) Builder {
+func ComposeBuilders(builder Builder, builders ... Builder) Builder {
 	switch len(builders) {
-	case 0: return nullBuilder
-	case 1: return builders[0]
+	case 0: return builder
+	case 1: return composeBuilder2(builder, builders[0])
 	default:
-		builder := builders[0]
-		for _, b := range builders[1:] {
+		for _, b := range builders {
 			builder = composeBuilder2(builder, b)
 		}
 		return builder
 	}
 }
 
-func PipeBuilders(builders ... Builder) Builder {
+func PipeBuilders(builder Builder, builders ... Builder) Builder {
 	switch len(builders) {
-	case 0: return nullBuilder
-	case 1: return builders[0]
+	case 0: return builder
+	case 1: return composeBuilder2(builders[0], builder)
 	default:
-		builder := builders[len(builders)-1]
+		b := builders[len(builders)-1]
 		for i := len(builders)-2; i >= 0; i-- {
-			builder = composeBuilder2(builder, builders[i])
+			b = composeBuilder2(b, builders[i])
 		}
-		return builder
+		return composeBuilder2(b, builder)
 	}
 }
 
@@ -158,7 +151,6 @@ func (w *withHandlers) suppressDispatch() {}
 
 // mutableHandlers manages any number of Handlers.
 type mutableHandlers struct {
-	parent   Handler
 	handlers []Handler
 	lock     sync.RWMutex
 }
@@ -235,31 +227,11 @@ func (m *mutableHandlers) Handle(
 			result = result.Or(h.Handle(callback, greedy, composer))
 		}
 	}
-	if parent := m.parent; parent != nil {
-		return result.OtherwiseIf(greedy, func(HandleResult) HandleResult {
-			return parent.Handle(callback, greedy, composer)
-		})
-	}
+
 	return result
 }
 
 func (m *mutableHandlers) suppressDispatch() {}
-
-func WithHandlers(handlers ... any) Builder {
-	return BuilderFunc(func (handler Handler) Handler {
-		return AddHandlers(handler, handlers...)
-	})
-}
-
-func WithHandlerTypes(types ... reflect.Type) Builder {
-	return BuilderFunc(func (handler Handler) Handler {
-		if factory := GetHandlerDescriptorFactory(handler); factory != nil {
-			return &withHandler{handler, newInferenceHandler(factory, types)}
-		} else {
-			panic("unable to obtain the HandlerDescriptorFactory")
-		}
-	})
-}
 
 type FilterFunc = func(
 	callback any,
@@ -303,7 +275,6 @@ func WithFilter(filter FilterFunc, reentrant bool) Builder {
 	})
 }
 
-
 func tryInitializeComposer(
 	incoming *Handler,
 	receiver  Handler,
@@ -311,12 +282,6 @@ func tryInitializeComposer(
 	if *incoming == nil {
 		*incoming = &compositionScope{receiver}
 	}
-}
-
-func NewRootHandler(builders ... Builder) Handler {
-	factory := NewMutableHandlerDescriptorFactory()
-	var handler Handler = &getHandlerDescriptorFactory{factory}
-	return Build(handler, builders...)
 }
 
 func normalizeHandlers(handlers []any) []Handler {

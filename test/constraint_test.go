@@ -169,19 +169,20 @@ func (suite *ConstraintTestSuite) SetupTest() {
 	suite.HandleTypes = handleTypes
 }
 
-func (suite *ConstraintTestSuite) InferenceRoot() miruken.Handler {
-	return miruken.NewRootHandler(miruken.WithHandlerTypes(suite.HandleTypes...))
+func (suite *ConstraintTestSuite) Register() miruken.Handler {
+	return suite.RegisterWith(suite.HandleTypes...)
 }
 
-func (suite *ConstraintTestSuite) InferenceRootWith(
-	handlerTypes ... reflect.Type) miruken.Handler {
-	return miruken.NewRootHandler(miruken.WithHandlerTypes(handlerTypes...))
+func (suite *ConstraintTestSuite) RegisterWith(handlerTypes ... reflect.Type) miruken.Handler {
+	return miruken.NewRegistration(
+		miruken.WithHandlerTypes(handlerTypes...),
+	).Build()
 }
 
 func (suite *ConstraintTestSuite) TestConstraints() {
 	suite.Run("No Constraints", func () {
 		suite.Run("Resolve", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			var appSettings AppSettings
 			err := miruken.Resolve(handler, &appSettings)
 			suite.Nil(err)
@@ -189,7 +190,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 		})
 
 		suite.Run("ResolveAll", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			var appSettings []AppSettings
 			err := miruken.ResolveAll(handler, &appSettings)
 			suite.Nil(err)
@@ -199,7 +200,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 
 	suite.Run("Named", func () {
 		suite.Run("Resolve", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			var appSettings AppSettings
 			err := miruken.Resolve(handler, &appSettings,
 				func(c *miruken.ConstraintBuilder) {
@@ -217,7 +218,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 		})
 
 		suite.Run("ResolveAll", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			var appSettings []AppSettings
 			err := miruken.ResolveAll(handler, &appSettings,
 				func(c *miruken.ConstraintBuilder) {
@@ -228,7 +229,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 		})
 
 		suite.Run("Inject", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			var client *Client
 			err := miruken.Resolve(handler, &client)
 			suite.Nil(err)
@@ -240,7 +241,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 
 	suite.Run("Metadata", func () {
 		suite.Run("Resolve", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			var doctor Person
 			err := miruken.Resolve(handler, &doctor,
 				func(c *miruken.ConstraintBuilder) {
@@ -263,7 +264,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 		})
 
 		suite.Run("ResolveAll", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			var programmers []Person
 			err := miruken.ResolveAll(handler, &programmers,
 				func(c *miruken.ConstraintBuilder) {
@@ -274,7 +275,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 		})
 
 		suite.Run("Inject", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			var hospital *Hospital
 			err := miruken.Resolve(handler, &hospital)
 			suite.Nil(err)

@@ -404,6 +404,7 @@ func (b *ValidatesBuilder) NewValidates() *Validates {
 	return validates
 }
 
+// Validate initiates validation of the target.
 func Validate(
 	handler Handler,
 	target  any,
@@ -432,9 +433,18 @@ func Validate(
 	return outcome, nil
 }
 
+func WithValidation(withResults bool) Installer {
+	return InstallerFunc(func(registration *Registration) {
+		if registration.Tag(&_validationTag) {
+			registration.AddFilters(NewValidateProvider(withResults))
+		}
+	})
+}
+
 var (
 	_validatesPolicy Policy = &ContravariantPolicy{}
 	_validateFilter         = []Filter{validateFilter{}}
 	_groupType              = TypeOf[*Group]()
 	_anyGroup               = "*"
+	_validationTag any
 )

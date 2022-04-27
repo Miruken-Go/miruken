@@ -3,6 +3,7 @@ package test
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/stretchr/testify/suite"
+	"reflect"
 	"testing"
 )
 
@@ -26,6 +27,16 @@ type OptionsTestSuite struct {
 	suite.Suite
 }
 
+func (suite *OptionsTestSuite) Register() miruken.Handler {
+	return miruken.NewRegistration().Build()
+}
+
+func (suite *OptionsTestSuite) RegisterWith(handlerTypes ... reflect.Type) miruken.Handler {
+	return miruken.NewRegistration(
+		miruken.WithHandlerTypes(handlerTypes...),
+	).Build()
+}
+
 func (suite *OptionsTestSuite) TestOptions() {
 	type Header struct{
 		key   string
@@ -40,7 +51,9 @@ func (suite *OptionsTestSuite) TestOptions() {
 	}
 
 	suite.Run("Inline", func () {
-		handler := miruken.NewRootHandler(miruken.WithOptions(ServerOptions{
+		handler := miruken.Build(
+			suite.Register(),
+			miruken.WithOptions(ServerOptions{
 			Url:     "https://playsoccer.com",
 			Timeout: 30,
 			Headers: []Header{
@@ -61,7 +74,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 		serverOpt := new(ServerOptions)
 		serverOpt.Url     = "https://playsoccer.com"
 		serverOpt.Timeout = 30
-		handler := miruken.NewRootHandler(miruken.WithOptions(serverOpt))
+		handler := miruken.Build(suite.Register(), miruken.WithOptions(serverOpt))
 		var options ServerOptions
 		suite.True(miruken.GetOptions(handler, &options))
 		suite.Equal("https://playsoccer.com", options.Url)
@@ -69,7 +82,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 	})
 
 	suite.Run("Creates", func () {
-		handler := miruken.NewRootHandler(miruken.WithOptions(ServerOptions{
+		handler := miruken.Build(suite.Register(), miruken.WithOptions(ServerOptions{
 			Url:     "https://playsoccer.com",
 			Timeout: 30,
 		}))
@@ -81,7 +94,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 	})
 
 	suite.Run("MergesInline", func () {
-		handler := miruken.NewRootHandler(miruken.WithOptions(ServerOptions{
+		handler := miruken.Build(suite.Register(), miruken.WithOptions(ServerOptions{
 			Url:     "https://playsoccer.com",
 			Timeout: 30,
 		}))
@@ -92,7 +105,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 	})
 
 	suite.Run("MergesCreate", func () {
-		handler := miruken.NewRootHandler(miruken.WithOptions(ServerOptions{
+		handler := miruken.Build(suite.Register(), miruken.WithOptions(ServerOptions{
 			Url:     "https://playsoccer.com",
 			Timeout: 30,
 		}))
@@ -105,7 +118,8 @@ func (suite *OptionsTestSuite) TestOptions() {
 	})
 
 	suite.Run("Combines", func () {
-		handler := miruken.NewRootHandler(
+		handler := miruken.Build(
+			suite.Register(),
 			miruken.WithOptions(ServerOptions{
 				Url:       "https://directv.com",
 				KeepAlive: miruken.OptionTrue,
@@ -122,7 +136,8 @@ func (suite *OptionsTestSuite) TestOptions() {
 	})
 
 	suite.Run("AppendsSlice", func () {
-		handler := miruken.NewRootHandler(
+		handler := miruken.Build(
+			suite.Register(),
 			miruken.WithOptions(ServerOptions{
 				Url:"https://netflix.com",
 				Headers: []Header{
@@ -147,7 +162,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 	})
 
 	suite.Run("NoMatch", func () {
-		handler := miruken.NewRootHandler()
+		handler := suite.Register()
 		var options ServerOptions
 		suite.False(miruken.GetOptions(handler, &options))
 		suite.Equal("", options.Url)
@@ -155,15 +170,14 @@ func (suite *OptionsTestSuite) TestOptions() {
 	})
 
 	suite.Run("NoMatchCre", func () {
-		handler := miruken.NewRootHandler()
+		handler := suite.Register()
 		var options *ServerOptions
 		suite.False(miruken.GetOptions(handler, &options))
 		suite.Nil(options)
 	})
 
 	suite.Run("FromOptions", func () {
-		handler := miruken.NewRootHandler(
-			miruken.WithHandlerTypes(miruken.TypeOf[*FooOptionsHandler]()))
+		handler := suite.RegisterWith(miruken.TypeOf[*FooOptionsHandler]())
 		foo     := new(Foo)
 		result  := miruken.Build(handler, miruken.WithOptions(FooOptions{2})).
 			Handle(foo, false, nil)

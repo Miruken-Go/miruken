@@ -308,11 +308,11 @@ func (c *Context) ensureActive() {
 	}
 }
 
-func NewContext(builders ... Builder) *Context {
+func NewContext(handlers ... any) *Context {
 	context := &Context{
-		state:           ContextActive,
-		mutableHandlers: mutableHandlers{parent: NewRootHandler(builders...)},
+		state: ContextActive,
 	}
+	context.AddHandlers(handlers...)
 	context.AddHandlers(NewProvider(context))
 	return context
 }

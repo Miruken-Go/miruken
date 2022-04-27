@@ -168,19 +168,20 @@ func (suite *MapTestSuite) SetupTest() {
 	suite.HandleTypes = handleTypes
 }
 
-func (suite *MapTestSuite) InferenceRoot() miruken.Handler {
-	return miruken.NewRootHandler(miruken.WithHandlerTypes(suite.HandleTypes...))
+func (suite *MapTestSuite) Register() miruken.Handler {
+	return suite.RegisterWith(suite.HandleTypes...)
 }
 
-func (suite *MapTestSuite) InferenceRootWith(
-	handlerTypes ... reflect.Type) miruken.Handler {
-	return miruken.NewRootHandler(miruken.WithHandlerTypes(handlerTypes...))
+func (suite *MapTestSuite) RegisterWith(handlerTypes ... reflect.Type) miruken.Handler {
+	return miruken.NewRegistration(
+		miruken.WithHandlerTypes(handlerTypes...),
+	).Build()
 }
 
 func (suite *MapTestSuite) TestMap() {
 	suite.Run("Maps", func () {
 		suite.Run("New", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			entity  := PlayerEntity{
 				Entity{ Id: 1 },
 				"Tim Howard",
@@ -193,7 +194,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("Into", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			entity  := PlayerEntity{
 				Entity{ Id: 2 },
 				"David Silva",
@@ -206,7 +207,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("IntoPtr", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			entity  := PlayerEntity{
 				Entity{ Id: 3 },
 				"Franz Beckenbauer",
@@ -219,7 +220,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("Open", func() {
-			handler := suite.InferenceRootWith(miruken.TypeOf[*OpenMapper]())
+			handler := suite.RegisterWith(miruken.TypeOf[*OpenMapper]())
 			entity  := PlayerEntity{
 				Entity{ Id: 1 },
 				"Tim Howard",
@@ -232,7 +233,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("ToMap", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			entity  := PlayerEntity{
 				Entity{ Id: 1 },
 				"Marco Royce",
@@ -245,7 +246,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("FromMap", func() {
-			handler := suite.InferenceRoot()
+			handler := suite.Register()
 			data    := map[string]any{
 				"Id":    2,
 				"Name": "George Best",
@@ -258,7 +259,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("Format", func() {
-			handler := suite.InferenceRootWith(miruken.TypeOf[*FormatMapper]())
+			handler := suite.RegisterWith(miruken.TypeOf[*FormatMapper]())
 
 			data  := PlayerData{
 				Id:   1,
@@ -280,7 +281,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("All", func() {
-			handler  := suite.InferenceRoot()
+			handler  := suite.Register()
 			entities := []*PlayerEntity{
 				{
 					Entity{ Id: 1 },
@@ -332,8 +333,7 @@ func (suite *MapTestSuite) TestMap() {
 					}
 				}
 			}()
-			miruken.NewRootHandler(
-				miruken.WithHandlerTypes(miruken.TypeOf[*InvalidMapper]()))
+			suite.RegisterWith(miruken.TypeOf[*InvalidMapper]())
 			suite.Fail("should cause panic")
 		})
 	})

@@ -54,6 +54,14 @@ func (o *ContextObserver) ChildContextEnded(
 	o.childContextEndedReason  = reason
 }
 
+type Service struct {}
+
+func (s *Service) Count(
+	_ *miruken.Handles, counter Counter,
+) {
+	counter.Inc()
+}
+
 type ContextTestSuite struct {
 	suite.Suite
 	HandleTypes []reflect.Type
@@ -61,6 +69,7 @@ type ContextTestSuite struct {
 
 func (suite *ContextTestSuite) SetupTest() {
 	handleTypes := []reflect.Type{
+		miruken.TypeOf[*Service](),
 		miruken.TypeOf[*ScopedService](),
 		miruken.TypeOf[*RootedService](),
 	}
@@ -68,12 +77,13 @@ func (suite *ContextTestSuite) SetupTest() {
 }
 
 func (suite *ContextTestSuite) RootContext() *miruken.Context {
-	return miruken.NewContext(miruken.WithHandlerTypes(suite.HandleTypes...))
+	return suite.RootContextWith(suite.HandleTypes...)
 }
 
-func (suite *ContextTestSuite) RootContextWith(
-	handlerTypes ... reflect.Type) *miruken.Context {
-	return miruken.NewContext(miruken.WithHandlerTypes(handlerTypes...))
+func (suite *ContextTestSuite) RootContextWith(handlerTypes ... reflect.Type) *miruken.Context {
+	return miruken.NewContext(miruken.NewRegistration(
+		miruken.WithHandlerTypes(handlerTypes...),
+	).Build())
 }
 
 func (suite *ContextTestSuite) TestContext() {
@@ -119,6 +129,18 @@ func (suite *ContextTestSuite) TestContext() {
 		child2  := context.NewChild()
 		suite.True(context.HasChildren())
 		suite.ElementsMatch(context.Children(), []*miruken.Context{child1, child2})
+	})
+
+	suite.Run("Handlers", func () {
+		context := miruken.NewContext(miruken.NewRegistration(
+			miruken.WithHandlerTypes(miruken.TypeOf[*Service]()),
+			miruken.DisableInference,
+		).Build(), new(Service))
+		var foo Foo
+		result := context.Handle(&foo, false, nil)
+		suite.False(result.IsError())
+		suite.Equal(miruken.Handled, result)
+		suite.Equal(1, foo.Count())
 	})
 
 	suite.Run("End", func () {
