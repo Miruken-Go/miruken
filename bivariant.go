@@ -50,7 +50,6 @@ func (p *BivariantPolicy) MatchesKey(
 	} else {
 		panic("expected DiKey for binding.Key()")
 	}
-	return false, false
 }
 
 func (p *BivariantPolicy) Less(

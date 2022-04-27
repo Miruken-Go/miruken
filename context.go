@@ -188,11 +188,11 @@ func (c *Context) UnwindToRoot(reason any) *Context {
 }
 
 func (c *Context) Unwind(reason any) *Context {
-	if reason == nil {
+	if IsNil(reason) {
 		reason = ContextUnwinded
 	}
 	for i := len(c.children)-1; i >= 0; i-- {
-		c.children[i].(*Context).End(nil)
+		c.children[i].(*Context).End(reason)
 	}
 	return c
 }

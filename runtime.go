@@ -36,6 +36,17 @@ func IsNil(val any) bool {
 	}
 }
 
+func IsStruct(val any) bool {
+	if val == nil {
+		return false
+	}
+	v := reflect.ValueOf(val)
+	if v.Kind() == reflect.Ptr && !v.IsNil() {
+		v = v.Elem()
+	}
+	return v.Kind() == reflect.Struct
+}
+
 // TargetValue validates the interface contains a
 // non-nil typed pointer and return reflect.Value.
 func TargetValue(target any) reflect.Value {
