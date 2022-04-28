@@ -80,10 +80,10 @@ func (c *Context) NewChild() *Context {
 		state: ContextActive,
 	}
 	child.AddHandlers(NewProvider(child))
-	child.Observe(ContextEndingObserverFunc(func (ctx *Context, reason any) {
+	child.Observe(ContextEndingObserverFunc(func(ctx *Context, reason any) {
 		c.notify(childCtxEnding, ctx, reason)
 	}))
-	child.Observe(ContextEndedObserverFunc(func (ctx *Context, reason any) {
+	child.Observe(ContextEndedObserverFunc(func(ctx *Context, reason any) {
 		c.removeChild(ctx)
 		c.notify(childCtxEnded, ctx, reason)
 	}))

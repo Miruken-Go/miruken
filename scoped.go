@@ -87,7 +87,7 @@ func (s *scoped) Next(
 	if contextual, ok := instance[0].(Contextual); ok {
 		contextual.SetContext(ctx)
 		unsubscribe := contextual.Observe(s)
-		ctx.Observe(ContextEndedObserverFunc(func (*Context, any) {
+		ctx.Observe(ContextEndedObserverFunc(func(*Context, any) {
 			s.lock.Lock()
 			delete(s.cache, ctx)
 			s.lock.Unlock()
@@ -96,7 +96,7 @@ func (s *scoped) Next(
 			contextual.SetContext(nil)
 		}))
 	} else {
-		ctx.Observe(ContextEndedObserverFunc(func (*Context, any) {
+		ctx.Observe(ContextEndedObserverFunc(func(*Context, any) {
 			s.lock.Lock()
 			delete(s.cache, ctx)
 			s.lock.Unlock()

@@ -62,6 +62,11 @@ func (r *Registration) Tag(tag any) bool {
 	return false
 }
 
+func (r *Registration) Install(installer Installer) *Registration {
+	installer.Install(r)
+	return r
+}
+
 func (r *Registration) Build() Handler {
 	factory := r.factory
 	if IsNil(factory) {
@@ -122,6 +127,12 @@ func WithHandlers(handlers ... any) Installer {
 func WithHandlerTypes(types ... reflect.Type) Installer {
 	return InstallerFunc(func (registration *Registration) {
 		registration.AddHandlerTypes(types...)
+	})
+}
+
+func ExcludeHandlerTypes(filter ... Predicate[reflect.Type]) Installer {
+	return InstallerFunc(func (registration *Registration) {
+		registration.ExcludeHandlerTypes(filter...)
 	})
 }
 

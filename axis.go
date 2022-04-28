@@ -34,7 +34,7 @@ func (a *axisScope) Handle(
 }
 
 func WithAxis(axis TraversingAxis) Builder {
-	return BuilderFunc(func (handler Handler) Handler {
+	return BuilderFunc(func(handler Handler) Handler {
 		if axisHandler, ok := handler.(HandlerAxis); ok {
 			return &axisScope{axisHandler, axis}
 		}
