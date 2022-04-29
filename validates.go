@@ -260,7 +260,7 @@ func (v *ValidationOutcome) parsePath(
 			if len(rest) == 0 {
 				return parent, index
 			}
-			parent = parent.childOutcome(index, createIfMissing)
+			parent, path = parent.childOutcome(index, createIfMissing), rest
 		} else {
 			dot  := strings.IndexRune(path, '.')
 			open := strings.IndexRune(path, '[')
@@ -433,12 +433,35 @@ func Validate(
 	return outcome, nil
 }
 
-func WithValidation(withResults bool) Installer {
-	return InstallerFunc(func(registration *Registration) {
-		if registration.Tag(&_validationTag) {
-			registration.AddFilters(NewValidateProvider(withResults))
+// ValidationInstaller enables validation support.
+type ValidationInstaller struct {
+	results bool
+}
+
+func (v *ValidationInstaller) ValidateResults() {
+	v.results = true
+}
+
+func (v *ValidationInstaller) Install(registration *Registration) {
+	if registration.CanInstall(&_validationTag) {
+		registration.AddFilters(NewValidateProvider(v.results))
+	}
+}
+
+func ValidateResults(installer *ValidationInstaller) {
+	installer.ValidateResults()
+}
+
+func WithValidation(
+	config ... func(installer *ValidationInstaller),
+) Installer {
+	installer := &ValidationInstaller{}
+	for _, configure := range config {
+		if configure != nil {
+			configure(installer)
 		}
-	})
+	}
+	return installer
 }
 
 var (
@@ -446,5 +469,5 @@ var (
 	_validateFilter         = []Filter{validateFilter{}}
 	_groupType              = TypeOf[*Group]()
 	_anyGroup               = "*"
-	_validationTag any
+	_validationTag byte
 )

@@ -318,7 +318,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 				suite.NotNil(outcome)
 				suite.True(outcome.Valid())
 			} else {
-				suite.Failf("unexpected error: %v", err.Error())
+				suite.Fail("unexpected error: %v", err.Error())
 			}
 		})
 
@@ -348,7 +348,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 				suite.False(outcome.Valid())
 				suite.Equal(`Id: "Id" must be greater than 0`, outcome.Error())
 			} else {
-				suite.Failf("unexpected error: %v", err.Error())
+				suite.Fail("unexpected error: %v", err.Error())
 			}
 
 			suite.Run("Validates Open", func() {
@@ -362,6 +362,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 					},
 				}}}
 				if err := miruken.Invoke(handler, &create, &team); err != nil {
+					suite.IsType(&miruken.ValidationOutcome{}, err)
 					outcome := create.ValidationOutcome()
 					suite.NotNil(outcome)
 					suite.False(outcome.Valid())

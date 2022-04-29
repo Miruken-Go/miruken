@@ -2,18 +2,28 @@ package miruken
 
 import "reflect"
 
-type Registration struct {
-	noInfer      bool
-	handlers     []any
-	handlerTypes []reflect.Type
-	exclude      Predicate[reflect.Type]
-	factory      HandlerDescriptorFactory
-	tags         map[any]struct{}
-}
+type (
+	// Registration manages the state of an installation.
+	Registration struct {
+		noInfer      bool
+		handlers     []any
+		handlerTypes []reflect.Type
+		exclude      Predicate[reflect.Type]
+		factory      HandlerDescriptorFactory
+		tags         map[any]struct{}
+	}
 
-func (r *Registration) DisableInference() {
-	r.noInfer = false
-}
+	// Installer populates a Registration.
+	Installer interface {
+		Install(registration *Registration)
+	}
+
+	InstallerFunc func(registration *Registration)
+)
+
+func (f InstallerFunc) Install(
+	registration *Registration,
+)  { f(registration) }
 
 func (r *Registration) AddHandlers(
 	handlers ... any,
@@ -51,7 +61,11 @@ func (r *Registration) SetHandlerDescriptorFactory(
 	return r
 }
 
-func (r *Registration) Tag(tag any) bool {
+func (r *Registration) DisableInference() {
+	r.noInfer = false
+}
+
+func (r *Registration) CanInstall(tag any) bool {
 	if tags := r.tags; tags == nil {
 		r.tags = map[any]struct{} { tag: {} }
 		return true
@@ -102,42 +116,30 @@ func (r *Registration) Build() Handler {
 	return handler
 }
 
-// Installer populates a Registration.
-type Installer interface {
-	Install(registration *Registration)
-}
-
-type InstallerFunc func(registration *Registration)
-
-func (f InstallerFunc) Install(
-	registration *Registration,
-)  { f(registration) }
-
-
-var DisableInference = InstallerFunc(func (registration *Registration) {
+var DisableInference = InstallerFunc(func(registration *Registration) {
 	registration.noInfer = true
 })
 
 func WithHandlers(handlers ... any) Installer {
-	return InstallerFunc(func (registration *Registration) {
+	return InstallerFunc(func(registration *Registration) {
 		registration.AddHandlers(handlers...)
 	})
 }
 
 func WithHandlerTypes(types ... reflect.Type) Installer {
-	return InstallerFunc(func (registration *Registration) {
+	return InstallerFunc(func(registration *Registration) {
 		registration.AddHandlerTypes(types...)
 	})
 }
 
 func ExcludeHandlerTypes(filter ... Predicate[reflect.Type]) Installer {
-	return InstallerFunc(func (registration *Registration) {
+	return InstallerFunc(func(registration *Registration) {
 		registration.ExcludeHandlerTypes(filter...)
 	})
 }
 
 func WithHandlerDescriptorFactory(factory HandlerDescriptorFactory) Installer {
-	return InstallerFunc(func (registration *Registration) {
+	return InstallerFunc(func(registration *Registration) {
 		registration.SetHandlerDescriptorFactory(factory)
 	})
 }

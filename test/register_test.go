@@ -8,6 +8,18 @@ import (
 	"testing"
 )
 
+type MyInstaller struct {
+	count int
+}
+
+func (i *MyInstaller) Install(
+	registration *miruken.Registration,
+) {
+	if registration.CanInstall(reflect.TypeOf(i)) {
+		i.count++
+	}
+}
+
 type RegisterTestSuite struct {
 	suite.Suite
 	HandleTypes []reflect.Type
@@ -23,7 +35,7 @@ func (suite *RegisterTestSuite) SetupTest() {
 }
 
 func (suite *RegisterTestSuite) TestRegistration() {
-	suite.Run("WithHandlerTypes", func () {
+	suite.Run("#AddHandlerTypes", func () {
 		handler := miruken.NewRegistration(
 			miruken.WithHandlerTypes(miruken.TypeOf[*MultiHandler]()),
 		).Build()
@@ -37,7 +49,7 @@ func (suite *RegisterTestSuite) TestRegistration() {
 		suite.Equal(miruken.NotHandled, result)
 	})
 
-	suite.Run("ExcludeHandlerTypes", func () {
+	suite.Run("#ExcludeHandlerTypes", func () {
 		handler := miruken.NewRegistration(
 			miruken.WithHandlerTypes(suite.HandleTypes...),
 			miruken.ExcludeHandlerTypes(
@@ -60,7 +72,7 @@ func (suite *RegisterTestSuite) TestRegistration() {
 		suite.Nil(e)
 	})
 
-	suite.Run("DisableInference", func () {
+	suite.Run("#DisableInference", func () {
 		handler := miruken.NewRegistration(
 			miruken.WithHandlerTypes(suite.HandleTypes...),
 			miruken.DisableInference,
@@ -74,6 +86,12 @@ func (suite *RegisterTestSuite) TestRegistration() {
 		err := miruken.Resolve(handler, &m)
 		suite.Nil(err)
 		suite.Nil(m)
+	})
+
+	suite.Run("Installs Once", func () {
+		installer := &MyInstaller{}
+		miruken.NewRegistration(installer, installer)
+		suite.Equal(1, installer.count)
 	})
 }
 

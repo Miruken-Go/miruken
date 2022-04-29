@@ -646,7 +646,7 @@ func (suite *ContextTestSuite) TestContextual() {
 			suite.Len(services, 1)
 			suite.Same(&service, services[0])
 		} else {
-			suite.Failf("unexpected error: %v", err.Error())
+			suite.Fail("unexpected error: %v", err.Error())
 		}
 	})
 
@@ -660,14 +660,14 @@ func (suite *ContextTestSuite) TestContextual() {
 			suite.Len(services, 1)
 			suite.Same(&service, services[0])
 		} else {
-			suite.Failf("unexpected error: %v", err.Error())
+			suite.Fail("unexpected error: %v", err.Error())
 		}
 		service.SetContext(nil)
 		if err := miruken.ResolveAll(root, &services); err == nil {
 			suite.NotNil(services)
 			suite.Len(services, 0)
 		} else {
-			suite.Failf("unexpected error: %v", err.Error())
+			suite.Fail("unexpected error: %v", err.Error())
 		}
 	})
 
