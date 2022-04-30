@@ -295,7 +295,7 @@ func (f *mutableDescriptorFactory) newHandlerDescriptor(
 			}
 		}
 	}
-	if _, noImplicit := handlerType.MethodByName("NoImplicitProvides"); !noImplicit {
+	if _, noImplicit := handlerType.MethodByName("NoConstructor"); !noImplicit {
 		addProvides := true
 		for _, ctorPolicy := range ctorPolicies {
 			if _, ok := ctorPolicy.(*providesPolicy); ok {
@@ -306,6 +306,9 @@ func (f *mutableDescriptorFactory) newHandlerDescriptor(
 		if addProvides {
 			ctorPolicies = append(ctorPolicies, _providesPolicy)
 		}
+	} else if constructor != nil {
+		invalid = multierror.Append(invalid, fmt.Errorf(
+			"handler %v has both a Constructor and NoConstructor method", handlerType))
 	}
 	for _, ctorPolicy := range ctorPolicies {
 		if binder, ok := ctorPolicy.(ConstructorBinder); ok {
@@ -323,7 +326,7 @@ func (f *mutableDescriptorFactory) newHandlerDescriptor(
 	// Add callback builder explicitly
 	for i := 0; i < handlerType.NumMethod(); i++ {
 		method := handlerType.Method(i)
-		if method.Name == "Constructor" || method.Name == "NoImplicitProvides" {
+		if method.Name == "Constructor" || method.Name == "NoConstructor" {
 			continue
 		}
 		methodType := method.Type

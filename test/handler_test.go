@@ -228,6 +228,10 @@ func (h *DependencyHandler) StrictDependency(
 	}
 }
 
+type UnmanagedHandler struct {}
+
+func (u *UnmanagedHandler) NoConstructor() {}
+
 type Config struct {
 	baseUrl string
 	timeout int
@@ -275,6 +279,10 @@ func (h *DependencyResolverHandler) UseDependencyResolver(
 
 // InvalidHandler
 type InvalidHandler struct {}
+
+func (h *InvalidHandler) Constructor() {}
+
+func (h *InvalidHandler) NoConstructor() {}
 
 func (h *InvalidHandler) MissingDependency(
 	_ *miruken.Handles, _ *Bar,
@@ -701,7 +709,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 						errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 						failures++
 					}
-					suite.Equal(5, failures)
+					suite.Equal(6, failures)
 				} else {
 					suite.Fail("Expected HandlerDescriptorError")
 				}
@@ -985,6 +993,13 @@ func (suite *HandlerTestSuite) TestProvides() {
 			suite.Equal(2, specProvider.foo.Count())
 			suite.Equal(0, specProvider.bar.Count())
 			suite.Nil(err)
+		})
+
+		suite.Run("NoConstructor", func () {
+			var unmanaged *UnmanagedHandler
+			err := miruken.Resolve(handler, &unmanaged)
+			suite.Nil(err)
+			suite.Nil(unmanaged)
 		})
 	})
 

@@ -46,5 +46,6 @@ var HandlerTestTypes = []reflect.Type{
 	miruken.TypeOf[*SpecificationProvider](),
 	miruken.TypeOf[*TeamHandler](),
 	miruken.TypeOf[*TeamValidator](),
+	miruken.TypeOf[*UnmanagedHandler](),
 }
 
