@@ -11,9 +11,9 @@ import (
 // Validates callbacks contravariantly.
 type Validates struct {
 	CallbackBase
-	target  any
-	groups  []any
-	outcome ValidationOutcome
+	target   any
+	groups   []any
+	outcome  ValidationOutcome
 	metadata BindingMetadata
 }
 
@@ -127,7 +127,7 @@ func (v *ValidationOutcome) Valid() bool {
 	return v.errors == nil
 }
 
-func (v *ValidationOutcome) Culprits() []string {
+func (v *ValidationOutcome) Fields() []string {
 	var keys []string
 	if errs := v.errors; len(errs) > 0 {
 		keys = make([]string, len(errs))
@@ -148,7 +148,7 @@ func (v *ValidationOutcome) AddError(
 		panic("err cannot be nil")
 	}
 	if _, ok := err.(*ValidationOutcome); ok {
-		panic("cannot add child ValidationOutcome directly")
+		panic("cannot add path ValidationOutcome directly")
 	}
 	if parent, key := v.parsePath(path, true); parent == v {
 		if v.errors == nil {
@@ -161,32 +161,41 @@ func (v *ValidationOutcome) AddError(
 	}
 }
 
-func (v *ValidationOutcome) PathErrors(
+func (v *ValidationOutcome) FieldErrors(
 	path string,
 ) []error {
-	var empty []error
 	if parent, key := v.parsePath(path, true); parent == nil {
-		return empty
+		return nil
 	} else if parent != v {
-		return parent.PathErrors(key)
+		return parent.FieldErrors(key)
 	}
 	if v.errors != nil {
 		if errs, found := v.errors[path]; found {
 			return errs
 		}
 	}
-	return empty
+	return nil
 }
 
-func (v *ValidationOutcome) Child(
+func (v *ValidationOutcome) Path(
 	path string,
 ) *ValidationOutcome {
 	if parent, key := v.parsePath(path, false); parent == v {
-		return v.childOutcome(key, false)
+		return v.childPath(key, false)
 	} else if parent != nil {
-		return parent.Child(key)
+		return parent.Path(key)
 	}
 	return nil
+}
+
+func (v *ValidationOutcome) RequirePath(
+	path string,
+) *ValidationOutcome {
+	if parent, key := v.parsePath(path, true); parent == v {
+		return v.childPath(key, true)
+	} else {
+		return parent.Path(key)
+	}
 }
 
 func (v *ValidationOutcome) Error() string {
@@ -222,12 +231,12 @@ func (v *ValidationOutcome) Error() string {
 	return s.String()
 }
 
-func (v *ValidationOutcome) childOutcome(
-	key             string,
-	createIfMissing bool,
+func (v *ValidationOutcome) childPath(
+	key     string,
+	require bool,
 ) *ValidationOutcome {
 	if v.errors == nil {
-		if createIfMissing {
+		if require {
 			outcome := &ValidationOutcome{}
 			v.errors = map[string][]error{key: {outcome}}
 			return outcome
@@ -242,7 +251,7 @@ func (v *ValidationOutcome) childOutcome(
 			}
 		}
 	}
-	if createIfMissing {
+	if require {
 		outcome := &ValidationOutcome{}
 		v.errors[key] = append(keyErrors, outcome)
 		return outcome
@@ -251,8 +260,8 @@ func (v *ValidationOutcome) childOutcome(
 }
 
 func (v *ValidationOutcome) parsePath(
-	path            string,
-	createIfMissing bool,
+	path    string,
+	require bool,
 ) (parent *ValidationOutcome, key string) {
 	parent = v
 	for parent != nil {
@@ -260,7 +269,7 @@ func (v *ValidationOutcome) parsePath(
 			if len(rest) == 0 {
 				return parent, index
 			}
-			parent, path = parent.childOutcome(index, createIfMissing), rest
+			parent, path = parent.childPath(index, require), rest
 		} else {
 			dot  := strings.IndexRune(path, '.')
 			open := strings.IndexRune(path, '[')
@@ -274,7 +283,7 @@ func (v *ValidationOutcome) parsePath(
 				if len(rest) == 0 {
 					return parent, path
 				}
-				parent, path = parent.childOutcome(path, createIfMissing), rest
+				parent, path = parent.childPath(path, require), rest
 			} else {
 				return parent, path
 			}

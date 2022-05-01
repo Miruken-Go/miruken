@@ -216,24 +216,33 @@ func (suite *ValidateTestSuite) TestValidation() {
 			outcome := &miruken.ValidationOutcome{}
 			outcome.AddError("", errors.New("player not found"))
 			suite.Equal(": player not found", outcome.Error())
-			suite.Equal([]string{""}, outcome.Culprits())
+			suite.Equal([]string{""}, outcome.Fields())
+			suite.ElementsMatch(
+				[]error{errors.New("player not found")},
+				outcome.FieldErrors(""))
 		})
 
 		suite.Run("Simple Errors", func() {
 			outcome := &miruken.ValidationOutcome{}
 			outcome.AddError("Name", errors.New(`"Name" can't be empty`))
 			suite.Equal(`Name: "Name" can't be empty`, outcome.Error())
-			suite.Equal([]string{"Name"}, outcome.Culprits())
+			suite.Equal([]string{"Name"}, outcome.Fields())
+			suite.ElementsMatch(
+				[]error{errors.New(`"Name" can't be empty`)},
+				outcome.FieldErrors("Name"))
 		})
 
 		suite.Run("Nested Errors", func() {
 			outcome := &miruken.ValidationOutcome{}
 			outcome.AddError("Company.Name", errors.New(`"Name" can't be empty`))
 			suite.Equal(`Company: (Name: "Name" can't be empty)`, outcome.Error())
-			suite.Equal([]string{"Company"}, outcome.Culprits())
-			company := outcome.Child("Company")
+			suite.Equal([]string{"Company"}, outcome.Fields())
+			company := outcome.Path("Company")
 			suite.Equal(`Name: "Name" can't be empty`, company.Error())
-			suite.Equal([]string{"Name"}, company.Culprits())
+			suite.Equal([]string{"Name"}, company.Fields())
+			suite.ElementsMatch(
+				[]error{errors.New(`"Name" can't be empty`)},
+				outcome.FieldErrors("Company.Name"))
 		})
 
 		suite.Run("Mixed Errors", func() {
@@ -241,22 +250,34 @@ func (suite *ValidateTestSuite) TestValidation() {
 			outcome.AddError("Name", errors.New(`"Name" can't be empty`))
 			outcome.AddError("Company.Name", errors.New(`"Name" can't be empty`))
 			suite.Equal(`Company: (Name: "Name" can't be empty); Name: "Name" can't be empty`, outcome.Error())
-			suite.ElementsMatch([]string{"Name", "Company"}, outcome.Culprits())
+			suite.ElementsMatch([]string{"Name", "Company"}, outcome.Fields())
+			suite.ElementsMatch(
+				[]error{errors.New(`"Name" can't be empty`)},
+				outcome.FieldErrors("Name"))
+			suite.ElementsMatch(
+				[]error{errors.New(`"Name" can't be empty`)},
+				outcome.FieldErrors("Company.Name"))
 		})
 
 		suite.Run("Collection Errors", func() {
 			outcome := &miruken.ValidationOutcome{}
 			outcome.AddError("Players[0]", errors.New(`"Players[0]" can't be empty`))
 			suite.Equal(`Players: (0: "Players[0]" can't be empty)`, outcome.Error())
-			suite.Equal([]string{"Players"}, outcome.Culprits())
-			players := outcome.Child("Players")
+			suite.Equal([]string{"Players"}, outcome.Fields())
+			players := outcome.Path("Players")
 			suite.Equal(`0: "Players[0]" can't be empty`, players.Error())
+			suite.ElementsMatch(
+				[]error{errors.New(`"Players[0]" can't be empty`)},
+				outcome.FieldErrors("Players[0]"))
+			suite.ElementsMatch(
+				[]error{errors.New(`"Players[0]" can't be empty`)},
+				outcome.FieldErrors("Players.0"))
 		})
 
-		suite.Run("Cannot add child outcome", func() {
+		suite.Run("Cannot add path outcome directly", func() {
 			defer func() {
 				if r := recover(); r != nil {
-					suite.Equal("cannot add child ValidationOutcome directly", r)
+					suite.Equal("cannot add path ValidationOutcome directly", r)
 				}
 			}()
 			outcome := &miruken.ValidationOutcome{}
@@ -275,7 +296,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 			suite.NotNil(outcome)
 			suite.False(outcome.Valid())
 			suite.Same(outcome, player.ValidationOutcome())
-			suite.ElementsMatch([]string{"FirstName", "LastName"}, outcome.Culprits())
+			suite.ElementsMatch([]string{"FirstName", "LastName"}, outcome.Fields())
 			suite.Equal(`FirstName: "First Name" is required; LastName: "Last Name" is required`, outcome.Error())
 		})
 
@@ -292,7 +313,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 			suite.NotNil(outcome)
 			suite.False(outcome.Valid())
 			suite.Same(outcome, player.ValidationOutcome())
-			suite.Equal([]string{"DOB"}, outcome.Culprits())
+			suite.Equal([]string{"DOB"}, outcome.Fields())
 			suite.Equal("DOB: player must be 10 years old or younger", outcome.Error())
 		})
 	})
