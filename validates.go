@@ -194,7 +194,7 @@ func (v *ValidationOutcome) RequirePath(
 	if parent, key := v.parsePath(path, true); parent == v {
 		return v.childPath(key, true)
 	} else {
-		return parent.Path(key)
+		return parent.RequirePath(key)
 	}
 }
 
