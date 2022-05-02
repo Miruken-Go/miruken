@@ -3,6 +3,7 @@ package miruken
 import (
 	"errors"
 	"fmt"
+	"github.com/miruken-go/miruken/maps"
 	"reflect"
 	"sort"
 	"strings"
@@ -130,12 +131,7 @@ func (v *ValidationOutcome) Valid() bool {
 func (v *ValidationOutcome) Fields() []string {
 	var keys []string
 	if errs := v.errors; len(errs) > 0 {
-		keys = make([]string, len(errs))
-		i := 0
-		for key := range errs {
-			keys[i] = key
-			i++
-		}
+		keys = maps.Keys(v.errors)
 	}
 	return keys
 }
@@ -204,11 +200,7 @@ func (v *ValidationOutcome) Error() string {
 		return ""
 	}
 
-	keys, i := make([]string, len(errs)), 0
-	for key := range errs {
-		keys[i] = key
-		i++
-	}
+	keys := maps.Keys(errs)
 	sort.Strings(keys)
 
 	var s strings.Builder

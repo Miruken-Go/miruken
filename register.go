@@ -1,6 +1,9 @@
 package miruken
 
-import "reflect"
+import (
+	"github.com/miruken-go/miruken/slices"
+	"reflect"
+)
 
 type (
 	// Registration manages the state of an installation.
@@ -90,7 +93,7 @@ func (r *Registration) Build() Handler {
 
 	if types := r.handlerTypes; len(types) > 0 {
 		if exclude := r.exclude; exclude != nil {
-			types = FilterSlice(types, func(t reflect.Type) bool {
+			types = slices.Filter(types, func(t reflect.Type) bool {
 				return !exclude(t)
 			})
 		}
