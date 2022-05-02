@@ -1124,31 +1124,6 @@ func (suite *HandlerTestSuite) TestProvides() {
 			miruken.WithHandlers(new(InvalidProvider)))
 		suite.Fail("should cause panic")
 	})
-
-	suite.Run("Generics", func () {
-		si := []int{1,2,3}
-		sa := ToSliceAny(si)
-		fmt.Printf("%#v\n", sa)
-
-		h := miruken.Handles{}
-		PrintMe(&h)
-	})
-}
-
-func ToSliceAny[U []T, T any](slice U) []any {
-	s := make([]any, len(slice))
-	for i, v := range slice {
-		s[i] = v
-	}
-	return s
-}
-
-type Jumper interface {
-	Jump()
-}
-
-func PrintMe[T miruken.Callback](c T) {
-	fmt.Printf("%#v\n", c)
 }
 
 func (suite *HandlerTestSuite) TestCreates() {
