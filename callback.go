@@ -121,8 +121,8 @@ func (b *CallbackBuilder) CallbackBase() CallbackBase {
 	return CallbackBase{many: b.many, accept: b.accept}
 }
 
-// CallbackDispatcher allows customized Callback dispatch.
-type CallbackDispatcher interface {
+// customizeDispatch marks customized Callback dispatch.
+type customizeDispatch interface {
  	Dispatch(
 		handler  any,
 		greedy   bool,
@@ -130,12 +130,12 @@ type CallbackDispatcher interface {
 	) HandleResult
 }
 
-// SuppressDispatch marks a type that should not perform dispatching.
-type SuppressDispatch interface {
-	suppressDispatch()
+// suppressDispatch marks a type that opts out of Callback dispatch.
+type suppressDispatch interface {
+	SuppressDispatch()
 }
 
-// CallbackGuard prevents circular actions.
+// CallbackGuard detects and prevents circular Callback dispatch.
 type CallbackGuard interface {
 	CanDispatch(
 		handler any,

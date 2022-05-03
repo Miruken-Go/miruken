@@ -249,7 +249,7 @@ func (f *mutableDescriptorFactory) HandlerDescriptorOf(
 func (f *mutableDescriptorFactory) RegisterHandlerType(
 	handlerType reflect.Type,
 ) (*HandlerDescriptor, bool, error) {
-	if handlerType.AssignableTo(_suppressDispatchType) {
+	if handlerType.Implements(_suppressDispatchType) {
 		return nil, false, nil
 	}
 	if err := validHandlerType(handlerType); err != nil {
@@ -435,6 +435,6 @@ func (g *getHandlerDescriptorFactory) Handle(
 	return NotHandled
 }
 
-func (g *getHandlerDescriptorFactory) suppressDispatch() {}
+func (g *getHandlerDescriptorFactory) SuppressDispatch() {}
 
-var _suppressDispatchType = TypeOf[SuppressDispatch]()
+var _suppressDispatchType = TypeOf[suppressDispatch]()

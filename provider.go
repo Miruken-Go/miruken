@@ -25,7 +25,7 @@ func (p *provider) Handle(
 	return NotHandled
 }
 
-func (p *provider) suppressDispatch() {}
+func (p *provider) SuppressDispatch() {}
 
 func NewProvider(value any) Handler {
 	if value == nil {

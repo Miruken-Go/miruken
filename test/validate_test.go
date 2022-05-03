@@ -317,6 +317,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 			suite.Equal("DOB: player must be 10 years old or younger", outcome.Error())
 		})
 	})
+
 	suite.Run("ValidateFilter", func () {
 		handler := suite.Register()
 		var handles miruken.Handles

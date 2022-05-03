@@ -69,9 +69,9 @@ func DispatchCallback(
 		return NotHandled
 	}
 	switch d := callback.(type) {
-	case CallbackDispatcher:
+	case customizeDispatch:
 		return d.Dispatch(handler, greedy, composer)
-	case SuppressDispatch:
+	case suppressDispatch:
 		return NotHandled
 	}
 	var builder HandlesBuilder

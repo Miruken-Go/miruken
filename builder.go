@@ -116,7 +116,7 @@ func (w *withHandler) Handle(
 		})
 }
 
-func (w *withHandler) suppressDispatch() {}
+func (w *withHandler) SuppressDispatch() {}
 
 // withHandlers composes any number of Handlers.
 type withHandlers struct {
@@ -147,7 +147,7 @@ func (w *withHandlers) Handle(
 	})
 }
 
-func (w *withHandlers) suppressDispatch() {}
+func (w *withHandlers) SuppressDispatch() {}
 
 // mutableHandlers manages any number of Handlers.
 type mutableHandlers struct {
@@ -231,7 +231,7 @@ func (m *mutableHandlers) Handle(
 	return result
 }
 
-func (m *mutableHandlers) suppressDispatch() {}
+func (m *mutableHandlers) SuppressDispatch() {}
 
 type FilterFunc = func(
 	callback any,
