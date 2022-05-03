@@ -33,7 +33,7 @@ func (h *inferenceHandler) DispatchPolicy(
 	return h.descriptor.Dispatch(policy, h, infer, rawCallback, greedy, composer)
 }
 
-func (h *inferenceHandler) DuppressDispatch() {}
+func (h *inferenceHandler) SuppressDispatch() {}
 
 // bindingIntercept intercepts Binding invocations to handler inference.
 type bindingIntercept struct {

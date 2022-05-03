@@ -15,7 +15,7 @@ type Policy interface {
 	AcceptResults(results []any) (any, HandleResult)
 }
 
-// PolicyDispatch allows handlers to override callback dispatch.
+// PolicyDispatch customizes Callback Policy dispatch.
 type PolicyDispatch interface {
 	DispatchPolicy(
 		policy      Policy,
