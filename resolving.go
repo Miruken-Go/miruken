@@ -3,6 +3,7 @@ package miruken
 type Resolving struct {
 	Provides
 	callback  Callback
+	greedy    bool
 	succeeded bool
 }
 
@@ -31,13 +32,12 @@ func (r *Resolving) CanDispatch(
 
 func (r *Resolving) accept(
 	result   any,
-	greedy   bool,
 	composer Handler,
 ) HandleResult {
-	if many := r.callback.Many(); !many && r.succeeded {
+	if greedy := r.greedy; !greedy && r.succeeded {
 		return Handled
 	} else {
-		hr := DispatchCallback(result, r.callback, many, composer)
+		hr := DispatchCallback(result, r.callback, greedy, composer)
 		r.succeeded = r.succeeded || hr.handled
 		return hr
 	}
@@ -46,6 +46,7 @@ func (r *Resolving) accept(
 type ResolvingBuilder struct {
 	ProvidesBuilder
 	callback Callback
+	greedy   bool
 }
 
 func (b *ResolvingBuilder) WithCallback(
@@ -55,11 +56,19 @@ func (b *ResolvingBuilder) WithCallback(
 	return b
 }
 
+func (b *ResolvingBuilder) WithGreedy(
+	greedy bool,
+) *ResolvingBuilder {
+	b.greedy = greedy
+	return b
+}
+
 func (b *ResolvingBuilder) NewResolving() *Resolving {
 	b.WithMany()
 	resolving := &Resolving{
 		Provides: b.Provides(),
 		callback: b.callback,
+		greedy:   b.greedy,
 	}
 	resolving.CallbackBase.accept = resolving.accept
 	return resolving

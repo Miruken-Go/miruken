@@ -1074,7 +1074,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 			var counted []Counter
 			if err := miruken.ResolveAll(handler, &counted); err == nil {
 				suite.NotNil(counted)
-				// 4 from 2 methods on explicit *ListProvider (2) on line 1000
+				// 4 from 2 methods on explicit *ListProvider
 				// 8 for inference of *ListProvider (4) which includes explicit instance (4)
 				// 12 total
 				suite.Len(counted, 12)

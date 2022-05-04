@@ -164,7 +164,7 @@ func (d *HandlerDescriptor) Dispatch(
 				if err == nil {
 					res, accepted := policy.AcceptResults(out)
 					if res != nil {
-						accepted = accepted.And(rawCallback.ReceiveResult(res, binding.Strict(), greedy, composer))
+						accepted = accepted.And(rawCallback.ReceiveResult(res, binding.Strict(), composer))
 					}
 					result = result.Or(accepted)
 				} else {

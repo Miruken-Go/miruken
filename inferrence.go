@@ -8,6 +8,7 @@ type inferenceHandler struct {
 
 type inference struct {
 	callback any
+	greedy   bool
 	resolved map[reflect.Type]struct{}
 }
 
@@ -29,7 +30,7 @@ func (h *inferenceHandler) DispatchPolicy(
 	if test, ok := rawCallback.(interface{CanInfer() bool}); ok && !test.CanInfer() {
 		return NotHandled
 	}
-	infer := &inference{callback: callback}
+	infer := &inference{callback: callback, greedy: greedy}
 	return h.descriptor.Dispatch(policy, h, infer, rawCallback, greedy, composer)
 }
 
@@ -60,8 +61,10 @@ func (b *bindingIntercept) Invoke(
 	if ctor, ok := b.Binding.(*constructorBinding); ok {
 		return ctor.Invoke(context)
 	}
+	var greedy bool
 	handlerType := b.handlerType
 	if infer, ok := context.Callback().(*inference); ok {
+		greedy = infer.greedy
 		if resolved := infer.resolved; resolved == nil {
 			infer.resolved = map[reflect.Type]struct{} { handlerType: {} }
 		} else if _, found := resolved[handlerType]; !found {
@@ -75,6 +78,7 @@ func (b *bindingIntercept) Invoke(
 	var builder ResolvingBuilder
 	builder.
 		WithCallback(rawCallback).
+		WithGreedy(greedy).
 		WithParent(parent).
 		WithKey(b.handlerType)
 	resolving := builder.NewResolving()

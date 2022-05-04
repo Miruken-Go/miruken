@@ -37,10 +37,9 @@ func (p *Provides) Metadata() *BindingMetadata {
 func (p *Provides) ReceiveResult(
 	result   any,
 	strict   bool,
-	greedy   bool,
 	composer Handler,
 ) HandleResult {
-	return p.include(result, strict, greedy, composer)
+	return p.include(result, strict, composer)
 }
 
 func (p *Provides) CanDispatch(
@@ -82,7 +81,7 @@ func (p *Provides) Dispatch(
 	if p.metadata.IsEmpty() {
 		if typ, ok := p.key.(reflect.Type); ok {
 			if reflect.TypeOf(handler).AssignableTo(typ) {
-				result = result.Or(p.ReceiveResult(handler, false, greedy, composer))
+				result = result.Or(p.ReceiveResult(handler, false, composer))
 				if result.stop || (result.handled && !greedy) {
 					return result
 				}
@@ -104,27 +103,26 @@ func (p *Provides) Resolve(
 func (p *Provides) include(
 	resolution any,
 	strict     bool,
-	greedy     bool,
 	composer   Handler,
 ) (result HandleResult) {
 	if IsNil(resolution) {
 		return NotHandled
 	}
 	if strict {
-		return p.AddResult(resolution, greedy, composer)
+		return p.AddResult(resolution, composer)
 	}
 	result = NotHandled
 	switch reflect.TypeOf(resolution).Kind() {
 	case reflect.Slice, reflect.Array:
 		forEach(resolution, func(idx int, value any) bool {
 			if value != nil {
-				result = result.Or(p.AddResult(value, greedy, composer))
+				result = result.Or(p.AddResult(value, composer))
 				return result.stop
 			}
 			return false
 		})
 	default:
-		return p.AddResult(resolution, greedy, composer)
+		return p.AddResult(resolution, composer)
 	}
 	return result
 }

@@ -16,7 +16,6 @@ type (
 		ReceiveResult(
 			result   any,
 			strict   bool,
-			greedy   bool,
 			composer Handler,
 		) HandleResult
 	}
@@ -24,7 +23,6 @@ type (
 	// AcceptResultFunc validates callback results.
 	AcceptResultFunc func (
 		result   any,
-		greedy   bool,
 		composer Handler,
 	) HandleResult
 
@@ -69,14 +67,13 @@ func (c *CallbackBase) SetResult(result any) {
 
 func (c *CallbackBase) AddResult(
 	result   any,
-	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	if IsNil(result) {
 		return NotHandled
 	}
 	if c.accept != nil {
-		return c.accept(result, greedy, composer)
+		return c.accept(result, composer)
 	}
 	c.results = append(c.results, result)
 	c.result  = nil
@@ -86,10 +83,9 @@ func (c *CallbackBase) AddResult(
 func (c *CallbackBase) ReceiveResult(
 	result   any,
 	strict   bool,
-	greedy   bool,
 	composer Handler,
 ) HandleResult {
-	return c.AddResult(result, greedy, composer)
+	return c.AddResult(result, composer)
 }
 
 func (c *CallbackBase) CopyResult(target any) {

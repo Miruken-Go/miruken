@@ -18,7 +18,7 @@ func (p *provider) Handle(
 	if provides, ok := callback.(*Provides); ok {
 		if typ, ok := provides.key.(reflect.Type); ok {
 			if p.typ.AssignableTo(typ) {
-				return provides.ReceiveResult(p.value, true, greedy, composer)
+				return provides.ReceiveResult(p.value, true, composer)
 			}
 		}
 	}
