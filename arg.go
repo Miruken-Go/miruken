@@ -186,6 +186,7 @@ func (r *defaultDependencyResolver) Resolve(
 	}
 }
 
+// HandleContext contain all the information about handling a Callback.
 type HandleContext struct {
 	callback    any
 	rawCallback Callback
@@ -207,6 +208,36 @@ func (h HandleContext) Binding() Binding {
 
 func (h HandleContext) Composer() Handler {
 	return h.composer
+}
+
+// UnresolvedArgError reports a failed resolve an arg.
+type UnresolvedArgError struct {
+	arg    arg
+	Reason error
+}
+
+func (e UnresolvedArgError) Error() string {
+	return fmt.Sprintf("unresolved arg %#v: %v", e.arg, e.Reason)
+}
+
+func (e UnresolvedArgError) Unwrap() error { return e.Reason }
+
+func resolveArgs(
+	funType   reflect.Type,
+	fromIndex int,
+	args      []arg,
+	context   HandleContext,
+) ([]reflect.Value, error) {
+	var resolved []reflect.Value
+	for i, arg := range args {
+		typ := funType.In(fromIndex + i)
+		if a, err := arg.resolve(typ, context); err != nil {
+			return nil, UnresolvedArgError{arg, err}
+		} else {
+			resolved = append(resolved, a)
+		}
+	}
+	return resolved, nil
 }
 
 // Dependency typed
@@ -242,7 +273,7 @@ func buildDependency(
 }
 
 func buildDependencies(
-	methodType reflect.Type,
+	funTyp     reflect.Type,
 	startIndex int,
 	endIndex   int,
 	args       []arg,
@@ -250,7 +281,7 @@ func buildDependencies(
 ) (invalid error) {
 	var lastSpec *dependencySpec
 	for i, j := startIndex, 0; i < endIndex; i, j = i + 1, j + 1 {
-		argType := methodType.In(i + 1)  // skip receiver
+		argType := funTyp.In(i)
 		if arg, err := buildDependency(argType); err == nil {
 			if arg.spec != nil {
 				if lastSpec != nil {

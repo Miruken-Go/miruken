@@ -88,7 +88,7 @@ type createsPolicy struct {
 }
 
 func (c *createsPolicy) NewConstructorBinding(
-	handlerType  reflect.Type,
+	handlerType reflect.Type,
 	constructor *reflect.Method,
 	spec        *policySpec,
 ) (binding Binding, err error) {

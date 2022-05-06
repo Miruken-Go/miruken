@@ -156,9 +156,8 @@ func (d *HandlerDescriptor) Dispatch(
 				if len(filters) == 0 {
 					out, err = binding.Invoke(context, handler)
 				} else {
-					out, err = pipeline(context, filters,
-						func(ctx HandleContext) ([]any, error) {
-							return binding.Invoke(ctx, handler)
+					out, err = pipeline(context, filters, func(ctx HandleContext) ([]any, error) {
+						return binding.Invoke(ctx, handler)
 					})
 				}
 				if err == nil {
@@ -172,6 +171,7 @@ func (d *HandlerDescriptor) Dispatch(
 					case RejectedError:
 					case NotHandledError:
 					case MethodBindingError:
+					case UnresolvedArgError:
 						break
 					default:
 						result = result.WithError(err)
@@ -200,7 +200,7 @@ func (e *HandlerDescriptorError) Unwrap() error { return e.Reason }
 type HandlerDescriptorProvider interface {
 	HandlerDescriptorOf(
 		handler reflect.Type,
-	) (*HandlerDescriptor, error)
+	) *HandlerDescriptor
 }
 
 // HandlerDescriptorFactory adds registration to the HandlerDescriptorProvider.
@@ -237,13 +237,10 @@ type mutableDescriptorFactory struct {
 
 func (f *mutableDescriptorFactory) HandlerDescriptorOf(
 	handlerType reflect.Type,
-) (descriptor *HandlerDescriptor, err error) {
-	if err = validHandlerType(handlerType); err != nil {
-		return nil, err
-	}
+) *HandlerDescriptor {
 	f.RLock()
 	defer f.RUnlock()
-	return f.descriptors[handlerType], nil
+	return f.descriptors[handlerType]
 }
 
 func (f *mutableDescriptorFactory) RegisterHandlerType(
@@ -251,9 +248,6 @@ func (f *mutableDescriptorFactory) RegisterHandlerType(
 ) (*HandlerDescriptor, bool, error) {
 	if handlerType.Implements(_suppressDispatchType) {
 		return nil, false, nil
-	}
-	if err := validHandlerType(handlerType); err != nil {
-		return nil, false, err
 	}
 
 	f.Lock()
@@ -358,20 +352,6 @@ func (f *mutableDescriptorFactory) newHandlerDescriptor(
 	}
 	descriptor.bindings = bindings
 	return descriptor, nil
-}
-
-func validHandlerType(handlerType reflect.Type) error {
-	if handlerType == nil {
-		panic("handlerType cannot be nil")
-	}
-	typ := handlerType
-	if kind := typ.Kind(); kind == reflect.Ptr {
-		typ = typ.Elem()
-	}
-	if kind := typ.Kind(); kind != reflect.Struct {
-		return fmt.Errorf("handler: %v is not a struct or *struct", handlerType)
-	}
-	return nil
 }
 
 type MutableHandlerDescriptorFactoryOption interface {

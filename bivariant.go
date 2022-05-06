@@ -67,26 +67,60 @@ func (p *BivariantPolicy) Less(
 
 func (p *BivariantPolicy) AcceptResults(
 	results []any,
-) (result any, accepted HandleResult) {
+) (any, HandleResult) {
 	return p.out.AcceptResults(results)
 }
 
 func (p *BivariantPolicy) NewMethodBinding(
-	method  reflect.Method,
+	method reflect.Method,
 	spec   *policySpec,
-) (binding Binding, invalid error) {
-	methodType := method.Type
-	numArgs    := methodType.NumIn() - 1  // skip receiver
-	args       := make([]arg, numArgs)
-	args[0]     = spec.arg
-	key        := spec.key
-	in         := _anyType
-	out        := _anyType
-	index      := 1
+) (Binding, error) {
+	if args, key, err := validateBivariantFunc(method.Type, spec, 1); err != nil {
+		return nil, MethodBindingError{method, err}
+	} else {
+		return &methodBinding{
+			FilteredScope{spec.filters},
+			key,
+			spec.flags,
+			method,
+			args,
+		}, nil
+	}
+}
+
+func (p *BivariantPolicy) NewFuncBinding(
+	fun  reflect.Value,
+	spec *policySpec,
+) (Binding, error) {
+	if args, key, err := validateBivariantFunc(fun.Type(), spec, 0); err != nil {
+		return nil, err
+	} else {
+		return &funcBinding{
+			FilteredScope{spec.filters},
+			key,
+			spec.flags,
+			fun,
+			args,
+		}, nil
+	}
+}
+
+func validateBivariantFunc(
+	funType reflect.Type,
+	spec    *policySpec,
+	skip    int,
+) (args []arg, key any, invalid error) {
+	numArgs := funType.NumIn()
+	args     = make([]arg, numArgs-skip)
+	args[0]  = spec.arg
+	key      = spec.key
+	in      := _anyType
+	out     := _anyType
+	index   := 1
 
 	// Callback argument must be present if spec
 	if len(args) > 1 {
-		if arg := methodType.In(2); arg.AssignableTo(_callbackType) {
+		if arg := funType.In(2); arg.AssignableTo(_callbackType) {
 			args[1] = rawCallbackArg{}
 		} else {
 			args[1] = callbackArg{}
@@ -97,25 +131,25 @@ func (p *BivariantPolicy) NewMethodBinding(
 		invalid = errors.New("bivariant: missing callback argument")
 	}
 
-	if err := buildDependencies(methodType, index, numArgs, args, index); err != nil {
+	if err := buildDependencies(funType, index+skip, numArgs, args, index); err != nil {
 		invalid = multierror.Append(invalid, fmt.Errorf("bivariant: %w", err))
 	}
 
-	switch methodType.NumOut() {
+	switch funType.NumOut() {
 	case 0:
 		invalid = multierror.Append(invalid,
 			errors.New("bivariant: must have a return value"))
 	case 1:
-		out = methodType.Out(0)
+		out = funType.Out(0)
 		if err := validateBivariantReturn(out); err != nil {
 			invalid = multierror.Append(invalid, err)
 		}
 	case 2:
-		out = methodType.Out(0)
+		out = funType.Out(0)
 		if err := validateBivariantReturn(out); err != nil {
 			invalid = multierror.Append(invalid, err)
 		}
-		switch methodType.Out(1) {
+		switch funType.Out(1) {
 		case _errorType, _handleResType: break
 		default:
 			invalid = multierror.Append(invalid, fmt.Errorf(
@@ -129,19 +163,13 @@ func (p *BivariantPolicy) NewMethodBinding(
 	}
 
 	if invalid != nil {
-		return nil, MethodBindingError{method, invalid}
+		return nil, key, invalid
 	}
 
 	if key == nil {
 		key = DiKey{ In: in, Out: out }
 	}
-
-	return &methodBinding{
-		methodInvoke{method, args},
-		FilteredScope{spec.filters},
-		key,
-		spec.flags,
-	}, nil
+	return
 }
 
 func validateBivariantReturn(

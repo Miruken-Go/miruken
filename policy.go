@@ -40,10 +40,8 @@ func DispatchPolicy(
 	}
 	if factory := GetHandlerDescriptorFactory(composer); factory != nil {
 		handlerType := reflect.TypeOf(handler)
-		if d, err := factory.HandlerDescriptorOf(handlerType); d != nil {
+		if d := factory.HandlerDescriptorOf(handlerType); d != nil {
 			return d.Dispatch(policy, handler, callback, rawCallback, greedy, composer)
-		} else if err != nil {
-			return NotHandled.WithError(err)
 		}
 	}
 	return NotHandled

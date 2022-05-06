@@ -90,31 +90,65 @@ func (p *CovariantPolicy) AcceptResults(
 }
 
 func (p *CovariantPolicy) NewMethodBinding(
-	method  reflect.Method,
+	method reflect.Method,
 	spec   *policySpec,
-) (binding Binding, invalid error) {
-	methodType := method.Type
-	numArgs    := methodType.NumIn() - 1 // skip receiver
-	args       := make([]arg, numArgs)
-	args[0]     = spec.arg
+) (Binding, error) {
+	if args, err := validateCovariantFunc(method.Type, spec, 1); err != nil {
+		return nil, MethodBindingError{method, err}
+	} else {
+		return &methodBinding{
+			FilteredScope{spec.filters},
+			spec.key,
+			spec.flags,
+			method,
+			args,
+		}, nil
+	}
+}
 
-	if err := buildDependencies(methodType, 1, numArgs, args, 1); err != nil {
+func (p *CovariantPolicy) NewFuncBinding(
+	fun  reflect.Value,
+	spec *policySpec,
+) (Binding, error) {
+	if args, err := validateCovariantFunc(fun.Type(), spec, 0); err != nil {
+		return nil, err
+	} else {
+		return &funcBinding{
+			FilteredScope{spec.filters},
+			spec.key,
+			spec.flags,
+			fun,
+			args,
+		}, nil
+	}
+}
+
+func validateCovariantFunc(
+	funType reflect.Type,
+	spec    *policySpec,
+	skip    int,
+) (args []arg, invalid error) {
+	numArgs := funType.NumIn()
+	args     = make([]arg, numArgs-skip)
+	args[0]  = spec.arg
+
+	if err := buildDependencies(funType, skip+1, numArgs, args, 1); err != nil {
 		invalid = fmt.Errorf("covariant: %w", err)
 	}
 
-	switch methodType.NumOut() {
+	switch funType.NumOut() {
 	case 0:
 		invalid = multierror.Append(invalid,
 			errors.New("covariant: must have a return value"))
 	case 1:
-		if err := validateCovariantReturn(methodType.Out(0), spec); err != nil {
+		if err := validateCovariantReturn(funType.Out(0), spec); err != nil {
 			invalid = multierror.Append(invalid, err)
 		}
 	case 2:
-		if err := validateCovariantReturn(methodType.Out(0), spec); err != nil {
+		if err := validateCovariantReturn(funType.Out(0), spec); err != nil {
 			invalid = multierror.Append(invalid, err)
 		}
-		switch methodType.Out(1) {
+		switch funType.Out(1) {
 		case _errorType, _handleResType: break
 		default:
 			invalid = multierror.Append(invalid, fmt.Errorf(
@@ -126,17 +160,7 @@ func (p *CovariantPolicy) NewMethodBinding(
 			"covariant: at most two return values allowed and second must be %v or %v",
 			_errorType, _handleResType))
 	}
-
-	if invalid != nil {
-		return nil, MethodBindingError{method, invalid}
-	}
-
-	return &methodBinding{
-		methodInvoke{method, args},
-		FilteredScope{spec.filters},
-		spec.key,
-		spec.flags,
-	}, nil
+	return
 }
 
 func validateCovariantReturn(
@@ -146,7 +170,7 @@ func validateCovariantReturn(
 	switch returnType {
 	case _errorType, _handleResType:
 		return fmt.Errorf(
-			"covariant policy: primary return value must not be %v or %v",
+			"covariant: primary return value must not be %v or %v",
 			_errorType, _handleResType)
 	default:
 		if spec.key == nil {

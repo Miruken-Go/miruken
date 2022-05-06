@@ -374,19 +374,19 @@ func DynNext(
 			dynNextType.Out(1) != _errorType {
 			goto Invalid
 		} else {
-			numArgs := dynNextType.NumIn()-1
-			args    := make([]arg, numArgs-3)
-			if err := buildDependencies(dynNextType, 3, numArgs, args, 0); err != nil {
+			numArgs := dynNextType.NumIn()
+			args    := make([]arg, numArgs-4)  // skip receiver
+			if err := buildDependencies(dynNextType, 4, numArgs, args, 0); err != nil {
 				invalid = fmt.Errorf("DynNext: %w", err)
 			}
 			if invalid != nil {
 				return nil, MethodBindingError{dynNext, invalid}
 			}
-			binding = &methodInvoke{dynNext, args}
+			binding = &nextBinding{dynNext, args}
 			_dynNextBinding[typ] = binding
 		}
 	}
-	if results, invalid = binding.Invoke(context, filter, next, context, provider); invalid != nil {
+	if results, invalid = binding.invoke(context, filter, next, context, provider); invalid != nil {
 		return nil, invalid
 	} else {
 		res, _ := results[0].([]any)
@@ -399,7 +399,23 @@ func DynNext(
 			typ)
 }
 
+type nextBinding struct {
+	method reflect.Method
+	args   []arg
+}
+
+func (n *nextBinding) invoke(
+	context      HandleContext,
+	explicitArgs ... any,
+)  ([]any, error) {
+	if results, err := callFunc(n.method.Func, context, n.args, explicitArgs...); err != nil {
+		return nil, MethodBindingError{n.method, err}
+	} else {
+		return results, nil
+	}
+}
+
 var (
 	_dynNextLock sync.RWMutex
-	_dynNextBinding = make(map[reflect.Type]*methodInvoke)
+	_dynNextBinding = make(map[reflect.Type]*nextBinding)
 )

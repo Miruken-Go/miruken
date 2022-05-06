@@ -80,19 +80,53 @@ func (p *ContravariantPolicy) AcceptResults(
 }
 
 func (p *ContravariantPolicy) NewMethodBinding(
-	method  reflect.Method,
+	method reflect.Method,
 	spec   *policySpec,
-) (binding Binding, invalid error) {
-	methodType := method.Type
-	numArgs    := methodType.NumIn() - 1  // skip receiver
-	args       := make([]arg, numArgs)
-	args[0]     = spec.arg
-	key        := spec.key
-	index      := 1
+) (Binding, error) {
+	if args, key, err := validateContravariantFunc(method.Type, spec, 1); err != nil {
+		return nil, MethodBindingError{method, err}
+	} else {
+		return &methodBinding{
+			FilteredScope{spec.filters},
+			key,
+			spec.flags,
+			method,
+			args,
+		}, nil
+	}
+}
+
+func (p *ContravariantPolicy) NewFuncBinding(
+	fun  reflect.Value,
+	spec *policySpec,
+) (Binding, error) {
+	if args, key, err := validateContravariantFunc(fun.Type(), spec, 0); err != nil {
+		return nil, err
+	} else {
+		return &funcBinding{
+			FilteredScope{spec.filters},
+			key,
+			spec.flags,
+			fun,
+			args,
+		}, nil
+	}
+}
+
+func validateContravariantFunc(
+	funType reflect.Type,
+	spec    *policySpec,
+	skip    int,
+) (args []arg, key any, invalid error) {
+	numArgs := funType.NumIn()
+	args     = make([]arg, numArgs-skip)
+	args[0]  = spec.arg
+	key      = spec.key
+	index   := 1
 
 	// Callback argument must be present if spec
 	if len(args) > 1 {
-		if arg := methodType.In(2); arg.AssignableTo(_callbackType) {
+		if arg := funType.In(2); arg.AssignableTo(_callbackType) {
 			args[1] = rawCallbackArg{}
 		} else {
 			if key == nil { key = arg }
@@ -105,14 +139,14 @@ func (p *ContravariantPolicy) NewMethodBinding(
 		key = _anyType
 	}
 
-	if err := buildDependencies(methodType, index, numArgs, args, index); err != nil {
+	if err := buildDependencies(funType, index+skip, numArgs, args, index); err != nil {
 		invalid = multierror.Append(invalid, fmt.Errorf("contravariant: %w", err))
 	}
 
-	switch methodType.NumOut() {
+	switch funType.NumOut() {
 	case 0, 1: break
 	case 2:
-		switch methodType.Out(1) {
+		switch funType.Out(1) {
 		case _errorType, _handleResType: break
 		default:
 			invalid = multierror.Append(invalid, fmt.Errorf(
@@ -124,15 +158,5 @@ func (p *ContravariantPolicy) NewMethodBinding(
 			"contravariant: at most two return values allowed and second must be %v or %v",
 			_errorType, _handleResType))
 	}
-
-	if invalid != nil {
-		return nil, MethodBindingError{method, invalid}
-	}
-
-	return &methodBinding{
-		methodInvoke{method, args},
-		FilteredScope{spec.filters},
-		key,
-		spec.flags,
-	}, nil
+	return
 }

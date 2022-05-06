@@ -223,13 +223,13 @@ func ResolveAll(
 	return nil
 }
 
-// providesPolicy for providing instances with lifestyles covariantly.
+// providesPolicy for providing instances covariantly with lifestyle.
 type providesPolicy struct {
 	CovariantPolicy
 }
 
 func (p *providesPolicy) NewConstructorBinding(
-	handlerType  reflect.Type,
+	handlerType reflect.Type,
 	constructor *reflect.Method,
 	spec        *policySpec,
 ) (binding Binding, err error) {
