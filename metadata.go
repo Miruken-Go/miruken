@@ -170,7 +170,6 @@ func (d *HandlerDescriptor) Dispatch(
 					switch err.(type) {
 					case RejectedError:
 					case NotHandledError:
-					case MethodBindingError:
 					case UnresolvedArgError:
 						break
 					default:

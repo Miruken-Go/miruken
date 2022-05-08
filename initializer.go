@@ -38,12 +38,7 @@ func (i *initializer) invoke(
 	context      HandleContext,
 	explicitArgs ... any,
 ) ([]any, error) {
-	ctor := i.constructor
-	if results, err := callFunc(ctor.Func, context, i.args, explicitArgs...); err != nil {
-		return nil, MethodBindingError{ctor, err}
-	} else {
-		return results, nil
-	}
+	return callFunc(i.constructor.Func, context, i.args, explicitArgs...)
 }
 
 // initializerProvider is a FilterProvider for initializer.

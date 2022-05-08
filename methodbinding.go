@@ -51,10 +51,5 @@ func (b *methodBinding) Invoke(
 	context      HandleContext,
 	explicitArgs ... any,
 ) ([]any, error) {
-	method := b.method
-	if results, err := callFunc(method.Func, context, b.args, explicitArgs...); err != nil {
-		return nil, MethodBindingError{method, err}
-	} else {
-		return results, nil
-	}
+	return callFunc(b.method.Func, context, b.args, explicitArgs...)
 }

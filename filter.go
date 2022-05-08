@@ -407,12 +407,8 @@ type nextBinding struct {
 func (n *nextBinding) invoke(
 	context      HandleContext,
 	explicitArgs ... any,
-)  ([]any, error) {
-	if results, err := callFunc(n.method.Func, context, n.args, explicitArgs...); err != nil {
-		return nil, MethodBindingError{n.method, err}
-	} else {
-		return results, nil
-	}
+) ([]any, error) {
+	return callFunc(n.method.Func, context, n.args, explicitArgs...)
 }
 
 var (
