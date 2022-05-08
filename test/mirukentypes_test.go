@@ -49,6 +49,6 @@ var mirukenTestTypes = []reflect.Type{
 	miruken.TypeOf[*UnmanagedHandler](),
 }
 
-var WithTestHandlers = miruken.InstallerFunc(func(registration *miruken.Registration) {
+var WithTestHandlers = miruken.InstallerFunc(func(registration *miruken.RegistrationBuilder) {
 	registration.AddHandlerTypes(mirukenTestTypes...)
 })

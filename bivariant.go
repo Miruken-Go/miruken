@@ -93,7 +93,7 @@ func (p *BivariantPolicy) NewFuncBinding(
 	spec *policySpec,
 ) (Binding, error) {
 	if args, key, err := validateBivariantFunc(fun.Type(), spec, 0); err != nil {
-		return nil, err
+		return nil, FuncBindingError{fun, err}
 	} else {
 		return &funcBinding{
 			FilteredScope{spec.filters},

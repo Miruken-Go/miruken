@@ -1,6 +1,23 @@
 package miruken
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
+
+
+// FuncBindingError reports a failed function binding.
+type FuncBindingError struct {
+	Func   reflect.Value
+	Reason error
+}
+
+func (e FuncBindingError) Error() string {
+	return fmt.Sprintf("invalid function: %#v: %v",
+		e.Func, e.Reason)
+}
+
+func (e FuncBindingError) Unwrap() error { return e.Reason }
 
 // FuncBinder creates a binding to a function.
 type FuncBinder interface {

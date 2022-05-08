@@ -136,7 +136,7 @@ func parseDir(
         _, _ = fmt.Fprintln(&buf, "")
 
         // Installer
-        _, _ = fmt.Fprintf(&buf, "var %s = miruken.InstallerFunc(func(registration *miruken.Registration) {\n", installName)
+        _, _ = fmt.Fprintf(&buf, "var %s = miruken.InstallerFunc(func(registration *miruken.RegistrationBuilder) {\n", installName)
         _, _ = fmt.Fprintf(&buf, "\tregistration.AddHandlerTypes(%s...)\n", varName)
         _, _ = fmt.Fprintln(&buf, "})")
 

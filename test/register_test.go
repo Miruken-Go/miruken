@@ -12,7 +12,7 @@ type MyInstaller struct {
 }
 
 func (i *MyInstaller) Install(
-	registration *miruken.Registration,
+	registration *miruken.RegistrationBuilder,
 ) {
 	if registration.CanInstall(reflect.TypeOf(i)) {
 		i.count++

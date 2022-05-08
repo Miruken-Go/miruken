@@ -443,7 +443,7 @@ func (v *ValidationInstaller) ValidateResults() {
 	v.results = true
 }
 
-func (v *ValidationInstaller) Install(registration *Registration) {
+func (v *ValidationInstaller) Install(registration *RegistrationBuilder) {
 	if registration.CanInstall(&_validationTag) {
 		registration.AddFilters(NewValidateProvider(v.results))
 	}

@@ -6,8 +6,8 @@ import (
 )
 
 type (
-	// Registration manages the state of an installation.
-	Registration struct {
+	// RegistrationBuilder builds an installation.
+	RegistrationBuilder struct {
 		noInfer      bool
 		handlers     []any
 		handlerTypes []reflect.Type
@@ -16,59 +16,59 @@ type (
 		tags         map[any]struct{}
 	}
 
-	// Installer populates a Registration.
+	// Installer populates a RegistrationBuilder.
 	Installer interface {
-		Install(registration *Registration)
+		Install(registration *RegistrationBuilder)
 	}
 
-	InstallerFunc func(registration *Registration)
+	InstallerFunc func(registration *RegistrationBuilder)
 )
 
 func (f InstallerFunc) Install(
-	registration *Registration,
+	registration *RegistrationBuilder,
 )  { f(registration) }
 
-func (r *Registration) AddHandlers(
+func (r *RegistrationBuilder) AddHandlers(
 	handlers ... any,
-) *Registration {
+) *RegistrationBuilder {
 	r.handlers = append(r.handlers, handlers...)
 	return r
 }
 
-func (r *Registration) AddHandlerTypes(
+func (r *RegistrationBuilder) AddHandlerTypes(
 	handlerTypes ... reflect.Type,
-) *Registration {
+) *RegistrationBuilder {
 	r.handlerTypes = append(r.handlerTypes, handlerTypes...)
 	return r
 }
 
-func (r *Registration) Exclude(
+func (r *RegistrationBuilder) Exclude(
 	excludes ... Predicate[reflect.Type],
-) *Registration {
+) *RegistrationBuilder {
 	r.exclude = CombinePredicates(r.exclude, excludes...)
 	return r
 }
 
-func (r *Registration) AddFilters(
+func (r *RegistrationBuilder) AddFilters(
 	providers ... FilterProvider,
-) *Registration {
+) *RegistrationBuilder {
 	var handles Handles
 	handles.Policy().AddFilters(providers...)
 	return r
 }
 
-func (r *Registration) SetHandlerDescriptorFactory(
+func (r *RegistrationBuilder) SetHandlerDescriptorFactory(
 	factory HandlerDescriptorFactory,
-) *Registration {
+) *RegistrationBuilder {
 	r.factory = factory
 	return r
 }
 
-func (r *Registration) DisableInference() {
+func (r *RegistrationBuilder) DisableInference() {
 	r.noInfer = false
 }
 
-func (r *Registration) CanInstall(tag any) bool {
+func (r *RegistrationBuilder) CanInstall(tag any) bool {
 	if tags := r.tags; tags == nil {
 		r.tags = map[any]struct{} { tag: {} }
 		return true
@@ -79,12 +79,12 @@ func (r *Registration) CanInstall(tag any) bool {
 	return false
 }
 
-func (r *Registration) Install(installer Installer) *Registration {
+func (r *RegistrationBuilder) Install(installer Installer) *RegistrationBuilder {
 	installer.Install(r)
 	return r
 }
 
-func (r *Registration) Build() Handler {
+func (r *RegistrationBuilder) Build() Handler {
 	factory := r.factory
 	if IsNil(factory) {
 		factory = NewMutableHandlerDescriptorFactory()
@@ -119,36 +119,36 @@ func (r *Registration) Build() Handler {
 	return handler
 }
 
-var DisableInference = InstallerFunc(func(registration *Registration) {
+var DisableInference = InstallerFunc(func(registration *RegistrationBuilder) {
 	registration.noInfer = true
 })
 
 func WithHandlers(handlers ... any) Installer {
-	return InstallerFunc(func(registration *Registration) {
+	return InstallerFunc(func(registration *RegistrationBuilder) {
 		registration.AddHandlers(handlers...)
 	})
 }
 
 func WithHandlerTypes(types ... reflect.Type) Installer {
-	return InstallerFunc(func(registration *Registration) {
+	return InstallerFunc(func(registration *RegistrationBuilder) {
 		registration.AddHandlerTypes(types...)
 	})
 }
 
 func ExcludeHandlerTypes(filter ... Predicate[reflect.Type]) Installer {
-	return InstallerFunc(func(registration *Registration) {
+	return InstallerFunc(func(registration *RegistrationBuilder) {
 		registration.Exclude(filter...)
 	})
 }
 
 func WithHandlerDescriptorFactory(factory HandlerDescriptorFactory) Installer {
-	return InstallerFunc(func(registration *Registration) {
+	return InstallerFunc(func(registration *RegistrationBuilder) {
 		registration.SetHandlerDescriptorFactory(factory)
 	})
 }
 
-func NewRegistration(installers ... Installer) *Registration {
-	registration := &Registration{}
+func NewRegistration(installers ... Installer) *RegistrationBuilder {
+	registration := &RegistrationBuilder{}
 	for _, i := range installers {
 		if i != nil {
 			i.Install(registration)

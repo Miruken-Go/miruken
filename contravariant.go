@@ -101,7 +101,7 @@ func (p *ContravariantPolicy) NewFuncBinding(
 	spec *policySpec,
 ) (Binding, error) {
 	if args, key, err := validateContravariantFunc(fun.Type(), spec, 0); err != nil {
-		return nil, err
+		return nil, FuncBindingError{fun, err}
 	} else {
 		return &funcBinding{
 			FilteredScope{spec.filters},
