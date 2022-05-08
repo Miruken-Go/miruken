@@ -4,7 +4,6 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/stretchr/testify/suite"
 	"reflect"
-	"strings"
 	"testing"
 )
 
@@ -25,15 +24,6 @@ type RegisterTestSuite struct {
 	HandleTypes []reflect.Type
 }
 
-func (suite *RegisterTestSuite) SetupTest() {
-	suite.HandleTypes = make([]reflect.Type, 0)
-	for _, typ := range HandlerTestTypes {
-		if !strings.Contains(typ.Elem().Name(), "Invalid") {
-			suite.HandleTypes = append(suite.HandleTypes, typ)
-		}
-	}
-}
-
 func (suite *RegisterTestSuite) TestRegistration() {
 	suite.Run("#AddHandlerTypes", func () {
 		handler := miruken.NewRegistration(
@@ -49,7 +39,7 @@ func (suite *RegisterTestSuite) TestRegistration() {
 		suite.Equal(miruken.NotHandled, result)
 	})
 
-	suite.Run("#ExcludeHandlerTypes", func () {
+	suite.Run("#Exclude", func () {
 		handler := miruken.NewRegistration(
 			miruken.WithHandlerTypes(suite.HandleTypes...),
 			miruken.ExcludeHandlerTypes(

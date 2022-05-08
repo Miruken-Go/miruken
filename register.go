@@ -42,7 +42,7 @@ func (r *Registration) AddHandlerTypes(
 	return r
 }
 
-func (r *Registration) ExcludeHandlerTypes(
+func (r *Registration) Exclude(
 	excludes ... Predicate[reflect.Type],
 ) *Registration {
 	r.exclude = CombinePredicates(r.exclude, excludes...)
@@ -137,7 +137,7 @@ func WithHandlerTypes(types ... reflect.Type) Installer {
 
 func ExcludeHandlerTypes(filter ... Predicate[reflect.Type]) Installer {
 	return InstallerFunc(func(registration *Registration) {
-		registration.ExcludeHandlerTypes(filter...)
+		registration.Exclude(filter...)
 	})
 }
 

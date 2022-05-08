@@ -320,17 +320,11 @@ type HandlerTestSuite struct {
 	HandleTypes []reflect.Type
 }
 
-func (suite *HandlerTestSuite) SetupTest() {
-	suite.HandleTypes = make([]reflect.Type, 0)
-	for _, typ := range HandlerTestTypes {
-		if !strings.Contains(typ.Elem().Name(), "Invalid") {
-			suite.HandleTypes = append(suite.HandleTypes, typ)
-		}
-	}
-}
-
 func (suite *HandlerTestSuite) Register() miruken.Handler {
-	return suite.RegisterWith(miruken.WithHandlerTypes(suite.HandleTypes...))
+	return miruken.NewRegistration(WithTestHandlers).
+		Exclude(func (typ reflect.Type) bool {
+			return strings.Contains(typ.Elem().Name(), "Invalid")
+		}).Build()
 }
 
 func (suite *HandlerTestSuite) RegisterWith(installers ... miruken.Installer) miruken.Handler {

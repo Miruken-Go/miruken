@@ -5,7 +5,7 @@ package test
 import "github.com/miruken-go/miruken"
 import "reflect"
 
-var HandlerTestTypes = []reflect.Type{
+var mirukenTestTypes = []reflect.Type{
 	miruken.TypeOf[*AbortFilter](),
 	miruken.TypeOf[*BadHandler](),
 	miruken.TypeOf[*BarHandler](),
@@ -49,3 +49,6 @@ var HandlerTestTypes = []reflect.Type{
 	miruken.TypeOf[*UnmanagedHandler](),
 }
 
+var WithTestHandlers = miruken.InstallerFunc(func(registration *miruken.Registration) {
+	registration.AddHandlerTypes(mirukenTestTypes...)
+})

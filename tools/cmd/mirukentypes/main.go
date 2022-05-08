@@ -90,11 +90,13 @@ func parseDir(
         panic("path is not a directory: " + dir)
     }
 
-    var varName string
+    var varName, installName string
     if tests {
-        varName = "HandlerTestTypes"
+        varName     = "mirukenTestTypes"
+        installName = "WithTestHandlers"
     } else {
-        varName = "HandlerTypes"
+        varName     = "mirukenTypes"
+        installName = "WithHandlers"
     }
 
     filter:= func(info os.FileInfo) bool {
@@ -132,6 +134,11 @@ func parseDir(
         printTo(&buf, pkg, ast.Typ, "\tmiruken.TypeOf[*%s](),\n", suffixes)
         _, _ = fmt.Fprintln(&buf, "}")
         _, _ = fmt.Fprintln(&buf, "")
+
+        // Installer
+        _, _ = fmt.Fprintf(&buf, "var %s = miruken.InstallerFunc(func(registration *miruken.Registration) {\n", installName)
+        _, _ = fmt.Fprintf(&buf, "\tregistration.AddHandlerTypes(%s...)\n", varName)
+        _, _ = fmt.Fprintln(&buf, "})")
 
         if stdoutFlag {
             if _, err := io.Copy(os.Stdout, &buf); err != nil {
