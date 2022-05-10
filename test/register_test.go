@@ -25,7 +25,7 @@ type RegisterTestSuite struct {
 }
 
 func (suite *RegisterTestSuite) TestRegistration() {
-	suite.Run("#AddHandlerTypes", func () {
+	suite.Run("#RegisterHandlers", func () {
 		handler := miruken.NewRegistration(
 			miruken.WithHandlerTypes(miruken.TypeOf[*MultiHandler]()),
 		).Build()
@@ -39,7 +39,7 @@ func (suite *RegisterTestSuite) TestRegistration() {
 		suite.Equal(miruken.NotHandled, result)
 	})
 
-	suite.Run("#Exclude", func () {
+	suite.Run("#Except", func () {
 		handler := miruken.NewRegistration(
 			miruken.WithHandlerTypes(suite.HandleTypes...),
 			miruken.ExcludeHandlerTypes(

@@ -197,17 +197,13 @@ func (e *HandlerDescriptorError) Unwrap() error { return e.Reason }
 
 // HandlerDescriptorProvider return descriptors for the Handler type.
 type HandlerDescriptorProvider interface {
-	HandlerDescriptorOf(
-		handler reflect.Type,
-	) *HandlerDescriptor
+	HandlerDescriptor(handler reflect.Type) *HandlerDescriptor
 }
 
 // HandlerDescriptorFactory adds registration to the HandlerDescriptorProvider.
 type HandlerDescriptorFactory interface {
 	HandlerDescriptorProvider
-	RegisterHandlerType(
-		handlerType reflect.Type,
-	) (*HandlerDescriptor, bool, error)
+	RegisterHandler(handlerType reflect.Type) (*HandlerDescriptor, bool, error)
 }
 
 type HandlerDescriptorVisitor interface {
@@ -221,7 +217,7 @@ type HandlerDescriptorVisitorFunc func(*HandlerDescriptor, Binding)
 
 func (f HandlerDescriptorVisitorFunc) VisitHandlerBinding(
 	descriptor *HandlerDescriptor,
-	binding Binding,
+	binding    Binding,
 ) {
 	f(descriptor, binding)
 }
@@ -234,7 +230,7 @@ type mutableDescriptorFactory struct {
 	visitor     HandlerDescriptorVisitor
 }
 
-func (f *mutableDescriptorFactory) HandlerDescriptorOf(
+func (f *mutableDescriptorFactory) HandlerDescriptor(
 	handlerType reflect.Type,
 ) *HandlerDescriptor {
 	f.RLock()
@@ -242,7 +238,7 @@ func (f *mutableDescriptorFactory) HandlerDescriptorOf(
 	return f.descriptors[handlerType]
 }
 
-func (f *mutableDescriptorFactory) RegisterHandlerType(
+func (f *mutableDescriptorFactory) RegisterHandler(
 	handlerType reflect.Type,
 ) (*HandlerDescriptor, bool, error) {
 	if handlerType.Implements(_suppressDispatchType) {

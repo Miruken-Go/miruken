@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-//go:generate $GOPATH/bin/mirukentypes -tests
+//go:generate $GOPATH/bin/miruken -tests
 
 type Counter interface {
 	Count() int
@@ -322,7 +322,7 @@ type HandlerTestSuite struct {
 
 func (suite *HandlerTestSuite) Register() miruken.Handler {
 	return miruken.NewRegistration(WithTestHandlers).
-		Exclude(func (typ reflect.Type) bool {
+		Except(func (typ reflect.Type) bool {
 			return strings.Contains(typ.Elem().Name(), "Invalid")
 		}).Build()
 }

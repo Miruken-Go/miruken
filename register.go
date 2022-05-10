@@ -35,14 +35,14 @@ func (r *RegistrationBuilder) AddHandlers(
 	return r
 }
 
-func (r *RegistrationBuilder) AddHandlerTypes(
+func (r *RegistrationBuilder) RegisterHandlers(
 	handlerTypes ... reflect.Type,
 ) *RegistrationBuilder {
 	r.handlerTypes = append(r.handlerTypes, handlerTypes...)
 	return r
 }
 
-func (r *RegistrationBuilder) Exclude(
+func (r *RegistrationBuilder) Except(
 	excludes ... Predicate[reflect.Type],
 ) *RegistrationBuilder {
 	r.exclude = CombinePredicates(r.exclude, excludes...)
@@ -100,7 +100,7 @@ func (r *RegistrationBuilder) Build() Handler {
 		if len(types) > 0 {
 			if r.noInfer {
 				for _, typ := range types {
-					if _, _, err := factory.RegisterHandlerType(typ); err != nil {
+					if _, _, err := factory.RegisterHandler(typ); err != nil {
 						panic(err)
 					}
 				}
@@ -131,13 +131,13 @@ func WithHandlers(handlers ... any) Installer {
 
 func WithHandlerTypes(types ... reflect.Type) Installer {
 	return InstallerFunc(func(registration *RegistrationBuilder) {
-		registration.AddHandlerTypes(types...)
+		registration.RegisterHandlers(types...)
 	})
 }
 
 func ExcludeHandlerTypes(filter ... Predicate[reflect.Type]) Installer {
 	return InstallerFunc(func(registration *RegistrationBuilder) {
-		registration.Exclude(filter...)
+		registration.Except(filter...)
 	})
 }
 

@@ -5,7 +5,6 @@ import (
 	"reflect"
 )
 
-
 // FuncBindingError reports a failed function binding.
 type FuncBindingError struct {
 	Func   reflect.Value
@@ -13,8 +12,7 @@ type FuncBindingError struct {
 }
 
 func (e FuncBindingError) Error() string {
-	return fmt.Sprintf("invalid function: %#v: %v",
-		e.Func, e.Reason)
+	return fmt.Sprintf("invalid function: %#v: %v", e.Func, e.Reason)
 }
 
 func (e FuncBindingError) Unwrap() error { return e.Reason }

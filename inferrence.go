@@ -98,7 +98,7 @@ func newInferenceHandler(
 	}
 	bindings := make(policyBindingsMap)
 	for _, typ := range types {
-		if descriptor, added, err := factory.RegisterHandlerType(typ); err != nil {
+		if descriptor, added, err := factory.RegisterHandler(typ); err != nil {
 			panic(err)
 		} else if added {
 			for policy, bs := range descriptor.bindings {

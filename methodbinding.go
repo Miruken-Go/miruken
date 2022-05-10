@@ -12,8 +12,7 @@ type MethodBindingError struct {
 }
 
 func (e MethodBindingError) Error() string {
-	return fmt.Sprintf("invalid method: %v %v: %v",
-		e.Method.Name, e.Method.Type, e.Reason)
+	return fmt.Sprintf("invalid method: %#v: %v", e.Method, e.Reason)
 }
 
 func (e MethodBindingError) Unwrap() error { return e.Reason }
