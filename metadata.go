@@ -203,7 +203,7 @@ type HandlerDescriptorProvider interface {
 // HandlerDescriptorFactory adds registration to the HandlerDescriptorProvider.
 type HandlerDescriptorFactory interface {
 	HandlerDescriptorProvider
-	RegisterHandler(handlerType reflect.Type) (*HandlerDescriptor, bool, error)
+	RegisterHandler(handler any) (*HandlerDescriptor, bool, error)
 }
 
 type HandlerDescriptorVisitor interface {
@@ -239,10 +239,24 @@ func (f *mutableDescriptorFactory) HandlerDescriptor(
 }
 
 func (f *mutableDescriptorFactory) RegisterHandler(
-	handlerType reflect.Type,
+	spec any,
 ) (*HandlerDescriptor, bool, error) {
-	if handlerType.Implements(_suppressDispatchType) {
+	if IsNil(spec) {
+		panic("spec cannot be nil")
+	}
+
+	var handlerType reflect.Type
+
+	switch h := spec.(type) {
+	case suppressDispatch:
 		return nil, false, nil
+	case reflect.Type:
+		if h.Implements(_suppressDispatchType) {
+			return nil, false, nil
+		}
+		handlerType = h
+	default:
+		handlerType = reflect.TypeOf(spec)
 	}
 
 	f.Lock()

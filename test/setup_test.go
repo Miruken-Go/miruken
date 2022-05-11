@@ -12,23 +12,23 @@ type MyInstaller struct {
 }
 
 func (i *MyInstaller) Install(
-	registration *miruken.RegistrationBuilder,
+	setup *miruken.SetupBuilder,
 ) {
-	if registration.CanInstall(reflect.TypeOf(i)) {
+	if setup.CanInstall(reflect.TypeOf(i)) {
 		i.count++
 	}
 }
 
 type RegisterTestSuite struct {
 	suite.Suite
-	HandleTypes []reflect.Type
+	HandleTypes []any
 }
 
-func (suite *RegisterTestSuite) TestRegistration() {
+func (suite *RegisterTestSuite) TestSetup() {
 	suite.Run("#RegisterHandlers", func () {
-		handler := miruken.NewRegistration(
-			miruken.WithHandlerTypes(miruken.TypeOf[*MultiHandler]()),
-		).Build()
+		handler := miruken.Setup(
+			miruken.WithHandlerSpecs(&MultiHandler{}),
+		)
 
 		result := handler.Handle(&Foo{}, false, nil)
 		suite.False(result.IsError())
@@ -39,17 +39,18 @@ func (suite *RegisterTestSuite) TestRegistration() {
 		suite.Equal(miruken.NotHandled, result)
 	})
 
-	suite.Run("#Except", func () {
-		handler := miruken.NewRegistration(
-			miruken.WithHandlerTypes(suite.HandleTypes...),
-			miruken.ExcludeHandlerTypes(
-				func(t reflect.Type) bool {
-					return t.Kind() == reflect.Ptr && t.Elem().Name() == "MultiHandler"
+	suite.Run("#Exclude", func () {
+		handler := miruken.Setup(
+			miruken.WithHandlerSpecs(suite.HandleTypes...),
+			miruken.ExcludeRule(
+				func(t any) bool {
+					typ := reflect.TypeOf(t)
+					return typ.Kind() == reflect.Ptr && typ.Elem().Name() == "MultiHandler"
 				},
-				func(t reflect.Type) bool {
+				func(t any) bool {
 					return t == miruken.TypeOf[*EverythingHandler]()
 				}),
-		).Build()
+		)
 
 		var m *MultiHandler
 		err := miruken.Resolve(handler, &m)
@@ -63,10 +64,10 @@ func (suite *RegisterTestSuite) TestRegistration() {
 	})
 
 	suite.Run("#DisableInference", func () {
-		handler := miruken.NewRegistration(
-			miruken.WithHandlerTypes(suite.HandleTypes...),
+		handler := miruken.Setup(
+			miruken.WithHandlerSpecs(suite.HandleTypes...),
 			miruken.DisableInference,
-		).Build()
+		)
 
 		result := handler.Handle(&Foo{}, false, nil)
 		suite.False(result.IsError())
@@ -80,7 +81,7 @@ func (suite *RegisterTestSuite) TestRegistration() {
 
 	suite.Run("Installs Once", func () {
 		installer := &MyInstaller{}
-		miruken.NewRegistration(installer, installer)
+		miruken.Setup(installer, installer)
 		suite.Equal(1, installer.count)
 	})
 }

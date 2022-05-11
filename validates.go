@@ -443,9 +443,9 @@ func (v *ValidationInstaller) ValidateResults() {
 	v.results = true
 }
 
-func (v *ValidationInstaller) Install(registration *RegistrationBuilder) {
-	if registration.CanInstall(&_validationTag) {
-		registration.AddFilters(NewValidateProvider(v.results))
+func (v *ValidationInstaller) Install(setup *SetupBuilder) {
+	if setup.CanInstall(&_validationTag) {
+		setup.AddFilters(NewValidateProvider(v.results))
 	}
 }
 
@@ -455,7 +455,7 @@ func ValidateResults(installer *ValidationInstaller) {
 
 func WithValidation(
 	config ... func(installer *ValidationInstaller),
-) Installer {
+) Feature {
 	installer := &ValidationInstaller{}
 	for _, configure := range config {
 		if configure != nil {

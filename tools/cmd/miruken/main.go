@@ -90,13 +90,11 @@ func parseDir(
         panic("path is not a directory: " + dir)
     }
 
-    var varName, installName string
+    var featureName string
     if tests {
-        varName     = "mirukenTestTypes"
-        installName = "WithTestHandlers"
+        featureName = "TestFeature"
     } else {
-        varName     = "mirukenTypes"
-        installName = "WithHandlers"
+        featureName = "Feature"
     }
 
     filter:= func(info os.FileInfo) bool {
@@ -126,18 +124,15 @@ func parseDir(
         _, _ = fmt.Fprintln(&buf, "package", pkg.Name)
         _, _ = fmt.Fprintln(&buf, "")
         _, _ = fmt.Fprintf(&buf, "import %q\n", mirukenPkgPath)
-        _, _ = fmt.Fprintln(&buf, `import "reflect"`)
         _, _ = fmt.Fprintln(&buf, "")
+
+        // Feature
+        _, _ = fmt.Fprintf(&buf, "var %s = miruken.FeatureFunc(func(setup *miruken.SetupBuilder) {\n", featureName)
+        _, _ = fmt.Fprintln(&buf, "\tsetup.RegisterHandlers(")
 
         // Types
-        _, _ = fmt.Fprintf(&buf, "var %s = []reflect.Type{\n", varName)
-        printTo(&buf, pkg, ast.Typ, "\tmiruken.TypeOf[*%s](),\n", suffixes)
-        _, _ = fmt.Fprintln(&buf, "}")
-        _, _ = fmt.Fprintln(&buf, "")
-
-        // Installer
-        _, _ = fmt.Fprintf(&buf, "var %s = miruken.InstallerFunc(func(registration *miruken.RegistrationBuilder) {\n", installName)
-        _, _ = fmt.Fprintf(&buf, "\tregistration.RegisterHandlers(%s...)\n", varName)
+        printTo(&buf, pkg, ast.Typ, "\t\t&%s{},\n", suffixes)
+        _, _ = fmt.Fprintln(&buf, "\t)")
         _, _ = fmt.Fprintln(&buf, "})")
 
         if stdoutFlag {

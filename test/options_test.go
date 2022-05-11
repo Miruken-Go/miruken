@@ -3,7 +3,6 @@ package test
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/stretchr/testify/suite"
-	"reflect"
 	"testing"
 )
 
@@ -27,14 +26,12 @@ type OptionsTestSuite struct {
 	suite.Suite
 }
 
-func (suite *OptionsTestSuite) Register() miruken.Handler {
-	return miruken.NewRegistration().Build()
+func (suite *OptionsTestSuite) Setup() miruken.Handler {
+	return miruken.Setup()
 }
 
-func (suite *OptionsTestSuite) RegisterWith(handlerTypes ... reflect.Type) miruken.Handler {
-	return miruken.NewRegistration(
-		miruken.WithHandlerTypes(handlerTypes...),
-	).Build()
+func (suite *OptionsTestSuite) SetupWith(specs ... any) miruken.Handler {
+	return miruken.Setup(miruken.WithHandlerSpecs(specs...))
 }
 
 func (suite *OptionsTestSuite) TestOptions() {
@@ -52,7 +49,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 
 	suite.Run("Inline", func () {
 		handler := miruken.Build(
-			suite.Register(),
+			suite.Setup(),
 			miruken.WithOptions(ServerOptions{
 			Url:     "https://playsoccer.com",
 			Timeout: 30,
@@ -74,7 +71,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 		serverOpt := new(ServerOptions)
 		serverOpt.Url     = "https://playsoccer.com"
 		serverOpt.Timeout = 30
-		handler := miruken.Build(suite.Register(), miruken.WithOptions(serverOpt))
+		handler := miruken.Build(suite.Setup(), miruken.WithOptions(serverOpt))
 		var options ServerOptions
 		suite.True(miruken.GetOptions(handler, &options))
 		suite.Equal("https://playsoccer.com", options.Url)
@@ -82,7 +79,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 	})
 
 	suite.Run("Creates", func () {
-		handler := miruken.Build(suite.Register(), miruken.WithOptions(ServerOptions{
+		handler := miruken.Build(suite.Setup(), miruken.WithOptions(ServerOptions{
 			Url:     "https://playsoccer.com",
 			Timeout: 30,
 		}))
@@ -94,7 +91,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 	})
 
 	suite.Run("MergesInline", func () {
-		handler := miruken.Build(suite.Register(), miruken.WithOptions(ServerOptions{
+		handler := miruken.Build(suite.Setup(), miruken.WithOptions(ServerOptions{
 			Url:     "https://playsoccer.com",
 			Timeout: 30,
 		}))
@@ -105,7 +102,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 	})
 
 	suite.Run("MergesCreate", func () {
-		handler := miruken.Build(suite.Register(), miruken.WithOptions(ServerOptions{
+		handler := miruken.Build(suite.Setup(), miruken.WithOptions(ServerOptions{
 			Url:     "https://playsoccer.com",
 			Timeout: 30,
 		}))
@@ -119,7 +116,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 
 	suite.Run("Combines", func () {
 		handler := miruken.Build(
-			suite.Register(),
+			suite.Setup(),
 			miruken.WithOptions(ServerOptions{
 				Url:       "https://directv.com",
 				KeepAlive: miruken.OptionTrue,
@@ -137,7 +134,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 
 	suite.Run("AppendsSlice", func () {
 		handler := miruken.Build(
-			suite.Register(),
+			suite.Setup(),
 			miruken.WithOptions(ServerOptions{
 				Url:"https://netflix.com",
 				Headers: []Header{
@@ -162,7 +159,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 	})
 
 	suite.Run("NoMatch", func () {
-		handler := suite.Register()
+		handler := suite.Setup()
 		var options ServerOptions
 		suite.False(miruken.GetOptions(handler, &options))
 		suite.Equal("", options.Url)
@@ -170,14 +167,14 @@ func (suite *OptionsTestSuite) TestOptions() {
 	})
 
 	suite.Run("NoMatchCre", func () {
-		handler := suite.Register()
+		handler := suite.Setup()
 		var options *ServerOptions
 		suite.False(miruken.GetOptions(handler, &options))
 		suite.Nil(options)
 	})
 
 	suite.Run("FromOptions", func () {
-		handler := suite.RegisterWith(miruken.TypeOf[*FooOptionsHandler]())
+		handler := suite.SetupWith(&FooOptionsHandler{})
 		foo     := new(Foo)
 		result  := miruken.Build(handler, miruken.WithOptions(FooOptions{2})).
 			Handle(foo, false, nil)

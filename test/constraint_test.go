@@ -3,7 +3,6 @@ package test
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/stretchr/testify/suite"
-	"reflect"
 	"testing"
 )
 
@@ -155,34 +154,31 @@ func (c *Client) Remote() AppSettings {
 
 type ConstraintTestSuite struct {
 	suite.Suite
-	HandleTypes []reflect.Type
+	specs []any
 }
 
 func (suite *ConstraintTestSuite) SetupTest() {
-	handleTypes := []reflect.Type{
-		miruken.TypeOf[*PersonProvider](),
-		miruken.TypeOf[*LocalSettings](),
-		miruken.TypeOf[*RemoteSettings](),
-		miruken.TypeOf[*Hospital](),
-		miruken.TypeOf[*Client](),
+	suite.specs = []any{
+		&PersonProvider{},
+		&LocalSettings{},
+		&RemoteSettings{},
+		&Hospital{},
+		&Client{},
 	}
-	suite.HandleTypes = handleTypes
 }
 
-func (suite *ConstraintTestSuite) Register() miruken.Handler {
-	return suite.RegisterWith(suite.HandleTypes...)
+func (suite *ConstraintTestSuite) Setup() miruken.Handler {
+	return suite.SetupWith(suite.specs...)
 }
 
-func (suite *ConstraintTestSuite) RegisterWith(handlerTypes ... reflect.Type) miruken.Handler {
-	return miruken.NewRegistration(
-		miruken.WithHandlerTypes(handlerTypes...),
-	).Build()
+func (suite *ConstraintTestSuite) SetupWith(specs ... any) miruken.Handler {
+	return miruken.Setup(miruken.WithHandlerSpecs(specs...))
 }
 
 func (suite *ConstraintTestSuite) TestConstraints() {
 	suite.Run("No Constraints", func () {
 		suite.Run("Resolve", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			var appSettings AppSettings
 			err := miruken.Resolve(handler, &appSettings)
 			suite.Nil(err)
@@ -190,7 +186,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 		})
 
 		suite.Run("ResolveAll", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			var appSettings []AppSettings
 			err := miruken.ResolveAll(handler, &appSettings)
 			suite.Nil(err)
@@ -200,7 +196,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 
 	suite.Run("Named", func () {
 		suite.Run("Resolve", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			var appSettings AppSettings
 			err := miruken.Resolve(handler, &appSettings,
 				func(c *miruken.ConstraintBuilder) {
@@ -218,7 +214,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 		})
 
 		suite.Run("ResolveAll", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			var appSettings []AppSettings
 			err := miruken.ResolveAll(handler, &appSettings,
 				func(c *miruken.ConstraintBuilder) {
@@ -229,7 +225,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 		})
 
 		suite.Run("Inject", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			var client *Client
 			err := miruken.Resolve(handler, &client)
 			suite.Nil(err)
@@ -241,7 +237,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 
 	suite.Run("Metadata", func () {
 		suite.Run("Resolve", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			var doctor Person
 			err := miruken.Resolve(handler, &doctor,
 				func(c *miruken.ConstraintBuilder) {
@@ -264,7 +260,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 		})
 
 		suite.Run("ResolveAll", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			var programmers []Person
 			err := miruken.ResolveAll(handler, &programmers,
 				func(c *miruken.ConstraintBuilder) {
@@ -275,7 +271,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 		})
 
 		suite.Run("Inject", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			var hospital *Hospital
 			err := miruken.Resolve(handler, &hospital)
 			suite.Nil(err)

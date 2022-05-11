@@ -6,7 +6,6 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/stretchr/testify/suite"
 	"math"
-	"reflect"
 	"testing"
 )
 
@@ -312,31 +311,28 @@ func (b BadHandler) HandleBar(
 
 type FilterTestSuite struct {
 	suite.Suite
-	HandleTypes []reflect.Type
+	specs []any
 }
 
 func (suite *FilterTestSuite) SetupTest() {
-	handleTypes := []reflect.Type{
-		miruken.TypeOf[*FilteringHandler](),
-		miruken.TypeOf[*SpecialFilteringHandler](),
-		miruken.TypeOf[*SingletonHandler](),
-		miruken.TypeOf[*LogFilter](),
-		miruken.TypeOf[*ConsoleLogger](),
-		miruken.TypeOf[*ExceptionFilter](),
-		miruken.TypeOf[*AbortFilter](),
-		miruken.TypeOf[NullFilter](),
+	suite.specs =  []any{
+		&FilteringHandler{},
+		&SpecialFilteringHandler{},
+		&SingletonHandler{},
+		&LogFilter{},
+		&ConsoleLogger{},
+		&ExceptionFilter{},
+		&AbortFilter{},
+		NullFilter{},
 	}
-	suite.HandleTypes = handleTypes
 }
 
-func (suite *FilterTestSuite) Register() miruken.Handler {
-	return suite.RegisterWith(suite.HandleTypes...)
+func (suite *FilterTestSuite) Setup() miruken.Handler {
+	return suite.SetupWith(suite.specs...)
 }
 
-func (suite *FilterTestSuite) RegisterWith(handlerTypes ... reflect.Type) miruken.Handler {
-	return miruken.NewRegistration(
-		miruken.WithHandlerTypes(handlerTypes...),
-	).Build()
+func (suite *FilterTestSuite) SetupWith(specs ... any) miruken.Handler {
+	return miruken.Setup(miruken.WithHandlerSpecs(specs...))
 }
 
 func (suite *FilterTestSuite) TestFilters() {
@@ -363,7 +359,7 @@ func (suite *FilterTestSuite) TestFilters() {
 	})
 
 	suite.Run("Create Pipeline", func () {
-		handler := suite.Register()
+		handler := suite.Setup()
 		bar     := new(BarC)
 		result  := handler.Handle(bar, false, nil)
 		suite.False(result.IsError())
@@ -377,7 +373,7 @@ func (suite *FilterTestSuite) TestFilters() {
 	})
 
 	suite.Run("Abort Pipeline", func () {
-		handler := suite.Register()
+		handler := suite.Setup()
 		bar := new(BarC)
 		bar.IncHandled(100)
 		result := handler.Handle(bar, false, nil)
@@ -388,7 +384,7 @@ func (suite *FilterTestSuite) TestFilters() {
 
 	suite.Run("Skip Pipeline", func () {
 		suite.Run("Implicit", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			bee := new(BeeC)
 			result := handler.Handle(bee, false, nil)
 			suite.False(result.IsError())
@@ -398,7 +394,7 @@ func (suite *FilterTestSuite) TestFilters() {
 		})
 
 		suite.Run("Explicit", func() {
-			handler := miruken.Build(suite.Register(), miruken.DisableFilters)
+			handler := miruken.Build(suite.Setup(), miruken.DisableFilters)
 			bar     := new(BarC)
 			result  := handler.Handle(bar, false, nil)
 			suite.False(result.IsError())
@@ -412,7 +408,7 @@ func (suite *FilterTestSuite) TestFilters() {
 
 	suite.Run("Singleton", func () {
 		suite.Run("Implicit", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			var singletonHandler *SingletonHandler
 			err := miruken.Resolve(handler, &singletonHandler)
 			suite.Nil(err)
@@ -424,10 +420,10 @@ func (suite *FilterTestSuite) TestFilters() {
 		})
 
 		suite.Run("Infer", func() {
-			handler := suite.RegisterWith(
-				miruken.TypeOf[*SingletonHandler](),
-				miruken.TypeOf[*ConsoleLogger](),
-				miruken.TypeOf[*LogFilter](),
+			handler := suite.SetupWith(
+				&SingletonHandler{},
+				&ConsoleLogger{},
+				&LogFilter{},
 			)
 			bar := new(BarC)
 			bar.IncHandled(10)
@@ -438,8 +434,8 @@ func (suite *FilterTestSuite) TestFilters() {
 		})
 
 		suite.Run("Error", func() {
-			handler := suite.RegisterWith(
-				miruken.TypeOf[*SingletonErrorHandler](),
+			handler := suite.SetupWith(
+				&SingletonErrorHandler{},
 			)
 			bee := new(BeeC)
 			result := handler.Handle(bee, false, nil)
@@ -453,8 +449,8 @@ func (suite *FilterTestSuite) TestFilters() {
 		})
 
 		suite.Run("Panic", func() {
-			handler := suite.RegisterWith(
-				miruken.TypeOf[*SingletonErrorHandler](),
+			handler := suite.SetupWith(
+				&SingletonErrorHandler{},
 			)
 			bee := new(BeeC)
 			result := handler.Handle(bee, false, nil)
@@ -472,9 +468,9 @@ func (suite *FilterTestSuite) TestFilters() {
 	})
 
 	suite.Run("Missing Dependencies", func () {
-		handler := suite.RegisterWith(
-			miruken.TypeOf[*BadHandler](),
-			miruken.TypeOf[*LogFilter](),
+		handler := suite.SetupWith(
+			&BadHandler{},
+			&LogFilter{},
 		)
 		bar   := new(BarC)
 		result := handler.Handle(bar, false, nil)

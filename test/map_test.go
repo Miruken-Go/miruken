@@ -158,30 +158,27 @@ func (m *InvalidMapper) MissingCallbackArgument(
 
 type MapTestSuite struct {
 	suite.Suite
-	HandleTypes []reflect.Type
+	specs []any
 }
 
 func (suite *MapTestSuite) SetupTest() {
-	handleTypes := []reflect.Type{
-		miruken.TypeOf[*EntityMapper](),
+	suite.specs = []any{
+		&EntityMapper{},
 	}
-	suite.HandleTypes = handleTypes
 }
 
-func (suite *MapTestSuite) Register() miruken.Handler {
-	return suite.RegisterWith(suite.HandleTypes...)
+func (suite *MapTestSuite) Setup() miruken.Handler {
+	return suite.SetupWith(suite.specs...)
 }
 
-func (suite *MapTestSuite) RegisterWith(handlerTypes ... reflect.Type) miruken.Handler {
-	return miruken.NewRegistration(
-		miruken.WithHandlerTypes(handlerTypes...),
-	).Build()
+func (suite *MapTestSuite) SetupWith(specs ... any) miruken.Handler {
+	return miruken.Setup(miruken.WithHandlerSpecs(specs...))
 }
 
 func (suite *MapTestSuite) TestMap() {
 	suite.Run("Maps", func () {
 		suite.Run("New", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			entity  := PlayerEntity{
 				Entity{ Id: 1 },
 				"Tim Howard",
@@ -194,7 +191,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("Into", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			entity  := PlayerEntity{
 				Entity{ Id: 2 },
 				"David Silva",
@@ -207,7 +204,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("IntoPtr", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			entity  := PlayerEntity{
 				Entity{ Id: 3 },
 				"Franz Beckenbauer",
@@ -220,7 +217,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("Open", func() {
-			handler := suite.RegisterWith(miruken.TypeOf[*OpenMapper]())
+			handler := suite.SetupWith(&OpenMapper{})
 			entity  := PlayerEntity{
 				Entity{ Id: 1 },
 				"Tim Howard",
@@ -233,7 +230,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("ToMap", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			entity  := PlayerEntity{
 				Entity{ Id: 1 },
 				"Marco Royce",
@@ -246,7 +243,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("FromMap", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			data    := map[string]any{
 				"Id":    2,
 				"Name": "George Best",
@@ -259,7 +256,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("Format", func() {
-			handler := suite.RegisterWith(miruken.TypeOf[*FormatMapper]())
+			handler := suite.SetupWith(&FormatMapper{})
 
 			data  := PlayerData{
 				Id:   1,
@@ -281,7 +278,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("All", func() {
-			handler  := suite.Register()
+			handler  := suite.Setup()
 			entities := []*PlayerEntity{
 				{
 					Entity{ Id: 1 },
@@ -333,7 +330,7 @@ func (suite *MapTestSuite) TestMap() {
 					}
 				}
 			}()
-			suite.RegisterWith(miruken.TypeOf[*InvalidMapper]())
+			suite.SetupWith(&InvalidMapper{})
 			suite.Fail("should cause panic")
 		})
 	})

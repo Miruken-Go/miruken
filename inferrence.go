@@ -91,14 +91,14 @@ func (b *bindingIntercept) Invoke(
 
 func newInferenceHandler(
 	factory HandlerDescriptorFactory,
-	types   []reflect.Type,
+	specs   []any,
 ) *inferenceHandler {
 	if factory == nil {
 		panic("factory cannot be nil")
 	}
 	bindings := make(policyBindingsMap)
-	for _, typ := range types {
-		if descriptor, added, err := factory.RegisterHandler(typ); err != nil {
+	for _, spec := range specs {
+		if descriptor, added, err := factory.RegisterHandler(spec); err != nil {
 			panic(err)
 		} else if added {
 			for policy, bs := range descriptor.bindings {

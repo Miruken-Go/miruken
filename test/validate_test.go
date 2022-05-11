@@ -187,27 +187,24 @@ func (h *TeamHandler) RemoveTeam(
 
 type ValidateTestSuite struct {
 	suite.Suite
-	HandleTypes []reflect.Type
+	specs []any
 }
 
 func (suite *ValidateTestSuite) SetupTest() {
-	handleTypes := []reflect.Type{
-		miruken.TypeOf[*OpenValidator](),
-		miruken.TypeOf[*PlayerValidator](),
-		miruken.TypeOf[*TeamValidator](),
-		miruken.TypeOf[*TeamHandler](),
+	suite.specs = []any{
+		&OpenValidator{},
+		&PlayerValidator{},
+		&TeamValidator{},
+		&TeamHandler{},
 	}
-	suite.HandleTypes = handleTypes
 }
 
-func (suite *ValidateTestSuite) Register() miruken.Handler {
-	return suite.RegisterWith(suite.HandleTypes...)
+func (suite *ValidateTestSuite) Setup() miruken.Handler {
+	return suite.SetupWith(suite.specs...)
 }
 
-func (suite *ValidateTestSuite) RegisterWith(handlerTypes ... reflect.Type) miruken.Handler {
-	return miruken.NewRegistration(
-		miruken.WithHandlerTypes(handlerTypes...),
-	).Build()
+func (suite *ValidateTestSuite) SetupWith(specs ... any) miruken.Handler {
+	return miruken.Setup(miruken.WithHandlerSpecs(specs...))
 }
 
 func (suite *ValidateTestSuite) TestValidation() {
@@ -288,7 +285,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 
 	suite.Run("Validates", func () {
 		suite.Run("Default", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			player  := Player{DOB:  time.Date(2007, time.June,
 				14, 13, 26, 00, 0, time.Local) }
 			outcome, err := miruken.Validate(handler, &player)
@@ -301,7 +298,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 		})
 
 		suite.Run("Group", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 			player  := Player{
 				FirstName: "Matthew",
 				LastName:  "Dudley",
@@ -319,7 +316,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 	})
 
 	suite.Run("ValidateFilter", func () {
-		handler := suite.Register()
+		handler := suite.Setup()
 		var handles miruken.Handles
 		handles.Policy().AddFilters(miruken.NewValidateProvider(false))
 

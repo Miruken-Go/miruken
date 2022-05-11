@@ -6,7 +6,6 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/stretchr/testify/suite"
 	"io"
-	"reflect"
 	"strings"
 	"testing"
 )
@@ -24,30 +23,27 @@ func (m *PlayerMapper) ToPlayerJson(
 
 type JsonTestSuite struct {
 	suite.Suite
-	HandleTypes []reflect.Type
+	specs []any
 }
 
 func (suite *JsonTestSuite) SetupTest() {
-	handleTypes := []reflect.Type{
-		miruken.TypeOf[*miruken.JsonMapper](),
+	suite.specs = []any{
+		&miruken.JsonMapper{},
 	}
-	suite.HandleTypes = handleTypes
 }
 
-func (suite *JsonTestSuite) Register() miruken.Handler {
-	return suite.RegisterWith(suite.HandleTypes...)
+func (suite *JsonTestSuite) Setup() miruken.Handler {
+	return suite.SetupWith(suite.specs...)
 }
 
-func (suite *JsonTestSuite) RegisterWith(handlerTypes ... reflect.Type) miruken.Handler {
-	return miruken.NewRegistration(
-		miruken.WithHandlerTypes(handlerTypes...),
-	).Build()
+func (suite *JsonTestSuite) SetupWith(specs ... any) miruken.Handler {
+	return miruken.Setup(miruken.WithHandlerSpecs(specs...))
 }
 
 func (suite *JsonTestSuite) TestJson() {
 	suite.Run("Maps", func () {
 		suite.Run("Json", func() {
-			handler := suite.Register()
+			handler := suite.Setup()
 
 			suite.Run("ToJson", func() {
 				data := struct{
@@ -123,9 +119,9 @@ func (suite *JsonTestSuite) TestJson() {
 			})
 
 			suite.Run("ToJsonOverride", func() {
-				handler := suite.RegisterWith(
-					miruken.TypeOf[*miruken.JsonMapper](),
-					miruken.TypeOf[*PlayerMapper]())
+				handler := suite.SetupWith(
+					&miruken.JsonMapper{},
+					&PlayerMapper{})
 
 				data :=  PlayerData{
 					Id:   1,

@@ -3,7 +3,6 @@ package test
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/stretchr/testify/suite"
-	"reflect"
 	"testing"
 )
 
@@ -64,14 +63,14 @@ func (s *Service) Count(
 
 type ContextTestSuite struct {
 	suite.Suite
-	HandleTypes []reflect.Type
+	HandleTypes []any
 }
 
 func (suite *ContextTestSuite) SetupTest() {
-	handleTypes := []reflect.Type{
-		miruken.TypeOf[*Service](),
-		miruken.TypeOf[*ScopedService](),
-		miruken.TypeOf[*RootedService](),
+	handleTypes := []any{
+		&Service{},
+		&ScopedService{},
+		&RootedService{},
 	}
 	suite.HandleTypes = handleTypes
 }
@@ -80,10 +79,8 @@ func (suite *ContextTestSuite) RootContext() *miruken.Context {
 	return suite.RootContextWith(suite.HandleTypes...)
 }
 
-func (suite *ContextTestSuite) RootContextWith(handlerTypes ... reflect.Type) *miruken.Context {
-	return miruken.NewContext(miruken.NewRegistration(
-		miruken.WithHandlerTypes(handlerTypes...),
-	).Build())
+func (suite *ContextTestSuite) RootContextWith(specs ... any) *miruken.Context {
+	return miruken.NewContext(miruken.Setup(miruken.WithHandlerSpecs(specs...)))
 }
 
 func (suite *ContextTestSuite) TestContext() {
@@ -132,10 +129,10 @@ func (suite *ContextTestSuite) TestContext() {
 	})
 
 	suite.Run("Handlers", func () {
-		context := miruken.NewContext(miruken.NewRegistration(
-			miruken.WithHandlerTypes(miruken.TypeOf[*Service]()),
+		context := miruken.NewContext(miruken.Setup(
+			miruken.WithHandlerSpecs(&Service{}),
 			miruken.DisableInference,
-		).Build(), new(Service))
+		), new(Service))
 		var foo Foo
 		result := context.Handle(&foo, false, nil)
 		suite.False(result.IsError())
@@ -871,7 +868,7 @@ func (suite *ContextTestSuite) TestContextual() {
 			})
 
 			suite.Run("Covariant", func() {
-				root := suite.RootContextWith(miruken.TypeOf[*RootedService]())
+				root := suite.RootContextWith(&RootedService{})
 				var counter Counter
 				err := miruken.Resolve(root, &counter)
 				suite.Nil(err)
@@ -881,8 +878,8 @@ func (suite *ContextTestSuite) TestContextual() {
 
 		suite.Run("RejectScopedDependencyInSingleton", func() {
 			root := suite.RootContextWith(
-				miruken.TypeOf[*ScopedService](),
-				miruken.TypeOf[*LifestyleMismatch]())
+				&ScopedService{},
+				&LifestyleMismatch{})
 			var mismatch *LifestyleMismatch
 			err := miruken.Resolve(root, &mismatch)
 			suite.Nil(err)

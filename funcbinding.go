@@ -67,7 +67,7 @@ func callFunc(
 		for _, arg := range explicitArgs {
 			args = append(args, reflect.ValueOf(arg))
 		}
-		// explicit args are always passed first
+		// handlers args are always passed first
 		res := fun.Call(append(args, deps...))
 		results := make([]any, len(res))
 		for i, v := range res {
