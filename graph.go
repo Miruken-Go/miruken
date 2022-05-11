@@ -28,7 +28,6 @@ const (
 type TraversalVisitor interface {
 	VisitTraversal(node Traversing) (stop bool, err error)
 }
-
 type TraversalVisitorFunc func(node Traversing) (stop bool, err error)
 
 func (f TraversalVisitorFunc) VisitTraversal(node Traversing) (bool, error) {

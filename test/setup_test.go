@@ -4,6 +4,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/stretchr/testify/suite"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -21,7 +22,6 @@ func (i *MyInstaller) Install(
 
 type RegisterTestSuite struct {
 	suite.Suite
-	HandleTypes []any
 }
 
 func (suite *RegisterTestSuite) TestSetup() {
@@ -41,14 +41,22 @@ func (suite *RegisterTestSuite) TestSetup() {
 
 	suite.Run("#Exclude", func () {
 		handler := miruken.Setup(
-			miruken.WithHandlerSpecs(suite.HandleTypes...),
-			miruken.ExcludeRule(
-				func(t any) bool {
-					typ := reflect.TypeOf(t)
-					return typ.Kind() == reflect.Ptr && typ.Elem().Name() == "MultiHandler"
+			TestFeature,
+			miruken.ExcludeHandlerSpecs(
+				func(spec miruken.HandlerSpec) bool {
+					switch ts := spec.(type) {
+					case miruken.HandlerTypeSpec:
+						name := ts.Name()
+						return name == "MultiHandler" || strings.Contains(name, "Invalid")
+					default:
+						return false
+					}
 				},
-				func(t any) bool {
-					return t == miruken.TypeOf[*EverythingHandler]()
+				func(spec miruken.HandlerSpec) bool {
+					if ts, ok := spec.(miruken.HandlerTypeSpec); ok {
+						return ts.Type() == miruken.TypeOf[*EverythingHandler]()
+					}
+					return false
 				}),
 		)
 
@@ -65,7 +73,7 @@ func (suite *RegisterTestSuite) TestSetup() {
 
 	suite.Run("#DisableInference", func () {
 		handler := miruken.Setup(
-			miruken.WithHandlerSpecs(suite.HandleTypes...),
+			miruken.WithHandlerSpecs(&MultiHandler{}),
 			miruken.DisableInference,
 		)
 

@@ -5,34 +5,30 @@ import (
 	"reflect"
 )
 
-// FuncBindingError reports a failed function binding.
-type FuncBindingError struct {
-	Func   reflect.Value
-	Reason error
-}
+type (
+	// FuncBinder creates a binding to a function.
+	FuncBinder interface {
+		NewFuncBinding(
+			fun  reflect.Value,
+			spec *policySpec,
+		) (Binding, error)
+	}
 
-func (e FuncBindingError) Error() string {
-	return fmt.Sprintf("invalid function: %#v: %v", e.Func, e.Reason)
-}
+	// funcBinding models a `key` Binding to a function.
+	funcBinding struct {
+		FilteredScope
+		key   any
+		flags bindingFlags
+		fun   reflect.Value
+		args  []arg
+	}
 
-func (e FuncBindingError) Unwrap() error { return e.Reason }
-
-// FuncBinder creates a binding to a function.
-type FuncBinder interface {
-	NewFuncBinding(
-		fun  reflect.Value,
-		spec *policySpec,
-	) (Binding, error)
-}
-
-// funcBinding models a `key` Binding to a function.
-type funcBinding struct {
-	FilteredScope
-	key   any
-	flags bindingFlags
-	fun   reflect.Value
-	args  []arg
-}
+	// FuncBindingError reports a failed function binding.
+	FuncBindingError struct {
+		fun    reflect.Value
+		reason error
+	}
+)
 
 func (b *funcBinding) Key() any {
 	return b.key
@@ -52,6 +48,16 @@ func (b *funcBinding) Invoke(
 ) ([]any, error) {
 	return callFunc(b.fun, context, b.args, explicitArgs...)
 }
+
+func (e FuncBindingError) Func() reflect.Value {
+	return e.fun
+}
+
+func (e FuncBindingError) Error() string {
+	return fmt.Sprintf("invalid function %v: %v", e.fun, e.reason)
+}
+
+func (e FuncBindingError) Unwrap() error { return e.reason }
 
 func callFunc(
 	fun          reflect.Value,

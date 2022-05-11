@@ -5,34 +5,30 @@ import (
 	"reflect"
 )
 
-// MethodBindingError reports a failed method binding.
-type MethodBindingError struct {
-	Method reflect.Method
-	Reason error
-}
+type (
+	// MethodBinder creates a binding a method.
+	MethodBinder interface {
+		NewMethodBinding(
+			method reflect.Method,
+			spec   *policySpec,
+		) (Binding, error)
+	}
 
-func (e MethodBindingError) Error() string {
-	return fmt.Sprintf("invalid method: %#v: %v", e.Method, e.Reason)
-}
+	// methodBinding models a `key` Binding to a method.
+	methodBinding struct {
+		FilteredScope
+		key    any
+		flags  bindingFlags
+		method reflect.Method
+		args   []arg
+	}
 
-func (e MethodBindingError) Unwrap() error { return e.Reason }
-
-// MethodBinder creates a binding a method.
-type MethodBinder interface {
-	NewMethodBinding(
-		method reflect.Method,
-		spec   *policySpec,
-	) (Binding, error)
-}
-
-// methodBinding models a `key` Binding to a method.
-type methodBinding struct {
-	FilteredScope
-	key    any
-	flags  bindingFlags
-	method reflect.Method
-	args   []arg
-}
+	// MethodBindingError reports a failed method binding.
+	MethodBindingError struct {
+		method reflect.Method
+		reason error
+	}
+)
 
 func (b *methodBinding) Key() any {
 	return b.key
@@ -52,3 +48,13 @@ func (b *methodBinding) Invoke(
 ) ([]any, error) {
 	return callFunc(b.method.Func, context, b.args, explicitArgs...)
 }
+
+func (e MethodBindingError) Method() reflect.Method {
+	return e.method
+}
+
+func (e MethodBindingError) Error() string {
+	return fmt.Sprintf("invalid method %v: %v", e.method.Name, e.reason)
+}
+
+func (e MethodBindingError) Unwrap() error { return e.reason }

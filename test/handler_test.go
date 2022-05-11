@@ -320,9 +320,15 @@ type HandlerTestSuite struct {
 }
 
 func (suite *HandlerTestSuite) Setup() miruken.Handler {
-	return miruken.Setup(TestFeature, miruken.ExcludeRule(func (rule any) bool {
-		return strings.Contains(reflect.TypeOf(rule).Elem().Name(), "Invalid")
-	}))
+	return miruken.Setup(TestFeature, miruken.ExcludeHandlerSpecs(
+		func (spec miruken.HandlerSpec) bool {
+			switch ts := spec.(type) {
+			case miruken.HandlerTypeSpec:
+				return strings.Contains(ts.Name(), "Invalid")
+			default:
+				return false
+			}
+		}))
 }
 
 func (suite *HandlerTestSuite) SetupWith(features ... miruken.Feature) miruken.Handler {
@@ -497,7 +503,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 			defer func() {
 				if r := recover(); r != nil {
 					if err, ok := r.(miruken.MethodBindingError); ok {
-						suite.Equal("RequiredDependency", err.Method.Name)
+						suite.Equal("RequiredDependency", err.Method().Name)
 					} else {
 						suite.Fail("Expected MethodBindingError")
 					}

@@ -1,25 +1,20 @@
 package miruken
 
-import (
-	"github.com/miruken-go/miruken/slices"
-)
-
 type (
-	// SetupBuilder builds a miruken setup.
+	// SetupBuilder configures a setup.
 	SetupBuilder struct {
 		noInfer  bool
 		handlers []any
 		specs    []any
-		exclude  Predicate[any]
+		exclude  Predicate[HandlerSpec]
 		factory  HandlerDescriptorFactory
 		tags     map[any]struct{}
 	}
-
-	// Feature encapsulates custom functionality.
+	
+	// Feature encapsulates custom setup.
 	Feature interface {
 		Install(setup *SetupBuilder)
 	}
-
 	FeatureFunc func(setup *SetupBuilder)
 )
 
@@ -40,7 +35,7 @@ func (s *SetupBuilder) RegisterHandlers(
 }
 
 func (s *SetupBuilder) Exclude(
-	excludes ... Predicate[any],
+	excludes ... Predicate[HandlerSpec],
 ) *SetupBuilder {
 	s.exclude = CombinePredicates(s.exclude, excludes...)
 	return s
@@ -89,22 +84,24 @@ func (s *SetupBuilder) Build() Handler {
 	var handler Handler = &getHandlerDescriptorFactory{factory}
 
 	if specs := s.specs; len(specs) > 0 {
-		if exclude := s.exclude; exclude != nil {
-			specs = slices.Filter(specs, func(t any) bool {
-				return !exclude(t)
-			})
-		}
-		if len(specs) > 0 {
-			if s.noInfer {
-				for _, spec := range specs {
-					if _, _, err := factory.RegisterHandler(spec); err != nil {
-						panic(err)
-					}
-				}
-
-			} else {
-				handler = &withHandler{handler, newInferenceHandler(factory, specs)}
+		hs := make([]HandlerSpec, 0, len(specs))
+		exclude, noInfer := s.exclude, s.noInfer
+		for _, spec := range specs {
+			hspec := factory.MakeHandlerSpec(spec)
+			if exclude != nil && exclude(hspec) {
+				continue
 			}
+			if noInfer {
+				if _, _, err := factory.RegisterHandler(spec); err != nil {
+					panic(err)
+				}
+			} else {
+				hs = append(hs, hspec)
+			}
+		}
+
+		if len(hs) > 0 {
+			handler = &withHandler{handler, newInferenceHandler(factory, hs)}
 		}
 	}
 
@@ -132,10 +129,14 @@ func WithHandlerSpecs(specs ... any) Feature {
 	})
 }
 
-func ExcludeRule(rules ... Predicate[any]) Feature {
+func ExcludeHandlerSpecs(rules ... Predicate[HandlerSpec]) Feature {
 	return FeatureFunc(func(setup *SetupBuilder) {
 		setup.Exclude(rules...)
 	})
+}
+
+func WithoutInference(setup *SetupBuilder) {
+	setup.DisableInference()
 }
 
 func WithHandlerDescriptorFactory(factory HandlerDescriptorFactory) Feature {

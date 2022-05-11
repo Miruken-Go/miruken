@@ -80,7 +80,7 @@ func (b *bindingIntercept) Invoke(
 		WithCallback(rawCallback).
 		WithGreedy(greedy).
 		WithParent(parent).
-		WithKey(b.handlerType)
+		WithKey(handlerType)
 	resolving := builder.NewResolving()
 	if result := context.Composer().Handle(resolving, true, nil); result.IsError() {
 		return nil, result.Error()
@@ -91,7 +91,7 @@ func (b *bindingIntercept) Invoke(
 
 func newInferenceHandler(
 	factory HandlerDescriptorFactory,
-	specs   []any,
+	specs   []HandlerSpec,
 ) *inferenceHandler {
 	if factory == nil {
 		panic("factory cannot be nil")
@@ -101,6 +101,10 @@ func newInferenceHandler(
 		if descriptor, added, err := factory.RegisterHandler(spec); err != nil {
 			panic(err)
 		} else if added {
+			var handlerType reflect.Type
+			if h, ok := descriptor.spec.(HandlerTypeSpec); ok {
+				handlerType = h.Type()
+			}
 			for policy, bs := range descriptor.bindings {
 				pb := bindings.forPolicy(policy)
 				// Us bs.index vs.variant since inference ONLY needs a
@@ -111,7 +115,7 @@ func newInferenceHandler(
 					_, ctorBinding := binding.(*constructorBinding)
 					pb.insert(&bindingIntercept{
 						binding,
-						descriptor.handlerType,
+						handlerType,
 						!ctorBinding,
 					})
 				}
@@ -123,7 +127,7 @@ func newInferenceHandler(
 						_, ctorBinding := b.(*constructorBinding)
 						pb.insert(&bindingIntercept{
 							b,
-							descriptor.handlerType,
+							handlerType,
 							!ctorBinding,
 						})
 					}
@@ -135,7 +139,7 @@ func newInferenceHandler(
 						if binding.Key() == _anyType {
 							pb.insert(&bindingIntercept{
 								binding,
-								descriptor.handlerType,
+								handlerType,
 								true,
 							})
 						}
@@ -146,8 +150,8 @@ func newInferenceHandler(
 	}
 	return &inferenceHandler {
 		&HandlerDescriptor{
-			handlerType: _inferenceHandlerType,
-			bindings:    bindings,
+			spec:     HandlerTypeSpec{_inferenceHandlerType},
+			bindings: bindings,
 		},
 	}
 }

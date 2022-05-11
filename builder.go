@@ -8,7 +8,6 @@ import (
 type Builder interface {
 	Build(Handler) Handler
 }
-
 type BuilderFunc func(Handler) Handler
 
 func (f BuilderFunc) Build(

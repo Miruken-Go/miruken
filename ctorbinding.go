@@ -5,22 +5,23 @@ import (
 	"reflect"
 )
 
-// ConstructorBinder creates a constructor binding to `handlerType`.
-type ConstructorBinder interface {
-	NewConstructorBinding(
-		handlerType  reflect.Type,
-		constructor *reflect.Method,
-		spec        *policySpec,
-	) (Binding, error)
-}
+type (
+	// ConstructorBinder creates a constructor binding to `handlerType`.
+	ConstructorBinder interface {
+		NewConstructorBinding(
+			handlerType  reflect.Type,
+			constructor *reflect.Method,
+			spec        *policySpec,
+		) (Binding, error)
+	}
 
-// constructorBinding models the creation/initialization
-// of the `handlerType`.
-type constructorBinding struct {
-	FilteredScope
-	handlerType  reflect.Type
-	flags        bindingFlags
-}
+	// constructorBinding customizes the construction of `handlerType`.
+	constructorBinding struct {
+		FilteredScope
+		handlerType  reflect.Type
+		flags        bindingFlags
+	}
+)
 
 func (b *constructorBinding) Key() any {
 	return b.handlerType
