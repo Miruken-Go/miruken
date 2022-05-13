@@ -79,6 +79,17 @@ func (h *CounterHandler) HandleCounted(
 	}
 }
 
+// CountByOneHandler
+type CountByTwoHandler struct {}
+
+func (h *CountByTwoHandler) HandleCounted(
+	_ *miruken.Handles, counter Counter,
+) (Counter, miruken.HandleResult) {
+	counter.Inc()
+	counter.Inc()
+	return counter, miruken.Handled
+}
+
 // MultiHandler
 type MultiHandler struct {
 	foo Foo
@@ -321,6 +332,13 @@ func HandleFoo(
 ) miruken.HandleResult {
 	foo.Inc()
 	return miruken.Handled
+}
+
+func HandleCounted(
+	_ *struct{ miruken.Handles }, counter Counted,
+) {
+	counter.Inc()
+	counter.Inc()
 }
 
 type HandlerTestSuite struct {
@@ -670,34 +688,38 @@ func (suite *HandlerTestSuite) TestHandles() {
 		suite.Run("InvokeAll", func () {
 			handler := suite.SetupWith(
 				miruken.WithHandlerSpecs(
-					&CounterHandler{},
+					&CountByTwoHandler{},
 					&SpecificationHandler{}),
-				miruken.WithHandlers(&CounterHandler{}, &SpecificationHandler{}))
+				miruken.WithHandlers(&CountByTwoHandler{}, &SpecificationHandler{}))
 
 			suite.Run("Invariant", func () {
 				var foo []*Foo
-				if err := miruken.InvokeAll(handler, &Foo{Counted{-4}}, &foo); err == nil {
+				if err := miruken.InvokeAll(handler, &Foo{Counted{1}}, &foo); err == nil {
 					suite.NotNil(foo)
 					// 1 from explicit return of *CounterHandler
 					// 1 from inference of *CounterHandler
-					// third call to *CounterHandler doesn't return based on rule
 					suite.Len(foo, 2)
-					// 2 from each of the 2 explicit instances (1) on line 646
+					// 2 from each of the 2 explicit instances (1)
 					// 2 for inference of *CounterHandler (1) which includes explicit instance (1)
 					// 2 for inference of *SpecificationHandler (1) which includes explicit instance (1)
-					// 6 - 4 = 2 total
-					suite.Equal(2, foo[0].Count())
+					// 6 + 1 = 7 total
+					suite.Equal(7, foo[0].Count())
 				} else {
 					suite.Fail("unexpected error: %v", err.Error())
 				}
 			})
 
 			suite.Run("Invariant Error", func () {
-				var foo []*Foo
-				if err := miruken.InvokeAll(handler, new(Foo), &foo); err != nil {
+				handler := suite.SetupWith(
+					miruken.WithHandlerSpecs(&CounterHandler{}))
+				var fs []*Foo
+				foo := new(Foo)
+				foo.Inc()
+				foo.Inc()
+				if err := miruken.InvokeAll(handler, foo, &fs); err != nil {
 					suite.NotNil(err)
 					// *CounterHandler returns error based on rule
-					suite.Equal("6 is divisible by 3", err.Error())
+					suite.Equal("3 is divisible by 3", err.Error())
 				} else {
 					suite.Fail("expected error")
 				}
@@ -727,7 +749,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 		suite.Fail("should cause panic")
 	})
 
-	suite.Run("FunctionBinding", func () {
+	suite.Run("Function Binding", func () {
 		suite.Run("Invariant", func() {
 			handler := suite.SetupWith(
 				miruken.WithHandlerSpecs(HandleFoo))
@@ -736,6 +758,17 @@ func (suite *HandlerTestSuite) TestHandles() {
 			suite.False(result.IsError())
 			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, foo.Count())
+		})
+
+		suite.Run("Contravariant", func() {
+			handler := suite.SetupWith(
+				miruken.WithHandlerSpecs(HandleCounted))
+			bar := new(Bar)
+			bar.Inc()
+			result := handler.Handle(bar, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(miruken.Handled, result)
+			suite.Equal(3, bar.Count())
 		})
 	})
 }
@@ -863,6 +896,13 @@ func (p *InvalidProvider) UntypedInterfaceDependency(
 	any any,
 ) *Foo {
 	return &Foo{}
+}
+
+func ProvideBar(*miruken.Provides) (*Bar, miruken.HandleResult) {
+	bar := &Bar{}
+	bar.Inc()
+	bar.Inc()
+	return bar, miruken.Handled
 }
 
 func (suite *HandlerTestSuite) TestProvides() {
@@ -1140,6 +1180,17 @@ func (suite *HandlerTestSuite) TestProvides() {
 			miruken.WithHandlerSpecs(&InvalidProvider{}),
 			miruken.WithHandlers(new(InvalidProvider)))
 		suite.Fail("should cause panic")
+	})
+
+	suite.Run("Function Binding", func () {
+		suite.Run("Implied", func() {
+			handler := suite.SetupWith(miruken.WithHandlerSpecs(ProvideBar))
+			var bar *Bar
+			err := miruken.Resolve(handler, &bar)
+			suite.Nil(err)
+			suite.NotNil(bar)
+			suite.Equal(2, bar.Count())
+		})
 	})
 }
 

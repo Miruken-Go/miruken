@@ -363,7 +363,7 @@ func (d *HandlerDescriptor) Dispatch(
 				}
 				var out []any
 				var err error
-				context := HandleContext{callback, rawCallback, binding, composer}
+				context := handleCtx{callback, rawCallback, binding, composer}
 				if len(filters) == 0 {
 					out, err = binding.Invoke(context, handler)
 				} else {

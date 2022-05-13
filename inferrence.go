@@ -1,14 +1,16 @@
 package miruken
 
-import "reflect"
+import (
+	"reflect"
+)
 
 type (
 	inferenceHandler struct {
 		descriptor *HandlerDescriptor
 	}
 
-	inference struct {
-		callback any
+	inferenceTracking struct {
+		*inferenceHandler
 		greedy   bool
 		resolved map[reflect.Type]struct{}
 	}
@@ -32,8 +34,8 @@ func (h *inferenceHandler) DispatchPolicy(
 	if test, ok := rawCallback.(interface{CanInfer() bool}); ok && !test.CanInfer() {
 		return NotHandled
 	}
-	infer := &inference{callback: callback, greedy: greedy}
-	return h.descriptor.Dispatch(policy, h, infer, rawCallback, greedy, composer)
+	//infer := &inferenceTracking{inferenceHandler: h, greedy: greedy}
+	return h.descriptor.Dispatch(policy, h, callback, rawCallback, greedy, composer)
 }
 
 func (h *inferenceHandler) SuppressDispatch() {}
@@ -47,10 +49,6 @@ func (b *ctorIntercept) Invoke(
 	context      HandleContext,
 	explicitArgs ... any,
 ) ([]any, error) {
-	context.binding = b.constructorBinding
-	if infer, ok := context.Callback().(*inference); ok {
-		context.callback = infer.callback
-	}
 	return b.constructorBinding.Invoke(context)
 }
 
@@ -63,10 +61,6 @@ func (b *funcIntercept) Invoke(
 	context      HandleContext,
 	explicitArgs ... any,
 ) ([]any, error) {
-	context.binding = b.funcBinding
-	if infer, ok := context.Callback().(*inference); ok {
-		context.callback = infer.callback
-	}
 	return b.funcBinding.Invoke(context)
 }
 
@@ -90,9 +84,8 @@ func (b *methodIntercept) Invoke(
 ) ([]any, error) {
 	var greedy bool
 	handlerType := b.handlerType
-	if infer, ok := context.Callback().(*inference); ok {
+	if infer, ok := explicitArgs[0].(*inferenceTracking); ok {
 		greedy = infer.greedy
-		context.callback = infer.callback
 		if resolved := infer.resolved; resolved == nil {
 			infer.resolved = map[reflect.Type]struct{} { handlerType: {} }
 		} else if _, found := resolved[handlerType]; !found {
@@ -101,7 +94,6 @@ func (b *methodIntercept) Invoke(
 			return nil, nil
 		}
 	}
-	context.binding  = b.methodBinding
 	rawCallback     := context.RawCallback()
 	parent, _       := rawCallback.(*Provides)
 	var builder ResolvingBuilder
