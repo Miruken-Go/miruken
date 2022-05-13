@@ -126,7 +126,7 @@ func validateContravariantFunc(
 
 	// Callback argument must be present if spec
 	if len(args) > 1 {
-		if arg := funType.In(2); arg.AssignableTo(_callbackType) {
+		if arg := funType.In(1+skip); arg.AssignableTo(_callbackType) {
 			args[1] = rawCallbackArg{}
 		} else {
 			if key == nil { key = arg }

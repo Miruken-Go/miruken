@@ -88,7 +88,7 @@ func (s *SetupBuilder) Build() Handler {
 		exclude, noInfer := s.exclude, s.noInfer
 		for _, spec := range specs {
 			hspec := factory.MakeHandlerSpec(spec)
-			if exclude != nil && exclude(hspec) {
+			if hspec == nil || (exclude != nil && exclude(hspec)) {
 				continue
 			}
 			if noInfer {

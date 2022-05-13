@@ -2,15 +2,17 @@ package miruken
 
 import "reflect"
 
-type inferenceHandler struct {
-	descriptor *HandlerDescriptor
-}
+type (
+	inferenceHandler struct {
+		descriptor *HandlerDescriptor
+	}
 
-type inference struct {
-	callback any
-	greedy   bool
-	resolved map[reflect.Type]struct{}
-}
+	inference struct {
+		callback any
+		greedy   bool
+		resolved map[reflect.Type]struct{}
+	}
+)
 
 func (h *inferenceHandler) Handle(
 	callback any,
@@ -36,35 +38,69 @@ func (h *inferenceHandler) DispatchPolicy(
 
 func (h *inferenceHandler) SuppressDispatch() {}
 
-// bindingIntercept intercepts Binding invocations to handler inference.
-type bindingIntercept struct {
-	Binding
-	handlerType reflect.Type
-	skipFilters bool
+// ctorIntercept intercepts constructor Binding invocations.
+type ctorIntercept struct {
+	*constructorBinding
 }
 
-func (b *bindingIntercept) Filters() []FilterProvider {
-	if b.skipFilters {
-		return nil
-	}
-	return b.Binding.Filters()
-}
-
-func (b *bindingIntercept) SkipFilters() bool {
-	return b.skipFilters
-}
-
-func (b *bindingIntercept) Invoke(
+func (b *ctorIntercept) Invoke(
 	context      HandleContext,
 	explicitArgs ... any,
 ) ([]any, error) {
-	if ctor, ok := b.Binding.(*constructorBinding); ok {
-		return ctor.Invoke(context)
+	if context.binding == b {
+		context.binding = b.constructorBinding
 	}
+	if infer, ok := context.Callback().(*inference); ok {
+		context.callback = infer.callback
+	}
+	return b.constructorBinding.Invoke(context)
+}
+
+// funcIntercept intercepts function Binding invocations.
+type funcIntercept struct {
+	*funcBinding
+}
+
+func (b *funcIntercept) Invoke(
+	context      HandleContext,
+	explicitArgs ... any,
+) ([]any, error) {
+	if context.binding == b {
+		context.binding = b.funcBinding
+	}
+	if infer, ok := context.Callback().(*inference); ok {
+		context.callback = infer.callback
+	}
+	return b.funcBinding.Invoke(context)
+}
+
+// methodIntercept intercepts method Binding invocations.
+type methodIntercept struct {
+	*methodBinding
+	handlerType reflect.Type
+}
+
+func (b *methodIntercept) Filters() []FilterProvider {
+	return nil
+}
+
+func (b *methodIntercept) SkipFilters() bool {
+	return true
+}
+
+func (b *methodIntercept) Invoke(
+	context      HandleContext,
+	explicitArgs ... any,
+) ([]any, error) {
+	if context.binding == b {
+		context.binding = b.methodBinding
+	}
+
 	var greedy bool
 	handlerType := b.handlerType
 	if infer, ok := context.Callback().(*inference); ok {
 		greedy = infer.greedy
+		context.callback = infer.callback
 		if resolved := infer.resolved; resolved == nil {
 			infer.resolved = map[reflect.Type]struct{} { handlerType: {} }
 		} else if _, found := resolved[handlerType]; !found {
@@ -111,38 +147,38 @@ func newInferenceHandler(
 				// single binding to infer the handler type for a
 				// specific key.
 				for _, elem := range bs.index {
-					binding := elem.Value.(Binding)
-					_, ctorBinding := binding.(*constructorBinding)
-					pb.insert(&bindingIntercept{
-						binding,
-						handlerType,
-						!ctorBinding,
-					})
+					switch binding := elem.Value.(type) {
+					case *constructorBinding:
+						pb.insert(&ctorIntercept{binding})
+					case *methodBinding:
+						pb.insert(&methodIntercept{binding, handlerType})
+					case *funcBinding:
+						pb.insert(&funcIntercept{binding})
+					}
 				}
 				// Only need the first of each invariant since it is
 				// just to link the actual handler descriptor.
 				for _, bs := range bs.invariant {
 					if len(bs) > 0 {
-						b := bs[0]
-						_, ctorBinding := b.(*constructorBinding)
-						pb.insert(&bindingIntercept{
-							b,
-							handlerType,
-							!ctorBinding,
-						})
+						switch binding := bs[0].(type) {
+						case *constructorBinding:
+							pb.insert(&ctorIntercept{binding})
+						case *methodBinding:
+							pb.insert(&methodIntercept{binding, handlerType})
+						case *funcBinding:
+							pb.insert(&funcIntercept{binding})
+						}
 					}
 				}
 				// Only need one unknown binding to create link.
 				if last := bs.variant.Back(); last != nil {
-					binding := last.Value.(Binding)
-					if _, ctorBinding := binding.(*constructorBinding); !ctorBinding {
+					switch binding := last.Value.(type) {
+					case *methodBinding:
 						if binding.Key() == _anyType {
-							pb.insert(&bindingIntercept{
-								binding,
-								handlerType,
-								true,
-							})
+							pb.insert(&methodIntercept{binding, handlerType})
 						}
+					case *funcBinding:
+						pb.insert(&funcIntercept{binding})
 					}
 				}
 			}
