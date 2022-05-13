@@ -47,9 +47,7 @@ func (b *ctorIntercept) Invoke(
 	context      HandleContext,
 	explicitArgs ... any,
 ) ([]any, error) {
-	if context.binding == b {
-		context.binding = b.constructorBinding
-	}
+	context.binding = b.constructorBinding
 	if infer, ok := context.Callback().(*inference); ok {
 		context.callback = infer.callback
 	}
@@ -65,9 +63,7 @@ func (b *funcIntercept) Invoke(
 	context      HandleContext,
 	explicitArgs ... any,
 ) ([]any, error) {
-	if context.binding == b {
-		context.binding = b.funcBinding
-	}
+	context.binding = b.funcBinding
 	if infer, ok := context.Callback().(*inference); ok {
 		context.callback = infer.callback
 	}
@@ -92,10 +88,6 @@ func (b *methodIntercept) Invoke(
 	context      HandleContext,
 	explicitArgs ... any,
 ) ([]any, error) {
-	if context.binding == b {
-		context.binding = b.methodBinding
-	}
-
 	var greedy bool
 	handlerType := b.handlerType
 	if infer, ok := context.Callback().(*inference); ok {
@@ -109,8 +101,9 @@ func (b *methodIntercept) Invoke(
 			return nil, nil
 		}
 	}
-	rawCallback := context.RawCallback()
-	parent, _   := rawCallback.(*Provides)
+	context.binding  = b.methodBinding
+	rawCallback     := context.RawCallback()
+	parent, _       := rawCallback.(*Provides)
 	var builder ResolvingBuilder
 	builder.
 		WithCallback(rawCallback).
@@ -147,38 +140,20 @@ func newInferenceHandler(
 				// single binding to infer the handler type for a
 				// specific key.
 				for _, elem := range bs.index {
-					switch binding := elem.Value.(type) {
-					case *constructorBinding:
-						pb.insert(&ctorIntercept{binding})
-					case *methodBinding:
-						pb.insert(&methodIntercept{binding, handlerType})
-					case *funcBinding:
-						pb.insert(&funcIntercept{binding})
-					}
+					interceptBinding(elem.Value.(Binding), pb, handlerType,true)
 				}
 				// Only need the first of each invariant since it is
 				// just to link the actual handler descriptor.
 				for _, bs := range bs.invariant {
 					if len(bs) > 0 {
-						switch binding := bs[0].(type) {
-						case *constructorBinding:
-							pb.insert(&ctorIntercept{binding})
-						case *methodBinding:
-							pb.insert(&methodIntercept{binding, handlerType})
-						case *funcBinding:
-							pb.insert(&funcIntercept{binding})
-						}
+						interceptBinding(bs[0], pb, handlerType, true)
 					}
 				}
 				// Only need one unknown binding to create link.
 				if last := bs.variant.Back(); last != nil {
-					switch binding := last.Value.(type) {
-					case *methodBinding:
-						if binding.Key() == _anyType {
-							pb.insert(&methodIntercept{binding, handlerType})
-						}
-					case *funcBinding:
-						pb.insert(&funcIntercept{binding})
+					binding := last.Value.(Binding)
+					if binding.Key() == _anyType {
+						interceptBinding(binding, pb, handlerType, false)
 					}
 				}
 			}
@@ -189,6 +164,24 @@ func newInferenceHandler(
 			spec:     HandlerTypeSpec{_inferenceHandlerType},
 			bindings: bindings,
 		},
+	}
+}
+
+func interceptBinding(
+	binding         Binding,
+	bindings        *policyBindings,
+	handlerType     reflect.Type,
+	addConstructor  bool,
+) {
+	switch b := binding.(type) {
+	case *constructorBinding:
+		if addConstructor {
+			bindings.insert(&ctorIntercept{b})
+		}
+	case *methodBinding:
+		bindings.insert(&methodIntercept{b, handlerType})
+	case *funcBinding:
+		bindings.insert(&funcIntercept{b})
 	}
 }
 
