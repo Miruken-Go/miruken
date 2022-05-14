@@ -9,8 +9,8 @@ type (
 		descriptor *HandlerDescriptor
 	}
 
-	inferenceTracking struct {
-		*inferenceHandler
+	inference struct {
+		callback any
 		greedy   bool
 		resolved map[reflect.Type]struct{}
 	}
@@ -34,8 +34,8 @@ func (h *inferenceHandler) DispatchPolicy(
 	if test, ok := rawCallback.(interface{CanInfer() bool}); ok && !test.CanInfer() {
 		return NotHandled
 	}
-	//infer := &inferenceTracking{inferenceHandler: h, greedy: greedy}
-	return h.descriptor.Dispatch(policy, h, callback, rawCallback, greedy, composer)
+	infer := &inference{callback: callback, greedy: greedy}
+	return h.descriptor.Dispatch(policy, h, infer, rawCallback, greedy, composer)
 }
 
 func (h *inferenceHandler) SuppressDispatch() {}
@@ -84,7 +84,7 @@ func (b *methodIntercept) Invoke(
 ) ([]any, error) {
 	var greedy bool
 	handlerType := b.handlerType
-	if infer, ok := explicitArgs[0].(*inferenceTracking); ok {
+	if infer, ok := context.Callback().(*inference); ok {
 		greedy = infer.greedy
 		if resolved := infer.resolved; resolved == nil {
 			infer.resolved = map[reflect.Type]struct{} { handlerType: {} }
@@ -94,8 +94,8 @@ func (b *methodIntercept) Invoke(
 			return nil, nil
 		}
 	}
-	rawCallback     := context.RawCallback()
-	parent, _       := rawCallback.(*Provides)
+	rawCallback := context.RawCallback()
+	parent, _   := rawCallback.(*Provides)
 	var builder ResolvingBuilder
 	builder.
 		WithCallback(rawCallback).

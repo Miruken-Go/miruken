@@ -335,7 +335,7 @@ func HandleFoo(
 }
 
 func HandleCounted(
-	_ *struct{ miruken.Handles }, counter Counted,
+	_ *struct{ miruken.Handles }, counter Counter,
 ) {
 	counter.Inc()
 	counter.Inc()
@@ -696,14 +696,14 @@ func (suite *HandlerTestSuite) TestHandles() {
 				var foo []*Foo
 				if err := miruken.InvokeAll(handler, &Foo{Counted{1}}, &foo); err == nil {
 					suite.NotNil(foo)
-					// 1 from explicit return of *CounterHandler
-					// 1 from inference of *CounterHandler
-					suite.Len(foo, 2)
-					// 2 from each of the 2 explicit instances (1)
-					// 2 for inference of *CounterHandler (1) which includes explicit instance (1)
+					// 1 from explicit return of *CountByTwoHandler
+					// 2 from inference of *CountByTwoHandler (1) which includes explicit instance (1)
+					suite.Len(foo, 3)
+					// 3 from explicit *CountByTwoHandler (2) and *SpecificationHandler (1)
+					// 4 for inference of *CountByTwoHandler (2) which includes explicit instance (2)
 					// 2 for inference of *SpecificationHandler (1) which includes explicit instance (1)
-					// 6 + 1 = 7 total
-					suite.Equal(7, foo[0].Count())
+					// 9 + 1 = 10 total
+					suite.Equal(10, foo[0].Count())
 				} else {
 					suite.Fail("unexpected error: %v", err.Error())
 				}
@@ -1111,7 +1111,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 			var foo []*Foo
 			if err := miruken.ResolveAll(handler, &foo); err == nil {
 				suite.NotNil(foo)
-				// 3 from each of the 3 explicit instances (1) on line 980
+				// 3 from each of the 3 explicit instances (1)
 				// 2 for inference of *FooProvider (1) which includes explicit instance (1)
 				// 2 for inference of *MultiProvider (1) which includes explicit instance (1)
 				// 1 for inference of *SpecificationProvider (1) which excludes constructed
