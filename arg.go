@@ -191,33 +191,31 @@ func (r *defaultDependencyResolver) Resolve(
 }
 
 // HandleContext contain all the information about handling a Callback.
-type HandleContext interface {
-	Callback() Callback
-	Binding() Binding
-	Composer() Handler
-	Greedy() bool
-}
-
-type handleCtx struct {
+type HandleContext struct {
+	handler  any
 	callback Callback
 	binding  Binding
 	composer Handler
 	greedy   bool
 }
 
-func (h handleCtx) Callback() Callback {
+func (h HandleContext) Handler() any {
+	return h.handler
+}
+
+func (h HandleContext) Callback() Callback {
 	return h.callback
 }
 
-func (h handleCtx) Binding() Binding {
+func (h HandleContext) Binding() Binding {
 	return h.binding
 }
 
-func (h handleCtx) Composer() Handler {
+func (h HandleContext) Composer() Handler {
 	return h.composer
 }
 
-func (h handleCtx) Greedy() bool {
+func (h HandleContext) Greedy() bool {
 	return h.greedy
 }
 

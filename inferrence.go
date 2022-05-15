@@ -67,18 +67,6 @@ func (h *inferenceHandler) DispatchPolicy(
 
 func (h *inferenceHandler) SuppressDispatch() {}
 
-// skipExplicitArgs ignores explicitArgs on invocation.
-type skipExplicitArgs struct {
-	Binding
-}
-
-func (b skipExplicitArgs) Invoke(
-	context      HandleContext,
-	explicitArgs ... any,
-) ([]any, error) {
-	return b.Binding.Invoke(context)
-}
-
 // methodIntercept intercepts method Binding invocations.
 type methodIntercept struct {
 	*methodBinding
@@ -195,12 +183,12 @@ func interceptBinding(
 	switch b := binding.(type) {
 	case *constructorBinding:
 		if addConstructor {
-			bindings.insert(&skipExplicitArgs{b})
+			bindings.insert(b)
 		}
 	case *methodBinding:
 		bindings.insert(&methodIntercept{b, handlerType})
 	case *funcBinding:
-		bindings.insert(&skipExplicitArgs{b})
+		bindings.insert(b)
 	}
 }
 

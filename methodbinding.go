@@ -46,6 +46,13 @@ func (b *methodBinding) Invoke(
 	context      HandleContext,
 	explicitArgs ... any,
 ) ([]any, error) {
+	if explicitArgs == nil {
+		explicitArgs = []any{context.handler}
+	} else {
+		explicitArgs = append(explicitArgs, nil)
+		copy(explicitArgs[1:], explicitArgs)
+		explicitArgs[0] = context.handler
+	}
 	return callFunc(b.method.Func, context, b.args, explicitArgs...)
 }
 

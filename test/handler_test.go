@@ -87,6 +87,7 @@ func (h *CountByTwoHandler) HandleCounted(
 ) (Counter, miruken.HandleResult) {
 	counter.Inc()
 	counter.Inc()
+	fmt.Println("CountByTwoHandler")
 	return counter, miruken.Handled
 }
 
@@ -184,6 +185,7 @@ func (h *SpecificationHandler) HandleFoo(
 	_ *struct{ miruken.Handles; miruken.Strict }, foo *Foo,
 ) miruken.HandleResult {
 	foo.Inc()
+	fmt.Println("SpecificationHandler")
 	return miruken.Handled
 }
 

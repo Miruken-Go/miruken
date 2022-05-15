@@ -372,12 +372,18 @@ func (d *HandlerDescriptor) Dispatch(
 				}
 				var out []any
 				var err error
-				context := handleCtx{callback, binding, composer, greedy}
+				context := HandleContext{
+					handler,
+					callback,
+					binding,
+					composer,
+					greedy,
+				}
 				if len(filters) == 0 {
-					out, err = binding.Invoke(context, handler)
+					out, err = binding.Invoke(context)
 				} else {
 					out, err = pipeline(context, filters, func(ctx HandleContext) ([]any, error) {
-						return binding.Invoke(ctx, handler)
+						return binding.Invoke(ctx)
 					})
 				}
 				if err == nil {

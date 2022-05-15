@@ -39,17 +39,24 @@ func (b *constructorBinding) Invoke(
 	context      HandleContext,
 	explicitArgs ... any,
 ) ([]any, error) {
-	if len(explicitArgs) > 0 {
-		return nil, nil  // return nothing if not called as constructor
-	}
-	var handler any
+	// constructorBinding's will be called on existing
+	// handlers if present.  This would result in an
+	// additional and unexpected instance created.
+	// This situation can be detected if the handler is
+	// the same type created by this binding.  If it is,
+	// the creation will be skipped.  Otherwise, a true
+	// construction is desired.
 	handlerType := b.handlerType
-	if handlerType.Kind() == reflect.Ptr {
-		handler = reflect.New(handlerType.Elem()).Interface()
-	} else {
-		handler = reflect.New(handlerType).Elem().Interface()
+	if reflect.TypeOf(context.handler) == handlerType {
+		return nil, nil
 	}
-	return []any{handler}, nil
+	var receiver any
+	if handlerType.Kind() == reflect.Ptr {
+		receiver = reflect.New(handlerType.Elem()).Interface()
+	} else {
+		receiver = reflect.New(handlerType).Elem().Interface()
+	}
+	return []any{receiver}, nil
 }
 
 func newConstructorBinding(
