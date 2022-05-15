@@ -5,13 +5,13 @@ import (
 )
 
 type (
-	// Callback represents an action.
+	// Callback represents any action.
 	Callback interface {
 		Key() any
-		Many() bool
+		Source() any
 		Policy() Policy
 		ResultType() reflect.Type
-		Result() any
+		Result(many bool) any
 		SetResult(result any)
 		ReceiveResult(
 			result   any,
@@ -20,7 +20,7 @@ type (
 		) HandleResult
 	}
 
-	// AcceptResultFunc validates callback results.
+	// AcceptResultFunc accepts or rejects callback results.
 	AcceptResultFunc func (
 		result   any,
 		composer Handler,
@@ -28,24 +28,23 @@ type (
 
 	// CallbackBase is abstract Callback implementation.
 	CallbackBase struct {
-		many    bool
 		results []any
 		result  any
 		accept  AcceptResultFunc
 	}
 )
 
-func (c *CallbackBase) Many() bool {
-	return c.many
+func (c *CallbackBase) Source() any {
+	return nil
 }
 
 func (c *CallbackBase) ResultType() reflect.Type {
 	return nil
 }
 
-func (c *CallbackBase) Result() any {
+func (c *CallbackBase) Result(many bool) any {
 	if result := c.result; result == nil {
-		if c.many {
+		if many {
 			if c.results == nil {
 				c.results = make([]any, 0, 0)
 			}
@@ -88,22 +87,16 @@ func (c *CallbackBase) ReceiveResult(
 	return c.AddResult(result, composer)
 }
 
-func (c *CallbackBase) CopyResult(target any) {
-	if c.Many() {
-		CopySliceIndirect(c.Result().([]any), target)
+func (c *CallbackBase) CopyResult(target any, many bool) {
+	if many {
+		CopySliceIndirect(c.Result(true).([]any), target)
 	} else {
-		CopyIndirect(c.Result(), target)
+		CopyIndirect(c.Result(false), target)
 	}
 }
 
 type CallbackBuilder struct {
-	many   bool
 	accept AcceptResultFunc
-}
-
-func (b *CallbackBuilder) WithMany() *CallbackBuilder {
-	b.many = true
-	return b
 }
 
 func (b *CallbackBuilder) WithAcceptResult(
@@ -114,7 +107,7 @@ func (b *CallbackBuilder) WithAcceptResult(
 }
 
 func (b *CallbackBuilder) CallbackBase() CallbackBase {
-	return CallbackBase{many: b.many, accept: b.accept}
+	return CallbackBase{accept: b.accept}
 }
 
 // customizeDispatch marks customized Callback dispatch.

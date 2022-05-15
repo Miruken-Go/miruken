@@ -24,7 +24,7 @@ func (c *Creates) Dispatch(
 	composer Handler,
 ) HandleResult {
 	count := len(c.results)
-	return DispatchPolicy(handler, c, c, greedy, composer).
+	return DispatchPolicy(handler, c, greedy, composer).
 		OtherwiseHandledIf(len(c.results) > count)
 }
 
@@ -63,7 +63,7 @@ func Create(handler Handler, target any) error {
 	if result := handler.Handle(creates, false, nil); result.IsError() {
 		return result.Error()
 	}
-	creates.CopyResult(tv)
+	creates.CopyResult(tv, false)
 	return nil
 }
 
@@ -73,12 +73,12 @@ func CreateAll(handler Handler, target any) error {
 	}
 	tv := TargetSliceValue(target)
 	var builder CreatesBuilder
-	builder.WithType(tv.Type().Elem().Elem()).WithMany()
+	builder.WithType(tv.Type().Elem().Elem())
 	creates := builder.NewCreation()
 	if result := handler.Handle(creates, true, nil); result.IsError() {
 		return result.Error()
 	}
-	creates.CopyResult(tv)
+	creates.CopyResult(tv, true)
 	return nil
 }
 

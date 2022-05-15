@@ -160,11 +160,12 @@ func (a *AbortFilter) Next(
 	return next.Filter()
 }
 
-func extractCaptured(callback any) Captured {
-	switch cb := callback.(type) {
-	case Captured: return cb
+func extractCaptured(callback miruken.Callback) Captured {
+	switch cb := callback.Source().(type) {
+	case Captured:
+		return cb
 	case *miruken.Handles:
-		if captured, ok := cb.Callback().(Captured); ok {
+		if captured, ok := cb.Source().(Captured); ok {
 			return captured
 		}
 	}
@@ -214,7 +215,7 @@ func (f FilteringHandler) Next(
 	context  miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  ([]any, error) {
-	if bar, ok := context.Callback().(*BarC); ok {
+	if bar, ok := context.Callback().Source().(*BarC); ok {
 		bar.AddFilters(f)
 		bar.IncHandled(1)
 	}

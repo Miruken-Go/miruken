@@ -60,9 +60,9 @@ func (e RejectedError) Error() string {
 }
 
 func DispatchCallback(
-	handler any,
+	handler  any,
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	if handler == nil {

@@ -12,14 +12,14 @@ import (
 // Validates callbacks contravariantly.
 type Validates struct {
 	CallbackBase
-	target   any
+	source   any
 	groups   []any
 	outcome  ValidationOutcome
 	metadata BindingMetadata
 }
 
-func (v *Validates) Target() any {
-	return v.target
+func (v *Validates) Source() any {
+	return v.source
 }
 
 func (v *Validates) Groups() []any {
@@ -43,7 +43,7 @@ func (v *Validates) Outcome() *ValidationOutcome {
 }
 
 func (v *Validates) Key() any {
-	return reflect.TypeOf(v.target)
+	return reflect.TypeOf(v.source)
 }
 
 func (v *Validates) Policy() Policy {
@@ -59,7 +59,7 @@ func (v *Validates) Dispatch(
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
-	return DispatchPolicy(handler, v.target, v, greedy, composer)
+	return DispatchPolicy(handler, v, greedy, composer)
 }
 
 type Group struct {
@@ -314,7 +314,7 @@ func (v validateFilter) Next(
 )  (result []any, err error) {
 	if vp, ok := provider.(*ValidateProvider); ok {
 		composer := context.Composer()
-		outcomeIn, errIn := Validate(composer, context.Callback())
+		outcomeIn, errIn := Validate(composer, context.Callback().Source())
 		if errIn != nil {
 			return nil, errIn
 		}
@@ -375,7 +375,7 @@ func (b *ValidatesBuilder) Target(
 	target any,
 ) *ValidatesBuilder {
 	if IsNil(target) {
-		panic("target cannot be nil")
+		panic("source cannot be nil")
 	}
 	b.target = target
 	return b
@@ -391,7 +391,7 @@ func (b *ValidatesBuilder) WithGroups(
 func (b *ValidatesBuilder) NewValidates() *Validates {
 	validates := &Validates{
 		CallbackBase: b.CallbackBase(),
-		target:       b.target,
+		source:       b.target,
 	}
 	if groups := b.groups; len(groups) > 0 {
 		validates.groups = groups
@@ -405,7 +405,7 @@ func (b *ValidatesBuilder) NewValidates() *Validates {
 	return validates
 }
 
-// Validate initiates validation of the target.
+// Validate initiates validation of the source.
 func Validate(
 	handler Handler,
 	target  any,
@@ -415,7 +415,7 @@ func Validate(
 		panic("handler cannot be nil")
 	}
 	var builder ValidatesBuilder
-	builder.Target(target).WithMany()
+	builder.Target(target)
 	if len(groups) > 0 {
 		builder.WithGroups(groups...)
 	}

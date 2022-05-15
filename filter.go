@@ -77,7 +77,7 @@ func (f *FilterSpecProvider) Filters(
 	spec     := f.spec
 	var builder ProvidesBuilder
 	provides := builder.WithKey(spec.typ).NewProvides()
-	result, err := provides.Resolve(composer)
+	result, err := provides.Resolve(composer, false)
 	if result != nil && err == nil {
 		if filter, ok := result.(Filter); ok {
 			if spec.order >= 0 {
@@ -260,7 +260,8 @@ func orderedFilters(
 				continue
 			}
 			if ap, ok := p.(interface {
-				AppliesTo(Callback) bool }); ok {
+				AppliesTo(Callback) bool
+			}); ok {
 				if !ap.AppliesTo(callback) {
 					continue
 				}
@@ -323,7 +324,6 @@ func pipeline(
 	filters  []providedFilter,
 	complete CompletePipelineFunc,
 ) (results []any, err error) {
-	callback := context.Callback()
 	composer := context.Composer()
 	index, length := 0, len(filters)
 
@@ -333,7 +333,7 @@ func pipeline(
 		proceed  bool,
 	) ([]any, error) {
 		if !proceed {
-			return nil, RejectedError{callback}
+			return nil, RejectedError{context.Callback()}
 		}
 		if comp != nil {
 			composer = comp

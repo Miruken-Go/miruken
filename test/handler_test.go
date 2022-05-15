@@ -143,7 +143,7 @@ type EverythingImplicitHandler struct{}
 func (h *EverythingImplicitHandler) HandleEverything(
 	handles *miruken.Handles,
 ) miruken.HandleResult {
-	switch cb := handles.Callback().(type) {
+	switch cb := handles.Source().(type) {
 	case *Bar:
 		cb.Inc()
 		cb.Inc()
@@ -264,10 +264,10 @@ func (c Configuration) Validate(
 }
 
 func (c Configuration) Resolve(
-	typ         reflect.Type,
-	rawCallback miruken.Callback,
-	dep         miruken.DependencyArg,
-	handler     miruken.Handler,
+	typ      reflect.Type,
+	callback miruken.Callback,
+	dep      miruken.DependencyArg,
+	handler  miruken.Handler,
 ) (reflect.Value, error) {
 	if c.config == nil {
 		c.config = &Config{

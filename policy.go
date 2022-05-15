@@ -18,29 +18,26 @@ type Policy interface {
 // PolicyDispatch customizes Callback Policy dispatch.
 type PolicyDispatch interface {
 	DispatchPolicy(
-		policy      Policy,
-		callback    any,
-		rawCallback Callback,
-		greedy      bool,
-		composer    Handler,
+		policy   Policy,
+		callback Callback,
+		greedy   bool,
+		composer Handler,
 	) HandleResult
 }
 
 func DispatchPolicy(
-	handler     any,
-	callback    any,
-	rawCallback Callback,
-	greedy      bool,
-	composer    Handler,
+	handler  any,
+	callback Callback,
+	greedy   bool,
+	composer Handler,
 ) HandleResult {
-	policy := rawCallback.Policy()
+	policy := callback.Policy()
 	if dp, ok := handler.(PolicyDispatch); ok {
-		return dp.DispatchPolicy(
-			policy, callback, rawCallback, greedy, composer)
+		return dp.DispatchPolicy(policy, callback, greedy, composer)
 	}
 	if factory := GetHandlerDescriptorFactory(composer); factory != nil {
 		if d := factory.DescriptorOf(handler); d != nil {
-			return d.Dispatch(policy, handler, callback, rawCallback, greedy, composer)
+			return d.Dispatch(policy, handler, callback, greedy, composer, nil)
 		}
 	}
 	return NotHandled
@@ -142,7 +139,7 @@ func (p *policySpecBuilder) BuildSpec(
 	if callbackOrSpec.Implements(_callbackType) {
 		return &policySpec{
 			policies: []Policy{p.policyOf(callbackOrSpec)},
-			arg:      rawCallbackArg{},
+			arg:      CallbackArg{},
 		}, nil
 	}
 	return nil, nil

@@ -316,15 +316,15 @@ func (e *HandlerDescriptorError) Error() string {
 func (e *HandlerDescriptorError) Unwrap() error { return e.Reason }
 
 func (d *HandlerDescriptor) Dispatch(
-	policy      Policy,
-	handler     any,
-	callback    any,
-	rawCallback Callback,
-	greedy      bool,
-	composer    Handler,
+	policy   Policy,
+	handler  any,
+	callback Callback,
+	greedy   bool,
+	composer Handler,
+	guard    CallbackGuard,
 ) (result HandleResult) {
 	if pb, found := d.bindings[policy]; found {
-		key := rawCallback.Key()
+		key := callback.Key()
 		return pb.reduce(key, func (
 			binding Binding,
 			result  HandleResult,
@@ -333,7 +333,16 @@ func (d *HandlerDescriptor) Dispatch(
 				return result, true
 			}
 			if matches, _ := policy.MatchesKey(binding.Key(), key, binding.Strict()); matches {
-				if guard, ok := rawCallback.(CallbackGuard); ok {
+				if guard != nil {
+					reset, approve := guard.CanDispatch(handler, binding)
+					defer func() {
+						if reset != nil {
+							reset()
+						}
+					}()
+					if !approve { return result, false }
+				}
+				if guard, ok := callback.(CallbackGuard); ok {
 					reset, approve := guard.CanDispatch(handler, binding)
 					defer func() {
 						if reset != nil {
@@ -343,7 +352,7 @@ func (d *HandlerDescriptor) Dispatch(
 					if !approve { return result, false }
 				}
 				var filters []providedFilter
-				if check, ok := rawCallback.(interface{
+				if check, ok := callback.(interface{
 					CanFilter() bool
 				}); !ok || check.CanFilter() {
 					var tp []FilterProvider
@@ -353,7 +362,7 @@ func (d *HandlerDescriptor) Dispatch(
 						}
 					}
 					if providedFilters, err := orderedFilters(
-						composer, binding, rawCallback, binding.Filters(),
+						composer, binding, callback, binding.Filters(),
 						d.Filters(), policy.Filters(), tp);
 						providedFilters != nil && err == nil {
 						filters = providedFilters
@@ -363,7 +372,7 @@ func (d *HandlerDescriptor) Dispatch(
 				}
 				var out []any
 				var err error
-				context := handleCtx{callback, rawCallback, binding, composer}
+				context := handleCtx{callback, binding, composer, greedy}
 				if len(filters) == 0 {
 					out, err = binding.Invoke(context, handler)
 				} else {
@@ -374,7 +383,7 @@ func (d *HandlerDescriptor) Dispatch(
 				if err == nil {
 					res, accepted := policy.AcceptResults(out)
 					if res != nil {
-						accepted = accepted.And(rawCallback.ReceiveResult(res, binding.Strict(), composer))
+						accepted = accepted.And(callback.ReceiveResult(res, binding.Strict(), composer))
 					}
 					result = result.Or(accepted)
 				} else {

@@ -10,7 +10,7 @@ type Handles struct {
 	callback any
 }
 
-func (h *Handles) Callback() any {
+func (h *Handles) Source() any {
 	return h.callback
 }
 
@@ -52,7 +52,7 @@ func (h *Handles) Dispatch(
 	composer Handler,
 ) HandleResult {
 	count := len(h.results)
-	return DispatchPolicy(handler, h.callback, h, greedy, composer).
+	return DispatchPolicy(handler, h, greedy, composer).
 		OtherwiseHandledIf(len(h.results) > count)
 }
 
@@ -93,7 +93,7 @@ func Invoke(handler Handler, callback any, target any) error {
 	} else if !result.handled {
 		return NotHandledError{callback}
 	}
-	handle.CopyResult(tv)
+	handle.CopyResult(tv, false)
 	return nil
 }
 
@@ -103,14 +103,14 @@ func InvokeAll(handler Handler, callback any, target any) error {
 	}
 	tv := TargetSliceValue(target)
 	var builder HandlesBuilder
-	builder.WithCallback(callback).WithMany()
+	builder.WithCallback(callback)
 	handle  := builder.NewHandles()
 	if result := handler.Handle(handle, true, nil); result.IsError() {
 		return result.Error()
 	} else if !result.handled {
 		return NotHandledError{callback}
 	}
-	handle.CopyResult(tv)
+	handle.CopyResult(tv, true)
 	return nil
 }
 

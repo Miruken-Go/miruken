@@ -5,13 +5,42 @@ import (
 )
 
 type (
+	// inferenceHandler aggregates the bindings of a set of
+	// handlers to provide a central point of interception
+	// for inference capability.
 	inferenceHandler struct {
 		descriptor *HandlerDescriptor
 	}
 
-	inference struct {
-		callback any
-		greedy   bool
+	// inferenceGuard prevents the same handler from being
+	// called too many times during a dispatch.  This can
+	// occur when a handler matches multiple bindings for
+	// the same callback (covariance and contravariance).
+	//
+	// e.g.
+	// type ListProvider struct{}
+	//
+	// func (f *ListProvider) ProvideFooSlice(*miruken.Provides) []*Foo {
+	//	  return []*Foo{{Counted{1}}, {Counted{2}}}
+	// }
+	//
+	//  func (f *ListProvider) ProvideFooArray(*miruken.Provides) [2]*Bar {
+	//	  return [2]*Bar{{Counted{3}}, {Counted{4}}}
+	// }
+	//
+	// would result in ListProvider being called too many times and
+	// resulting in additional resolved Counted instances.
+	//
+	// type (
+	//    Counted struct { count int }
+	//    Foo     struct { Counted }
+	//    Bar     struct { Counted }
+	// )
+	//
+	// var counted []Counter
+	// miruken.ResolveAll(handler, &counted)
+	//
+	inferenceGuard struct {
 		resolved map[reflect.Type]struct{}
 	}
 )
@@ -25,43 +54,29 @@ func (h *inferenceHandler) Handle(
 }
 
 func (h *inferenceHandler) DispatchPolicy(
-	policy      Policy,
-	callback    any,
-	rawCallback Callback,
-	greedy      bool,
-	composer    Handler,
+	policy   Policy,
+	callback Callback,
+	greedy   bool,
+	composer Handler,
 ) HandleResult {
-	if test, ok := rawCallback.(interface{CanInfer() bool}); ok && !test.CanInfer() {
+	if test, ok := callback.(interface{CanInfer() bool}); ok && !test.CanInfer() {
 		return NotHandled
 	}
-	infer := &inference{callback: callback, greedy: greedy}
-	return h.descriptor.Dispatch(policy, h, infer, rawCallback, greedy, composer)
+	return h.descriptor.Dispatch(policy, h, callback, greedy, composer, &inferenceGuard{})
 }
 
 func (h *inferenceHandler) SuppressDispatch() {}
 
-// ctorIntercept intercepts constructor Binding invocations.
-type ctorIntercept struct {
-	*constructorBinding
+// skipExplicitArgs ignores explicitArgs on invocation.
+type skipExplicitArgs struct {
+	Binding
 }
 
-func (b *ctorIntercept) Invoke(
+func (b skipExplicitArgs) Invoke(
 	context      HandleContext,
 	explicitArgs ... any,
 ) ([]any, error) {
-	return b.constructorBinding.Invoke(context)
-}
-
-// funcIntercept intercepts function Binding invocations.
-type funcIntercept struct {
-	*funcBinding
-}
-
-func (b *funcIntercept) Invoke(
-	context      HandleContext,
-	explicitArgs ... any,
-) ([]any, error) {
-	return b.funcBinding.Invoke(context)
+	return b.Binding.Invoke(context)
 }
 
 // methodIntercept intercepts method Binding invocations.
@@ -82,24 +97,13 @@ func (b *methodIntercept) Invoke(
 	context      HandleContext,
 	explicitArgs ... any,
 ) ([]any, error) {
-	var greedy bool
 	handlerType := b.handlerType
-	if infer, ok := context.Callback().(*inference); ok {
-		greedy = infer.greedy
-		if resolved := infer.resolved; resolved == nil {
-			infer.resolved = map[reflect.Type]struct{} { handlerType: {} }
-		} else if _, found := resolved[handlerType]; !found {
-			resolved[handlerType] = struct{}{}
-		} else {
-			return nil, nil
-		}
-	}
-	rawCallback := context.RawCallback()
-	parent, _   := rawCallback.(*Provides)
+	callback    := context.Callback()
+	parent, _   := callback.(*Provides)
 	var builder ResolvingBuilder
 	builder.
-		WithCallback(rawCallback).
-		WithGreedy(greedy).
+		WithCallback(callback).
+		WithGreedy(context.Greedy()).
 		WithParent(parent).
 		WithKey(handlerType)
 	resolving := builder.NewResolving()
@@ -108,6 +112,29 @@ func (b *methodIntercept) Invoke(
 	} else {
 		return []any{result}, nil
 	}
+}
+
+// CanDispatch is needed to prevent more than one method binding
+// for the same handler from being inferred since only one is
+// needed to initiate a ResolveAll for that handler type to
+// dispatch the callback to all matching handlers.  Otherwise,
+// multiple ResolveAll's will occur and the callback will be
+// dispatched too many times to the same handlers.
+func (g *inferenceGuard) CanDispatch(
+	handler any,
+	binding Binding,
+) (reset func (), approved bool) {
+	if methodBinding, ok := binding.(*methodIntercept); ok {
+		handlerType := methodBinding.handlerType
+		if resolved := g.resolved; resolved == nil {
+			g.resolved = map[reflect.Type]struct{} { handlerType: {} }
+		} else if _, found := resolved[handlerType]; !found {
+			resolved[handlerType] = struct{}{}
+		} else {
+			return nil, false
+		}
+	}
+	return nil, true
 }
 
 func newInferenceHandler(
@@ -168,12 +195,12 @@ func interceptBinding(
 	switch b := binding.(type) {
 	case *constructorBinding:
 		if addConstructor {
-			bindings.insert(&ctorIntercept{b})
+			bindings.insert(&skipExplicitArgs{b})
 		}
 	case *methodBinding:
 		bindings.insert(&methodIntercept{b, handlerType})
 	case *funcBinding:
-		bindings.insert(&funcIntercept{b})
+		bindings.insert(&skipExplicitArgs{b})
 	}
 }
 

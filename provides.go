@@ -50,11 +50,9 @@ func (p *Provides) CanDispatch(
 		return nil, false
 	}
 	return func(h any, b Binding) func () {
-		p.handler = handler
-		p.binding = binding
+		p.handler, p.binding = handler, binding
 		return func () {
-			p.handler = h
-			p.binding = b
+			p.handler, p.binding = h, b
 		}
 	}(p.handler, p.binding), true
 }
@@ -88,16 +86,17 @@ func (p *Provides) Dispatch(
 			}
 		}
 	}
-	return DispatchPolicy(handler, p, p, greedy, composer)
+	return DispatchPolicy(handler, p, greedy, composer)
 }
 
 func (p *Provides) Resolve(
 	handler Handler,
+	many    bool,
 ) (any, error) {
-	if result := handler.Handle(p, p.Many(), nil); result.IsError() {
+	if result := handler.Handle(p, many, nil); result.IsError() {
 		return nil, result.Error()
 	}
-	return p.Result(), nil
+	return p.Result(many), nil
 }
 
 func (p *Provides) include(
@@ -198,7 +197,7 @@ func Resolve(
 	if result := handler.Handle(provides, false, nil); result.IsError() {
 		return result.Error()
 	}
-	provides.CopyResult(tv)
+	provides.CopyResult(tv, false)
 	return nil
 }
 
@@ -214,12 +213,11 @@ func ResolveAll(
 	var builder ProvidesBuilder
 	builder.WithKey(tv.Type().Elem().Elem()).
 		    WithConstraints(constraints...)
-	builder.WithMany()
 	provides := builder.NewProvides()
 	if result := handler.Handle(provides, true, nil); result.IsError() {
 		return result.Error()
 	}
-	provides.CopyResult(tv)
+	provides.CopyResult(tv, true)
 	return nil
 }
 

@@ -10,6 +10,13 @@ func (t *Trampoline) Callback() any {
 	return t.callback
 }
 
+func (t *Trampoline) Source() any {
+	if cb, ok := t.callback.(Callback); ok {
+		return cb.Source()
+	}
+	return nil
+}
+
 func (t *Trampoline) Policy() Policy {
 	if cb, ok := t.callback.(Callback); ok {
 		return cb.Policy()
@@ -24,9 +31,9 @@ func (t *Trampoline) ResultType() reflect.Type {
 	return nil
 }
 
-func (t *Trampoline) Result() any {
+func (t *Trampoline) Result(many bool) any {
 	if cb, ok := t.callback.(Callback); ok {
-		return cb.Result()
+		return cb.Result(many)
 	}
 	return nil
 }

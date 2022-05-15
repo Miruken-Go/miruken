@@ -118,12 +118,12 @@ func validateBivariantFunc(
 	out     := _anyType
 	index   := 1
 
-	// Callback argument must be present if spec
+	// Source argument must be present if spec
 	if len(args) > 1 {
 		if arg := funType.In(1+skip); arg.AssignableTo(_callbackType) {
-			args[1] = rawCallbackArg{}
+			args[1] = CallbackArg{}
 		} else {
-			args[1] = callbackArg{}
+			args[1] = sourceArg{}
 			in      = arg
 		}
 		index++

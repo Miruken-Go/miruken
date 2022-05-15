@@ -219,7 +219,7 @@ func (c *constraintFilter) Next(
 	if cp, ok := provider.(interface {
 		Constraints() []BindingConstraint
 	}); ok {
-		if scope, ok := context.RawCallback().(BindingScope); ok {
+		if scope, ok := context.Callback().(BindingScope); ok {
 			metadata := scope.Metadata()
 			if metadata != nil {
 				for _, c := range cp.Constraints() {

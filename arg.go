@@ -24,27 +24,29 @@ func (a zeroArg) resolve(
 	return reflect.Zero(typ), nil
 }
 
-// rawCallbackArg returns the raw callback.
-type rawCallbackArg struct {}
+// CallbackArg returns the raw callback.
+type CallbackArg struct {}
 
-func (a rawCallbackArg) resolve(
+func (a CallbackArg) resolve(
 	typ reflect.Type,
 	ctx HandleContext,
 ) (reflect.Value, error) {
-	return reflect.ValueOf(ctx.RawCallback()), nil
+	return reflect.ValueOf(ctx.Callback()), nil
 }
 
-// callbackArg returns the raw callback.
-type callbackArg struct {}
+// sourceArg returns the callback source.
+type sourceArg struct {}
 
-func (a callbackArg) resolve(
+func (a sourceArg) resolve(
 	typ reflect.Type,
 	ctx HandleContext,
 ) (reflect.Value, error) {
-	if v := reflect.ValueOf(ctx.Callback()); v.Type().AssignableTo(typ) {
-		return v, nil
+	if src := ctx.Callback().Source(); src != nil {
+		if v := reflect.ValueOf(src); v.Type().AssignableTo(typ) {
+			return v, nil
+		}
 	}
-	return reflect.ValueOf(nil), fmt.Errorf("arg: unable to resolve callback: %v", typ)
+	return reflect.ValueOf(nil), fmt.Errorf("arg: unable to resolve source: %v", typ)
 }
 
 // dependencySpec encapsulates dependency metadata.
@@ -116,12 +118,14 @@ func (d DependencyArg) resolve(
 	if typ == _handleCtxType {
 		return reflect.ValueOf(ctx), nil
 	}
-	if val := reflect.ValueOf(ctx.Callback()); val.Type().AssignableTo(typ) {
+	callback := ctx.Callback()
+	if val := reflect.ValueOf(callback); val.Type().AssignableTo(typ) {
 		return val, nil
 	}
-	rawCallback := ctx.RawCallback()
-	if val := reflect.ValueOf(rawCallback); val.Type().AssignableTo(typ) {
-		return val, nil
+	if src := callback.Source(); src != nil {
+		if val := reflect.ValueOf(src); val.Type().AssignableTo(typ) {
+			return val, nil
+		}
 	}
 	var resolver DependencyResolver = &_defaultResolver
 	if spec := d.spec; spec != nil {
@@ -129,17 +133,17 @@ func (d DependencyArg) resolve(
 			resolver = spec.resolver
 		}
 	}
-	val, err := resolver.Resolve(typ, rawCallback, d, composer)
+	val, err := resolver.Resolve(typ, callback, d, composer)
 	return val, err
 }
 
 // DependencyResolver defines how an argument value is retrieved.
 type DependencyResolver interface {
 	Resolve(
-		typ         reflect.Type,
-		rawCallback Callback,
-		dep         DependencyArg,
-		handler     Handler,
+		typ      reflect.Type,
+		callback Callback,
+		dep      DependencyArg,
+		handler  Handler,
 	) (reflect.Value, error)
 }
 
@@ -147,27 +151,27 @@ type DependencyResolver interface {
 type defaultDependencyResolver struct{}
 
 func (r *defaultDependencyResolver) Resolve(
-	typ         reflect.Type,
-	rawCallback Callback,
-	dep         DependencyArg,
-	handler     Handler,
+	typ      reflect.Type,
+	callback Callback,
+	dep      DependencyArg,
+	handler  Handler,
 ) (reflect.Value, error) {
-	var provides *Provides
-	parent, _ := rawCallback.(*Provides)
+	parent, _ := callback.(*Provides)
+	many := !dep.Strict() && typ.Kind() == reflect.Slice
 	var builder ProvidesBuilder
 	builder.WithParent(parent)
-	if !dep.Strict() && typ.Kind() == reflect.Slice {
-		builder.WithKey(typ.Elem()).WithMany()
+	if many {
+		builder.WithKey(typ.Elem())
 	} else {
 		builder.WithKey(typ)
 	}
 	if spec := dep.spec; spec != nil {
 		builder.WithConstraints(spec.constraints...)
 	}
-	provides = builder.NewProvides()
-	if result, err := provides.Resolve(handler); err == nil {
+	provides := builder.NewProvides()
+	if result, err := provides.Resolve(handler, many); err == nil {
 		var val reflect.Value
-		if provides.Many() {
+		if many {
 			results := result.([]any)
 			val = reflect.New(typ).Elem()
 			CopySliceIndirect(results, val)
@@ -188,25 +192,21 @@ func (r *defaultDependencyResolver) Resolve(
 
 // HandleContext contain all the information about handling a Callback.
 type HandleContext interface {
-	Callback() any
-	RawCallback() Callback
+	Callback() Callback
 	Binding() Binding
 	Composer() Handler
+	Greedy() bool
 }
 
 type handleCtx struct {
-	callback    any
-	rawCallback Callback
-	binding     Binding
-	composer    Handler
+	callback Callback
+	binding  Binding
+	composer Handler
+	greedy   bool
 }
 
-func (h handleCtx) Callback() any {
+func (h handleCtx) Callback() Callback {
 	return h.callback
-}
-
-func (h handleCtx) RawCallback() Callback {
-	return h.rawCallback
 }
 
 func (h handleCtx) Binding() Binding {
@@ -215,6 +215,10 @@ func (h handleCtx) Binding() Binding {
 
 func (h handleCtx) Composer() Handler {
 	return h.composer
+}
+
+func (h handleCtx) Greedy() bool {
+	return h.greedy
 }
 
 // UnresolvedArgError reports a failed resolve an arg.

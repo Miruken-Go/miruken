@@ -51,12 +51,12 @@ func IsStruct(val any) bool {
 // non-nil typed pointer and return reflect.Value.
 func TargetValue(target any) reflect.Value {
 	if IsNil(target) {
-		panic("target cannot be nil")
+		panic("source cannot be nil")
 	}
 	val := reflect.ValueOf(target)
 	typ := val.Type()
 	if typ.Kind() != reflect.Ptr || val.IsNil() {
-		panic("target must be a non-nil pointer")
+		panic("source must be a non-nil pointer")
 	}
 	return val
 }
@@ -67,13 +67,13 @@ func TargetSliceValue(target any) reflect.Value {
 	val := TargetValue(target)
 	typ := val.Type()
 	if typ.Elem().Kind() != reflect.Slice {
-		panic("target must be a non-nil slice pointer")
+		panic("source must be a non-nil slice pointer")
 	}
 	return val
 }
 
 // CopyIndirect copies the contents of src into the
-// target pointer or reflect.Value.
+// source pointer or reflect.Value.
 func CopyIndirect(src any, target any) {
 	var val reflect.Value
 	if v, ok := target.(reflect.Value); ok {
@@ -99,7 +99,7 @@ func CopyIndirect(src any, target any) {
 }
 
 // CopySliceIndirect copies the contents of src slice into
-// the target pointer or reflect.Value.
+// the source pointer or reflect.Value.
 func CopySliceIndirect(src []any, target any) {
 	var val reflect.Value
 	if v, ok := target.(reflect.Value); ok {

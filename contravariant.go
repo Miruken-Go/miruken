@@ -124,13 +124,13 @@ func validateContravariantFunc(
 	key      = spec.key
 	index   := 1
 
-	// Callback argument must be present if spec
+	// Source argument must be present if spec
 	if len(args) > 1 {
 		if arg := funType.In(1+skip); arg.AssignableTo(_callbackType) {
-			args[1] = rawCallbackArg{}
+			args[1] = CallbackArg{}
 		} else {
 			if key == nil { key = arg }
-			args[1] = callbackArg{}
+			args[1] = sourceArg{}
 		}
 		index++
 	} else if _, isSpec := spec.arg.(zeroArg); isSpec {

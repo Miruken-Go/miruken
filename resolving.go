@@ -64,7 +64,6 @@ func (b *ResolvingBuilder) WithGreedy(
 }
 
 func (b *ResolvingBuilder) NewResolving() *Resolving {
-	b.WithMany()
 	resolving := &Resolving{
 		Provides: b.Provides(),
 		callback: b.callback,

@@ -130,7 +130,7 @@ func (s *scoped) isCompatibleWithParent(
 	context  HandleContext,
 	rooted   bool,
 ) bool {
-	if parent := context.RawCallback().(*Provides).Parent(); parent != nil {
+	if parent := context.Callback().(*Provides).Parent(); parent != nil {
 		if pb := parent.Binding(); pb != nil {
 			for _, filter := range pb.Filters() {
 				if scoped, ok := filter.(*Scoped); !ok || (!rooted && scoped.rooted) {

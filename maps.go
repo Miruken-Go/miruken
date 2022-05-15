@@ -46,7 +46,7 @@ func (m *Maps) Dispatch(
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
-	return DispatchPolicy(handler, m.source, m, greedy, composer)
+	return DispatchPolicy(handler, m, greedy, composer)
 }
 
 type Format struct {
@@ -108,7 +108,7 @@ func (b *MapsBuilder) ToTarget(
 	target any,
 ) *MapsBuilder {
 	if IsNil(target) {
-		panic("target cannot be nil")
+		panic("source cannot be nil")
 	}
 	b.target = target
 	return b
@@ -162,7 +162,7 @@ func Map(
 	} else if !result.handled {
 		return NotHandledError{maps}
 	}
-	maps.CopyResult(TargetValue(target))
+	maps.CopyResult(TargetValue(target), false)
 	return nil
 }
 
@@ -198,7 +198,7 @@ func MapAll(
 		} else if !result.handled {
 			return NotHandledError{maps}
 		}
-		results[i] = maps.Result()
+		results[i] = maps.Result(false)
 	}
 	CopySliceIndirect(results, target)
 	return nil
