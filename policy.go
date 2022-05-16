@@ -137,10 +137,14 @@ func (p *policySpecBuilder) BuildSpec(
 	}
 	// Is it a callback arg?
 	if callbackOrSpec.Implements(_callbackType) {
-		return &policySpec{
-			policies: []Policy{p.policyOf(callbackOrSpec)},
-			arg:      CallbackArg{},
-		}, nil
+		if callbackOrSpec.Kind() == reflect.Interface {
+			return nil, fmt.Errorf("callback argument cannot be an interface: %v", callbackOrSpec)
+		} else {
+			return &policySpec{
+				policies: []Policy{p.policyOf(callbackOrSpec)},
+				arg:      CallbackArg{},
+			}, nil
+		}
 	}
 	return nil, nil
 }
@@ -150,7 +154,11 @@ func (p *policySpecBuilder) configure(
 	field   reflect.StructField,
 	binding any,
 ) (bound bool, err error) {
-	if cb := coerceToPtr(field.Type, _callbackType); cb != nil {
+	typ := field.Type
+	if cb := coerceToPtr(typ, _callbackType); cb != nil {
+		if typ.Kind() == reflect.Interface {
+			return false, fmt.Errorf("callback cannot be an interface: %v", typ)
+		}
 		bound = true
 		if b, ok := binding.(interface {
 			addPolicy(Policy) error
@@ -158,7 +166,7 @@ func (p *policySpecBuilder) configure(
 			policy := p.policyOf(cb)
 			if invalid := b.addPolicy(policy); invalid != nil {
 				err = fmt.Errorf(
-					"bindPolicies: policy %#v at index %v failed: %w",
+					"configure: policy %#v at index %v failed: %w",
 					policy, index, invalid)
 			}
 		}

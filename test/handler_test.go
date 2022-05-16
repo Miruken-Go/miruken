@@ -323,6 +323,18 @@ func (h *InvalidHandler) UntypedInterfaceDependency(
 	return miruken.Handled
 }
 
+func (h *InvalidHandler) CallbackInterfaceArgument(
+	cb miruken.Callback,
+) miruken.HandleResult {
+	return miruken.Handled
+}
+
+func (h *InvalidHandler) CallbackInterfaceSpec(
+	_ *struct{ miruken.Callback },
+) miruken.HandleResult {
+	return miruken.Handled
+}
+
 func (h *InvalidHandler) MissingCallbackArgument(
 	_ *struct{ miruken.Handles },
 ) miruken.HandleResult {
@@ -739,7 +751,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 						errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 						failures++
 					}
-					suite.Equal(6, failures)
+					suite.Equal(8, failures)
 				} else {
 					suite.Fail("Expected HandlerDescriptorError")
 				}
@@ -1214,37 +1226,6 @@ func (suite *HandlerTestSuite) TestCreates() {
 		suite.NotNil(multiProvider)
 		suite.Nil(err)
 	})
-
-	suite.Run("Foo", func() {
-		var x any = TestHandlerTestSuite
-		tx := reflect.TypeOf(x)
-		fmt.Println(tx.Name())
-		xs := fmt.Sprintf("%#v", x)
-		fmt.Println(xs)
-		fmt.Printf("%#v\n", reflect.ValueOf(x))
-		var fp1 uintptr = reflect.ValueOf(TestHandlerTestSuite).Pointer()
-		var fp2 uintptr = reflect.ValueOf(TestHandlerTestSuite).Pointer()
-		var fp3 uintptr = reflect.ValueOf(FooBar).Pointer()
-		f1 := func(age int) int { return age * 2 }
-		var fp4 uintptr = reflect.ValueOf(f1).Pointer()
-		sp1 := Spec{fp1}
-		sp2 := Spec{fp2}
-		sp3 := Spec{fp3}
-		sp4 := Spec{fp4}
-		sp5 := Spec{fp2}
-		//m := make(map[Spec]int)
-		fmt.Println(sp1 == sp2)
-		fmt.Println(sp1 == sp3)
-		fmt.Println(sp2 == sp4)
-		fmt.Println(sp2 == sp5)
-	})
-}
-
-type Spec struct {
-	fun uintptr
-}
-
-func FooBar() {
 }
 
 func TestHandlerTestSuite(t *testing.T) {
