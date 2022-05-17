@@ -291,6 +291,25 @@ func (h *DependencyResolverHandler) UseDependencyResolver(
 	return config
 }
 
+// MixedHandler
+type MixedHandler struct {}
+
+func (m *MixedHandler) Mix(
+	_ *struct{
+		miruken.Handles
+		miruken.Maps
+	  }, callback miruken.Callback,
+) string {
+	switch cb := callback.(type) {
+	case *miruken.Handles:
+		return fmt.Sprintf("Handles %T", cb.Source())
+	case *miruken.Maps:
+		return fmt.Sprintf("Maps %T", cb.Source())
+	default:
+		return ""
+	}
+}
+
 // InvalidHandler
 type InvalidHandler struct {}
 
@@ -624,7 +643,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 				suite.Equal("https://server/api", config.baseUrl)
 				suite.Equal(30000, config.timeout)
 			} else {
-				suite.Fail("unexpected error: %v", err.Error())
+				suite.Fail("unexpected error", err.Error())
 			}
 		})
 	})
@@ -660,7 +679,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 		})
 	})
 
-	suite.Run("Handles", func () {
+	suite.Run("Invoke", func () {
 		handler := suite.SetupWith(
 			miruken.WithHandlerSpecs(&CounterHandler{}),
 			miruken.WithHandlers(new(CounterHandler)))
@@ -671,7 +690,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 					suite.NotNil(foo)
 					suite.Equal(1, foo.Count())
 				} else {
-					suite.Fail("unexpected error: %v", err.Error())
+					suite.Fail("unexpected error", err.Error())
 				}
 			})
 
@@ -682,7 +701,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 					suite.IsType(&Foo{}, foo)
 					suite.Equal(1, foo.(*Foo).Count())
 				} else {
-					suite.Fail("unexpected error: %v", err.Error())
+					suite.Fail("unexpected error", err.Error())
 				}
 			})
 
@@ -694,7 +713,22 @@ func (suite *HandlerTestSuite) TestHandles() {
 				if err := miruken.Invoke(handler, new(Foo), &foo); err == nil {
 					suite.Nil(foo)
 				} else {
-					suite.Fail("unexpected error: %v", err.Error())
+					suite.Fail("unexpected error", err.Error())
+				}
+			})
+
+			suite.Run("Mixed", func() {
+				handler := suite.SetupWith(miruken.WithHandlerSpecs(&MixedHandler{}))
+				var ret any
+				if err := miruken.Invoke(handler, new(Foo), &ret); err == nil {
+					suite.Equal("Handles *test.Foo", ret)
+				} else {
+					suite.Fail("unexpected error", err.Error())
+				}
+				if err := miruken.Map(handler, new(Foo), &ret); err == nil {
+					suite.Equal("Maps *test.Foo", ret)
+				} else {
+					suite.Fail("unexpected error", err.Error())
 				}
 			})
 		})
@@ -719,7 +753,7 @@ func (suite *HandlerTestSuite) TestHandles() {
 					// 9 + 1 = 10 total
 					suite.Equal(10, foo[0].Count())
 				} else {
-					suite.Fail("unexpected error: %v", err.Error())
+					suite.Fail("unexpected error", err.Error())
 				}
 			})
 
@@ -783,6 +817,34 @@ func (suite *HandlerTestSuite) TestHandles() {
 			suite.False(result.IsError())
 			suite.Equal(miruken.Handled, result)
 			suite.Equal(3, bar.Count())
+		})
+
+		suite.Run("Invariant Explicit", func() {
+			handler := suite.SetupWith(
+				miruken.WithHandlerSpecs(HandleFoo),
+				miruken.WithHandlers(HandleFoo))
+			foo := new(Foo)
+			result := handler.Handle(foo, true, nil)
+			suite.False(result.IsError())
+			suite.Equal(miruken.Handled, result)
+			// 1 for explicit instance
+			// 1 for inferred call
+			suite.Equal(2, foo.Count())
+		})
+
+		suite.Run("Contravariant Explicit", func() {
+			handler := suite.SetupWith(
+				miruken.WithHandlerSpecs(HandleCounted),
+				miruken.WithHandlers(HandleCounted))
+			bar := new(Bar)
+			bar.Inc()
+			result := handler.Handle(bar, true, nil)
+			suite.False(result.IsError())
+			suite.Equal(miruken.Handled, result)
+			// Started as 1
+			// 2 for explicit instance
+			// 2 for inferred instance
+			suite.Equal(5, bar.Count())
 		})
 	})
 }
@@ -1104,7 +1166,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 		suite.Run("Disable", func() {
 			handler := suite.SetupWith(
 				miruken.WithHandlers(new(FooProvider)),
-				miruken.DisableInference)
+				miruken.WithoutInference)
 			foo := new(Foo)
 			result := handler.Handle(foo, false, nil)
 			suite.False(result.IsError())
@@ -1134,7 +1196,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 				suite.Len(foo, 8)
 				suite.True(foo[0] != foo[1])
 			} else {
-				suite.Fail("unexpected error: %v", err.Error())
+				suite.Fail("unexpected error", err.Error())
 			}
 		})
 
@@ -1150,7 +1212,7 @@ func (suite *HandlerTestSuite) TestProvides() {
 				// 12 total
 				suite.Len(counted, 12)
 			} else {
-				suite.Fail("unexpected error: %v", err.Error())
+				suite.Fail("unexpected error", err.Error())
 			}
 		})
 

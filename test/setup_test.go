@@ -25,7 +25,7 @@ type RegisterTestSuite struct {
 }
 
 func (suite *RegisterTestSuite) TestSetup() {
-	suite.Run("#RegisterHandlers", func () {
+	suite.Run("WithHandlerSpecs", func () {
 		handler := miruken.Setup(
 			miruken.WithHandlerSpecs(&MultiHandler{}),
 		)
@@ -39,7 +39,7 @@ func (suite *RegisterTestSuite) TestSetup() {
 		suite.Equal(miruken.NotHandled, result)
 	})
 
-	suite.Run("#Exclude", func () {
+	suite.Run("ExcludeHandlerSpecs", func () {
 		handler := miruken.Setup(
 			TestFeature,
 			miruken.ExcludeHandlerSpecs(
@@ -71,11 +71,10 @@ func (suite *RegisterTestSuite) TestSetup() {
 		suite.Nil(e)
 	})
 
-	suite.Run("#DisableInference", func () {
+	suite.Run("WithoutInference", func () {
 		handler := miruken.Setup(
 			miruken.WithHandlerSpecs(&MultiHandler{}),
-			miruken.DisableInference,
-		)
+			miruken.WithoutInference)
 
 		result := handler.Handle(&Foo{}, false, nil)
 		suite.False(result.IsError())

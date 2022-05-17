@@ -147,20 +147,20 @@ func newInferenceHandler(
 				// single binding to infer the handler type for a
 				// specific key.
 				for _, elem := range bs.index {
-					interceptBinding(elem.Value.(Binding), pb, handlerType,true)
+					linkBinding(elem.Value.(Binding), pb, handlerType,true)
 				}
 				// Only need the first of each invariant since it is
 				// just to link the actual handler descriptor.
 				for _, bs := range bs.invariant {
 					if len(bs) > 0 {
-						interceptBinding(bs[0], pb, handlerType, true)
+						linkBinding(bs[0], pb, handlerType, true)
 					}
 				}
 				// Only need one unknown binding to create link.
 				if last := bs.variant.Back(); last != nil {
 					binding := last.Value.(Binding)
 					if binding.Key() == _anyType {
-						interceptBinding(binding, pb, handlerType, false)
+						linkBinding(binding, pb, handlerType, false)
 					}
 				}
 			}
@@ -174,7 +174,7 @@ func newInferenceHandler(
 	}
 }
 
-func interceptBinding(
+func linkBinding(
 	binding         Binding,
 	bindings        *policyBindings,
 	handlerType     reflect.Type,

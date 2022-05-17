@@ -223,7 +223,7 @@ func (s HandlerTypeSpec) newHandlerDescriptor(
 			continue // must have a callback/spec
 		}
 		if spec, err := policySpecs.BuildSpec(methodType.In(1)); err == nil {
-			if spec == nil { // not a handler ctor
+			if spec == nil { // not a handler method
 				continue
 			}
 			for _, policy := range spec.policies {

@@ -57,7 +57,7 @@ func (s *SetupBuilder) SetHandlerDescriptorFactory(
 }
 
 func (s *SetupBuilder) DisableInference() {
-	s.noInfer = false
+	s.noInfer = true
 }
 
 func (s *SetupBuilder) CanInstall(tag any) bool {
@@ -113,10 +113,6 @@ func (s *SetupBuilder) Build() Handler {
 	return handler
 }
 
-var DisableInference = FeatureFunc(func(setup *SetupBuilder) {
-	setup.noInfer = true
-})
-
 func WithHandlers(handlers ... any) Feature {
 	return FeatureFunc(func(setup *SetupBuilder) {
 		setup.AddHandlers(handlers...)
@@ -135,9 +131,9 @@ func ExcludeHandlerSpecs(rules ... Predicate[HandlerSpec]) Feature {
 	})
 }
 
-func WithoutInference(setup *SetupBuilder) {
+var WithoutInference = FeatureFunc(func(setup *SetupBuilder) {
 	setup.DisableInference()
-}
+})
 
 func WithHandlerDescriptorFactory(factory HandlerDescriptorFactory) Feature {
 	return FeatureFunc(func(setup *SetupBuilder) {
