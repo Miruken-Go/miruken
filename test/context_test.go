@@ -91,8 +91,7 @@ func (suite *ContextTestSuite) TestContext() {
 
 	suite.Run("GetSelf", func () {
 		context := miruken.NewContext()
-		var self *miruken.Context
-		err := miruken.Resolve(context, &self)
+		self, err := miruken.Resolve[*miruken.Context](context)
 		suite.Nil(err)
 		suite.Same(context, self)
 	})
@@ -185,8 +184,7 @@ func (suite *ContextTestSuite) TestContext() {
 		data := &ContextObserver{}
 		context := miruken.NewContext()
 		context.Store(data)
-		var resolve *ContextObserver
-		err := miruken.Resolve(context, &resolve)
+		resolve, err := miruken.Resolve[*ContextObserver](context)
 		suite.Nil(err)
 		suite.Same(data, resolve)
 	})
@@ -198,8 +196,7 @@ func (suite *ContextTestSuite) TestContext() {
 			child := root.NewChild()
 			grandChild := child.NewChild()
 			root.Store(data)
-			var resolve *ContextObserver
-			err := miruken.Resolve(grandChild, &resolve)
+			resolve, err := miruken.Resolve[*ContextObserver](grandChild)
 			suite.Nil(err)
 			suite.Same(data, resolve)
 		})
@@ -209,11 +206,10 @@ func (suite *ContextTestSuite) TestContext() {
 			root := miruken.NewContext()
 			child := root.NewChild()
 			root.Store(data)
-			var resolve *ContextObserver
-			err := miruken.Resolve(miruken.Build(child, miruken.WithSelf), &resolve)
+			resolve, err := miruken.Resolve[*ContextObserver](miruken.Build(child, miruken.WithSelf))
 			suite.Nil(err)
 			suite.Nil(resolve)
-			err = miruken.Resolve(miruken.Build(root, miruken.WithSelf), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(root, miruken.WithSelf))
 			suite.Nil(err)
 			suite.Same(data, resolve)
 		})
@@ -223,12 +219,11 @@ func (suite *ContextTestSuite) TestContext() {
 			root := miruken.NewContext()
 			child := root.NewChild()
 			child.Store(data)
-			var resolve *ContextObserver
-			err := miruken.Resolve(miruken.Build(child, miruken.WithRoot), &resolve)
+			resolve, err := miruken.Resolve[*ContextObserver](miruken.Build(child, miruken.WithRoot))
 			suite.Nil(err)
 			suite.Nil(resolve)
 			root.Store(data)
-			err = miruken.Resolve(miruken.Build(root, miruken.WithRoot), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(root, miruken.WithRoot))
 			suite.Nil(err)
 			suite.Same(data, resolve)
 		})
@@ -241,14 +236,13 @@ func (suite *ContextTestSuite) TestContext() {
 			child3 := root.NewChild()
 			grandChild := child3.NewChild()
 			child2.Store(data)
-			var resolve *ContextObserver
-			err := miruken.Resolve(miruken.Build(child2, miruken.WithChild), &resolve)
+			resolve, err := miruken.Resolve[*ContextObserver](miruken.Build(child2, miruken.WithChild))
 			suite.Nil(err)
 			suite.Nil(resolve)
-			err = miruken.Resolve(miruken.Build(grandChild, miruken.WithChild), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(grandChild, miruken.WithChild))
 			suite.Nil(err)
 			suite.Nil(resolve)
-			err = miruken.Resolve(miruken.Build(root, miruken.WithChild), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(root, miruken.WithChild))
 			suite.Nil(err)
 			suite.Same(data, resolve)
 		})
@@ -261,17 +255,16 @@ func (suite *ContextTestSuite) TestContext() {
 			child3 := root.NewChild()
 			grandChild := child3.NewChild()
 			child3.Store(data)
-			var resolve *ContextObserver
-			err := miruken.Resolve(miruken.Build(root, miruken.WithSibling), &resolve)
+			resolve, err := miruken.Resolve[*ContextObserver](miruken.Build(root, miruken.WithSibling))
 			suite.Nil(err)
 			suite.Nil(resolve)
-			err = miruken.Resolve(miruken.Build(child3, miruken.WithSibling), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(child3, miruken.WithSibling))
 			suite.Nil(err)
 			suite.Nil(resolve)
-			err = miruken.Resolve(miruken.Build(grandChild, miruken.WithSibling), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(grandChild, miruken.WithSibling))
 			suite.Nil(err)
 			suite.Nil(resolve)
-			err = miruken.Resolve(miruken.Build(child2, miruken.WithSibling), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(child2, miruken.WithSibling))
 			suite.Nil(err)
 			suite.Same(data, resolve)
 		})
@@ -284,17 +277,16 @@ func (suite *ContextTestSuite) TestContext() {
 			child3 := root.NewChild()
 			grandChild := child3.NewChild()
 			child3.Store(data)
-			var resolve *ContextObserver
-			err := miruken.Resolve(miruken.Build(child1, miruken.WithSelfOrChild), &resolve)
+			resolve, err := miruken.Resolve[*ContextObserver](miruken.Build(child1, miruken.WithSelfOrChild))
 			suite.Nil(err)
 			suite.Nil(resolve)
-			err = miruken.Resolve(miruken.Build(grandChild, miruken.WithSelfOrChild), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(grandChild, miruken.WithSelfOrChild))
 			suite.Nil(err)
 			suite.Nil(resolve)
-			err = miruken.Resolve(miruken.Build(child3, miruken.WithSelfOrChild), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(child3, miruken.WithSelfOrChild))
 			suite.Nil(err)
 			suite.Same(data, resolve)
-			err = miruken.Resolve(miruken.Build(root, miruken.WithSelfOrChild), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(root, miruken.WithSelfOrChild))
 			suite.Nil(err)
 			suite.Same(data, resolve)
 		})
@@ -307,17 +299,16 @@ func (suite *ContextTestSuite) TestContext() {
 			child3 := root.NewChild()
 			grandChild := child3.NewChild()
 			child3.Store(data)
-			var resolve *ContextObserver
-			err := miruken.Resolve(miruken.Build(root, miruken.WithSelfOrSibling), &resolve)
+			resolve, err := miruken.Resolve[*ContextObserver](miruken.Build(root, miruken.WithSelfOrSibling))
 			suite.Nil(err)
 			suite.Nil(resolve)
-			err = miruken.Resolve(miruken.Build(grandChild, miruken.WithSelfOrSibling), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(grandChild, miruken.WithSelfOrSibling))
 			suite.Nil(err)
 			suite.Nil(resolve)
-			err = miruken.Resolve(miruken.Build(child3, miruken.WithSelfOrSibling), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(child3, miruken.WithSelfOrSibling))
 			suite.Nil(err)
 			suite.Same(data, resolve)
-			err = miruken.Resolve(miruken.Build(child2, miruken.WithSelfOrSibling), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(child2, miruken.WithSelfOrSibling))
 			suite.Nil(err)
 			suite.Same(data, resolve)
 		})
@@ -328,11 +319,10 @@ func (suite *ContextTestSuite) TestContext() {
 			child := root.NewChild()
 			grandChild := child.NewChild()
 			root.Store(data)
-			var resolve *ContextObserver
-			err := miruken.Resolve(miruken.Build(root, miruken.WithAncestor), &resolve)
+			resolve, err := miruken.Resolve[*ContextObserver](miruken.Build(root, miruken.WithAncestor))
 			suite.Nil(err)
 			suite.Nil(resolve)
-			err = miruken.Resolve(miruken.Build(grandChild, miruken.WithAncestor), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(grandChild, miruken.WithAncestor))
 			suite.Nil(err)
 			suite.Same(data, resolve)
 		})
@@ -343,11 +333,10 @@ func (suite *ContextTestSuite) TestContext() {
 			child := root.NewChild()
 			grandChild := child.NewChild()
 			root.Store(data)
-			var resolve *ContextObserver
-			err := miruken.Resolve(miruken.Build(root, miruken.WithSelfOrAncestor), &resolve)
+			resolve, err := miruken.Resolve[*ContextObserver](miruken.Build(root, miruken.WithSelfOrAncestor))
 			suite.Nil(err)
 			suite.Same(data, resolve)
-			err = miruken.Resolve(miruken.Build(grandChild, miruken.WithSelfOrAncestor), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(grandChild, miruken.WithSelfOrAncestor))
 			suite.Nil(err)
 			suite.Same(data, resolve)
 		})
@@ -360,17 +349,16 @@ func (suite *ContextTestSuite) TestContext() {
 			child3 := root.NewChild()
 			grandChild := child3.NewChild()
 			grandChild.Store(data)
-			var resolve *ContextObserver
-			err := miruken.Resolve(miruken.Build(grandChild, miruken.WithDescendant), &resolve)
+			resolve, err := miruken.Resolve[*ContextObserver](miruken.Build(grandChild, miruken.WithDescendant))
 			suite.Nil(err)
 			suite.Nil(resolve)
-			err = miruken.Resolve(miruken.Build(child2, miruken.WithDescendant), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(child2, miruken.WithDescendant))
 			suite.Nil(err)
 			suite.Nil(resolve)
-			err = miruken.Resolve(miruken.Build(child3, miruken.WithDescendant), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(child3, miruken.WithDescendant))
 			suite.Nil(err)
 			suite.Same(data, resolve)
-			err = miruken.Resolve(miruken.Build(root, miruken.WithDescendant), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(root, miruken.WithDescendant))
 			suite.Nil(err)
 			suite.Same(data, resolve)
 		})
@@ -383,17 +371,16 @@ func (suite *ContextTestSuite) TestContext() {
 			child3 := root.NewChild()
 			grandChild := child3.NewChild()
 			grandChild.Store(data)
-			var resolve *ContextObserver
-			err := miruken.Resolve(miruken.Build(child2, miruken.WithSelfOrDescendant), &resolve)
+			resolve, err := miruken.Resolve[*ContextObserver](miruken.Build(child2, miruken.WithSelfOrDescendant))
 			suite.Nil(err)
 			suite.Nil(resolve)
-			err = miruken.Resolve(miruken.Build(grandChild, miruken.WithSelfOrDescendant), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(grandChild, miruken.WithSelfOrDescendant))
 			suite.Nil(err)
 			suite.Same(data, resolve)
-			err = miruken.Resolve(miruken.Build(child3, miruken.WithSelfOrDescendant), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(child3, miruken.WithSelfOrDescendant))
 			suite.Nil(err)
 			suite.Same(data, resolve)
-			err = miruken.Resolve(miruken.Build(root, miruken.WithSelfOrDescendant), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(root, miruken.WithSelfOrDescendant))
 			suite.Nil(err)
 			suite.Same(data, resolve)
 		})
@@ -406,11 +393,10 @@ func (suite *ContextTestSuite) TestContext() {
 			child3 := root.NewChild()
 			child3.NewChild()
 			root.Store(data)
-			var resolve *ContextObserver
-			err := miruken.Resolve(miruken.Build(child2, miruken.WithSelfOrDescendant), &resolve)
+			resolve, err := miruken.Resolve[*ContextObserver](miruken.Build(child2, miruken.WithSelfOrDescendant))
 			suite.Nil(err)
 			suite.Nil(resolve)
-			err = miruken.Resolve(miruken.Build(root, miruken.WithSelfOrDescendant), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(root, miruken.WithSelfOrDescendant))
 			suite.Nil(err)
 			suite.Same(data, resolve)
 		})
@@ -423,11 +409,10 @@ func (suite *ContextTestSuite) TestContext() {
 			child3 := root.NewChild()
 			grandChild := child3.NewChild()
 			child2.Store(data)
-			var resolve *ContextObserver
-			err := miruken.Resolve(miruken.Build(grandChild, miruken.WithSelfSiblingOrAncestor), &resolve)
+			resolve, err := miruken.Resolve[*ContextObserver](miruken.Build(grandChild, miruken.WithSelfSiblingOrAncestor))
 			suite.Nil(err)
 			suite.Nil(resolve)
-			err = miruken.Resolve(miruken.Build(child3, miruken.WithSelfSiblingOrAncestor), &resolve)
+			resolve, err = miruken.Resolve[*ContextObserver](miruken.Build(child3, miruken.WithSelfSiblingOrAncestor))
 			suite.Nil(err)
 			suite.Same(data, resolve)
 		})
@@ -440,8 +425,7 @@ func (suite *ContextTestSuite) TestContext() {
 			child3 := root.NewChild()
 			grandChild := child3.NewChild()
 			child3.Store(data)
-			var resolve *ContextObserver
-			err := miruken.Resolve(miruken.Build(grandChild, miruken.WithSelfSiblingOrAncestor), &resolve)
+			resolve, err := miruken.Resolve[*ContextObserver](miruken.Build(grandChild, miruken.WithSelfSiblingOrAncestor))
 			suite.Nil(err)
 			suite.Same(data, resolve)
 		})
@@ -637,8 +621,7 @@ func (suite *ContextTestSuite) TestContextual() {
 		service := ScopedService{}
 		root    := miruken.NewContext()
 		service.SetContext(root)
-		var services []*ScopedService
-		if err := miruken.ResolveAll(root, &services); err == nil {
+		if services, err := miruken.ResolveAll[*ScopedService](root); err == nil {
 			suite.NotNil(services)
 			suite.Len(services, 1)
 			suite.Same(&service, services[0])
@@ -651,8 +634,7 @@ func (suite *ContextTestSuite) TestContextual() {
 		service := ScopedService{}
 		root    := miruken.NewContext()
 		service.SetContext(root)
-		var services []*ScopedService
-		if err := miruken.ResolveAll(root, &services); err == nil {
+		if services, err := miruken.ResolveAll[*ScopedService](root); err == nil {
 			suite.NotNil(services)
 			suite.Len(services, 1)
 			suite.Same(&service, services[0])
@@ -660,7 +642,7 @@ func (suite *ContextTestSuite) TestContextual() {
 			suite.Fail("unexpected error: %v", err.Error())
 		}
 		service.SetContext(nil)
-		if err := miruken.ResolveAll(root, &services); err == nil {
+		if services, err := miruken.ResolveAll[*ScopedService](root); err == nil {
 			suite.NotNil(services)
 			suite.Len(services, 0)
 		} else {
@@ -720,14 +702,12 @@ func (suite *ContextTestSuite) TestContextual() {
 	suite.Run("Resolve", func () {
 		suite.Run("ContextAssigned", func() {
 			root := suite.RootContext()
-			var service *ScopedService
-			err := miruken.Resolve(root, &service)
+			service, err := miruken.Resolve[*ScopedService](root)
 			suite.Nil(err)
 			suite.NotNil(service)
 			suite.Same(root, service.Context())
 			suite.False(service.disposed)
-			var service2 *ScopedService
-			err = miruken.Resolve(root, &service2)
+			service2, err := miruken.Resolve[*ScopedService](root)
 			suite.Nil(err)
 			suite.Same(service, service2)
 		})
@@ -735,12 +715,10 @@ func (suite *ContextTestSuite) TestContextual() {
 		suite.Run("SameContextualWithoutQualifier", func() {
 			root  := suite.RootContext()
 			child := root.NewChild()
-			var service *ScopedService
-			var childService *ScopedService
-			err := miruken.Resolve(root, &service)
+			service, err := miruken.Resolve[*ScopedService](root)
 			suite.Nil(err)
 			suite.Same(root, service.Context())
-			err = miruken.Resolve(child, &childService)
+			childService, err := miruken.Resolve[*ScopedService](child)
 			suite.Nil(err)
 			suite.Same(service, childService)
 		})
@@ -748,12 +726,10 @@ func (suite *ContextTestSuite) TestContextual() {
 		suite.Run("ChildContextAssigned", func() {
 			root  := suite.RootContext()
 			child := root.NewChild()
-			var service *ScopedService
-			var childService *ScopedService
-			err := miruken.Resolve(root, &service)
+			service, err := miruken.Resolve[*ScopedService](root)
 			suite.Nil(err)
 			suite.NotNil(service)
-			err = miruken.Resolve(child, &childService,
+			childService, err := miruken.Resolve[*ScopedService](child,
 				func(c *miruken.ConstraintBuilder) {
 					c.WithConstraint(miruken.ScopedQualifier{})
 				})
@@ -770,8 +746,7 @@ func (suite *ContextTestSuite) TestContextual() {
 
 		suite.Run("DisposedWhenContextEnds", func() {
 			root := suite.RootContext()
-			var service *ScopedService
-			err := miruken.Resolve(root, &service)
+			service, err := miruken.Resolve[*ScopedService](root)
 			suite.Nil(err)
 			suite.NotNil(service)
 			suite.Same(root, service.Context())
@@ -779,8 +754,7 @@ func (suite *ContextTestSuite) TestContextual() {
 			root.End(nil)
 			suite.Nil(service.Context())
 			suite.True(service.disposed)
-			var service2 *ScopedService
-			err = miruken.Resolve(root, &service2)
+			service2, err := miruken.Resolve[*ScopedService](root)
 			suite.NotNil(err)
 			suite.Equal("cannot scope instances to an inactive context", err.Error())
 			suite.Nil(service2)
@@ -788,13 +762,11 @@ func (suite *ContextTestSuite) TestContextual() {
 
 		suite.Run("UnmanagedWhenContextNil", func() {
 			root := suite.RootContext()
-			var service *ScopedService
-			err := miruken.Resolve(root, &service)
+			service, err := miruken.Resolve[*ScopedService](root)
 			suite.Nil(err)
 			service.SetContext(nil)
 			suite.True(service.disposed)
-			var service2 *ScopedService
-			err = miruken.Resolve(root, &service2)
+			service2, err := miruken.Resolve[*ScopedService](root)
 			suite.Nil(err)
 			suite.NotSame(service, service2)
 		})
@@ -803,14 +775,12 @@ func (suite *ContextTestSuite) TestContextual() {
 			root   := suite.RootContext()
 			child1 := root.NewChild()
 			child2 := root.NewChild()
-			var service *RootedService
-			err := miruken.Resolve(child1, &service)
+			service, err := miruken.Resolve[*RootedService](child1)
 			suite.Nil(err)
 			suite.NotNil(service)
 			suite.Same(root, service.Context())
 			suite.False(service.disposed)
-			var service2 *RootedService
-			err = miruken.Resolve(child2, &service2)
+			service2, err := miruken.Resolve[*RootedService](child2)
 			suite.Nil(err)
 			suite.Same(service, service2)
 		})
@@ -830,8 +800,7 @@ func (suite *ContextTestSuite) TestContextual() {
 				}
 			}()
 			root := suite.RootContext()
-			var service *ScopedService
-			err := miruken.Resolve(root, &service)
+			service, err := miruken.Resolve[*ScopedService](root)
 			suite.Nil(err)
 			service.SetContext(root.NewChild())
 		})
@@ -861,16 +830,14 @@ func (suite *ContextTestSuite) TestContextual() {
 		suite.Run("Provides", func () {
 			suite.Run("Invariant", func() {
 				root := suite.RootContext()
-				var foo *Foo
-				err := miruken.Resolve(root, &foo)
+				foo, err := miruken.Resolve[*Foo](root)
 				suite.Nil(err)
 				suite.Equal(1, foo.Count())
 			})
 
 			suite.Run("Covariant", func() {
 				root := suite.RootContextWith(&RootedService{})
-				var counter Counter
-				err := miruken.Resolve(root, &counter)
+				counter, err := miruken.Resolve[Counter](root)
 				suite.Nil(err)
 				suite.Equal(2, counter.Count())
 			})
@@ -880,8 +847,7 @@ func (suite *ContextTestSuite) TestContextual() {
 			root := suite.RootContextWith(
 				&ScopedService{},
 				&LifestyleMismatch{})
-			var mismatch *LifestyleMismatch
-			err := miruken.Resolve(root, &mismatch)
+			mismatch, err := miruken.Resolve[*LifestyleMismatch](root)
 			suite.Nil(err)
 			suite.Nil(mismatch)
 		})

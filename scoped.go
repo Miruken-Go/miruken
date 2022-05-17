@@ -48,8 +48,8 @@ func (s *scoped) Next(
 	if !s.isCompatibleWithParent(context, rooted) {
 		return nil, nil
 	}
-	var ctx *Context
-	if err := Resolve(context.Composer(), &ctx); err != nil {
+	ctx, err := Resolve[*Context](context.Composer())
+	if err != nil {
 		return nil, err
 	} else if ctx == nil {
 		return next.Abort()

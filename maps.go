@@ -138,21 +138,52 @@ func (b *MapsBuilder) NewMaps() *Maps {
 	return maps
 }
 
-func Map(
+func Map[T any](
 	handler Handler,
-	source any,
-	target any,
-	format ... any,
-) error {
+	source  any,
+	format  ... any,
+) (T, error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
 	if len(format) > 1 {
 		panic("only one format is allowed")
 	}
+	var target T
 	var builder MapsBuilder
 	builder.FromSource(source).
-		    ToTarget(target)
+		    ToTarget(&target)
+	if len(format) == 1 {
+		builder.WithFormat(format[0])
+	}
+	maps := builder.NewMaps()
+	if result := handler.Handle(maps, false, nil); result.IsError() {
+		return target, result.Error()
+	} else if !result.handled {
+		return target, NotHandledError{maps}
+	}
+	maps.CopyResult(TargetValue(&target), false)
+	return target, nil
+}
+
+func MapInto[T any](
+	handler Handler,
+	source  any,
+	target  *T,
+	format  ... any,
+) error {
+	if handler == nil {
+		panic("handler cannot be nil")
+	}
+	if target == nil {
+		panic("target cannot be nil")
+	}
+	if len(format) > 1 {
+		panic("only one format is allowed")
+	}
+	var builder MapsBuilder
+	builder.FromSource(source).
+		ToTarget(target)
 	if len(format) == 1 {
 		builder.WithFormat(format[0])
 	}
@@ -166,12 +197,11 @@ func Map(
 	return nil
 }
 
-func MapAll(
+func MapAll[T any](
 	handler Handler,
-	source any,
-	target any,
-	format ... any,
-) error {
+	source  any,
+	format  ... any,
+) ([]T, error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
@@ -181,8 +211,9 @@ func MapAll(
 	if len(format) > 1 {
 		panic("only one format is allowed")
 	}
+	var target []T
 	ts      := reflect.ValueOf(source)
-	tv      := TargetSliceValue(target)
+	tv      := TargetSliceValue(&target)
 	tt      := tv.Type().Elem().Elem()
 	te      := reflect.New(tt).Interface()
 	results := make([]any, ts.Len())
@@ -194,14 +225,14 @@ func MapAll(
 		}
 		maps := builder.NewMaps()
 		if result := handler.Handle(maps, false, nil); result.IsError() {
-			return result.Error()
+			return target, result.Error()
 		} else if !result.handled {
-			return NotHandledError{maps}
+			return target, NotHandledError{maps}
 		}
 		results[i] = maps.Result(false)
 	}
-	CopySliceIndirect(results, target)
-	return nil
+	CopySliceIndirect(results, &target)
+	return target, nil
 }
 
 var (

@@ -180,45 +180,45 @@ func (b *ProvidesBuilder) NewProvides() *Provides {
 	return provides
 }
 
-func Resolve(
+func Resolve[T any](
 	handler     Handler,
-	target      any,
 	constraints ... func(*ConstraintBuilder),
-) error {
+) (T, error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
-	tv := TargetValue(target)
+	var target T
+	tv := TargetValue(&target)
 	var builder ProvidesBuilder
 	provides := builder.
 		WithKey(tv.Type().Elem()).
 		WithConstraints(constraints...).
 		NewProvides()
 	if result := handler.Handle(provides, false, nil); result.IsError() {
-		return result.Error()
+		return target, result.Error()
 	}
 	provides.CopyResult(tv, false)
-	return nil
+	return target, nil
 }
 
-func ResolveAll(
+func ResolveAll[T any](
 	handler     Handler,
-	target      any,
 	constraints ... func(*ConstraintBuilder),
-) error {
+) ([]T, error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
-	tv := TargetSliceValue(target)
+	var target []T
+	tv := TargetSliceValue(&target)
 	var builder ProvidesBuilder
 	builder.WithKey(tv.Type().Elem().Elem()).
 		    WithConstraints(constraints...)
 	provides := builder.NewProvides()
 	if result := handler.Handle(provides, true, nil); result.IsError() {
-		return result.Error()
+		return target, result.Error()
 	}
 	provides.CopyResult(tv, true)
-	return nil
+	return target, nil
 }
 
 // providesPolicy for providing instances covariantly with lifestyle.

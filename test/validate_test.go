@@ -321,7 +321,6 @@ func (suite *ValidateTestSuite) TestValidation() {
 		handles.Policy().AddFilters(miruken.NewValidateProvider(false))
 
 		suite.Run("Validates Command", func() {
-			var team Team
 			create := CreateTeam{TeamAction{ Team: Team{
 				Name: "Liverpool",
 				Coach: Coach{
@@ -330,7 +329,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 					License:   "A",
 				},
 			}}}
-			if err := miruken.Invoke(handler, &create, &team); err == nil {
+			if team, err := miruken.Invoke[Team](handler, &create); err == nil {
 				suite.Equal(1, team.Id)
 				suite.True(team.Active)
 				outcome := create.ValidationOutcome()
@@ -342,9 +341,8 @@ func (suite *ValidateTestSuite) TestValidation() {
 		})
 
 		suite.Run("Rejects Command", func() {
-			var team Team
 			var create CreateTeam
-			if err := miruken.Invoke(handler, &create, &team); err != nil {
+			if team, err := miruken.Invoke[Team](handler, &create); err != nil {
 				suite.IsType(&miruken.ValidationOutcome{}, err)
 				suite.Equal(0, team.Id)
 				outcome := create.ValidationOutcome()
@@ -357,9 +355,8 @@ func (suite *ValidateTestSuite) TestValidation() {
 		})
 
 		suite.Run("Rejects Another Command", func() {
-			var team Team
 			remove := &RemoveTeam{}
-			if err := miruken.Invoke(handler, remove, &team); err != nil {
+			if team, err := miruken.Invoke[Team](handler, remove); err != nil {
 				suite.IsType(&miruken.ValidationOutcome{}, err)
 				suite.False(team.Active)
 				outcome := remove.ValidationOutcome()
@@ -371,7 +368,6 @@ func (suite *ValidateTestSuite) TestValidation() {
 			}
 
 			suite.Run("Validates Open", func() {
-				var team Team
 				create := CreateTeam{TeamAction{ Team: Team{
 					Name: "Breakaway",
 					Coach: Coach{
@@ -380,7 +376,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 						License:   "B",
 					},
 				}}}
-				if err := miruken.Invoke(handler, &create, &team); err != nil {
+				if _, err := miruken.Invoke[Team](handler, &create); err != nil {
 					suite.IsType(&miruken.ValidationOutcome{}, err)
 					outcome := create.ValidationOutcome()
 					suite.NotNil(outcome)

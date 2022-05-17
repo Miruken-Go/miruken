@@ -79,39 +79,41 @@ func (b *HandlesBuilder) NewHandles() *Handles {
 	}
 }
 
-func Invoke(handler Handler, callback any, target any) error {
+func Invoke[T any](handler Handler, callback any) (T, error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
-	tv     := TargetValue(target)
+	var target T
+	tv := TargetValue(&target)
 	var builder HandlesBuilder
 	handle := builder.
 		WithCallback(callback).
 		NewHandles()
 	if result := handler.Handle(handle, false, nil); result.IsError() {
-		return result.Error()
+		return target, result.Error()
 	} else if !result.handled {
-		return NotHandledError{callback}
+		return target, NotHandledError{callback}
 	}
 	handle.CopyResult(tv, false)
-	return nil
+	return target, nil
 }
 
-func InvokeAll(handler Handler, callback any, target any) error {
+func InvokeAll[T any](handler Handler, callback any) ([]T, error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
-	tv := TargetSliceValue(target)
+	var target []T
+	tv := TargetSliceValue(&target)
 	var builder HandlesBuilder
 	builder.WithCallback(callback)
 	handle  := builder.NewHandles()
 	if result := handler.Handle(handle, true, nil); result.IsError() {
-		return result.Error()
+		return target, result.Error()
 	} else if !result.handled {
-		return NotHandledError{callback}
+		return target, NotHandledError{callback}
 	}
 	handle.CopyResult(tv, true)
-	return nil
+	return target, nil
 }
 
 var _handlesPolicy Policy = &ContravariantPolicy{}

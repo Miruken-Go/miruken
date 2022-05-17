@@ -60,13 +60,11 @@ func (suite *RegisterTestSuite) TestSetup() {
 				}),
 		)
 
-		var m *MultiHandler
-		err := miruken.Resolve(handler, &m)
+		m, err := miruken.Resolve[*MultiHandler](handler)
 		suite.Nil(err)
 		suite.Nil(m)
 
-		var e *EverythingHandler
-		err = miruken.Resolve(handler, &e)
+		e, err := miruken.Resolve[*EverythingHandler](handler)
 		suite.Nil(err)
 		suite.Nil(e)
 	})
@@ -80,8 +78,7 @@ func (suite *RegisterTestSuite) TestSetup() {
 		suite.False(result.IsError())
 		suite.Equal(miruken.NotHandled, result)
 
-		var m *MultiHandler
-		err := miruken.Resolve(handler, &m)
+		m, err := miruken.Resolve[*MultiHandler](handler)
 		suite.Nil(err)
 		suite.Nil(m)
 	})
