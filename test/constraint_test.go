@@ -60,8 +60,8 @@ type Hospital struct {
 }
 
 func (h *Hospital) Constructor(
-	_ *struct{ Doctor },     doctor     Person,
-	_ *struct{ Programmer }, programmer Person,
+	_*struct{ Doctor },     doctor     Person,
+	_*struct{ Programmer }, programmer Person,
 ) {
 	h.doctor     = doctor
 	h.programmer = programmer
@@ -78,7 +78,7 @@ func (h *Hospital) Programmer() Person {
 type PersonProvider struct{}
 
 func (p *PersonProvider) Doctor(
-	_ *struct{
+	_*struct{
 		miruken.Provides
 		miruken.Singleton
 		Doctor
@@ -88,7 +88,7 @@ func (p *PersonProvider) Doctor(
 }
 
 func (p *PersonProvider) Programmer(
-	_ *struct{
+	_*struct{
 		miruken.Provides
 		miruken.Singleton
 		Programmer
@@ -104,7 +104,7 @@ type AppSettings interface {
 type LocalSettings struct{}
 
 func (l *LocalSettings) Constructor(
-	_ *struct{
+	_*struct{
 		miruken.Provides
 		miruken.Singleton
 		miruken.Named `name:"local"`
@@ -119,7 +119,7 @@ func (l *LocalSettings) ServerUrl() string {
 type RemoteSettings struct{}
 
 func (r *RemoteSettings) Constructor(
-	_ *struct{
+	_*struct{
 		miruken.Provides
 		miruken.Singleton
 		miruken.Named `name:"remote"`
@@ -137,8 +137,8 @@ type Client struct {
 }
 
 func (c *Client) Constructor(
-	_ *struct{ miruken.Named `name:"local"` },  local  AppSettings,
-	_ *struct{ miruken.Named `name:"remote"` }, remote AppSettings,
+	_*struct{ miruken.Named `name:"local"` },  local  AppSettings,
+	_*struct{ miruken.Named `name:"remote"` }, remote AppSettings,
 ) {
 	c.local  = local
 	c.remote = remote

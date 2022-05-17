@@ -90,7 +90,7 @@ func (v *PlayerValidator) MustHaveNameAndDOB(
 }
 
 func (v *PlayerValidator) MustBeTenOrUnder(
-	_ *struct{
+	_*struct{
 		miruken.Validates
 		miruken.Group `name:"Recreational"`
 	  }, player *Player,
@@ -116,7 +116,7 @@ func (v *TeamValidator) MustHaveName(
 }
 
 func (v *TeamValidator) MustHaveLicensedCoach(
-	_ *struct{
+	_*struct{
 		miruken.Validates
 		miruken.Group `name:"ECNL"`
 	  }, team *Team,

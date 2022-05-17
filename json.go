@@ -17,11 +17,11 @@ type (
 )
 
 func (m *JsonMapper) ToJson(
-	_ *struct{
+	_*struct{
 		Maps
 		Format `as:"application/json"`
 	  }, maps *Maps,
-	_ *struct{
+	_*struct{
 		Optional
 		FromOptions
 	  }, options JsonOptions,
@@ -36,11 +36,11 @@ func (m *JsonMapper) ToJson(
 }
 
 func (m *JsonMapper) ToJsonStream(
-	_ *struct{
+	_*struct{
 		Maps
 		Format `as:"application/json"`
 	  }, maps *Maps,
-	_ *struct{
+	_*struct{
 		Optional
 		FromOptions
 	  }, options JsonOptions,
@@ -57,7 +57,7 @@ func (m *JsonMapper) ToJsonStream(
 }
 
 func (m *JsonMapper) FromJson(
-	_ *struct{
+	_*struct{
 		Maps
 		Format `as:"application/json"`
 	  }, jsonString string,
@@ -69,7 +69,7 @@ func (m *JsonMapper) FromJson(
 }
 
 func (m *JsonMapper) FromJsonStream(
-	_ *struct{
+	_*struct{
 		Maps
 		Format `as:"application/json"`
 	  }, stream io.Reader,

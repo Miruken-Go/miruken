@@ -100,7 +100,7 @@ type (
 )
 
 func (m *FormatMapper) ToPlayerJson(
-	_ *struct{
+	_*struct{
 		miruken.Maps
 		miruken.Format `as:"application/json"`
 	  }, data *PlayerData,
@@ -109,7 +109,7 @@ func (m *FormatMapper) ToPlayerJson(
 }
 
 func (m *FormatMapper) FromPlayerJson(
-	_ *struct{
+	_*struct{
 		miruken.Maps
 		miruken.Format `as:"application/json"`
 	  }, jsonString string,
@@ -123,8 +123,8 @@ func (m *FormatMapper) FromPlayerJson(
 type InvalidMapper struct {}
 
 func (m *InvalidMapper) MissingDependency(
-	_ *miruken.Handles, _ *Bar,
-	_ *struct{ },
+	_*miruken.Handles, _ *Bar,
+	_*struct{ },
 ) {
 }
 
@@ -151,7 +151,7 @@ func (m *InvalidMapper) UntypedInterfaceDependency(
 }
 
 func (m *InvalidMapper) MissingCallbackArgument(
-	_ *struct{ miruken.Handles },
+	_*struct{ miruken.Handles },
 ) miruken.HandleResult {
 	return miruken.Handled
 }

@@ -13,10 +13,10 @@ import (
 type PlayerMapper struct{}
 
 func (m *PlayerMapper) ToPlayerJson(
-	_ *struct{
-	miruken.Maps
-	miruken.Format `as:"application/json"`
-}, data PlayerData,
+	_*struct{
+	    miruken.Maps
+	    miruken.Format `as:"application/json"`
+      }, data PlayerData,
 ) string {
 	return fmt.Sprintf("{\"id\":%v,\"name\":\"%v\"}", data.Id, data.Name)
 }

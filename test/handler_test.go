@@ -163,7 +163,7 @@ func (h *EverythingImplicitHandler) HandleEverything(
 type EverythingSpecHandler struct{}
 
 func (h *EverythingSpecHandler) HandleEverything(
-	_ *struct { miruken.Handles }, callback any,
+	_*struct { miruken.Handles }, callback any,
 ) miruken.HandleResult {
 	switch cb := callback.(type) {
 	case *Baz:
@@ -182,7 +182,7 @@ func (h *EverythingSpecHandler) HandleEverything(
 type SpecificationHandler struct{}
 
 func (h *SpecificationHandler) HandleFoo(
-	_ *struct{ miruken.Handles; miruken.Strict }, foo *Foo,
+	_*struct{ miruken.Handles; miruken.Strict }, foo *Foo,
 ) miruken.HandleResult {
 	foo.Inc()
 	fmt.Println("SpecificationHandler")
@@ -213,8 +213,8 @@ func (h *DependencyHandler) RequiredSliceDependency(
 }
 
 func (h *DependencyHandler) OptionalDependency(
-	_ *miruken.Handles, bar *Bar,
-	_ *struct{ miruken.Optional }, foo *Foo,
+	_*miruken.Handles, bar *Bar,
+	_*struct{ miruken.Optional }, foo *Foo,
 ) {
 	bar.Inc()
 	if foo != nil {
@@ -223,8 +223,8 @@ func (h *DependencyHandler) OptionalDependency(
 }
 
 func (h *DependencyHandler) OptionalSliceDependency(
-	_ *miruken.Handles, baz *Baz,
-	_ *struct{ miruken.Optional }, bars []*Bar,
+	_*miruken.Handles, baz *Baz,
+	_*struct{ miruken.Optional }, bars []*Bar,
 ) {
 	baz.Inc()
 	for _, bar := range bars {
@@ -233,8 +233,8 @@ func (h *DependencyHandler) OptionalSliceDependency(
 }
 
 func (h *DependencyHandler) StrictDependency(
-	_ *miruken.Handles, bam *Bam,
-	_ *struct{ miruken.Strict }, bars []*Bar,
+	_*miruken.Handles, bam *Bam,
+	_*struct{ miruken.Strict }, bars []*Bar,
 ) {
 	bam.Inc()
 	for _, bar := range bars {
@@ -284,8 +284,8 @@ func (c Configuration) Resolve(
 type DependencyResolverHandler struct{}
 
 func (h *DependencyResolverHandler) UseDependencyResolver(
-	_ *miruken.Handles, foo *Foo,
-	_ *struct{ Configuration }, config *Config,
+	_*miruken.Handles, foo *Foo,
+	_*struct{ Configuration }, config *Config,
 ) *Config {
 	foo.Inc()
 	return config
@@ -295,7 +295,7 @@ func (h *DependencyResolverHandler) UseDependencyResolver(
 type MixedHandler struct {}
 
 func (m *MixedHandler) Mix(
-	_ *struct{
+	_*struct{
 		miruken.Handles
 		miruken.Maps
 	  }, callback miruken.Callback,
@@ -318,8 +318,8 @@ func (h *InvalidHandler) Constructor() {}
 func (h *InvalidHandler) NoConstructor() {}
 
 func (h *InvalidHandler) MissingDependency(
-	_ *miruken.Handles, _ *Bar,
-	_ *struct{ },
+	_*miruken.Handles, _ *Bar,
+	_*struct{ },
 ) {
 }
 
@@ -349,26 +349,26 @@ func (h *InvalidHandler) CallbackInterfaceArgument(
 }
 
 func (h *InvalidHandler) CallbackInterfaceSpec(
-	_ *struct{ miruken.Callback },
+	*struct{ miruken.Callback },
 ) miruken.HandleResult {
 	return miruken.Handled
 }
 
 func (h *InvalidHandler) MissingCallbackArgument(
-	_ *struct{ miruken.Handles },
+	*struct{ miruken.Handles },
 ) miruken.HandleResult {
 	return miruken.Handled
 }
 
 func HandleFoo(
-	_ *miruken.Handles, foo *Foo,
+	_*miruken.Handles, foo *Foo,
 ) miruken.HandleResult {
 	foo.Inc()
 	return miruken.Handled
 }
 
 func HandleCounted(
-	_ *struct{ miruken.Handles }, counter Counter,
+	_*struct{ miruken.Handles }, counter Counter,
 ) {
 	counter.Inc()
 	counter.Inc()
@@ -908,7 +908,7 @@ func (p *SpecificationProvider) Constructor(baz Baz) {
 }
 
 func (p *SpecificationProvider) ProvideFoo(
-	_ *struct{
+	_*struct{
 		miruken.Provides
 		miruken.Creates
 	  },
@@ -918,7 +918,7 @@ func (p *SpecificationProvider) ProvideFoo(
 }
 
 func (p *SpecificationProvider) ProvideBar(
-	_ *struct{ miruken.Provides; miruken.Strict },
+	_*struct{ miruken.Provides; miruken.Strict },
 ) []*Bar {
 	p.bar.Inc()
 	return []*Bar{&p.bar, {}}

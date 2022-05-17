@@ -180,7 +180,7 @@ func (f FilteringHandler) Order() int {
 }
 
 func (f FilteringHandler) HandleBar(
-	_ *struct{
+	_*struct{
 		miruken.Handles
 		NullFilter
 		LogFilter
@@ -192,7 +192,7 @@ func (f FilteringHandler) HandleBar(
 }
 
 func (f FilteringHandler) HandleBee(
-	_ *struct{
+	_*struct{
 		miruken.Handles
 		miruken.SkipFilters
 		LogFilter
@@ -226,7 +226,7 @@ func (f FilteringHandler) Next(
 type SpecialFilteringHandler struct {}
 
 func (s SpecialFilteringHandler) HandleFoo(
-	_ *struct{
+	_*struct{
 		miruken.Handles
 		LogFilter
 		ExceptionFilter
@@ -237,7 +237,7 @@ func (s SpecialFilteringHandler) HandleFoo(
 }
 
 func (s SpecialFilteringHandler) RemoveBoo(
-	_ *struct{
+	_*struct{
 		miruken.Handles
 		ExceptionFilter
 	  },
@@ -250,7 +250,7 @@ func (s SpecialFilteringHandler) RemoveBoo(
 type SingletonHandler struct{}
 
 func (s *SingletonHandler) Constructor(
-	_ *struct{
+	_*struct{
 		miruken.Provides
 		miruken.Singleton
 	  },
@@ -258,7 +258,7 @@ func (s *SingletonHandler) Constructor(
 }
 
 func (s *SingletonHandler) HandleBar(
-	_ *struct{
+	_*struct{
 		miruken.Handles
 		LogFilter
 	  },
@@ -276,7 +276,7 @@ type SingletonErrorHandler struct {
 }
 
 func (s *SingletonErrorHandler) Constructor(
-	_ *struct{
+	_*struct{
 		miruken.Provides
 		miruken.Singleton
 	  },
@@ -302,7 +302,7 @@ func (s *SingletonErrorHandler) HandleBee(
 type BadHandler struct{}
 
 func (b BadHandler) HandleBar(
-	_ *struct{
+	_*struct{
 		miruken.Handles
 		LogFilter
       },

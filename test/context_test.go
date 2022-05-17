@@ -504,7 +504,7 @@ type ScopedService struct {
 }
 
 func (s *ScopedService) Constructor(
-	_ *struct{
+	_*struct{
 		miruken.Provides
 		miruken.Scoped
 	  },
@@ -544,9 +544,9 @@ type RootedService struct {
 }
 
 func (s *RootedService) Constructor(
-	_ *struct{
-	     miruken.Provides
-	     miruken.Scoped `scoped:"rooted"`
+	_*struct{
+		miruken.Provides
+		miruken.Scoped `scoped:"rooted"`
       },
 ) {
 }
@@ -581,7 +581,7 @@ func (s *RootedService) Dispose() {
 type LifestyleMismatch struct {}
 
 func (l *LifestyleMismatch) Constructor(
-	_ *struct{
+	_*struct{
 		miruken.Provides
 		miruken.Singleton
 	  },
