@@ -168,7 +168,7 @@ type TeamHandler struct {
 }
 
 func (h *TeamHandler) CreateTeam(
-	_ *miruken.Handles, create *CreateTeam,
+	_*miruken.Handles, create *CreateTeam,
 ) Team {
 	team := create.Team
 	h.teamId++
@@ -178,7 +178,7 @@ func (h *TeamHandler) CreateTeam(
 }
 
 func (h *TeamHandler) RemoveTeam(
-	_ *miruken.Handles, remove *RemoveTeam,
+	_*miruken.Handles, remove *RemoveTeam,
 ) Team {
 	team := remove.Team
 	team.Active = false

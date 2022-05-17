@@ -203,7 +203,7 @@ func (f FilteringHandler) HandleBee(
 }
 
 func (f FilteringHandler) HandleStuff(
-	_ *miruken.Handles, callback any,
+	_*miruken.Handles, callback any,
 ) {
 	if bar, ok := callback.(*BarC); ok {
 		bar.IncHandled(-999)
@@ -292,7 +292,7 @@ func (s *SingletonErrorHandler) Constructor(
 }
 
 func (s *SingletonErrorHandler) HandleBee(
-	_ *miruken.Handles, bee *BeeC,
+	_*miruken.Handles, bee *BeeC,
 ) {
 	bee.IncHandled(3)
 }

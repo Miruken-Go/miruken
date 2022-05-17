@@ -59,7 +59,7 @@ func (h *FooHandler) Handle(
 type BarHandler struct {}
 
 func (h *BarHandler) HandleBar(
-	_ *miruken.Handles, _ Bar,
+	_*miruken.Handles, _ Bar,
 ) {
 }
 
@@ -67,7 +67,7 @@ func (h *BarHandler) HandleBar(
 type CounterHandler struct {}
 
 func (h *CounterHandler) HandleCounted(
-	_ *miruken.Handles, counter Counter,
+	_*miruken.Handles, counter Counter,
 ) (Counter, miruken.HandleResult) {
 	switch c := counter.Inc(); {
 	case c > 0 && c % 3 == 0:
@@ -83,7 +83,7 @@ func (h *CounterHandler) HandleCounted(
 type CountByTwoHandler struct {}
 
 func (h *CountByTwoHandler) HandleCounted(
-	_ *miruken.Handles, counter Counter,
+	_*miruken.Handles, counter Counter,
 ) (Counter, miruken.HandleResult) {
 	counter.Inc()
 	counter.Inc()
@@ -98,7 +98,7 @@ type MultiHandler struct {
 }
 
 func (h *MultiHandler) HandleFoo(
-	_ *miruken.Handles, foo *Foo,
+	_*miruken.Handles, foo *Foo,
 	composer miruken.Handler,
 ) error {
 	h.foo.Inc()
@@ -110,7 +110,7 @@ func (h *MultiHandler) HandleFoo(
 }
 
 func (h *MultiHandler) HandleBar(
-	_ *miruken.Handles, bar *Bar,
+	_*miruken.Handles, bar *Bar,
 ) miruken.HandleResult {
 	h.bar.Inc()
 	if bar.Inc() % 2 == 0 {
@@ -123,7 +123,7 @@ func (h *MultiHandler) HandleBar(
 type EverythingHandler struct{}
 
 func (h *EverythingHandler) HandleEverything(
-	_ *miruken.Handles, callback any,
+	_*miruken.Handles, callback any,
 ) miruken.HandleResult {
 	switch cb := callback.(type) {
 	case *Foo:
@@ -193,7 +193,7 @@ func (h *SpecificationHandler) HandleFoo(
 type DependencyHandler struct{}
 
 func (h *DependencyHandler) RequiredDependency(
-	_ *miruken.Handles, foo *Foo,
+	_*miruken.Handles, foo *Foo,
 	bar *Bar,
 ) {
 	if bar == nil {
@@ -203,7 +203,7 @@ func (h *DependencyHandler) RequiredDependency(
 }
 
 func (h *DependencyHandler) RequiredSliceDependency(
-	_ *miruken.Handles, boo *Boo,
+	_*miruken.Handles, boo *Boo,
 	bars []*Bar,
 ) {
 	boo.Inc()
@@ -324,19 +324,19 @@ func (h *InvalidHandler) MissingDependency(
 }
 
 func (h *InvalidHandler) TooManyReturnValues(
-	_ *miruken.Handles, _ *Bar,
+	_*miruken.Handles, _ *Bar,
 ) (int, string, Counter) {
 	return 0, "bad", nil
 }
 
 func (h *InvalidHandler) SecondReturnMustBeErrorOrHandleResult(
-	_ *miruken.Handles, _ *Counter,
+	_*miruken.Handles, _ *Counter,
 ) (Foo, string) {
 	return Foo{}, "bad"
 }
 
 func (h *InvalidHandler) UntypedInterfaceDependency(
-	_ *miruken.Handles, _ *Bar,
+	_*miruken.Handles, _ *Bar,
 	any any,
 ) miruken.HandleResult {
 	return miruken.Handled
@@ -968,7 +968,7 @@ func (p *InvalidProvider) SecondReturnMustBeErrorOrHandleResult(
 }
 
 func (p *InvalidProvider) UntypedInterfaceDependency(
-	_ *miruken.Provides,
+	_*miruken.Provides,
 	any any,
 ) *Foo {
 	return &Foo{}
