@@ -729,10 +729,8 @@ func (suite *ContextTestSuite) TestContextual() {
 			service, err := miruken.Resolve[*ScopedService](root)
 			suite.Nil(err)
 			suite.NotNil(service)
-			childService, err := miruken.Resolve[*ScopedService](child,
-				func(c *miruken.ConstraintBuilder) {
-					c.WithConstraint(miruken.ScopedQualifier{})
-				})
+			childService, err := miruken.Resolve[*ScopedService](
+				child, miruken.WithConstraint(miruken.Qualifier[miruken.Scoped]{}))
 			suite.Nil(err)
 			suite.Same(child, childService.Context())
 			suite.NotSame(service, childService)

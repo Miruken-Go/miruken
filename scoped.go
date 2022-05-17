@@ -25,13 +25,12 @@ func (s *Scoped) Init() error {
 }
 
 func (s *Scoped) Constraint() BindingConstraint {
-	return ScopedQualifier{}
+	return Qualifier[Scoped]{}
 }
 
 // scoped is a Filter that caches an instance per Context.
 type scoped struct {
 	Lifestyle
-	Qualifier
 	cache  map[*Context][]any
 	lock   sync.RWMutex
 }
@@ -146,17 +145,4 @@ func (s *scoped) tryDispose(instance any) {
 	if disposable, ok := instance.(Disposable); ok {
 		disposable.Dispose()
 	}
-}
-
-// ScopedQualifier constrains a scoped lifestyle.
-type ScopedQualifier struct {
-	Qualifier
-}
-
-func (s ScopedQualifier) Require(metadata *BindingMetadata) {
-	s.RequireQualifier(s, metadata)
-}
-
-func (s ScopedQualifier) Matches(metadata *BindingMetadata) bool {
-	return s.MatchesQualifier(s, metadata)
 }

@@ -188,20 +188,14 @@ func (m *Metadata) Matches(metadata *BindingMetadata) bool {
 }
 
 // Qualifier matches against a type.
-type Qualifier struct {}
+type Qualifier[T any] struct {}
 
-func (q Qualifier) RequireQualifier(
-	qualifier  any,
-	metadata  *BindingMetadata,
-) {
-	metadata.Set(reflect.TypeOf(qualifier), nil)
+func (q Qualifier[T]) Require(metadata *BindingMetadata) {
+	metadata.Set(TypeOf[T](), nil)
 }
 
-func (q Qualifier) MatchesQualifier(
-	qualifier  any,
-	metadata  *BindingMetadata,
-) bool {
-	return metadata.IsEmpty() || metadata.Has(reflect.TypeOf(qualifier))
+func (q Qualifier[T]) Matches(metadata *BindingMetadata) bool {
+	return metadata.IsEmpty() || metadata.Has(TypeOf[T]())
 }
 
 // constraintFilter enforces constraints.
@@ -302,6 +296,45 @@ func (b *ConstraintBuilder) Metadata() (metadata *BindingMetadata) {
 		b.metadata = metadata
 	}
 	return metadata
+}
+
+func WithName(name string) func(*ConstraintBuilder) {
+	return func(c *ConstraintBuilder) {
+		c.Named(name)
+	}
+}
+
+func WithConstraint(constraint BindingConstraint) func(*ConstraintBuilder) {
+	return func(c *ConstraintBuilder) {
+		c.WithConstraint(constraint)
+	}
+}
+
+func WithMetadata(metadata BindingMetadata) func(*ConstraintBuilder) {
+	return func(c *ConstraintBuilder) {
+		c.WithMetadata(metadata)
+	}
+}
+
+func WithQualifier[T any]() func(*ConstraintBuilder) {
+	return func(c *ConstraintBuilder) {
+		c.WithConstraint(Qualifier[T]{})
+	}
+}
+
+// ConstraintInitialize defines generic contract for providers.
+type ConstraintInitialize interface {
+	BindingConstraint
+	Init() error
+}
+
+func WithConstraintProvider[T ConstraintInitialize](provider T) func(*ConstraintBuilder) {
+	return func(c *ConstraintBuilder) {
+		if err := provider.Init(); err != nil {
+			panic(fmt.Errorf("invalid provider: %w", err))
+		}
+		c.WithConstraint(provider)
+	}
 }
 
 func ApplyConstraints(

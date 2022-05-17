@@ -53,9 +53,9 @@ func (suite *JsonTestSuite) TestJson() {
 					"John Smith",
 					23,
 				}
-				jsonString, err := miruken.Map[string](handler, data, "application/json")
+				json, err := miruken.Map[string](handler, data, "application/json")
 				suite.Nil(err)
-				suite.Equal("{\"Name\":\"John Smith\",\"Age\":23}", jsonString)
+				suite.Equal("{\"Name\":\"John Smith\",\"Age\":23}", json)
 			})
 
 			suite.Run("ToJsonWithOptions", func() {
@@ -66,12 +66,11 @@ func (suite *JsonTestSuite) TestJson() {
 					"Sarah Conner",
 					38,
 				}
-				var jsonString string
-				jsonString, err := miruken.Map[string](
+				json, err := miruken.Map[string](
 					miruken.Build(handler, miruken.WithOptions(miruken.JsonOptions{Indent: "  "})),
 					data, "application/json")
 				suite.Nil(err)
-				suite.Equal("{\n  \"Name\": \"Sarah Conner\",\n  \"Age\": 38\n}", jsonString)
+				suite.Equal("{\n  \"Name\": \"Sarah Conner\",\n  \"Age\": 38\n}", json)
 			})
 
 			suite.Run("ToJsonMap", func() {
@@ -79,9 +78,9 @@ func (suite *JsonTestSuite) TestJson() {
 					"Id":    2,
 					"Name": "George Best",
 				}
-				jsonString, err := miruken.Map[string](handler, data, "application/json")
+				json, err := miruken.Map[string](handler, data, "application/json")
 				suite.Nil(err)
-				suite.Equal("{\"Id\":2,\"Name\":\"George Best\"}", jsonString)
+				suite.Equal("{\"Id\":2,\"Name\":\"George Best\"}", json)
 			})
 
 			suite.Run("ToJsonStream", func() {
@@ -126,9 +125,9 @@ func (suite *JsonTestSuite) TestJson() {
 					Name: "Tim Howard",
 				}
 
-				jsonString, err := miruken.Map[string](handler, data, "application/json")
+				json, err := miruken.Map[string](handler, data, "application/json")
 				suite.Nil(err)
-				suite.Equal("{\"id\":1,\"name\":\"Tim Howard\"}", jsonString)
+				suite.Equal("{\"id\":1,\"name\":\"Tim Howard\"}", json)
 			})
 
 			suite.Run("FromJson", func() {
@@ -136,16 +135,16 @@ func (suite *JsonTestSuite) TestJson() {
 					Name string
 					Age  int
 				}
-				jsonString := "{\"Name\":\"Ralph Hall\",\"Age\":84}"
-				data, err := miruken.Map[Data](handler, jsonString, "application/json")
+				json := "{\"Name\":\"Ralph Hall\",\"Age\":84}"
+				data, err := miruken.Map[Data](handler, json, "application/json")
 				suite.Nil(err)
 				suite.Equal("Ralph Hall", data.Name)
 				suite.Equal(84, data.Age)
 			})
 
 			suite.Run("FromJsonMap", func() {
-				jsonString := "{\"Name\":\"Ralph Hall\",\"Age\":84}"
-				data, err := miruken.Map[map[string]any](handler, jsonString, "application/json")
+				json := "{\"Name\":\"Ralph Hall\",\"Age\":84}"
+				data, err := miruken.Map[map[string]any](handler, json, "application/json")
 				suite.Nil(err)
 				suite.Equal(84.0, data["Age"])
 				suite.Equal("Ralph Hall", data["Name"])
