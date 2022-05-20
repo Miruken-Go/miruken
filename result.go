@@ -17,8 +17,8 @@ type (
 		err     error
 	}
 
-	// HandleResultBlock combines a HandleResult with an action.
-	HandleResultBlock func(HandleResult) HandleResult
+	// HandleResultBlock provides another HandleResult.
+	HandleResultBlock func() HandleResult
 )
 
 func (r HandleResult) IsHandled() bool {
@@ -57,17 +57,16 @@ func (r HandleResult) Then(
 	if block == nil {
 		panic("block cannot be nil")
 	}
-
 	if r.stop {
 		return r
 	} else {
-		return r.Or(block(r))
+		return r.Or(block())
 	}
 }
 
 func (r HandleResult) ThenIf(
 	condition bool,
-	block HandleResultBlock,
+	block     HandleResultBlock,
 ) HandleResult {
 	if block == nil {
 		panic("block cannot be nil")
@@ -76,7 +75,7 @@ func (r HandleResult) ThenIf(
 	if r.stop || !condition {
 		return r
 	} else {
-		return r.Or(block(r))
+		return r.Or(block())
 	}
 }
 
@@ -90,13 +89,13 @@ func (r HandleResult) Otherwise(
 	if r.handled || r.stop {
 		return r
 	} else {
-		return block(r)
+		return block()
 	}
 }
 
 func (r HandleResult) OtherwiseIf(
 	condition bool,
-	block HandleResultBlock,
+	block     HandleResultBlock,
 ) HandleResult {
 	if block == nil {
 		panic("block cannot be nil")
@@ -105,7 +104,7 @@ func (r HandleResult) OtherwiseIf(
 	if r.stop || (r.handled && !condition) {
 		return r
 	} else {
-		return r.Or(block(r))
+		return r.Or(block())
 	}
 }
 
@@ -144,7 +143,42 @@ func (r HandleResult) Or(other HandleResult) HandleResult {
 	}
 }
 
+func (r HandleResult) OrBlock(block HandleResultBlock) HandleResult {
+	if r.handled {
+		if r.stop {
+			return HandledAndStop
+		} else {
+			return Handled
+		}
+	} else {
+		other := block()
+		err   := combineErrors(r, other)
+		if r.stop || other.stop {
+			return NotHandledAndStop.WithError(err)
+		} else {
+			return NotHandled.WithError(err)
+		}
+	}
+}
+
 func (r HandleResult) And(other HandleResult) HandleResult {
+	err := combineErrors(r, other)
+	if r.handled && other.handled {
+		if r.stop || other.stop {
+			return HandledAndStop.WithError(err)
+		} else {
+			return Handled.WithError(err)
+		}
+	} else {
+		if r.stop || other.stop {
+			return NotHandledAndStop.WithError(err)
+		} else {
+			return NotHandled.WithError(err)
+		}
+	}
+}
+
+func (r HandleResult) AndBlock(other HandleResult) HandleResult {
 	err := combineErrors(r, other)
 	if r.handled && other.handled {
 		if r.stop || other.stop {

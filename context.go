@@ -109,7 +109,7 @@ func (c *Context) Handle(
 		composer = &compositionScope{c}
 	}
 	return c.mutableHandlers.Handle(callback, greedy, composer).
-		OtherwiseIf(greedy, func (HandleResult) HandleResult {
+		OtherwiseIf(greedy, func () HandleResult {
 			if parent := c.parent; parent != nil {
 				return parent.Handle(callback, greedy, composer)
 			}

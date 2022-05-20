@@ -34,14 +34,6 @@ func (p *Provides) Metadata() *BindingMetadata {
 	return &p.metadata
 }
 
-func (p *Provides) ReceiveResult(
-	result   any,
-	strict   bool,
-	composer Handler,
-) HandleResult {
-	return p.include(result, strict, composer)
-}
-
 func (p *Provides) CanDispatch(
 	handler any,
 	binding Binding,
@@ -57,7 +49,7 @@ func (p *Provides) CanDispatch(
 	}(p.handler, p.binding), true
 }
 
-func (p *Provides)inProgress(
+func (p *Provides) inProgress(
 	handler any,
 	binding Binding,
 ) bool {
@@ -86,7 +78,9 @@ func (p *Provides) Dispatch(
 			}
 		}
 	}
-	return DispatchPolicy(handler, p, greedy, composer)
+	count := len(p.results)
+	return DispatchPolicy(handler, p, greedy, composer).
+		OtherwiseHandledIf(len(p.results) > count)
 }
 
 func (p *Provides) Resolve(
@@ -97,33 +91,6 @@ func (p *Provides) Resolve(
 		return nil, result.Error()
 	}
 	return p.Result(many), nil
-}
-
-func (p *Provides) include(
-	resolution any,
-	strict     bool,
-	composer   Handler,
-) (result HandleResult) {
-	if IsNil(resolution) {
-		return NotHandled
-	}
-	if strict {
-		return p.AddResult(resolution, composer)
-	}
-	result = NotHandled
-	switch reflect.TypeOf(resolution).Kind() {
-	case reflect.Slice, reflect.Array:
-		forEach(resolution, func(idx int, value any) bool {
-			if value != nil {
-				result = result.Or(p.AddResult(value, composer))
-				return result.stop
-			}
-			return false
-		})
-	default:
-		return p.AddResult(resolution, composer)
-	}
-	return result
 }
 
 // ProvidesBuilder builds Provides callbacks.

@@ -64,6 +64,12 @@ func (c *CallbackBase) SetResult(result any) {
 	c.result = result
 }
 
+func (c *CallbackBase) SetAcceptResult(
+	accept AcceptResultFunc,
+) {
+	c.accept = accept
+}
+
 func (c *CallbackBase) AddResult(
 	result   any,
 	composer Handler,
@@ -83,8 +89,27 @@ func (c *CallbackBase) ReceiveResult(
 	result   any,
 	strict   bool,
 	composer Handler,
-) HandleResult {
-	return c.AddResult(result, composer)
+) (res HandleResult) {
+	if IsNil(result) {
+		return NotHandled
+	}
+	if strict {
+		return c.AddResult(result, composer)
+	}
+	res = NotHandled
+	switch reflect.TypeOf(result).Kind() {
+	case reflect.Slice, reflect.Array:
+		forEach(result, func(idx int, value any) bool {
+			if value != nil {
+				res = res.Or(c.AddResult(value, composer))
+				return res.stop
+			}
+			return false
+		})
+	default:
+		return c.AddResult(result, composer)
+	}
+	return res
 }
 
 func (c *CallbackBase) CopyResult(target any, many bool) {

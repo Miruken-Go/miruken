@@ -110,7 +110,7 @@ func (w *withHandler) Handle(
 	}
 	tryInitializeComposer(&composer, w)
 	return w.handler.Handle(callback, greedy, composer).
-		OtherwiseIf(greedy, func (HandleResult) HandleResult {
+		OtherwiseIf(greedy, func () HandleResult {
 			return w.Handler.Handle(callback, greedy, composer)
 		})
 }
@@ -141,7 +141,7 @@ func (w *withHandlers) Handle(
 		}
 		result = result.Or(h.Handle(callback, greedy, composer))
 	}
-	return result.OtherwiseIf(greedy, func (HandleResult) HandleResult {
+	return result.OtherwiseIf(greedy, func () HandleResult {
 		return w.Handler.Handle(callback, greedy, composer)
 	})
 }
