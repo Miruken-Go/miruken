@@ -234,6 +234,7 @@ func (m *mutableHandlers) SuppressDispatch() {}
 
 type FilterFunc = func(
 	callback any,
+	greedy   bool,
 	composer Handler,
 	proceed  func() HandleResult,
 ) HandleResult
@@ -260,7 +261,7 @@ func (f *filterHandler) Handle(
 			return f.Handler.Handle(callback, greedy, composer)
 		}
 	}
-	return f.filter(callback, composer, func() HandleResult {
+	return f.filter(callback, greedy, composer, func() HandleResult {
 		return f.Handler.Handle(callback, greedy, composer)
 	})
 }

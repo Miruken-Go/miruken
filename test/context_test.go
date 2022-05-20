@@ -181,7 +181,7 @@ func (suite *ContextTestSuite) TestContext() {
 	})
 
 	suite.Run("Store", func () {
-		data := &ContextObserver{}
+		data    := &ContextObserver{}
 		context := miruken.NewContext()
 		context.Store(data)
 		resolve, err := miruken.Resolve[*ContextObserver](context)
@@ -191,8 +191,8 @@ func (suite *ContextTestSuite) TestContext() {
 
 	suite.Run("Traverse", func () {
 		suite.Run("AncestorsByDefault", func() {
-			data := &ContextObserver{}
-			root := miruken.NewContext()
+			data  := &ContextObserver{}
+			root  := miruken.NewContext()
 			child := root.NewChild()
 			grandChild := child.NewChild()
 			root.Store(data)
@@ -202,8 +202,8 @@ func (suite *ContextTestSuite) TestContext() {
 		})
 
 		suite.Run("Self", func() {
-			data := &ContextObserver{}
-			root := miruken.NewContext()
+			data  := &ContextObserver{}
+			root  := miruken.NewContext()
 			child := root.NewChild()
 			root.Store(data)
 			resolve, err := miruken.Resolve[*ContextObserver](miruken.Build(child, miruken.WithSelf))
@@ -215,8 +215,8 @@ func (suite *ContextTestSuite) TestContext() {
 		})
 
 		suite.Run("Root", func() {
-			data := &ContextObserver{}
-			root := miruken.NewContext()
+			data  := &ContextObserver{}
+			root  := miruken.NewContext()
 			child := root.NewChild()
 			child.Store(data)
 			resolve, err := miruken.Resolve[*ContextObserver](miruken.Build(child, miruken.WithRoot))
@@ -270,8 +270,8 @@ func (suite *ContextTestSuite) TestContext() {
 		})
 
 		suite.Run("ChildrenOrSelf", func() {
-			data := &ContextObserver{}
-			root := miruken.NewContext()
+			data   := &ContextObserver{}
+			root   := miruken.NewContext()
 			child1 := root.NewChild()
 			root.NewChild()
 			child3 := root.NewChild()
@@ -314,8 +314,8 @@ func (suite *ContextTestSuite) TestContext() {
 		})
 
 		suite.Run("Ancestors", func() {
-			data := &ContextObserver{}
-			root := miruken.NewContext()
+			data  := &ContextObserver{}
+			root  := miruken.NewContext()
 			child := root.NewChild()
 			grandChild := child.NewChild()
 			root.Store(data)
@@ -328,8 +328,8 @@ func (suite *ContextTestSuite) TestContext() {
 		})
 
 		suite.Run("AncestorsOrSelf", func() {
-			data := &ContextObserver{}
-			root := miruken.NewContext()
+			data  := &ContextObserver{}
+			root  := miruken.NewContext()
 			child := root.NewChild()
 			grandChild := child.NewChild()
 			root.Store(data)

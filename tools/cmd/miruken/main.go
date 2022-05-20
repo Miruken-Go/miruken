@@ -140,7 +140,7 @@ func parseDir(
                 return err
             }
         } else {
-            filename := filepath.Join(dir, outFile)
+            filename    := filepath.Join(dir, outFile)
             newFileData := buf.Bytes()
             oldFileData, _ := os.ReadFile(filename)
             if !bytes.Equal(newFileData, oldFileData) {

@@ -726,6 +726,19 @@ func (suite *HandlerTestSuite) TestHandles() {
 					suite.Fail("unexpected error", err.Error())
 				}
 			})
+
+			suite.Run("Mismatch", func() {
+				defer func() {
+					if r := recover(); r != nil {
+						suite.Equal("*test.Foo must be assignable to *test.Bar", r)
+					} else {
+						suite.Fail("Expected error")
+					}
+				}()
+				if _, err := miruken.Invoke[*Bar](handler, new(Foo)); err != nil {
+					suite.Fail("unexpected error", err.Error())
+				}
+			})
 		})
 
 		suite.Run("InvokeAll", func () {

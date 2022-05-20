@@ -120,7 +120,7 @@ func (suite *JsonTestSuite) TestJson() {
 					&miruken.JsonMapper{},
 					&PlayerMapper{})
 
-				data :=  PlayerData{
+				data := PlayerData{
 					Id:   1,
 					Name: "Tim Howard",
 				}

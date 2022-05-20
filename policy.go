@@ -112,7 +112,7 @@ type policySpecBuilder struct {
 	cache map[reflect.Type]Policy
 }
 
-func (p *policySpecBuilder) BuildSpec(
+func (p *policySpecBuilder) buildSpec(
 	callbackOrSpec reflect.Type,
 ) (spec *policySpec, err error) {
 	// Is it a policy spec?

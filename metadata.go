@@ -174,7 +174,7 @@ func (s HandlerTypeSpec) newHandlerDescriptor(
 		constructor = &ctor
 		ctorType   := ctor.Type
 		if ctorType.NumIn() > 1 {
-			if spec, err := policySpecs.BuildSpec(ctorType.In(1)); err == nil {
+			if spec, err := policySpecs.buildSpec(ctorType.In(1)); err == nil {
 				if spec != nil {
 					ctorSpec     = spec
 					ctorPolicies = spec.policies
@@ -222,7 +222,7 @@ func (s HandlerTypeSpec) newHandlerDescriptor(
 		if methodType.NumIn() < 2 {
 			continue // must have a callback/spec
 		}
-		if spec, err := policySpecs.BuildSpec(methodType.In(1)); err == nil {
+		if spec, err := policySpecs.buildSpec(methodType.In(1)); err == nil {
 			if spec == nil { // not a handler method
 				continue
 			}
@@ -275,7 +275,7 @@ func (s HandlerFuncSpec) newHandlerDescriptor(
 
 	if funType.NumIn() < 1 {
 		invalid = fmt.Errorf("missing callback spec in first argument")
-	} else if spec, err := policySpecs.BuildSpec(funType.In(0)); err == nil {
+	} else if spec, err := policySpecs.buildSpec(funType.In(0)); err == nil {
 		if spec == nil {
 			invalid = fmt.Errorf("first argument is not a callback spec")
 		} else {
