@@ -10,7 +10,7 @@ type (
 		Key() any
 		Source() any
 		Policy() Policy
-		ResultType() reflect.Type
+		ResultCount() int
 		Result(many bool) any
 		SetResult(result any)
 		ReceiveResult(
@@ -38,8 +38,8 @@ func (c *CallbackBase) Source() any {
 	return nil
 }
 
-func (c *CallbackBase) ResultType() reflect.Type {
-	return nil
+func (c *CallbackBase) ResultCount() int {
+	return len(c.results)
 }
 
 func (c *CallbackBase) Result(many bool) any {

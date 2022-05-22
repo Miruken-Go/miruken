@@ -78,9 +78,9 @@ func (p *Provides) Dispatch(
 			}
 		}
 	}
-	count := len(p.results)
+	count := p.ResultCount()
 	return DispatchPolicy(handler, p, greedy, composer).
-		OtherwiseHandledIf(len(p.results) > count)
+		OtherwiseHandledIf(p.ResultCount() > count)
 }
 
 func (p *Provides) Resolve(

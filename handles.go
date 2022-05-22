@@ -51,9 +51,9 @@ func (h *Handles) Dispatch(
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
-	count := len(h.results)
+	count := h.ResultCount()
 	return DispatchPolicy(handler, h, greedy, composer).
-		OtherwiseHandledIf(len(h.results) > count)
+		OtherwiseHandledIf(h.ResultCount() > count)
 }
 
 // HandlesBuilder builds Handles callbacks.

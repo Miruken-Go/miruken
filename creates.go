@@ -23,9 +23,9 @@ func (c *Creates) Dispatch(
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
-	count := len(c.results)
+	count := c.ResultCount()
 	return DispatchPolicy(handler, c, greedy, composer).
-		OtherwiseHandledIf(len(c.results) > count)
+		OtherwiseHandledIf(c.ResultCount() > count)
 }
 
 // CreatesBuilder builds Creates callbacks.

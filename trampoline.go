@@ -1,7 +1,5 @@
 package miruken
 
-import "reflect"
-
 type Trampoline struct {
 	callback any
 }
@@ -20,13 +18,6 @@ func (t *Trampoline) Source() any {
 func (t *Trampoline) Policy() Policy {
 	if cb, ok := t.callback.(Callback); ok {
 		return cb.Policy()
-	}
-	return nil
-}
-
-func (t *Trampoline) ResultType() reflect.Type {
-	if cb, ok := t.callback.(Callback); ok {
-		return cb.ResultType()
 	}
 	return nil
 }

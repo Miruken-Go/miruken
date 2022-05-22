@@ -109,7 +109,8 @@ func (s *policySpec) complete() error {
 
 // policySpecBuilder builds policySpec from method metadata.
 type policySpecBuilder struct {
-	cache map[reflect.Type]Policy
+	cache    map[reflect.Type]Policy
+	builders []bindingBuilder
 }
 
 func (p *policySpecBuilder) buildSpec(
