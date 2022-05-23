@@ -443,10 +443,11 @@ func (v *ValidationInstaller) ValidateResults() {
 	v.results = true
 }
 
-func (v *ValidationInstaller) Install(setup *SetupBuilder) {
+func (v *ValidationInstaller) Install(setup *SetupBuilder) error {
 	if setup.CanInstall(&_validationTag) {
 		setup.AddFilters(NewValidateProvider(v.results))
 	}
+	return nil
 }
 
 func ValidateResults(installer *ValidationInstaller) {

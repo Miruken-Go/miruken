@@ -4,8 +4,7 @@ type SemanticFlags uint8
 
 const (
 	SemanticNone   SemanticFlags = 0
-	SemanticStrict SemanticFlags = 1 << iota
-	SemanticBroadcast
+	SemanticBroadcast SemanticFlags = 1 << iota
 	SemanticBestEffort
 	SemanticNotify = SemanticBroadcast | SemanticBestEffort
 )
@@ -43,7 +42,6 @@ func (c *CallbackSemantics) IsSpecified(options SemanticFlags) bool  {
 }
 
 func (c *CallbackSemantics) MergeInto(semantics *CallbackSemantics) {
-	c.mergeOption(semantics, SemanticStrict)
 	c.mergeOption(semantics, SemanticBestEffort)
 	c.mergeOption(semantics, SemanticBroadcast)
 }
@@ -116,7 +114,7 @@ func GetSemantics(handler Handler) *CallbackSemantics {
 	return nil
 }
 
-func WithCallSemantics(semantics SemanticFlags) Builder {
+func CallWith(semantics SemanticFlags) Builder {
 	options := CallbackSemantics{
 		options:   semantics,
 		specified: semantics,
@@ -127,8 +125,7 @@ func WithCallSemantics(semantics SemanticFlags) Builder {
 }
 
 var (
-	WithStrict     = WithCallSemantics(SemanticStrict)
-	WithBroadcast  = WithCallSemantics(SemanticBroadcast)
-	WithBestEffort = WithCallSemantics(SemanticBestEffort)
-	WithNotify     = WithCallSemantics(SemanticNotify)
+	Broadcast  = CallWith(SemanticBroadcast)
+	BestEffort = CallWith(SemanticBestEffort)
+	Notify     = CallWith(SemanticNotify)
 )

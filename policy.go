@@ -110,7 +110,13 @@ func (s *policySpec) complete() error {
 // policySpecBuilder builds policySpec from method metadata.
 type policySpecBuilder struct {
 	cache    map[reflect.Type]Policy
-	builders []bindingBuilder
+	bindings []bindingBuilder
+}
+
+func (p *policySpecBuilder) addBindings(
+	bindings ...bindingBuilder,
+) {
+	p.bindings = append(p.bindings, bindings...)
 }
 
 func (p *policySpecBuilder) buildSpec(
@@ -127,6 +133,9 @@ func (p *policySpecBuilder) buildSpec(
 				bindingBuilderFunc(bindOptions),
 				bindingBuilderFunc(bindFilters),
 				bindingBuilderFunc(bindConstraints),
+			}
+			if bindings := p.bindings; bindings != nil {
+				builders = append(builders, bindings...)
 			}
 			if err = configureBinding(specType, spec, builders);
 				err != nil || len(spec.policies) == 0 {
@@ -148,6 +157,19 @@ func (p *policySpecBuilder) buildSpec(
 		}
 	}
 	return nil, nil
+}
+
+func (p *policySpecBuilder) policyOf(
+	callbackType reflect.Type,
+) Policy {
+	if p.cache == nil {
+		p.cache = make(map[reflect.Type]Policy)
+	} else if policy, ok := p.cache[callbackType]; ok {
+		return policy
+	}
+	policy := reflect.Zero(callbackType).Interface().(Callback).Policy()
+	p.cache[callbackType] = policy
+	return policy
 }
 
 func (p *policySpecBuilder) configure(
@@ -173,23 +195,6 @@ func (p *policySpecBuilder) configure(
 		}
 	}
 	return bound, err
-}
-
-func (p *policySpecBuilder) policyOf(
-	callbackType reflect.Type,
-) Policy {
-	if p.cache == nil {
-		p.cache = make(map[reflect.Type]Policy)
-	} else if policy, ok := p.cache[callbackType]; ok {
-		return policy
-	}
-	if pm, ok := callbackType.MethodByName("Policy"); ok {
-		val := pm.Func.Call([]reflect.Value{reflect.Zero(callbackType)})
-		policy := val[0].Interface().(Policy)
-		p.cache[callbackType] = policy
-		return policy
-	}
-	panic(fmt.Sprintf("missing Policy() method for callback %v ", callbackType))
 }
 
 func bindFilters(

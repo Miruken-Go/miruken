@@ -33,29 +33,29 @@ func (a *axisScope) Handle(
 	return a.HandlerAxis.HandleAxis(a.axis, callback, greedy, composer)
 }
 
-func WithAxis(axis TraversingAxis) Builder {
-	return BuilderFunc(func(handler Handler) Handler {
+func Axis(axis TraversingAxis) BuilderFunc {
+	return func(handler Handler) Handler {
 		if axisHandler, ok := handler.(HandlerAxis); ok {
 			return &axisScope{axisHandler, axis}
 		}
 		return handler
-	})
+	}
 }
 
-var WithSelf                    = WithAxis(TraverseSelf)
-var WithRoot                    = WithAxis(TraverseRoot)
-var WithChild                   = WithAxis(TraverseChild)
-var WithSibling                 = WithAxis(TraverseSibling)
-var WithAncestor                = WithAxis(TraverseAncestor)
-var WithDescendant              = WithAxis(TraverseDescendant)
-var WithDescendantReverse       = WithAxis(TraverseDescendantReverse)
-var WithSelfOrChild             = WithAxis(TraverseSelfOrChild)
-var WithSelfOrSibling           = WithAxis(TraverseSelfOrSibling)
-var WithSelfOrAncestor          = WithAxis(TraverseSelfOrAncestor)
-var WithSelfOrDescendant        = WithAxis(TraverseSelfOrDescendant)
-var WithSelfOrDescendantReverse = WithAxis(TraverseSelfOrDescendant)
-var WithSelfSiblingOrAncestor   = WithAxis(TraverseSelfSiblingOrAncestor)
+var SelfAxis                    = Axis(TraverseSelf)
+var RootAxis                    = Axis(TraverseRoot)
+var ChildAxis                   = Axis(TraverseChild)
+var SiblingAxis                 = Axis(TraverseSibling)
+var AncestorAxis                = Axis(TraverseAncestor)
+var DescendantAxis              = Axis(TraverseDescendant)
+var DescendantReverseAxis       = Axis(TraverseDescendantReverse)
+var SelfOrChildAxis             = Axis(TraverseSelfOrChild)
+var SelfOrSiblingAxis           = Axis(TraverseSelfOrSibling)
+var SelfOrAncestorAxis          = Axis(TraverseSelfOrAncestor)
+var SelfOrDescendantAxis        = Axis(TraverseSelfOrDescendant)
+var SelfOrDescendantReverseAxis = Axis(TraverseSelfOrDescendant)
+var SelfSiblingOrAncestorAxis   = Axis(TraverseSelfSiblingOrAncestor)
 
-var WithPublish = ComposeBuilders(WithSelfOrDescendant, WithNotify)
+var Publish = ComposeBuilders(SelfOrDescendantAxis, Notify)
 
 

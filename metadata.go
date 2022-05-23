@@ -113,7 +113,7 @@ type (
 		suppress() bool
 		newHandlerDescriptor(
 			policySpecs policySpecBuilder,
-			visitor     HandlerDescriptorVisitor,
+			observer    HandlerDescriptorObserver,
 		) (*HandlerDescriptor, error)
 	}
 
@@ -160,7 +160,7 @@ func (s HandlerTypeSpec) suppress() bool {
 
 func (s HandlerTypeSpec) newHandlerDescriptor(
 	policySpecs policySpecBuilder,
-	visitor     HandlerDescriptorVisitor,
+	observer    HandlerDescriptorObserver,
 ) (descriptor *HandlerDescriptor, invalid error) {
 	typ        := s.typ
 	bindings   := make(policyBindingsMap)
@@ -203,8 +203,8 @@ func (s HandlerTypeSpec) newHandlerDescriptor(
 		if binder, ok := ctorPolicy.(ConstructorBinder); ok {
 			if ctor, err := binder.NewConstructorBinding(
 				typ, constructor, ctorSpec); err == nil {
-				if visitor != nil {
-					visitor.VisitHandlerBinding(descriptor, ctor)
+				if observer != nil {
+					observer.NotifyHandlerBinding(descriptor, ctor)
 				}
 				bindings.forPolicy(ctorPolicy).insert(ctor)
 			} else {
@@ -229,8 +229,8 @@ func (s HandlerTypeSpec) newHandlerDescriptor(
 			for _, policy := range spec.policies {
 				if binder, ok := policy.(MethodBinder); ok {
 					if binding, errBind := binder.NewMethodBinding(method, spec); binding != nil {
-						if visitor != nil {
-							visitor.VisitHandlerBinding(descriptor, binding)
+						if observer != nil {
+							observer.NotifyHandlerBinding(descriptor, binding)
 						}
 						bindings.forPolicy(policy).insert(binding)
 					} else if errBind != nil {
@@ -267,7 +267,7 @@ func (s HandlerFuncSpec) suppress() bool {
 
 func (s HandlerFuncSpec) newHandlerDescriptor(
 	policySpecs policySpecBuilder,
-	visitor     HandlerDescriptorVisitor,
+	observer    HandlerDescriptorObserver,
 ) (descriptor *HandlerDescriptor, invalid error) {
 	funType    := s.fun.Type()
 	bindings   := make(policyBindingsMap)
@@ -282,8 +282,8 @@ func (s HandlerFuncSpec) newHandlerDescriptor(
 			for _, policy := range spec.policies {
 				if binder, ok := policy.(FuncBinder); ok {
 					if binding, errBind := binder.NewFuncBinding(s.fun, spec); binding != nil {
-						if visitor != nil {
-							visitor.VisitHandlerBinding(descriptor, binding)
+						if observer != nil {
+							observer.NotifyHandlerBinding(descriptor, binding)
 						}
 						bindings.forPolicy(policy).insert(binding)
 					} else if errBind != nil {
@@ -424,9 +424,9 @@ type (
 		RegisterHandler(spec any) (*HandlerDescriptor, bool, error)
 	}
 
-	// HandlerDescriptorVisitor observes HandlerDescriptor Binding's.
-	HandlerDescriptorVisitor interface {
-		VisitHandlerBinding(
+	// HandlerDescriptorObserver observes HandlerDescriptor Binding's.
+	HandlerDescriptorObserver interface {
+		NotifyHandlerBinding(
 			descriptor *HandlerDescriptor,
 			binding     Binding,
 		)
@@ -434,7 +434,7 @@ type (
 	HandlerDescriptorVisitorFunc func(*HandlerDescriptor, Binding)
 )
 
-func (f HandlerDescriptorVisitorFunc) VisitHandlerBinding(
+func (f HandlerDescriptorVisitorFunc) NotifyHandlerBinding(
 	descriptor *HandlerDescriptor,
 	binding    Binding,
 ) {
@@ -446,7 +446,7 @@ type mutableDescriptorFactory struct {
 	sync.RWMutex
 	policySpecBuilder
 	descriptors map[any]*HandlerDescriptor
-	visitor     HandlerDescriptorVisitor
+	observer    HandlerDescriptorObserver
 }
 
 func (f *mutableDescriptorFactory) MakeHandlerSpec(
@@ -505,7 +505,7 @@ func (f *mutableDescriptorFactory) RegisterHandler(
 	if descriptor := f.descriptors[key]; descriptor != nil {
 		return descriptor, false, nil
 	}
-	if descriptor, err := handler.newHandlerDescriptor(f.policySpecBuilder, f.visitor); err == nil {
+	if descriptor, err := handler.newHandlerDescriptor(f.policySpecBuilder, f.observer); err == nil {
 		f.descriptors[key] = descriptor
 		return descriptor, true, nil
 	} else {
@@ -513,34 +513,52 @@ func (f *mutableDescriptorFactory) RegisterHandler(
 	}
 }
 
-type MutableHandlerDescriptorFactoryOption interface {
-	applyMutableFactoryOption(factory *mutableDescriptorFactory)
+// HandlerDescriptorFactoryBuilder build the HandlerDescriptorFactory.
+type HandlerDescriptorFactoryBuilder struct {
+	bindings []bindingBuilder
+	observer HandlerDescriptorObserver
 }
 
-type mutableFactoryOptionFunc func(*mutableDescriptorFactory)
+func (b *HandlerDescriptorFactoryBuilder) AddBindingBuilders(
+	bindings ...bindingBuilder,
+) *HandlerDescriptorFactoryBuilder {
+	b.bindings = append(b.bindings, bindings...)
+	return b
+}
 
-func (f mutableFactoryOptionFunc) applyMutableFactoryOption(
-	factory *mutableDescriptorFactory,
-) { f(factory) }
+func (b *HandlerDescriptorFactoryBuilder) SetObserver(
+	observer HandlerDescriptorObserver,
+) *HandlerDescriptorFactoryBuilder {
+	b.observer = observer
+	return b
+}
 
-func NewMutableHandlerDescriptorFactory(
-	opts ...MutableHandlerDescriptorFactoryOption,
-) HandlerDescriptorFactory {
+func (b *HandlerDescriptorFactoryBuilder) Build() HandlerDescriptorFactory {
 	factory := &mutableDescriptorFactory{
 		descriptors: make(map[any]*HandlerDescriptor),
+		observer: b.observer,
 	}
-	for _, opt := range opts {
-		opt.applyMutableFactoryOption(factory)
-	}
+	factory.policySpecBuilder.addBindings(b.bindings...)
 	return factory
 }
 
-func WithHandlerDescriptorVisitor(
-	visitor HandlerDescriptorVisitor,
-) MutableHandlerDescriptorFactoryOption {
-	return mutableFactoryOptionFunc(func (factory *mutableDescriptorFactory) {
-		factory.visitor = visitor
-	})
+type HandlerDescriptorFactoryOption interface {
+	Configure(builder *HandlerDescriptorFactoryBuilder)
+}
+type ConfigureHandlerDescriptorFactory func(builder *HandlerDescriptorFactoryBuilder)
+
+func (f ConfigureHandlerDescriptorFactory) Configure(
+	builder *HandlerDescriptorFactoryBuilder,
+) { f(builder) }
+
+func NewMutableHandlerDescriptorFactory(
+	opts ...HandlerDescriptorFactoryOption,
+) HandlerDescriptorFactory {
+	builder := &HandlerDescriptorFactoryBuilder{}
+	for _, opt := range opts {
+		opt.Configure(builder)
+	}
+	return builder.Build()
 }
 
 func GetHandlerDescriptorFactory(

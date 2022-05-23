@@ -567,10 +567,10 @@ func (f ContextChangedObserverFunc) ContextChanged(
 	f(contextual, oldCtx, newCtx)
 }
 
-var WithPublishFromRoot BuilderFunc = func (handler Handler) Handler {
+var PublishFromRoot BuilderFunc = func (handler Handler) Handler {
 	if context, err := Resolve[*Context](handler); err != nil {
 		panic("the root context could not be found")
 	} else {
-		return WithPublish.Build(context.Root())
+		return Publish.Build(context.Root())
 	}
 }

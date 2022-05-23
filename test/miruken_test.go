@@ -4,11 +4,12 @@ package test
 
 import "github.com/miruken-go/miruken"
 
-var TestFeature = miruken.FeatureFunc(func(setup *miruken.SetupBuilder) {
+var TestFeature = miruken.InstallFeature(func(setup *miruken.SetupBuilder) error {
 	setup.RegisterHandlers(
 		&AbortFilter{},
 		&BadHandler{},
 		&BarHandler{},
+		&CountByTwoHandler{},
 		&CounterHandler{},
 		&DependencyHandler{},
 		&DependencyResolverHandler{},
@@ -27,6 +28,7 @@ var TestFeature = miruken.FeatureFunc(func(setup *miruken.SetupBuilder) {
 		&InvalidProvider{},
 		&ListProvider{},
 		&LogFilter{},
+		&MixedHandler{},
 		&MultiHandler{},
 		&MultiProvider{},
 		&NullFilter{},
@@ -48,4 +50,5 @@ var TestFeature = miruken.FeatureFunc(func(setup *miruken.SetupBuilder) {
 		&TeamValidator{},
 		&UnmanagedHandler{},
 	)
+	return nil
 })

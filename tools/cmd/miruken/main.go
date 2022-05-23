@@ -127,12 +127,13 @@ func parseDir(
         _, _ = fmt.Fprintln(&buf, "")
 
         // Feature
-        _, _ = fmt.Fprintf(&buf, "var %s = miruken.FeatureFunc(func(setup *miruken.SetupBuilder) {\n", featureName)
+        _, _ = fmt.Fprintf(&buf, "var %s = miruken.InstallFeature(func(setup *miruken.SetupBuilder) error {\n", featureName)
         _, _ = fmt.Fprintln(&buf, "\tsetup.RegisterHandlers(")
 
         // Types
         printTo(&buf, pkg, ast.Typ, "\t\t&%s{},\n", suffixes)
         _, _ = fmt.Fprintln(&buf, "\t)")
+        _, _ = fmt.Fprintln(&buf, "\treturn nil")
         _, _ = fmt.Fprintln(&buf, "})")
 
         if stdoutFlag {

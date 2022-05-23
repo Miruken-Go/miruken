@@ -14,10 +14,11 @@ type MyInstaller struct {
 
 func (i *MyInstaller) Install(
 	setup *miruken.SetupBuilder,
-) {
+) error {
 	if setup.CanInstall(reflect.TypeOf(i)) {
 		i.count++
 	}
+	return nil
 }
 
 type RegisterTestSuite struct {
@@ -25,9 +26,9 @@ type RegisterTestSuite struct {
 }
 
 func (suite *RegisterTestSuite) TestSetup() {
-	suite.Run("WithHandlerSpecs", func () {
-		handler := miruken.Setup(
-			miruken.WithHandlerSpecs(&MultiHandler{}),
+	suite.Run("HandlerSpecs", func () {
+		handler, _ := miruken.Setup(
+			miruken.HandlerSpecs(&MultiHandler{}),
 		)
 
 		result := handler.Handle(&Foo{}, false, nil)
@@ -40,7 +41,7 @@ func (suite *RegisterTestSuite) TestSetup() {
 	})
 
 	suite.Run("ExcludeHandlerSpecs", func () {
-		handler := miruken.Setup(
+		handler, _ := miruken.Setup(
 			TestFeature,
 			miruken.ExcludeHandlerSpecs(
 				func(spec miruken.HandlerSpec) bool {
@@ -69,10 +70,10 @@ func (suite *RegisterTestSuite) TestSetup() {
 		suite.Nil(e)
 	})
 
-	suite.Run("WithoutInference", func () {
-		handler := miruken.Setup(
-			miruken.WithHandlerSpecs(&MultiHandler{}),
-			miruken.WithoutInference)
+	suite.Run("NoInference", func () {
+		handler, _ := miruken.Setup(
+			miruken.HandlerSpecs(&MultiHandler{}),
+			miruken.NoInference)
 
 		result := handler.Handle(&Foo{}, false, nil)
 		suite.False(result.IsError())

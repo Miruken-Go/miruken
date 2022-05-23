@@ -328,12 +328,12 @@ func (suite *FilterTestSuite) SetupTest() {
 	}
 }
 
-func (suite *FilterTestSuite) Setup() miruken.Handler {
+func (suite *FilterTestSuite) Setup() (miruken.Handler, error) {
 	return suite.SetupWith(suite.specs...)
 }
 
-func (suite *FilterTestSuite) SetupWith(specs ... any) miruken.Handler {
-	return miruken.Setup(miruken.WithHandlerSpecs(specs...))
+func (suite *FilterTestSuite) SetupWith(specs ... any) (miruken.Handler, error) {
+	return miruken.Setup(miruken.HandlerSpecs(specs...))
 }
 
 func (suite *FilterTestSuite) TestFilters() {
@@ -360,7 +360,7 @@ func (suite *FilterTestSuite) TestFilters() {
 	})
 
 	suite.Run("Create Pipeline", func () {
-		handler := suite.Setup()
+		handler, _ := suite.Setup()
 		bar     := new(BarC)
 		result  := handler.Handle(bar, false, nil)
 		suite.False(result.IsError())
@@ -374,7 +374,7 @@ func (suite *FilterTestSuite) TestFilters() {
 	})
 
 	suite.Run("Abort Pipeline", func () {
-		handler := suite.Setup()
+		handler, _ := suite.Setup()
 		bar := new(BarC)
 		bar.IncHandled(100)
 		result := handler.Handle(bar, false, nil)
@@ -385,7 +385,7 @@ func (suite *FilterTestSuite) TestFilters() {
 
 	suite.Run("Skip Pipeline", func () {
 		suite.Run("Implicit", func() {
-			handler := suite.Setup()
+			handler, _ := suite.Setup()
 			bee := new(BeeC)
 			result := handler.Handle(bee, false, nil)
 			suite.False(result.IsError())
@@ -395,7 +395,8 @@ func (suite *FilterTestSuite) TestFilters() {
 		})
 
 		suite.Run("Explicit", func() {
-			handler := miruken.Build(suite.Setup(), miruken.DisableFilters)
+			handler, _ := suite.Setup()
+			handler  = miruken.BuildUp(handler, miruken.DisableFilters)
 			bar     := new(BarC)
 			result  := handler.Handle(bar, false, nil)
 			suite.False(result.IsError())
@@ -409,7 +410,7 @@ func (suite *FilterTestSuite) TestFilters() {
 
 	suite.Run("Singleton", func () {
 		suite.Run("Implicit", func() {
-			handler := suite.Setup()
+			handler, _ := suite.Setup()
 			singletonHandler, err := miruken.Resolve[*SingletonHandler](handler)
 			suite.Nil(err)
 			suite.NotNil(singletonHandler)
@@ -419,7 +420,7 @@ func (suite *FilterTestSuite) TestFilters() {
 		})
 
 		suite.Run("Infer", func() {
-			handler := suite.SetupWith(
+			handler, _ := suite.SetupWith(
 				&SingletonHandler{},
 				&ConsoleLogger{},
 				&LogFilter{},
@@ -433,7 +434,7 @@ func (suite *FilterTestSuite) TestFilters() {
 		})
 
 		suite.Run("Error", func() {
-			handler := suite.SetupWith(
+			handler, _ := suite.SetupWith(
 				&SingletonErrorHandler{},
 			)
 			bee := new(BeeC)
@@ -448,7 +449,7 @@ func (suite *FilterTestSuite) TestFilters() {
 		})
 
 		suite.Run("Panic", func() {
-			handler := suite.SetupWith(
+			handler, _ := suite.SetupWith(
 				&SingletonErrorHandler{},
 			)
 			bee := new(BeeC)
@@ -467,7 +468,7 @@ func (suite *FilterTestSuite) TestFilters() {
 	})
 
 	suite.Run("Missing Dependencies", func () {
-		handler := suite.SetupWith(
+		handler, _ := suite.SetupWith(
 			&BadHandler{},
 			&LogFilter{},
 		)

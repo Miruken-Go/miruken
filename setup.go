@@ -1,24 +1,31 @@
 package miruken
 
+import "github.com/hashicorp/go-multierror"
+
 type (
-	// SetupBuilder configures a setup.
+	// Feature encapsulates custom setup.
+	Feature interface {
+		Install(setup *SetupBuilder) error
+	}
+	InstallFeature func(setup *SetupBuilder) error
+
+	// SetupBuilder orchestrates the setup process.
 	SetupBuilder struct {
 		noInfer  bool
 		handlers []any
 		specs    []any
+		features []Feature
 		exclude  Predicate[HandlerSpec]
 		factory  HandlerDescriptorFactory
 		tags     map[any]struct{}
 	}
-	
-	// Feature encapsulates custom setup.
-	Feature interface {
-		Install(setup *SetupBuilder)
-	}
-	FeatureFunc func(setup *SetupBuilder)
 )
 
-func (f FeatureFunc) Install(setup *SetupBuilder) { f(setup) }
+func (f InstallFeature) Install(
+	setup *SetupBuilder,
+) error {
+	return f(setup)
+}
 
 func (s *SetupBuilder) AddHandlers(
 	handlers ... any,
@@ -71,17 +78,25 @@ func (s *SetupBuilder) CanInstall(tag any) bool {
 	return false
 }
 
-func (s *SetupBuilder) Install(feature Feature) *SetupBuilder {
-	feature.Install(s)
+func (s *SetupBuilder) Install(features ...Feature) *SetupBuilder {
+	s.features = append(s.features, features...)
 	return s
 }
 
-func (s *SetupBuilder) Build() Handler {
+func (s *SetupBuilder) Build() (handler Handler, buildErrors error) {
 	factory := s.factory
 	if IsNil(factory) {
 		factory = NewMutableHandlerDescriptorFactory()
 	}
-	var handler Handler = &getHandlerDescriptorFactory{factory}
+	handler = &getHandlerDescriptorFactory{factory}
+
+	for _, feature := range s.features {
+		if feature != nil {
+			if err := feature.Install(s); err != nil {
+				buildErrors = multierror.Append(buildErrors, err)
+			}
+		}
+	}
 
 	if specs := s.specs; len(specs) > 0 {
 		hs := make([]HandlerSpec, 0, len(specs))
@@ -110,43 +125,54 @@ func (s *SetupBuilder) Build() Handler {
 		handler = AddHandlers(handler, explicit...)
 	}
 
-	return handler
-}
-
-func WithHandlers(handlers ... any) Feature {
-	return FeatureFunc(func(setup *SetupBuilder) {
-		setup.AddHandlers(handlers...)
-	})
-}
-
-func WithHandlerSpecs(specs ... any) Feature {
-	return FeatureFunc(func(setup *SetupBuilder) {
-		setup.RegisterHandlers(specs...)
-	})
-}
-
-func ExcludeHandlerSpecs(rules ... Predicate[HandlerSpec]) Feature {
-	return FeatureFunc(func(setup *SetupBuilder) {
-		setup.Exclude(rules...)
-	})
-}
-
-var WithoutInference = FeatureFunc(func(setup *SetupBuilder) {
-	setup.DisableInference()
-})
-
-func WithHandlerDescriptorFactory(factory HandlerDescriptorFactory) Feature {
-	return FeatureFunc(func(setup *SetupBuilder) {
-		setup.SetHandlerDescriptorFactory(factory)
-	})
-}
-
-func Setup(features ...Feature) Handler {
-	setup := &SetupBuilder{}
-	for _, feature := range features {
-		if feature != nil {
-			feature.Install(setup)
+	// Call after setup hooks
+	for _, feature := range s.features {
+		if after, ok := feature.(interface{
+			AfterInstall(Handler) error
+		}); ok {
+			if err := after.AfterInstall(handler); err != nil {
+				buildErrors = multierror.Append(buildErrors, err)
+			}
 		}
 	}
-	return setup.Build()
+
+	return handler, buildErrors
+}
+
+func Handlers(handlers ... any) InstallFeature {
+	return func(setup *SetupBuilder) error {
+		setup.AddHandlers(handlers...)
+		return nil
+	}
+}
+
+func HandlerSpecs(specs ... any) InstallFeature {
+	return func(setup *SetupBuilder) error {
+		setup.RegisterHandlers(specs...)
+		return nil
+	}
+}
+
+func ExcludeHandlerSpecs(rules ... Predicate[HandlerSpec]) InstallFeature {
+	return func(setup *SetupBuilder) error {
+		setup.Exclude(rules...)
+		return nil
+	}
+}
+
+var NoInference InstallFeature = func(setup *SetupBuilder) error {
+	setup.DisableInference()
+	return nil
+}
+
+func UseHandlerDescriptorFactory(factory HandlerDescriptorFactory) InstallFeature {
+	return func(setup *SetupBuilder) error {
+		setup.SetHandlerDescriptorFactory(factory)
+		return nil
+	}
+}
+
+func Setup(features ...Feature) (Handler, error) {
+	setup := &SetupBuilder{}
+	return setup.Install(features...).Build()
 }

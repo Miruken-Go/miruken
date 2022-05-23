@@ -167,19 +167,19 @@ func (suite *MapTestSuite) SetupTest() {
 	}
 }
 
-func (suite *MapTestSuite) Setup() miruken.Handler {
+func (suite *MapTestSuite) Setup() (miruken.Handler, error) {
 	return suite.SetupWith(suite.specs...)
 }
 
-func (suite *MapTestSuite) SetupWith(specs ... any) miruken.Handler {
-	return miruken.Setup(miruken.WithHandlerSpecs(specs...))
+func (suite *MapTestSuite) SetupWith(specs ... any) (miruken.Handler, error){
+	return miruken.Setup(miruken.HandlerSpecs(specs...))
 }
 
 func (suite *MapTestSuite) TestMap() {
 	suite.Run("Maps", func () {
 		suite.Run("New", func() {
-			handler := suite.Setup()
-			entity  := PlayerEntity{
+			handler, _ := suite.Setup()
+			entity := PlayerEntity{
 				Entity{ Id: 1 },
 				"Tim Howard",
 			}
@@ -190,8 +190,8 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("Into", func() {
-			handler := suite.Setup()
-			entity  := PlayerEntity{
+			handler, _ := suite.Setup()
+			entity := PlayerEntity{
 				Entity{ Id: 2 },
 				"David Silva",
 			}
@@ -203,8 +203,8 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("IntoPtr", func() {
-			handler := suite.Setup()
-			entity  := PlayerEntity{
+			handler, _ := suite.Setup()
+			entity := PlayerEntity{
 				Entity{ Id: 3 },
 				"Franz Beckenbauer",
 			}
@@ -216,8 +216,8 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("Open", func() {
-			handler := suite.SetupWith(&OpenMapper{})
-			entity  := PlayerEntity{
+			handler, _ := suite.SetupWith(&OpenMapper{})
+			entity := PlayerEntity{
 				Entity{ Id: 1 },
 				"Tim Howard",
 			}
@@ -228,8 +228,8 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("ToMap", func() {
-			handler := suite.Setup()
-			entity  := PlayerEntity{
+			handler, _ := suite.Setup()
+			entity := PlayerEntity{
 				Entity{ Id: 1 },
 				"Marco Royce",
 			}
@@ -240,8 +240,8 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("FromMap", func() {
-			handler := suite.Setup()
-			data    := map[string]any{
+			handler, _ := suite.Setup()
+			data := map[string]any{
 				"Id":    2,
 				"Name": "George Best",
 			}
@@ -252,7 +252,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("Format", func() {
-			handler := suite.SetupWith(&FormatMapper{})
+			handler, _ := suite.SetupWith(&FormatMapper{})
 
 			data  := PlayerData{
 				Id:   1,
@@ -273,7 +273,7 @@ func (suite *MapTestSuite) TestMap() {
 		})
 
 		suite.Run("All", func() {
-			handler  := suite.Setup()
+			handler, _ := suite.Setup()
 			entities := []*PlayerEntity{
 				{
 					Entity{ Id: 1 },
@@ -324,7 +324,8 @@ func (suite *MapTestSuite) TestMap() {
 					}
 				}
 			}()
-			suite.SetupWith(&InvalidMapper{})
+			_, err := suite.SetupWith(&InvalidMapper{})
+			suite.Nil(err)
 			suite.Fail("should cause panic")
 		})
 	})

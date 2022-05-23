@@ -89,7 +89,7 @@ func MergeOptions(from, into any) bool {
 	return mergo.Merge(into, from, mergo.WithAppendSlice) == nil
 }
 
-func WithOptions(options any) Builder {
+func Options(options any) BuilderFunc {
 	optType := reflect.TypeOf(options)
 	if optType == nil {
 		panic("options cannot be nil")
@@ -100,9 +100,9 @@ func WithOptions(options any) Builder {
 	if optType.Kind() != reflect.Struct {
 		panic("options must be a struct or *struct")
 	}
-	return BuilderFunc(func (handler Handler) Handler {
+	return func (handler Handler) Handler {
 		return &optionsHandler{handler, options, optType}
-	})
+	}
 }
 
 func GetOptions(handler Handler, target any) bool {

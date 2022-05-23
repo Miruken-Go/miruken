@@ -32,18 +32,18 @@ func (suite *JsonTestSuite) SetupTest() {
 	}
 }
 
-func (suite *JsonTestSuite) Setup() miruken.Handler {
+func (suite *JsonTestSuite) Setup() (miruken.Handler, error) {
 	return suite.SetupWith(suite.specs...)
 }
 
-func (suite *JsonTestSuite) SetupWith(specs ... any) miruken.Handler {
-	return miruken.Setup(miruken.WithHandlerSpecs(specs...))
+func (suite *JsonTestSuite) SetupWith(specs ... any) (miruken.Handler, error) {
+	return miruken.Setup(miruken.HandlerSpecs(specs...))
 }
 
 func (suite *JsonTestSuite) TestJson() {
 	suite.Run("Maps", func () {
 		suite.Run("Json", func() {
-			handler := suite.Setup()
+			handler, _ := suite.Setup()
 
 			suite.Run("ToJson", func() {
 				data := struct{
@@ -67,7 +67,7 @@ func (suite *JsonTestSuite) TestJson() {
 					38,
 				}
 				json, err := miruken.Map[string](
-					miruken.Build(handler, miruken.WithOptions(miruken.JsonOptions{Indent: "  "})),
+					miruken.BuildUp(handler, miruken.Options(miruken.JsonOptions{Indent: "  "})),
 					data, "application/json")
 				suite.Nil(err)
 				suite.Equal("{\n  \"Name\": \"Sarah Conner\",\n  \"Age\": 38\n}", json)
@@ -109,14 +109,14 @@ func (suite *JsonTestSuite) TestJson() {
 				var b bytes.Buffer
 				stream := io.Writer(&b)
 				err := miruken.MapInto(
-					miruken.Build(handler, miruken.WithOptions(miruken.JsonOptions{Indent: "  "})),
+					miruken.BuildUp(handler, miruken.Options(miruken.JsonOptions{Indent: "  "})),
 					data, &stream, "application/json")
 				suite.Nil(err)
 				suite.Equal("{\n  \"Name\": \"James Webb\",\n  \"Age\": 85\n}\n", b.String())
 			})
 
 			suite.Run("ToJsonOverride", func() {
-				handler := suite.SetupWith(
+				handler, _ := suite.SetupWith(
 					&miruken.JsonMapper{},
 					&PlayerMapper{})
 

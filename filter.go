@@ -180,18 +180,18 @@ type FilterOptions struct {
 	SkipFilters OptionBool
 }
 
-var disableFilters = WithOptions(FilterOptions{
+var disableFilters = Options(FilterOptions{
 	SkipFilters: OptionTrue,
 })
 var DisableFilters BuilderFunc = func (handler Handler) Handler {
-	return Build(handler, disableFilters)
+	return BuildUp(handler, disableFilters)
 }
 
-var enableFilters = WithOptions(FilterOptions{
+var enableFilters = Options(FilterOptions{
 	SkipFilters: OptionFalse,
 })
 var EnableFilters BuilderFunc = func (handler Handler) Handler {
-	return Build(handler, enableFilters)
+	return BuildUp(handler, enableFilters)
 }
 
 func WithFilters(filters ... Filter) Builder {
@@ -204,20 +204,20 @@ func WithRequiredFilters(filters ... Filter) Builder {
 
 func withFilters(required bool, filters ... Filter) Builder {
 	provider := FilterInstanceProvider{filters, required}
-	builder  := WithOptions(FilterOptions{
+	builder  := Options(FilterOptions{
 		Providers: []FilterProvider{&provider},
 	})
 	return BuilderFunc(func (handler Handler) Handler {
-		return Build(handler, builder)
+		return BuildUp(handler, builder)
 	})
 }
 
 func WithFilterProviders(providers ... FilterProvider) Builder {
-	builder := WithOptions(FilterOptions{
+	builder := Options(FilterOptions{
 		Providers: providers,
 	})
 	return BuilderFunc(func (handler Handler) Handler {
-		return Build(handler, builder)
+		return BuildUp(handler, builder)
 	})
 }
 
@@ -275,7 +275,7 @@ func orderedFilters(
 		}
 	}
 	if skipFilters != OptionTrue {
-		handler = Build(handler, DisableFilters)
+		handler = BuildUp(handler, DisableFilters)
 	}
 	var allFilters []providedFilter
 	for _, provider := range allProviders {

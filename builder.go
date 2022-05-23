@@ -50,7 +50,7 @@ func PipeBuilders(builder Builder, builders ... Builder) Builder {
 	}
 }
 
-func Build(handler Handler, builders ... Builder) Handler {
+func BuildUp(handler Handler, builders ... Builder) Handler {
 	for _, b := range builders {
 		if b != nil {
 			handler = b.Build(handler)
@@ -79,8 +79,8 @@ func AddHandlers(
 	}
 }
 
-func With(values ... any) Builder {
-	return BuilderFunc(func (handler Handler) Handler {
+func With(values ... any) BuilderFunc {
+	return func (handler Handler) Handler {
 		var valueHandlers []any
 		for _, val := range values {
 			if val != nil {
@@ -91,7 +91,7 @@ func With(values ... any) Builder {
 			return AddHandlers(handler, valueHandlers...)
 		}
 		return handler
-	})
+	}
 }
 
 // withHandler composes two Handlers.
@@ -266,13 +266,13 @@ func (f *filterHandler) Handle(
 	})
 }
 
-func WithFilter(filter FilterFunc, reentrant bool) Builder {
+func WithFilter(filter FilterFunc, reentrant bool) BuilderFunc {
 	if filter == nil {
 		panic("filter cannot be nil")
 	}
-	return BuilderFunc(func (handler Handler) Handler {
+	return func (handler Handler) Handler {
 		return &filterHandler{handler, filter, reentrant}
-	})
+	}
 }
 
 func tryInitializeComposer(

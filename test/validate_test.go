@@ -199,12 +199,12 @@ func (suite *ValidateTestSuite) SetupTest() {
 	}
 }
 
-func (suite *ValidateTestSuite) Setup() miruken.Handler {
+func (suite *ValidateTestSuite) Setup() (miruken.Handler, error) {
 	return suite.SetupWith(suite.specs...)
 }
 
-func (suite *ValidateTestSuite) SetupWith(specs ... any) miruken.Handler {
-	return miruken.Setup(miruken.WithHandlerSpecs(specs...))
+func (suite *ValidateTestSuite) SetupWith(specs ... any) (miruken.Handler, error) {
+	return miruken.Setup(miruken.HandlerSpecs(specs...))
 }
 
 func (suite *ValidateTestSuite) TestValidation() {
@@ -285,8 +285,8 @@ func (suite *ValidateTestSuite) TestValidation() {
 
 	suite.Run("Validates", func () {
 		suite.Run("Default", func() {
-			handler := suite.Setup()
-			player  := Player{DOB:  time.Date(2007, time.June,
+			handler, _ := suite.Setup()
+			player := Player{DOB:  time.Date(2007, time.June,
 				14, 13, 26, 00, 0, time.Local) }
 			outcome, err := miruken.Validate(handler, &player)
 			suite.Nil(err)
@@ -298,8 +298,8 @@ func (suite *ValidateTestSuite) TestValidation() {
 		})
 
 		suite.Run("Group", func() {
-			handler := suite.Setup()
-			player  := Player{
+			handler, _ := suite.Setup()
+			player := Player{
 				FirstName: "Matthew",
 				LastName:  "Dudley",
 				DOB:       time.Date(2007, time.June, 14,
@@ -316,7 +316,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 	})
 
 	suite.Run("ValidateFilter", func () {
-		handler := suite.Setup()
+		handler, _ := suite.Setup()
 		var handles miruken.Handles
 		handles.Policy().AddFilters(miruken.NewValidateProvider(false))
 

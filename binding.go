@@ -6,33 +6,38 @@ import (
 	"reflect"
 )
 
-// Binding abstracts a Callback method.
-type Binding interface {
-	Filtered
-	Key()         any
-	Strict()      bool
-	SkipFilters() bool
-	Invoke(
-		ctx HandleContext,
-		explicitArgs ... any,
-	) (results []any, err error)
-}
-
-// BindingReducer aggregates Binding results.
-type BindingReducer func(
-	binding Binding,
-	result  HandleResult,
-) (HandleResult, bool)
-
-// Binding builders
-
 type (
-	Strict      struct{}
-	Optional    struct{}
-	SkipFilters struct{}
+	// Binding abstracts a Callback handler.
+	Binding interface {
+		Filtered
+		Key()         any
+		Strict()      bool
+		SkipFilters() bool
+		Invoke(
+			ctx HandleContext,
+			explicitArgs ... any,
+		) (results []any, err error)
+	}
+
+	// BindingReducer aggregates Binding results.
+	BindingReducer func(
+		binding Binding,
+		result  HandleResult,
+	) (HandleResult, bool)
 )
 
-type bindingFlags uint8
+type (
+	bindingFlags uint8
+
+	// Strict Binding's do not expand results.
+	Strict struct{}
+
+	// Optional marks a dependency not required.
+	Optional struct{}
+
+	// SkipFilters skips all non-required filters.
+	SkipFilters struct{}
+)
 
 const (
 	bindingNone bindingFlags = 0
@@ -41,19 +46,26 @@ const (
 	bindingSkipFilters
 )
 
-type bindingBuilder interface {
-	configure(
+type (
+	bindingBuilder interface {
+		configure(
+			index   int,
+			field   reflect.StructField,
+			binding any,
+		) (bound bool, err error)
+	}
+
+	bindingBuilderFunc func (
 		index   int,
 		field   reflect.StructField,
 		binding any,
 	) (bound bool, err error)
-}
 
-type bindingBuilderFunc func (
-	index   int,
-	field   reflect.StructField,
-	binding any,
-) (bound bool, err error)
+	// BindingMetadataFactory create new Binding metadata.
+	BindingMetadataFactory interface {
+		Build(reflect.StructField) any
+	}
+)
 
 func (b bindingBuilderFunc) configure(
 	index   int,
