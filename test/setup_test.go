@@ -1,6 +1,7 @@
 package test
 
 import (
+	"errors"
 	"github.com/miruken-go/miruken"
 	"github.com/stretchr/testify/suite"
 	"reflect"
@@ -19,6 +20,20 @@ func (i *MyInstaller) Install(
 		i.count++
 	}
 	return nil
+}
+
+type BadInstaller struct {}
+
+func (i BadInstaller) Install(
+	*miruken.SetupBuilder,
+) error {
+	return errors.New("insufficient resources")
+}
+
+func (i BadInstaller) AfterInstall(
+	*miruken.SetupBuilder, miruken.Handler,
+) error {
+	return errors.New("process failed to start")
 }
 
 type RegisterTestSuite struct {
@@ -86,8 +101,15 @@ func (suite *RegisterTestSuite) TestSetup() {
 
 	suite.Run("Installs Once", func () {
 		installer := &MyInstaller{}
-		miruken.Setup(installer, installer)
+		_, err := miruken.Setup(installer, installer)
+		suite.Nil(err)
 		suite.Equal(1, installer.count)
+	})
+
+	suite.Run("Errors", func () {
+		installer := BadInstaller{}
+		_, err := miruken.Setup(installer)
+		suite.Equal("2 errors occurred:\n\t* insufficient resources\n\t* process failed to start\n\n", err.Error())
 	})
 }
 

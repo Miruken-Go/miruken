@@ -194,11 +194,11 @@ var EnableFilters BuilderFunc = func (handler Handler) Handler {
 	return BuildUp(handler, enableFilters)
 }
 
-func WithFilters(filters ... Filter) Builder {
+func UseFilters(filters ... Filter) Builder {
 	return withFilters(false, filters...)
 }
 
-func WithRequiredFilters(filters ... Filter) Builder {
+func RequireFilters(filters ... Filter) Builder {
 	return withFilters(true, filters...)
 }
 
@@ -212,13 +212,11 @@ func withFilters(required bool, filters ... Filter) Builder {
 	})
 }
 
-func WithFilterProviders(providers ... FilterProvider) Builder {
-	builder := Options(FilterOptions{
-		Providers: providers,
-	})
-	return BuilderFunc(func (handler Handler) Handler {
+func ProvideFilters(providers ... FilterProvider) BuilderFunc {
+	builder := Options(FilterOptions{Providers: providers})
+	return func (handler Handler) Handler {
 		return BuildUp(handler, builder)
-	})
+	}
 }
 
 // providedFilter models a Filter and its FilterProvider.

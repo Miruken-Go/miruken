@@ -571,6 +571,6 @@ var PublishFromRoot BuilderFunc = func (handler Handler) Handler {
 	if context, err := Resolve[*Context](handler); err != nil {
 		panic("the root context could not be found")
 	} else {
-		return Publish.Build(context.Root())
+		return Publish.BuildUp(context.Root())
 	}
 }

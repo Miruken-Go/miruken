@@ -6,11 +6,11 @@ import (
 
 // Builder augments a Handler.
 type Builder interface {
-	Build(Handler) Handler
+	BuildUp(handler Handler) Handler
 }
 type BuilderFunc func(Handler) Handler
 
-func (f BuilderFunc) Build(
+func (f BuilderFunc) BuildUp(
 	handler Handler,
 ) Handler { return f(handler) }
 
@@ -21,7 +21,7 @@ func composeBuilder2(builder1, builder2 Builder) Builder {
 		return builder1
 	}
 	return BuilderFunc(func(handler Handler) Handler {
-		return builder1.Build(builder2.Build(handler))
+		return builder1.BuildUp(builder2.BuildUp(handler))
 	})
 }
 
@@ -53,7 +53,7 @@ func PipeBuilders(builder Builder, builders ... Builder) Builder {
 func BuildUp(handler Handler, builders ... Builder) Handler {
 	for _, b := range builders {
 		if b != nil {
-			handler = b.Build(handler)
+			handler = b.BuildUp(handler)
 		}
 	}
 	return handler
@@ -232,7 +232,7 @@ func (m *mutableHandlers) Handle(
 
 func (m *mutableHandlers) SuppressDispatch() {}
 
-type FilterFunc = func(
+type FilterFunc func(
 	callback any,
 	greedy   bool,
 	composer Handler,
@@ -266,13 +266,9 @@ func (f *filterHandler) Handle(
 	})
 }
 
-func WithFilter(filter FilterFunc, reentrant bool) BuilderFunc {
-	if filter == nil {
-		panic("filter cannot be nil")
-	}
-	return func (handler Handler) Handler {
-		return &filterHandler{handler, filter, reentrant}
-	}
+func (f FilterFunc) BuildUp(handler Handler) Handler {
+	if f == nil { return handler }
+	return &filterHandler{handler, f, false}
 }
 
 func tryInitializeComposer(

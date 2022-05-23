@@ -125,12 +125,12 @@ func (s *SetupBuilder) Build() (handler Handler, buildErrors error) {
 		handler = AddHandlers(handler, explicit...)
 	}
 
-	// Call after setup hooks
+	// call after setup hooks
 	for _, feature := range s.features {
 		if after, ok := feature.(interface{
-			AfterInstall(Handler) error
+			AfterInstall(*SetupBuilder, Handler) error
 		}); ok {
-			if err := after.AfterInstall(handler); err != nil {
+			if err := after.AfterInstall(s, handler); err != nil {
 				buildErrors = multierror.Append(buildErrors, err)
 			}
 		}
