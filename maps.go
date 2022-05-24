@@ -88,7 +88,6 @@ func (f *Format) Matches(metadata *BindingMetadata) bool {
 
 // MapsBuilder builds Maps callbacks.
 type MapsBuilder struct {
-	CallbackBuilder
 	source any
 	target any
 	format any
@@ -126,9 +125,8 @@ func (b *MapsBuilder) WithFormat(
 
 func (b *MapsBuilder) NewMaps() *Maps {
 	maps := &Maps{
-		CallbackBase: b.CallbackBase(),
-		source:       b.source,
-		target:       b.target,
+		source: b.source,
+		target: b.target,
 	}
 	if format := b.format; format != nil {
 		maps.format   = format

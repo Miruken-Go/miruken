@@ -30,7 +30,6 @@ func (c *Creates) Dispatch(
 
 // CreatesBuilder builds Creates callbacks.
 type CreatesBuilder struct {
-	CallbackBuilder
 	typ reflect.Type
 }
 
@@ -46,7 +45,6 @@ func (b *CreatesBuilder) WithType(
 
 func (b *CreatesBuilder) NewCreation() *Creates {
 	return &Creates{
-		CallbackBase: b.CallbackBase(),
 		typ: b.typ,
 	}
 }

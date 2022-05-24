@@ -20,6 +20,14 @@ type (
 		) HandleResult
 	}
 
+	// CallbackGuard detects and prevents circular Callback dispatch.
+	CallbackGuard interface {
+		CanDispatch(
+			handler any,
+			binding Binding,
+		) (reset func (), approved bool)
+	}
+
 	// AcceptResultFunc accepts or rejects callback results.
 	AcceptResultFunc func (
 		result   any,
@@ -31,6 +39,20 @@ type (
 		results []any
 		result  any
 		accept  AcceptResultFunc
+	}
+
+	// customizeDispatch customizes Callback dispatch.
+	customizeDispatch interface {
+		Dispatch(
+			handler  any,
+			greedy   bool,
+			composer Handler,
+		) HandleResult
+	}
+
+	// suppressDispatch opts out of Callback dispatch.
+	suppressDispatch interface {
+		SuppressDispatch()
 	}
 )
 
@@ -118,41 +140,4 @@ func (c *CallbackBase) CopyResult(target any, many bool) {
 	} else {
 		CopyIndirect(c.Result(false), target)
 	}
-}
-
-type CallbackBuilder struct {
-	accept AcceptResultFunc
-}
-
-func (b *CallbackBuilder) WithAcceptResult(
-	accept AcceptResultFunc,
-) *CallbackBuilder {
-	b.accept = accept
-	return b
-}
-
-func (b *CallbackBuilder) CallbackBase() CallbackBase {
-	return CallbackBase{accept: b.accept}
-}
-
-// customizeDispatch marks customized Callback dispatch.
-type customizeDispatch interface {
- 	Dispatch(
-		handler  any,
-		greedy   bool,
-		composer Handler,
-	) HandleResult
-}
-
-// suppressDispatch marks a type that opts out of Callback dispatch.
-type suppressDispatch interface {
-	SuppressDispatch()
-}
-
-// CallbackGuard detects and prevents circular Callback dispatch.
-type CallbackGuard interface {
-	CanDispatch(
-		handler any,
-		binding Binding,
-	) (reset func (), approved bool)
 }

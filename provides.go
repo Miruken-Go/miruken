@@ -95,7 +95,6 @@ func (p *Provides) Resolve(
 
 // ProvidesBuilder builds Provides callbacks.
 type ProvidesBuilder struct {
-	CallbackBuilder
 	key          any
 	parent      *Provides
 	constraints  []func(*ConstraintBuilder)
@@ -129,9 +128,8 @@ func (b *ProvidesBuilder) WithConstraints(
 
 func (b *ProvidesBuilder) Provides() Provides {
 	provides := Provides{
-		CallbackBase: b.CallbackBase(),
-		key:          b.key,
-		parent:       b.parent,
+		key:    b.key,
+		parent: b.parent,
 	}
 	ApplyConstraints(&provides, b.constraints...)
 	return provides
@@ -139,9 +137,8 @@ func (b *ProvidesBuilder) Provides() Provides {
 
 func (b *ProvidesBuilder) NewProvides() *Provides {
 	provides := &Provides{
-		CallbackBase: b.CallbackBase(),
-		key:          b.key,
-		parent:       b.parent,
+		key:    b.key,
+		parent: b.parent,
 	}
 	ApplyConstraints(provides, b.constraints...)
 	return provides
