@@ -17,10 +17,11 @@ type (
 	// methodBinding models a `key` Binding to a method.
 	methodBinding struct {
 		FilteredScope
-		key    any
-		flags  bindingFlags
-		method reflect.Method
-		args   []arg
+		key      any
+		flags    bindingFlags
+		method   reflect.Method
+		args     []arg
+		metadata []any
 	}
 
 	// MethodBindingError reports a failed method binding.
@@ -40,6 +41,10 @@ func (b *methodBinding) Strict() bool {
 
 func (b *methodBinding) SkipFilters() bool {
 	return b.flags & bindingSkipFilters == bindingSkipFilters
+}
+
+func (b *methodBinding) Metadata() []any {
+	return b.metadata
 }
 
 func (b *methodBinding) Invoke(

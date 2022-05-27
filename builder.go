@@ -4,11 +4,13 @@ import (
 	"sync"
 )
 
-// Builder augments a Handler.
-type Builder interface {
-	BuildUp(handler Handler) Handler
-}
-type BuilderFunc func(Handler) Handler
+type (
+	// Builder augments a Handler.
+	Builder interface {
+		BuildUp(handler Handler) Handler
+	}
+	BuilderFunc func(Handler) Handler
+)
 
 func (f BuilderFunc) BuildUp(
 	handler Handler,
@@ -232,19 +234,25 @@ func (m *mutableHandlers) Handle(
 
 func (m *mutableHandlers) SuppressDispatch() {}
 
-type FilterFunc func(
-	callback any,
-	greedy   bool,
-	composer Handler,
-	proceed  func() HandleResult,
-) HandleResult
+type (
+	// ProceedFunc calls the next filter in the pipeline.
+	ProceedFunc func() HandleResult
 
-// filterHandler applies a filter to a Handler.
-type filterHandler struct {
-	Handler
-	filter    FilterFunc
-	reentrant bool
-}
+	// FilterFunc defines a function that can intercept a callback.
+	FilterFunc func(
+		callback any,
+		greedy   bool,
+		composer Handler,
+		proceed  ProceedFunc,
+	) HandleResult
+
+	// filterHandler applies a filter to a Handler.
+	filterHandler struct {
+		Handler
+		filter    FilterFunc
+		reentrant bool
+	}
+)
 
 func (f *filterHandler) Handle(
 	callback any,
@@ -269,6 +277,15 @@ func (f *filterHandler) Handle(
 func (f FilterFunc) BuildUp(handler Handler) Handler {
 	if f == nil { return handler }
 	return &filterHandler{handler, f, false}
+}
+
+func Reentrant(filter FilterFunc) BuilderFunc {
+	if filter == nil {
+		panic("filter cannot be nil")
+	}
+	return func (handler Handler) Handler {
+		return &filterHandler{handler, filter, true}
+	}
 }
 
 func tryInitializeComposer(

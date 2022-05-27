@@ -201,8 +201,7 @@ func (s HandlerTypeSpec) newHandlerDescriptor(
 	}
 	for _, ctorPolicy := range ctorPolicies {
 		if binder, ok := ctorPolicy.(ConstructorBinder); ok {
-			if ctor, err := binder.NewConstructorBinding(
-				typ, constructor, ctorSpec); err == nil {
+			if ctor, err := binder.NewConstructorBinding(typ, constructor, ctorSpec); err == nil {
 				if observer != nil {
 					observer.NotifyHandlerBinding(descriptor, ctor)
 				}
@@ -538,7 +537,15 @@ func (b *HandlerDescriptorFactoryBuilder) Build() HandlerDescriptorFactory {
 		descriptors: make(map[any]*HandlerDescriptor),
 		observer: b.observer,
 	}
-	factory.policySpecBuilder.addBindings(b.bindings...)
+	bindings := make([]bindingBuilder, len(b.bindings)+4)
+	bindings[0] = &factory.policySpecBuilder
+	bindings[1] = bindingBuilderFunc(bindOptions)
+	bindings[2] = bindingBuilderFunc(bindFilters)
+	bindings[3] = bindingBuilderFunc(bindConstraints)
+	for i, binding := range b.bindings {
+		bindings[i+4] = binding
+	}
+	factory.policySpecBuilder.bindings = bindings
 	return factory
 }
 

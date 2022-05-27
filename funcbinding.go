@@ -17,10 +17,11 @@ type (
 	// funcBinding models a `key` Binding to a function.
 	funcBinding struct {
 		FilteredScope
-		key   any
-		flags bindingFlags
-		fun   reflect.Value
-		args  []arg
+		key      any
+		flags    bindingFlags
+		fun      reflect.Value
+		args     []arg
+		metadata []any
 	}
 
 	// FuncBindingError reports a failed function binding.
@@ -40,6 +41,10 @@ func (b *funcBinding) Strict() bool {
 
 func (b *funcBinding) SkipFilters() bool {
 	return b.flags & bindingSkipFilters == bindingSkipFilters
+}
+
+func (b *funcBinding) Metadata() []any {
+	return b.metadata
 }
 
 func (b *funcBinding) Invoke(

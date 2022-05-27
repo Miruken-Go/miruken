@@ -102,6 +102,7 @@ func (p *CovariantPolicy) NewMethodBinding(
 			spec.flags,
 			method,
 			args,
+			spec.metadata,
 		}, nil
 	}
 }
@@ -119,6 +120,7 @@ func (p *CovariantPolicy) NewFuncBinding(
 			spec.flags,
 			fun,
 			args,
+			spec.metadata,
 		}, nil
 	}
 }

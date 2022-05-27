@@ -20,6 +20,7 @@ type (
 		FilteredScope
 		handlerType  reflect.Type
 		flags        bindingFlags
+		metadata     []any
 	}
 )
 
@@ -33,6 +34,10 @@ func (b *constructorBinding) Strict() bool {
 
 func (b *constructorBinding) SkipFilters() bool {
 	return b.flags & bindingSkipFilters == bindingSkipFilters
+}
+
+func (b *constructorBinding) Metadata() []any {
+	return b.metadata
 }
 
 func (b *constructorBinding) Invoke(
@@ -64,13 +69,12 @@ func newConstructorBinding(
 	constructor  *reflect.Method,
 	spec         *policySpec,
 	explicitSpec  bool,
-) (binding *constructorBinding, invalid error) {
+) (binding *constructorBinding, err error) {
 	binding = &constructorBinding{
-		handlerType: handlerType,
-	}
-	if spec != nil {
-		binding.providers = spec.filters
-		binding.flags     = spec.flags
+		FilteredScope{spec.filters},
+		handlerType,
+		spec.flags,
+		spec.metadata,
 	}
 	if constructor != nil {
 		startIndex := 0
@@ -81,12 +85,12 @@ func newConstructorBinding(
 			startIndex = 1
 			args[0] = zeroArg{} // policy/binding placeholder
 		}
-		if err := buildDependencies(methodType, startIndex+1, numArgs, args, startIndex); err != nil {
-			invalid = fmt.Errorf("constructor: %w", err)
+		if err = buildDependencies(methodType, startIndex+1, numArgs, args, startIndex); err != nil {
+			err = fmt.Errorf("constructor: %w", err)
 		} else {
 			initializer := &initializer{*constructor, args}
 			binding.AddFilters(&initializerProvider{[]Filter{initializer}})
 		}
 	}
-	return binding, invalid
+	return binding, err
 }

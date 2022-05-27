@@ -6,24 +6,26 @@ import (
 	"strings"
 )
 
-// Policy manages behaviors and callback Binding's.
-type Policy interface {
-	Filtered
-	Less(binding, otherBinding Binding) bool
-	IsVariantKey(key any) (bool, bool)
-	MatchesKey(key, otherKey any, strict bool) (bool, bool)
-	AcceptResults(results []any) (any, HandleResult)
-}
+type (
+	// Policy manages behaviors and callback Binding's.
+	Policy interface {
+		Filtered
+		Less(binding, otherBinding Binding) bool
+		IsVariantKey(key any) (bool, bool)
+		MatchesKey(key, otherKey any, strict bool) (bool, bool)
+		AcceptResults(results []any) (any, HandleResult)
+	}
 
-// PolicyDispatch customizes Callback Policy dispatch.
-type PolicyDispatch interface {
-	DispatchPolicy(
-		policy   Policy,
-		callback Callback,
-		greedy   bool,
-		composer Handler,
-	) HandleResult
-}
+	// PolicyDispatch customizes Callback Policy dispatch.
+	PolicyDispatch interface {
+		DispatchPolicy(
+			policy   Policy,
+			callback Callback,
+			greedy   bool,
+			composer Handler,
+		) HandleResult
+	}
+)
 
 func DispatchPolicy(
 	handler  any,
@@ -49,6 +51,7 @@ type policySpec struct {
 	flags       bindingFlags
 	filters     []FilterProvider
 	constraints []BindingConstraint
+	metadata    []any
 	key         any
 	arg         arg
 }
@@ -99,6 +102,13 @@ func (s *policySpec) setSkipFilters(
 	return nil
 }
 
+func (s *policySpec) addMetadata(
+	metadata any,
+) error {
+	s.metadata = append(s.metadata, metadata)
+	return nil
+}
+
 func (s *policySpec) complete() error {
 	if len(s.constraints) > 0 {
 		provider := ConstraintProvider{s.constraints}
@@ -113,12 +123,6 @@ type policySpecBuilder struct {
 	bindings []bindingBuilder
 }
 
-func (p *policySpecBuilder) addBindings(
-	bindings ...bindingBuilder,
-) {
-	p.bindings = append(p.bindings, bindings...)
-}
-
 func (p *policySpecBuilder) buildSpec(
 	callbackOrSpec reflect.Type,
 ) (spec *policySpec, err error) {
@@ -129,15 +133,7 @@ func (p *policySpecBuilder) buildSpec(
 			specType.Kind() == reflect.Struct &&
 			specType.NumField() > 0 {
 			spec = &policySpec{}
-			builders := []bindingBuilder{p,
-				bindingBuilderFunc(bindOptions),
-				bindingBuilderFunc(bindFilters),
-				bindingBuilderFunc(bindConstraints),
-			}
-			if bindings := p.bindings; bindings != nil {
-				builders = append(builders, bindings...)
-			}
-			if err = configureBinding(specType, spec, builders);
+			if err = configureBinding(specType, spec, p.bindings);
 				err != nil || len(spec.policies) == 0 {
 				return nil, err
 			}

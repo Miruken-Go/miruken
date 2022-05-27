@@ -13,6 +13,7 @@ type (
 		Key()         any
 		Strict()      bool
 		SkipFilters() bool
+		Metadata()    []any
 		Invoke(
 			ctx HandleContext,
 			explicitArgs ... any,
@@ -60,11 +61,6 @@ type (
 		field   reflect.StructField,
 		binding any,
 	) (bound bool, err error)
-
-	// BindingMetadataFactory create new Binding metadata.
-	BindingMetadataFactory interface {
-		Build(reflect.StructField) any
-	}
 )
 
 func (b bindingBuilderFunc) configure(
@@ -80,6 +76,10 @@ func configureBinding(
 	binding  any,
 	builders []bindingBuilder,
 ) (err error) {
+	checkedMetadata := false
+	var metadataOwner interface {
+		addMetadata(metadata any) error
+	}
 	for i := 0; i < source.NumField(); i++ {
 		bound := false
 		field := source.Field(i)
@@ -92,11 +92,15 @@ func configureBinding(
 				break
 			}
 		}
-		if !bound {
-			if b, ok := binding.(interface {
-				unknown(int, reflect.StructField) error
-			}); ok {
-				if invalid := b.unknown(i, field); invalid != nil {
+		if !bound && (metadataOwner != nil || !checkedMetadata) {
+			if !checkedMetadata {
+				checkedMetadata = true
+				metadataOwner, _ = binding.(interface {
+					addMetadata(metadata any) error
+				})
+			}
+			if metadataOwner != nil {
+				if invalid := addMetadata(field.Type, field.Tag, metadataOwner); invalid != nil {
 					err = multierror.Append(err, invalid)
 				}
 			}
@@ -110,6 +114,27 @@ func configureBinding(
 		}
 	}
 	return err
+}
+
+func addMetadata(
+	typ   reflect.Type,
+	tag   reflect.StructTag,
+	owner interface {
+		addMetadata(metadata any) error
+	},
+) error {
+	writeable := typ.Kind() == reflect.Ptr
+	if !writeable {
+		typ = reflect.PtrTo(typ)
+	}
+	if metadata, err := newWithTag(typ, tag); metadata != nil && err == nil {
+		if !writeable {
+			metadata = reflect.Indirect(reflect.ValueOf(metadata)).Interface()
+		}
+		return owner.addMetadata(metadata)
+	} else {
+		return err
+	}
 }
 
 func bindOptions(

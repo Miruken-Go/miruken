@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/slices"
 	"github.com/stretchr/testify/suite"
 	"reflect"
 	"strings"
@@ -360,6 +361,58 @@ func (h *InvalidHandler) MissingCallbackArgument(
 	return miruken.Handled
 }
 
+// Anonymous metadata
+type Anonymous struct {}
+
+// Transactional metadata
+type Transactional struct {
+	mode string
+}
+
+func (t *Transactional) Init() error {
+	t.mode = "required"
+	return nil
+}
+
+func (t *Transactional) InitWithTag(tag reflect.StructTag) error {
+	if mode, ok := tag.Lookup("mode"); ok {
+		t.mode = mode
+	}
+	return nil
+}
+
+// MetadataHandler
+type MetadataHandler struct{}
+
+func (m *MetadataHandler) HandleFoo(
+	_*struct {
+	    miruken.Handles
+		Transactional   `mode:"requiresNew"`
+	 }, foo *Foo,
+	 context miruken.HandleContext,
+) Transactional {
+	foo.Inc()
+	if transactional, ok :=
+		slices.First(slices.OfType[any,Transactional](
+			context.Binding().Metadata())); ok {
+		return transactional
+	}
+	return Transactional{}
+}
+
+func (m *MetadataHandler) HandleBar(
+	_*struct {
+	    miruken.Handles
+		miruken.Strict
+	    Anonymous
+     }, bar *Bar,
+	context miruken.HandleContext,
+) []Anonymous {
+	bar.Inc()
+	bar.Inc()
+	return slices.OfType[any, Anonymous](context.Binding().Metadata())
+}
+
 func HandleFoo(
 	_*miruken.Handles, foo *Foo,
 ) miruken.HandleResult {
@@ -649,6 +702,33 @@ func (suite *HandlerTestSuite) TestHandles() {
 		})
 	})
 
+	suite.Run("Metadata", func () {
+		suite.Run("Simple", func() {
+			handler, _ := suite.SetupWith(
+				miruken.HandlerSpecs(&MetadataHandler{}))
+			bar := new(Bar)
+			if anonymous, err := miruken.Invoke[[]Anonymous](handler, bar); err == nil {
+				suite.Len(anonymous, 1)
+				suite.Equal(2, bar.Count())
+			} else {
+				suite.Fail("unexpected error", err.Error())
+			}
+		})
+
+		suite.Run("Pointer", func() {
+			handler, _ := suite.SetupWith(
+				miruken.HandlerSpecs(&MetadataHandler{}))
+			foo := new(Foo)
+			if transactional, err := miruken.Invoke[Transactional](handler, foo); err == nil {
+				suite.NotNil(transactional)
+				suite.Equal("requiresNew", transactional.mode)
+				suite.Equal(1, foo.Count())
+			} else {
+				suite.Fail("unexpected error", err.Error())
+			}
+		})
+	})
+
 	suite.Run("CallSemantics", func () {
 		suite.Run("BestEffort", func () {
 			handler, _ := suite.SetupWith(miruken.Handlers(new(BarHandler)))
@@ -674,6 +754,70 @@ func (suite *HandlerTestSuite) TestHandles() {
 
 			result = miruken.BuildUp(handler, miruken.Broadcast).
 				Handle(foo, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(miruken.Handled, result)
+			suite.Equal(3, foo.Count())
+		})
+	})
+
+	suite.Run("Intercept", func () {
+		suite.Run("Default", func() {
+			handler, _ := suite.SetupWith(miruken.HandlerSpecs(&CountByTwoHandler{}))
+			handler = miruken.BuildUp(
+				handler,
+				miruken.FilterFunc(func(
+					callback any,
+					greedy   bool,
+					composer miruken.Handler,
+					proceed  miruken.ProceedFunc,
+				) miruken.HandleResult {
+					if cb, ok := callback.(*Foo); ok {
+						cb.Inc()
+					}
+					baz := new(Baz)
+					result := composer.Handle(baz, false, nil)
+					suite.False(result.IsError())
+					suite.Equal(miruken.Handled, result)
+					suite.Equal(2, baz.Count())
+					return proceed()
+				}))
+			foo := new(Foo)
+			result := handler.Handle(foo, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(miruken.Handled, result)
+			suite.Equal(3, foo.Count())
+
+			bar := new(Bar)
+			result = handler.Handle(bar, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(miruken.Handled, result)
+			suite.Equal(2, bar.Count())
+		})
+
+		suite.Run("Reentrant", func() {
+			handler, _ := suite.SetupWith(miruken.HandlerSpecs(&CountByTwoHandler{}))
+			handler = miruken.BuildUp(
+				handler,
+				miruken.Reentrant(func(
+					callback any,
+					greedy   bool,
+					composer miruken.Handler,
+					proceed  miruken.ProceedFunc,
+				) miruken.HandleResult {
+					switch cb := callback.(type) {
+					case *Foo: cb.Inc()
+					case *Baz: cb.Inc(); cb.Inc()
+					default: return proceed()
+					}
+					baz := new(Baz)
+					result := composer.Handle(baz, false, nil)
+					suite.False(result.IsError())
+					suite.Equal(miruken.Handled, result)
+					suite.Equal(2, baz.Count())
+					return proceed()
+				}))
+			foo := new(Foo)
+			result := handler.Handle(foo, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(miruken.Handled, result)
 			suite.Equal(3, foo.Count())

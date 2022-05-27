@@ -84,6 +84,7 @@ func (p *BivariantPolicy) NewMethodBinding(
 			spec.flags,
 			method,
 			args,
+			spec.metadata,
 		}, nil
 	}
 }
@@ -101,6 +102,7 @@ func (p *BivariantPolicy) NewFuncBinding(
 			spec.flags,
 			fun,
 			args,
+			spec.metadata,
 		}, nil
 	}
 }
