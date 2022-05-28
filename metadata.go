@@ -147,7 +147,7 @@ func (s HandlerTypeSpec) Name() string {
 }
 
 func (s HandlerTypeSpec) String() string {
-	return fmt.Sprintf("HandlerTypeSpec %v", s.typ)
+	return fmt.Sprintf("HandlerTypeSpec(%v)", s.typ)
 }
 
 func (s HandlerTypeSpec) key() any {
@@ -253,7 +253,7 @@ func (s HandlerFuncSpec) Func() reflect.Value {
 }
 
 func (s HandlerFuncSpec) String() string {
-	return fmt.Sprintf("HandlerFuncSpec %v", s.fun)
+	return fmt.Sprintf("HandlerFuncSpec(%v)", s.fun)
 }
 
 func (s HandlerFuncSpec) key() any {

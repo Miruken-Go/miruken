@@ -88,7 +88,6 @@ func (h *CountByTwoHandler) HandleCounted(
 ) (Counter, miruken.HandleResult) {
 	counter.Inc()
 	counter.Inc()
-	fmt.Println("CountByTwoHandler")
 	return counter, miruken.Handled
 }
 
@@ -186,7 +185,6 @@ func (h *SpecificationHandler) HandleFoo(
 	_*struct{ miruken.Handles; miruken.Strict }, foo *Foo,
 ) miruken.HandleResult {
 	foo.Inc()
-	fmt.Println("SpecificationHandler")
 	return miruken.Handled
 }
 
@@ -364,19 +362,35 @@ func (h *InvalidHandler) MissingCallbackArgument(
 // Anonymous metadata
 type Anonymous struct {}
 
+type TransactionalMode byte
+const (
+	TransactionalSupports TransactionalMode = 1 << iota
+	TransactionalRequired
+	TransactionalRequiresNew
+)
+
 // Transactional metadata
 type Transactional struct {
-	mode string
+	mode TransactionalMode
 }
 
 func (t *Transactional) Init() error {
-	t.mode = "required"
+	t.mode = TransactionalRequired
 	return nil
 }
 
 func (t *Transactional) InitWithTag(tag reflect.StructTag) error {
 	if mode, ok := tag.Lookup("mode"); ok {
-		t.mode = mode
+		switch mode {
+		case "supports":
+			t.mode = TransactionalSupports
+		case "required":
+			t.mode = TransactionalRequired
+		case "requiresNew":
+			t.mode = TransactionalRequiresNew
+		default:
+			return fmt.Errorf("unrecognized transactional mode '%s'", mode)
+		}
 	}
 	return nil
 }
@@ -411,6 +425,16 @@ func (m *MetadataHandler) HandleBar(
 	bar.Inc()
 	bar.Inc()
 	return slices.OfType[any, Anonymous](context.Binding().Metadata())
+}
+
+// MetadataInvalidHandler
+type MetadataInvalidHandler struct{}
+
+func (m *MetadataInvalidHandler) HandleFoo(
+	_*struct {
+		miruken.Handles
+		Transactional `mode:"suppress"`
+	 }) {
 }
 
 func HandleFoo(
@@ -721,9 +745,26 @@ func (suite *HandlerTestSuite) TestHandles() {
 			foo := new(Foo)
 			if transactional, err := miruken.Invoke[Transactional](handler, foo); err == nil {
 				suite.NotNil(transactional)
-				suite.Equal("requiresNew", transactional.mode)
+				suite.Equal(TransactionalRequiresNew, transactional.mode)
 				suite.Equal(1, foo.Count())
 			} else {
+				suite.Fail("unexpected error", err.Error())
+			}
+		})
+
+		suite.Run("Invalid", func() {
+			defer func() {
+				if r := recover(); r != nil {
+					if err, ok := r.(*miruken.HandlerDescriptorError); ok {
+						suite.Equal(
+							"1 error occurred:\n\t* unrecognized transactional mode 'suppress'\n\n",
+							err.Reason.Error())
+						return
+					}
+					suite.Fail("Expected HandlerDescriptorError")
+				}
+			}()
+			if _, err := suite.SetupWith(miruken.HandlerSpecs(&MetadataInvalidHandler{})); err != nil {
 				suite.Fail("unexpected error", err.Error())
 			}
 		})
