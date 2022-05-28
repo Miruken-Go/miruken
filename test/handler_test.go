@@ -9,18 +9,27 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 //go:generate $GOPATH/bin/miruken -tests
 
-type Counter interface {
-	Count() int
-	Inc() int
-}
+type (
+	Counter interface {
+		Count() int
+		Inc() int
+	}
 
-type Counted struct {
-	count int
-}
+	Counted struct {
+		count int
+	}
+
+	Foo struct { Counted }
+	Bar struct { Counted }
+	Baz struct { Counted }
+	Bam struct { Counted }
+	Boo struct { Counted }
+)
 
 func (c *Counted) Count() int {
 	return c.count
@@ -30,14 +39,6 @@ func (c *Counted) Inc() int {
 	c.count++
 	return c.count
 }
-
-type (
-	Foo struct { Counted }
-	Bar struct { Counted }
-	Baz struct { Counted }
-	Bam struct { Counted }
-	Boo struct { Counted }
-)
 
 // FooHandler
 type FooHandler struct{}
@@ -245,16 +246,28 @@ type UnmanagedHandler struct {}
 
 func (u *UnmanagedHandler) NoConstructor() {}
 
-type Config struct {
-	baseUrl string
-	timeout int
+type (
+	DateFormat string
+
+	Config struct {
+		baseUrl string
+		timeout int
+		created string
+	}
+
+	Configuration struct {
+		config *Config
+	}
+)
+
+func (f *DateFormat) InitWithTag(tag reflect.StructTag) error {
+	if layout, ok := tag.Lookup("layout"); ok {
+		*f = DateFormat(layout)
+	}
+	return nil
 }
 
-type Configuration struct {
-	config *Config
-}
-
-func (c Configuration) Validate(
+func (c *Configuration) Validate(
 	typ reflect.Type,
 	_   miruken.DependencyArg,
 ) error {
@@ -264,17 +277,21 @@ func (c Configuration) Validate(
 	return nil
 }
 
-func (c Configuration) Resolve(
-	typ      reflect.Type,
-	callback miruken.Callback,
-	dep      miruken.DependencyArg,
-	handler  miruken.Handler,
+func (c *Configuration) Resolve(
+	typ  reflect.Type,
+	dep  miruken.DependencyArg,
+	ctx  miruken.HandleContext,
 ) (reflect.Value, error) {
 	if c.config == nil {
 		c.config = &Config{
 			baseUrl: "https://server/api",
 			timeout: 30000,
 		}
+		var layout string
+		if format, ok := slices.First(slices.OfType[any,DateFormat](dep.Metadata())); ok {
+			layout = string(format)
+		}
+		c.config.created = time.Now().Format(layout)
 	}
 	return reflect.ValueOf(c.config), nil
 }
@@ -284,7 +301,10 @@ type DependencyResolverHandler struct{}
 
 func (h *DependencyResolverHandler) UseDependencyResolver(
 	_*miruken.Handles, foo *Foo,
-	_*struct{ Configuration }, config *Config,
+	_*struct{
+		Configuration
+		DateFormat  `layout:"02 Jan 06 15:04 MST"`
+	 }, config *Config,
 ) *Config {
 	foo.Inc()
 	return config
@@ -720,6 +740,10 @@ func (suite *HandlerTestSuite) TestHandles() {
 				suite.NotNil(*config)
 				suite.Equal("https://server/api", config.baseUrl)
 				suite.Equal(30000, config.timeout)
+				_, err := time.Parse(time.RFC822, config.created)
+				suite.Nil(err)
+				_, err  = time.Parse(time.RFC3339, config.created)
+				suite.IsType(&time.ParseError{}, err)
 			} else {
 				suite.Fail("unexpected error", err.Error())
 			}

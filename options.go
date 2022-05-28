@@ -158,13 +158,12 @@ func (o FromOptions) Validate(
 }
 
 func (o FromOptions) Resolve(
-	typ      reflect.Type,
-	callback Callback,
-	dep      DependencyArg,
-	handler  Handler,
+	typ reflect.Type,
+	dep DependencyArg,
+	ctx HandleContext,
 ) (options reflect.Value, err error) {
 	options = reflect.New(typ)
-	if GetOptions(handler, options.Interface()) {
+	if GetOptions(ctx.composer, options.Interface()) {
 		if typ.Kind() == reflect.Ptr {
 			return options, nil
 		}

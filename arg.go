@@ -54,6 +54,7 @@ type dependencySpec struct {
 	flags       bindingFlags
 	resolver    DependencyResolver
 	constraints []func(*ConstraintBuilder)
+	metadata    []any
 }
 
 func (s *dependencySpec) setStrict(
@@ -94,6 +95,13 @@ func (s *dependencySpec) addConstraint(
 	return nil
 }
 
+func (s *dependencySpec) addMetadata(
+	metadata any,
+) error {
+	s.metadata = append(s.metadata, metadata)
+	return nil
+}
+
 // DependencyArg is a parameter resolved at runtime.
 type DependencyArg struct {
 	spec *dependencySpec
@@ -105,6 +113,13 @@ func (d DependencyArg) Optional() bool {
 
 func (d DependencyArg) Strict() bool {
 	return d.spec != nil && d.spec.flags & bindingStrict == bindingStrict
+}
+
+func (d DependencyArg) Metadata() []any {
+	if spec := d.spec; spec != nil {
+		return spec.metadata
+	}
+	return nil
 }
 
 func (d DependencyArg) resolve(
@@ -133,17 +148,16 @@ func (d DependencyArg) resolve(
 			resolver = spec.resolver
 		}
 	}
-	val, err := resolver.Resolve(typ, callback, d, composer)
+	val, err := resolver.Resolve(typ, d, ctx)
 	return val, err
 }
 
 // DependencyResolver defines how an argument value is retrieved.
 type DependencyResolver interface {
 	Resolve(
-		typ      reflect.Type,
-		callback Callback,
-		dep      DependencyArg,
-		handler  Handler,
+		typ reflect.Type,
+		dep DependencyArg,
+		ctx HandleContext,
 	) (reflect.Value, error)
 }
 
@@ -151,12 +165,11 @@ type DependencyResolver interface {
 type defaultDependencyResolver struct{}
 
 func (r *defaultDependencyResolver) Resolve(
-	typ      reflect.Type,
-	callback Callback,
-	dep      DependencyArg,
-	handler  Handler,
+	typ reflect.Type,
+	dep DependencyArg,
+	ctx HandleContext,
 ) (reflect.Value, error) {
-	parent, _ := callback.(*Provides)
+	parent, _ := ctx.callback.(*Provides)
 	many := !dep.Strict() && typ.Kind() == reflect.Slice
 	var builder ProvidesBuilder
 	builder.WithParent(parent)
@@ -169,7 +182,7 @@ func (r *defaultDependencyResolver) Resolve(
 		builder.WithConstraints(spec.constraints...)
 	}
 	provides := builder.NewProvides()
-	if result, err := provides.Resolve(handler, many); err == nil {
+	if result, err := provides.Resolve(ctx.composer, many); err == nil {
 		var val reflect.Value
 		if many {
 			results := result.([]any)
@@ -235,12 +248,12 @@ func resolveArgs(
 	funType   reflect.Type,
 	fromIndex int,
 	args      []arg,
-	context   HandleContext,
+	ctx       HandleContext,
 ) ([]reflect.Value, error) {
 	var resolved []reflect.Value
 	for i, arg := range args {
 		typ := funType.In(fromIndex + i)
-		if a, err := arg.resolve(typ, context); err != nil {
+		if a, err := arg.resolve(typ, ctx); err != nil {
 			return nil, UnresolvedArgError{arg, err}
 		} else {
 			resolved = append(resolved, a)
