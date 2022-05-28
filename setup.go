@@ -69,18 +69,13 @@ func (s *SetupBuilder) DisableInference() {
 
 func (s *SetupBuilder) CanInstall(tag any) bool {
 	if tags := s.tags; tags == nil {
-		s.tags = map[any]struct{} { tag: {} }
+		s.tags = map[any]struct{}{tag: {}}
 		return true
 	} else if _, found := tags[tag]; !found {
 		tags[tag] = struct{}{}
 		return true
 	}
 	return false
-}
-
-func (s *SetupBuilder) Install(features ...Feature) *SetupBuilder {
-	s.features = append(s.features, features...)
-	return s
 }
 
 func (s *SetupBuilder) Build() (handler Handler, buildErrors error) {
@@ -90,12 +85,9 @@ func (s *SetupBuilder) Build() (handler Handler, buildErrors error) {
 	}
 	handler = &getHandlerDescriptorFactory{factory}
 
-	// Use index and not range to allow features to install other features
-	for i := 0; i < len(s.features); i++ {
-		if feature := s.features[i]; feature != nil {
-			if err := feature.Install(s); err != nil {
-				buildErrors = multierror.Append(buildErrors, err)
-			}
+	for _, feature := range s.features {
+		if err := s.installGraph(feature); err != nil {
+			buildErrors = multierror.Append(buildErrors, err)
 		}
 	}
 
@@ -140,6 +132,24 @@ func (s *SetupBuilder) Build() (handler Handler, buildErrors error) {
 	return handler, buildErrors
 }
 
+func (s *SetupBuilder) installGraph(
+	feature Feature,
+) error {
+	if IsNil(feature) {
+		return nil
+	}
+	if dependsOn, ok := feature.(interface{
+		Dependencies() []Feature
+	}); ok {
+		for _, dep := range dependsOn.Dependencies() {
+			if err := s.installGraph(dep); err != nil {
+				return err
+			}
+		}
+	}
+	return feature.Install(s)
+}
+
 func Handlers(handlers ... any) InstallFeature {
 	return func(setup *SetupBuilder) error {
 		setup.AddHandlers(handlers...)
@@ -166,7 +176,9 @@ var NoInference InstallFeature = func(setup *SetupBuilder) error {
 	return nil
 }
 
-func UseHandlerDescriptorFactory(factory HandlerDescriptorFactory) InstallFeature {
+func UseHandlerDescriptorFactory(
+	factory HandlerDescriptorFactory,
+) InstallFeature {
 	return func(setup *SetupBuilder) error {
 		setup.SetHandlerDescriptorFactory(factory)
 		return nil
@@ -174,6 +186,6 @@ func UseHandlerDescriptorFactory(factory HandlerDescriptorFactory) InstallFeatur
 }
 
 func Setup(features ...Feature) (Handler, error) {
-	setup := &SetupBuilder{}
-	return setup.Install(features...).Build()
+	setup := &SetupBuilder{features: features}
+	return setup.Build()
 }

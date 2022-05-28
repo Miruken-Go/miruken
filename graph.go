@@ -261,17 +261,17 @@ func TraversePostOrder(
 func traversePostOrder(
 	node    Traversing,
 	visitor TraversalVisitor,
-	visited traversalHistory,
+	history traversalHistory,
 ) (stop bool, err error) {
 	if node == nil || visitor == nil {
 		return true, nil
 	}
-	if err = checkTraversalCircularity(node, visited); err != nil {
+	if err = checkTraversalCircularity(node, history); err != nil {
 		return true, err
 	}
 	if err = TraverseAxis(node, TraverseChild, TraversalVisitorFunc(
 		func(child Traversing) (bool, error) {
-			return traversePostOrder(child, visitor, visited)
+			return traversePostOrder(child, visitor, history)
 		})); err != nil {
 		return false, err
 	}
@@ -290,7 +290,7 @@ func TraverseLevelOrder(
 func traverseLevelOrder(
 	node    Traversing,
 	visitor TraversalVisitor,
-	visited traversalHistory,
+	history traversalHistory,
 ) (stop bool, err error) {
 	if node == nil || visitor == nil {
 		return true, nil
@@ -301,7 +301,7 @@ func traverseLevelOrder(
 		front := queue.Front()
 		queue.Remove(front)
 		next := front.Value.(Traversing)
-		if err = checkTraversalCircularity(next, visited); err != nil {
+		if err = checkTraversalCircularity(next, history); err != nil {
 			return true, err
 		}
 		if stop, err := visitor.VisitTraversal(next); stop || err != nil {
@@ -332,7 +332,7 @@ func TraverseReverseLevelOrder(
 func traverseReverseLevelOrder(
 	node    Traversing,
 	visitor TraversalVisitor,
-	visited traversalHistory,
+	history traversalHistory,
 ) (stop bool, err error) {
 	if node == nil || visitor == nil {
 		return true, nil
@@ -344,7 +344,7 @@ func traverseReverseLevelOrder(
 		front := queue.Front()
 		queue.Remove(front)
 		next := front.Value.(Traversing)
-		if err = checkTraversalCircularity(next, visited); err != nil {
+		if err = checkTraversalCircularity(next, history); err != nil {
 			return true, err
 		}
 		stack.PushBack(next)
@@ -375,11 +375,11 @@ func traverseReverseLevelOrder(
 
 func checkTraversalCircularity(
 	node    Traversing,
-	visited traversalHistory,
+	history traversalHistory,
 ) error {
-	if _, ok := visited[node]; ok {
+	if _, ok := history[node]; ok {
 		return TraversalCircularityError{node}
 	}
-	visited[node] = true
+	history[node] = true
 	return nil
 }

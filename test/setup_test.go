@@ -18,7 +18,20 @@ func (i *MyInstaller) Install(
 ) error {
 	if setup.CanInstall(reflect.TypeOf(i)) {
 		i.count++
+		setup.RegisterHandlers(&MultiHandler{})
 	}
+	return nil
+}
+
+type RootInstaller struct {}
+
+func (i *RootInstaller) Dependencies() []miruken.Feature {
+	return []miruken.Feature{&MyInstaller{}}
+}
+
+func (i *RootInstaller) Install(
+	setup *miruken.SetupBuilder,
+) error {
 	return nil
 }
 
@@ -101,9 +114,23 @@ func (suite *RegisterTestSuite) TestSetup() {
 
 	suite.Run("Installs Once", func () {
 		installer := &MyInstaller{}
-		_, err := miruken.Setup(installer, installer)
+		handler, err := miruken.Setup(installer, installer)
 		suite.Nil(err)
 		suite.Equal(1, installer.count)
+		result := handler.Handle(&Foo{}, false, nil)
+		suite.False(result.IsError())
+		suite.Equal(miruken.Handled, result)
+	})
+
+	suite.Run("Installs Dependencies", func () {
+		handler, err := miruken.Setup(&RootInstaller{})
+		suite.Nil(err)
+		result := handler.Handle(&Foo{}, false, nil)
+		suite.False(result.IsError())
+		suite.Equal(miruken.Handled, result)
+		multi, err := miruken.Resolve[*MultiHandler](handler)
+		suite.Nil(err)
+		suite.NotNil(multi)
 	})
 
 	suite.Run("Errors", func () {
