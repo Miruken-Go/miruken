@@ -139,9 +139,9 @@ func (s *SetupBuilder) installGraph(
 		return nil
 	}
 	if dependsOn, ok := feature.(interface{
-		Dependencies() []Feature
+		DependsOn() []Feature
 	}); ok {
-		for _, dep := range dependsOn.Dependencies() {
+		for _, dep := range dependsOn.DependsOn() {
 			if err := s.installGraph(dep); err != nil {
 				return err
 			}

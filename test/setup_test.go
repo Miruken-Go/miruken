@@ -25,7 +25,7 @@ func (i *MyInstaller) Install(
 
 type RootInstaller struct {}
 
-func (i *RootInstaller) Dependencies() []miruken.Feature {
+func (i *RootInstaller) DependsOn() []miruken.Feature {
 	return []miruken.Feature{&MyInstaller{}}
 }
 
