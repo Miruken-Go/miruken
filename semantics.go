@@ -3,10 +3,10 @@ package miruken
 type SemanticFlags uint8
 
 const (
-	SemanticNone   SemanticFlags = 0
+	SemanticNone      SemanticFlags = 0
 	SemanticBroadcast SemanticFlags = 1 << iota
 	SemanticBestEffort
-	SemanticNotify = SemanticBroadcast | SemanticBestEffort
+	SemanticNotify  = SemanticBroadcast | SemanticBestEffort
 )
 
 // CallbackSemantics captures semantic options

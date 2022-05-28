@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"fmt"
 	"reflect"
 )
 
@@ -139,5 +140,23 @@ func (c *CallbackBase) CopyResult(target any, many bool) {
 		CopySliceIndirect(c.Result(true).([]any), target)
 	} else {
 		CopyIndirect(c.Result(false), target)
+	}
+}
+
+func forEach(iter any, f func(i int, val any) bool) {
+	v := reflect.ValueOf(iter)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	switch v.Kind() {
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < v.Len(); i++ {
+			val := v.Index(i).Interface()
+			if f(i, val) {
+				return
+			}
+		}
+	default:
+		panic(fmt.Errorf("forEach expects a slice or array, received %q", v.Kind().String()))
 	}
 }

@@ -1,6 +1,8 @@
 package slices
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type MapFunc[T1, T2 any] interface {
 	~func(int, T1) T2 | ~func(T1) T2
@@ -101,3 +103,4 @@ func Last[T any](s []T) (T, bool) {
 	var zero T
 	return zero, false
 }
+
