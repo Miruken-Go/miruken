@@ -90,8 +90,9 @@ func (s *SetupBuilder) Build() (handler Handler, buildErrors error) {
 	}
 	handler = &getHandlerDescriptorFactory{factory}
 
-	for _, feature := range s.features {
-		if feature != nil {
+	// Use index and not range to allow features to install other features
+	for i := 0; i < len(s.features); i++ {
+		if feature := s.features[i]; feature != nil {
 			if err := feature.Install(s); err != nil {
 				buildErrors = multierror.Append(buildErrors, err)
 			}
