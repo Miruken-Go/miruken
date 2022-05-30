@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
 
@@ -85,8 +86,7 @@ func (p *CovariantPolicy) AcceptResults(
 			return result, Handled
 		}
 	}
-	return nil, NotHandled.WithError(
-		errors.New("covariant policy: cannot accept more than 2 results"))
+	return nil, NotHandled.WithError(ErrCovResultsExceeded)
 }
 
 func (p *CovariantPolicy) NewMethodBinding(
@@ -129,36 +129,35 @@ func validateCovariantFunc(
 	funType reflect.Type,
 	spec    *policySpec,
 	skip    int,
-) (args []arg, invalid error) {
+) (args []arg, err error) {
 	numArgs := funType.NumIn()
 	args     = make([]arg, numArgs-skip)
 	args[0]  = spec.arg
 
-	if err := buildDependencies(funType, skip+1, numArgs, args, 1); err != nil {
-		invalid = fmt.Errorf("covariant: %w", err)
+	if err = buildDependencies(funType, skip+1, numArgs, args, 1); err != nil {
+		err = fmt.Errorf("covariant: %w", err)
 	}
 
 	switch funType.NumOut() {
 	case 0:
-		invalid = multierror.Append(invalid,
-			errors.New("covariant: must have a return value"))
+		err = multierror.Append(err, ErrCovMissingReturn)
 	case 1:
-		if err := validateCovariantReturn(funType.Out(0), spec); err != nil {
-			invalid = multierror.Append(invalid, err)
+		if inv := validateCovariantReturn(funType.Out(0), spec); inv != nil {
+			err = multierror.Append(err, inv)
 		}
 	case 2:
-		if err := validateCovariantReturn(funType.Out(0), spec); err != nil {
-			invalid = multierror.Append(invalid, err)
+		if inv := validateCovariantReturn(funType.Out(0), spec); inv != nil {
+			err = multierror.Append(err, inv)
 		}
 		switch funType.Out(1) {
 		case _errorType, _handleResType: break
 		default:
-			invalid = multierror.Append(invalid, fmt.Errorf(
+			err = multierror.Append(err, fmt.Errorf(
 				"covariant: when two return values, second must be %v or %v",
 				_errorType, _handleResType))
 		}
 	default:
-		invalid = multierror.Append(invalid, fmt.Errorf(
+		err = multierror.Append(err, fmt.Errorf(
 			"covariant: at most two return values allowed and second must be %v or %v",
 			_errorType, _handleResType))
 	}
@@ -176,11 +175,14 @@ func validateCovariantReturn(
 			_errorType, _handleResType)
 	default:
 		if spec.key == nil {
+			if lt, ok := promise.Inspect(returnType); ok {
+				spec.flags = spec.flags | bindingPromise
+				returnType = lt
+			}
 			if spec.flags & bindingStrict != bindingStrict {
 				switch returnType.Kind() {
 				case reflect.Slice, reflect.Array:
-					spec.key = returnType.Elem()
-					return nil
+					returnType = returnType.Elem()
 				}
 			}
 			spec.key = returnType
@@ -188,3 +190,8 @@ func validateCovariantReturn(
 		return nil
 	}
 }
+
+var (
+	ErrCovResultsExceeded = errors.New("covariant: cannot accept more than 2 results")
+	ErrCovMissingReturn   = errors.New("covariant: must have a return value")
+)

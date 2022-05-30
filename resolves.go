@@ -1,17 +1,17 @@
 package miruken
 
-type Resolving struct {
+type Resolves struct {
 	Provides
 	callback  Callback
 	greedy    bool
 	succeeded bool
 }
 
-func (r *Resolving) Succeeded() bool {
+func (r *Resolves) Succeeded() bool {
 	return r.succeeded
 }
 
-func (r *Resolving) CanDispatch(
+func (r *Resolves) CanDispatch(
 	handler any,
 	binding Binding,
 ) (reset func (), approved bool) {
@@ -30,7 +30,7 @@ func (r *Resolving) CanDispatch(
 	}
 }
 
-func (r *Resolving) accept(
+func (r *Resolves) accept(
 	result   any,
 	composer Handler,
 ) HandleResult {
@@ -43,32 +43,32 @@ func (r *Resolving) accept(
 	}
 }
 
-type ResolvingBuilder struct {
+type ResolvesBuilder struct {
 	ProvidesBuilder
 	callback Callback
 	greedy   bool
 }
 
-func (b *ResolvingBuilder) WithCallback(
+func (b *ResolvesBuilder) WithCallback(
 	callback Callback,
-) *ResolvingBuilder {
+) *ResolvesBuilder {
 	b.callback = callback
 	return b
 }
 
-func (b *ResolvingBuilder) WithGreedy(
+func (b *ResolvesBuilder) WithGreedy(
 	greedy bool,
-) *ResolvingBuilder {
+) *ResolvesBuilder {
 	b.greedy = greedy
 	return b
 }
 
-func (b *ResolvingBuilder) NewResolving() *Resolving {
-	resolving := &Resolving{
+func (b *ResolvesBuilder) NewResolves() *Resolves {
+	resolves := &Resolves{
 		Provides: b.Provides(),
 		callback: b.callback,
 		greedy:   b.greedy,
 	}
-	resolving.SetAcceptResult(resolving.accept)
-	return resolving
+	resolves.SetAcceptResult(resolves.accept)
+	return resolves
 }

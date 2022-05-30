@@ -47,7 +47,7 @@ func (s *scoped) Next(
 	if !s.isCompatibleWithParent(context, rooted) {
 		return nil, nil
 	}
-	ctx, err := Resolve[*Context](context.Composer())
+	ctx, _, err := Resolve[*Context](context.Composer())
 	if err != nil {
 		return nil, err
 	} else if ctx == nil {

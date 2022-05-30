@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
 
@@ -111,7 +112,7 @@ func validateBivariantFunc(
 	funType reflect.Type,
 	spec    *policySpec,
 	skip    int,
-) (args []arg, key any, invalid error) {
+) (args []arg, key any, err error) {
 	numArgs := funType.NumIn()
 	args     = make([]arg, numArgs-skip)
 	args[0]  = spec.arg
@@ -119,6 +120,8 @@ func validateBivariantFunc(
 	in      := _anyType
 	out     := _anyType
 	index   := 1
+
+	var inv error
 
 	// Callback argument must be present if spec
 	if len(args) > 1 {
@@ -130,42 +133,39 @@ func validateBivariantFunc(
 		}
 		index++
 	} else if _, isSpec := spec.arg.(zeroArg); isSpec {
-		invalid = errors.New("bivariant: missing callback argument")
+		err = ErrBiMissingCallback
 	}
 
-	if err := buildDependencies(funType, index+skip, numArgs, args, index); err != nil {
-		invalid = multierror.Append(invalid, fmt.Errorf("bivariant: %w", err))
+	if inv := buildDependencies(funType, index+skip, numArgs, args, index); inv != nil {
+		err = multierror.Append(err, fmt.Errorf("bivariant: %w", inv))
 	}
 
 	switch funType.NumOut() {
 	case 0:
-		invalid = multierror.Append(invalid,
-			errors.New("bivariant: must have a return value"))
+		err = multierror.Append(err, ErrBiMissingReturn)
 	case 1:
-		out = funType.Out(0)
-		if err := validateBivariantReturn(out); err != nil {
-			invalid = multierror.Append(invalid, err)
+		if out, inv = validateBivariantReturn(funType.Out(0), spec); inv != nil {
+			err = multierror.Append(err, inv)
 		}
 	case 2:
-		out = funType.Out(0)
-		if err := validateBivariantReturn(out); err != nil {
-			invalid = multierror.Append(invalid, err)
+		if out, inv = validateBivariantReturn(funType.Out(0), spec); inv != nil {
+			err = multierror.Append(err, inv)
 		}
 		switch funType.Out(1) {
 		case _errorType, _handleResType: break
 		default:
-			invalid = multierror.Append(invalid, fmt.Errorf(
+			err = multierror.Append(err, fmt.Errorf(
 				"bivariant: when two return values, second must be %v or %v",
 				_errorType, _handleResType))
 		}
 	default:
-		invalid = multierror.Append(invalid, fmt.Errorf(
+		err = multierror.Append(err, fmt.Errorf(
 			"bivariant: at most two return values allowed and second must be %v or %v",
 			_errorType, _handleResType))
 	}
 
-	if invalid != nil {
-		return nil, key, invalid
+	if err != nil {
+		return nil, key, err
 	}
 
 	if key == nil {
@@ -176,13 +176,23 @@ func validateBivariantFunc(
 
 func validateBivariantReturn(
 	returnType reflect.Type,
-) error {
+	spec       *policySpec,
+) (reflect.Type, error) {
 	switch returnType {
 	case _errorType, _handleResType:
-		return fmt.Errorf(
+		return nil, fmt.Errorf(
 			"bivariant: primary return value must not be %v or %v",
 			_errorType, _handleResType)
 	default:
-		return nil
+		if lt, ok := promise.Inspect(returnType); ok {
+			spec.flags = spec.flags | bindingPromise
+			return lt, nil
+		}
+		return returnType, nil
 	}
 }
+
+var (
+	ErrBiMissingCallback = errors.New("bivariant: missing callback argument")
+	ErrBiMissingReturn   = errors.New("bivariant: must have a return value")
+)

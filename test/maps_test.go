@@ -156,26 +156,26 @@ func (m *InvalidMapper) MissingCallbackArgument(
 	return miruken.Handled
 }
 
-type MapTestSuite struct {
+type MapsTestSuite struct {
 	suite.Suite
 	specs []any
 }
 
-func (suite *MapTestSuite) SetupTest() {
+func (suite *MapsTestSuite) SetupTest() {
 	suite.specs = []any{
 		&EntityMapper{},
 	}
 }
 
-func (suite *MapTestSuite) Setup() (miruken.Handler, error) {
+func (suite *MapsTestSuite) Setup() (miruken.Handler, error) {
 	return suite.SetupWith(suite.specs...)
 }
 
-func (suite *MapTestSuite) SetupWith(specs ... any) (miruken.Handler, error){
+func (suite *MapsTestSuite) SetupWith(specs ... any) (miruken.Handler, error){
 	return miruken.Setup(miruken.HandlerSpecs(specs...))
 }
 
-func (suite *MapTestSuite) TestMap() {
+func (suite *MapsTestSuite) TestMap() {
 	suite.Run("Maps", func () {
 		suite.Run("New", func() {
 			handler, _ := suite.Setup()
@@ -183,7 +183,7 @@ func (suite *MapTestSuite) TestMap() {
 				Entity{ Id: 1 },
 				"Tim Howard",
 			}
-			data, err := miruken.Map[*PlayerData](handler, &entity)
+			data, _, err := miruken.Map[*PlayerData](handler, &entity)
 			suite.Nil(err)
 			suite.Equal(1, data.Id)
 			suite.Equal("Tim Howard", data.Name)
@@ -196,7 +196,7 @@ func (suite *MapTestSuite) TestMap() {
 				"David Silva",
 			}
 			var data PlayerData
-			err := miruken.MapInto(handler, &entity, &data)
+			_, err := miruken.MapInto(handler, &entity, &data)
 			suite.Nil(err)
 			suite.Equal(2, data.Id)
 			suite.Equal("David Silva", data.Name)
@@ -209,7 +209,7 @@ func (suite *MapTestSuite) TestMap() {
 				"Franz Beckenbauer",
 			}
 			data := new(PlayerData)
-			err  := miruken.MapInto(handler, &entity, data)
+			_, err  := miruken.MapInto(handler, &entity, data)
 			suite.Nil(err)
 			suite.Equal(3, data.Id)
 			suite.Equal("Franz Beckenbauer", data.Name)
@@ -221,7 +221,7 @@ func (suite *MapTestSuite) TestMap() {
 				Entity{ Id: 1 },
 				"Tim Howard",
 			}
-			data, err := miruken.Map[*PlayerData](handler, &entity)
+			data, _, err := miruken.Map[*PlayerData](handler, &entity)
 			suite.Nil(err)
 			suite.Equal(1, data.Id)
 			suite.Equal("Tim Howard", data.Name)
@@ -233,7 +233,7 @@ func (suite *MapTestSuite) TestMap() {
 				Entity{ Id: 1 },
 				"Marco Royce",
 			}
-			data, err := miruken.Map[map[string]any](handler, &entity)
+			data, _, err := miruken.Map[map[string]any](handler, &entity)
 			suite.Nil(err)
 			suite.Equal(1, data["Id"])
 			suite.Equal("Marco Royce", data["Name"])
@@ -245,7 +245,7 @@ func (suite *MapTestSuite) TestMap() {
 				"Id":    2,
 				"Name": "George Best",
 			}
-			entity, err := miruken.Map[*PlayerEntity](handler, data)
+			entity, _, err := miruken.Map[*PlayerEntity](handler, data)
 			suite.Nil(err)
 			suite.Equal(2, entity.Id)
 			suite.Equal("George Best", entity.Name)
@@ -258,15 +258,15 @@ func (suite *MapTestSuite) TestMap() {
 				Id:   1,
 				Name: "Tim Howard",
 			}
-			jsonString, err := miruken.Map[string](handler, &data, "application/json")
+			jsonString, _, err := miruken.Map[string](handler, &data, "application/json")
 			suite.Nil(err)
 			suite.Equal("{\"id\":1,\"name\":\"Tim Howard\"}", jsonString)
 
-			_, err = miruken.Map[string](handler, &data, "foo")
+			_, _, err = miruken.Map[string](handler, &data, "foo")
 			suite.Error(miruken.NotHandledError{}, err)
 
 			var data2 PlayerData
-			err = miruken.MapInto(handler, jsonString, &data2, "application/json")
+			_, err = miruken.MapInto(handler, jsonString, &data2, "application/json")
 			suite.Nil(err)
 			suite.Equal(1, data.Id)
 			suite.Equal("Tim Howard", data.Name)
@@ -289,7 +289,7 @@ func (suite *MapTestSuite) TestMap() {
 				},
 			}
 
-			data, err := miruken.MapAll[*PlayerData](handler, entities)
+			data, _, err := miruken.MapAll[*PlayerData](handler, entities)
 			suite.Nil(err)
 			suite.Len(data, len(entities))
 			suite.True(reflect.DeepEqual(data, []*PlayerData{
@@ -331,6 +331,6 @@ func (suite *MapTestSuite) TestMap() {
 	})
 }
 
-func TestMapTestSuite(t *testing.T) {
-	suite.Run(t, new(MapTestSuite))
+func TestMapsTestSuite(t *testing.T) {
+	suite.Run(t, new(MapsTestSuite))
 }

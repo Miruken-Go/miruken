@@ -77,7 +77,8 @@ func (f *FilterSpecProvider) Filters(
 	spec     := f.spec
 	var builder ProvidesBuilder
 	provides := builder.WithKey(spec.typ).NewProvides()
-	result, err := provides.Resolve(composer, false)
+	// TODO: async
+	result, _, err := provides.Resolve(composer, false)
 	if result != nil && err == nil {
 		if filter, ok := result.(Filter); ok {
 			if spec.order >= 0 {

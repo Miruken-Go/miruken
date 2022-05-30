@@ -53,7 +53,7 @@ func (suite *JsonTestSuite) TestJson() {
 					"John Smith",
 					23,
 				}
-				json, err := miruken.Map[string](handler, data, "application/json")
+				json, _, err := miruken.Map[string](handler, data, "application/json")
 				suite.Nil(err)
 				suite.Equal("{\"Name\":\"John Smith\",\"Age\":23}", json)
 			})
@@ -66,7 +66,7 @@ func (suite *JsonTestSuite) TestJson() {
 					"Sarah Conner",
 					38,
 				}
-				json, err := miruken.Map[string](
+				json, _, err := miruken.Map[string](
 					miruken.BuildUp(handler, miruken.Options(miruken.JsonOptions{Indent: "  "})),
 					data, "application/json")
 				suite.Nil(err)
@@ -78,7 +78,7 @@ func (suite *JsonTestSuite) TestJson() {
 					"Id":    2,
 					"Name": "George Best",
 				}
-				json, err := miruken.Map[string](handler, data, "application/json")
+				json, _, err := miruken.Map[string](handler, data, "application/json")
 				suite.Nil(err)
 				suite.Equal("{\"Id\":2,\"Name\":\"George Best\"}", json)
 			})
@@ -93,7 +93,7 @@ func (suite *JsonTestSuite) TestJson() {
 				}
 				var b bytes.Buffer
 				stream := io.Writer(&b)
-				err := miruken.MapInto(handler, data, &stream, "application/json")
+				_, err := miruken.MapInto(handler, data, &stream, "application/json")
 				suite.Nil(err)
 				suite.Equal("{\"Name\":\"James Webb\",\"Age\":85}\n", b.String())
 			})
@@ -108,7 +108,7 @@ func (suite *JsonTestSuite) TestJson() {
 				}
 				var b bytes.Buffer
 				stream := io.Writer(&b)
-				err := miruken.MapInto(
+				_, err := miruken.MapInto(
 					miruken.BuildUp(handler, miruken.Options(miruken.JsonOptions{Indent: "  "})),
 					data, &stream, "application/json")
 				suite.Nil(err)
@@ -125,7 +125,7 @@ func (suite *JsonTestSuite) TestJson() {
 					Name: "Tim Howard",
 				}
 
-				json, err := miruken.Map[string](handler, data, "application/json")
+				json, _, err := miruken.Map[string](handler, data, "application/json")
 				suite.Nil(err)
 				suite.Equal("{\"id\":1,\"name\":\"Tim Howard\"}", json)
 			})
@@ -136,7 +136,7 @@ func (suite *JsonTestSuite) TestJson() {
 					Age  int
 				}
 				json := "{\"Name\":\"Ralph Hall\",\"Age\":84}"
-				data, err := miruken.Map[Data](handler, json, "application/json")
+				data, _, err := miruken.Map[Data](handler, json, "application/json")
 				suite.Nil(err)
 				suite.Equal("Ralph Hall", data.Name)
 				suite.Equal(84, data.Age)
@@ -144,7 +144,7 @@ func (suite *JsonTestSuite) TestJson() {
 
 			suite.Run("FromJsonMap", func() {
 				json := "{\"Name\":\"Ralph Hall\",\"Age\":84}"
-				data, err := miruken.Map[map[string]any](handler, json, "application/json")
+				data, _,  err := miruken.Map[map[string]any](handler, json, "application/json")
 				suite.Nil(err)
 				suite.Equal(84.0, data["Age"])
 				suite.Equal("Ralph Hall", data["Name"])
@@ -156,7 +156,7 @@ func (suite *JsonTestSuite) TestJson() {
 					Age  int
 				}
 				stream := strings.NewReader("{\"Name\":\"Ralph Hall\",\"Age\":84}")
-				data, err := miruken.Map[Data](handler, stream, "application/json")
+				data, _, err := miruken.Map[Data](handler, stream, "application/json")
 				suite.Nil(err)
 				suite.Equal("Ralph Hall", data.Name)
 				suite.Equal(84, data.Age)

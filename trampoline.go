@@ -1,5 +1,7 @@
 package miruken
 
+import "github.com/miruken-go/miruken/promise"
+
 type Trampoline struct {
 	callback any
 }
@@ -22,11 +24,13 @@ func (t *Trampoline) Policy() Policy {
 	return nil
 }
 
-func (t *Trampoline) Result(many bool) any {
+func (t *Trampoline) Result(
+	many bool,
+) (any, *promise.Promise[any]) {
 	if cb, ok := t.callback.(Callback); ok {
 		return cb.Result(many)
 	}
-	return nil
+	return nil, nil
 }
 
 func (t *Trampoline) SetResult(result any) {

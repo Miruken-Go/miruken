@@ -45,6 +45,7 @@ const (
 	bindingStrict bindingFlags = 1 << iota
 	bindingOptional
 	bindingSkipFilters
+	bindingPromise
 )
 
 type (

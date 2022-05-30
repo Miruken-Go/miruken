@@ -3,6 +3,7 @@ package miruken
 import (
 	"fmt"
 	"github.com/hashicorp/go-multierror"
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
 
@@ -51,9 +52,10 @@ func (a sourceArg) resolve(
 
 // dependencySpec encapsulates dependency metadata.
 type dependencySpec struct {
-	flags       bindingFlags
+	logicalType reflect.Type
 	resolver    DependencyResolver
 	constraints []func(*ConstraintBuilder)
+	flags       bindingFlags
 	metadata    []any
 }
 
@@ -115,6 +117,10 @@ func (d DependencyArg) Strict() bool {
 	return d.spec != nil && d.spec.flags & bindingStrict == bindingStrict
 }
 
+func (d DependencyArg) Promise() bool {
+	return d.spec != nil && d.spec.flags & bindingPromise == bindingPromise
+}
+
 func (d DependencyArg) Metadata() []any {
 	if spec := d.spec; spec != nil {
 		return spec.metadata
@@ -122,13 +128,24 @@ func (d DependencyArg) Metadata() []any {
 	return nil
 }
 
+func (d DependencyArg) logicalType(
+	typ reflect.Type,
+) reflect.Type {
+	if spec := d.spec; spec != nil {
+		if lt := spec.logicalType; lt != nil {
+			return lt
+		}
+	}
+	return typ
+}
+
 func (d DependencyArg) resolve(
 	typ reflect.Type,
 	ctx HandleContext,
 ) (reflect.Value, error) {
-	composer := ctx.Composer()
+	typ = d.logicalType(typ)
 	if typ == _handlerType {
-		return reflect.ValueOf(composer), nil
+		return reflect.ValueOf(ctx.Composer()), nil
 	}
 	if typ == _handleCtxType {
 		return reflect.ValueOf(ctx), nil
@@ -182,7 +199,8 @@ func (r *defaultDependencyResolver) Resolve(
 		builder.WithConstraints(spec.constraints...)
 	}
 	provides := builder.NewProvides()
-	if result, err := provides.Resolve(ctx.composer, many); err == nil {
+	// TODO: async
+	if result, _, err := provides.Resolve(ctx.composer, many); err == nil {
 		var val reflect.Value
 		if many {
 			results := result.([]any)
@@ -249,17 +267,17 @@ func resolveArgs(
 	fromIndex int,
 	args      []arg,
 	ctx       HandleContext,
-) ([]reflect.Value, error) {
+) ([]reflect.Value, *promise.Promise[[]reflect.Value], error) {
 	var resolved []reflect.Value
 	for i, arg := range args {
 		typ := funType.In(fromIndex + i)
 		if a, err := arg.resolve(typ, ctx); err != nil {
-			return nil, UnresolvedArgError{arg, err}
+			return nil, nil, UnresolvedArgError{arg, err}
 		} else {
 			resolved = append(resolved, a)
 		}
 	}
-	return resolved, nil
+	return resolved, nil, nil
 }
 
 // Dependency typed
@@ -326,6 +344,14 @@ func buildDependencies(
 						}
 					}
 					lastSpec = nil
+				}
+				if lt, ok := promise.Inspect(argType); ok {
+					if spec := arg.spec; spec == nil {
+						arg.spec = &dependencySpec{flags: bindingPromise}
+					} else {
+						spec.flags = spec.flags | bindingPromise
+					}
+					arg.spec.logicalType = lt
 				}
 				args[j + offset] = arg
 			}

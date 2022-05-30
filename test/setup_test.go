@@ -49,11 +49,11 @@ func (i BadInstaller) AfterInstall(
 	return errors.New("process failed to start")
 }
 
-type RegisterTestSuite struct {
+type SetupTestSuite struct {
 	suite.Suite
 }
 
-func (suite *RegisterTestSuite) TestSetup() {
+func (suite *SetupTestSuite) TestSetup() {
 	suite.Run("HandlerSpecs", func () {
 		handler, _ := miruken.Setup(
 			miruken.HandlerSpecs(&MultiHandler{}),
@@ -89,11 +89,11 @@ func (suite *RegisterTestSuite) TestSetup() {
 				}),
 		)
 
-		m, err := miruken.Resolve[*MultiHandler](handler)
+		m, _, err := miruken.Resolve[*MultiHandler](handler)
 		suite.Nil(err)
 		suite.Nil(m)
 
-		e, err := miruken.Resolve[*EverythingHandler](handler)
+		e, _, err := miruken.Resolve[*EverythingHandler](handler)
 		suite.Nil(err)
 		suite.Nil(e)
 	})
@@ -107,7 +107,7 @@ func (suite *RegisterTestSuite) TestSetup() {
 		suite.False(result.IsError())
 		suite.Equal(miruken.NotHandled, result)
 
-		m, err := miruken.Resolve[*MultiHandler](handler)
+		m, _, err := miruken.Resolve[*MultiHandler](handler)
 		suite.Nil(err)
 		suite.Nil(m)
 	})
@@ -128,7 +128,7 @@ func (suite *RegisterTestSuite) TestSetup() {
 		result := handler.Handle(&Foo{}, false, nil)
 		suite.False(result.IsError())
 		suite.Equal(miruken.Handled, result)
-		multi, err := miruken.Resolve[*MultiHandler](handler)
+		multi, _, err := miruken.Resolve[*MultiHandler](handler)
 		suite.Nil(err)
 		suite.NotNil(multi)
 	})
@@ -140,6 +140,6 @@ func (suite *RegisterTestSuite) TestSetup() {
 	})
 }
 
-func TestRegisterTestSuite(t *testing.T) {
-	suite.Run(t, new(RegisterTestSuite))
+func TestSetupTestSuite(t *testing.T) {
+	suite.Run(t, new(SetupTestSuite))
 }

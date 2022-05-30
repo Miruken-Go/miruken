@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/miruken-go/miruken/slices"
 	"reflect"
 )
 
@@ -67,23 +68,21 @@ func (e FuncBindingError) Unwrap() error { return e.reason }
 func callFunc(
 	fun          reflect.Value,
 	context      HandleContext,
-	dependencies []arg,
+	args         []arg,
 	explicitArgs ... any,
 ) ([]any, error) {
 	fromIndex := len(explicitArgs)
-	if deps, err := resolveArgs(fun.Type(), fromIndex, dependencies, context); err != nil {
+	if argValues, _, err := resolveArgs(fun.Type(), fromIndex, args, context); err != nil {
 		return nil, err
 	} else {
-		var args []reflect.Value
+		var explicitValues []reflect.Value
 		for _, arg := range explicitArgs {
-			args = append(args, reflect.ValueOf(arg))
+			explicitValues = append(explicitValues, reflect.ValueOf(arg))
 		}
 		// handlers args are always passed first
-		res := fun.Call(append(args, deps...))
-		results := make([]any, len(res))
-		for i, v := range res {
-			results[i] = v.Interface()
-		}
-		return results, nil
+		return slices.Map[reflect.Value, any](
+			fun.Call(append(explicitValues, argValues...)),
+			func(v reflect.Value) any { return v.Interface() }),
+			nil
 	}
 }

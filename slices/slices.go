@@ -15,6 +15,10 @@ func Map[T1, T2 any, F MapFunc[T1, T2]](s []T1, fun F) []T2 {
 	if s == nil {
 		return nil
 	}
+	if len(s) == 0 {
+		var r []T2
+		return r
+	}
 	f := func(i int, ss T1) T2 {
 		switch tf := (any)(fun).(type) {
 		case func(int, T1) T2:
@@ -40,6 +44,9 @@ type FilterFunc[T any] interface {
 // for which f returned true.
 func Filter[T any, F FilterFunc[T]](s []T, fun F) []T {
 	var r []T
+	if len(s) == 0 {
+		return s
+	}
 	f := func(i int, s T) bool {
 		switch tf := (any)(fun).(type) {
 		case func(int, T) bool:
@@ -61,6 +68,9 @@ func Filter[T any, F FilterFunc[T]](s []T, fun F) []T {
 // OfType filters values from a slice satisfying a given type.
 func OfType[T1, T2 any](s []T1) []T2 {
 	var r []T2
+	if len(s) == 0 {
+		return r
+	}
 	for _, t := range s {
 		var a any = t
 		if tt, ok := a.(T2); ok{

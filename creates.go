@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
 
@@ -49,35 +50,39 @@ func (b *CreatesBuilder) NewCreation() *Creates {
 	}
 }
 
-func Create(handler Handler, target any) error {
+func Create[T any](
+	handler Handler,
+) (t T, tp *promise.Promise[T], err error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
-	tv := TargetValue(target)
 	var builder CreatesBuilder
 	creates := builder.
-		WithType(tv.Type().Elem()).
+		WithType(TypeOf[T]()).
 		NewCreation()
 	if result := handler.Handle(creates, false, nil); result.IsError() {
-		return result.Error()
+		err = result.Error()
+	} else {
+		_, tp, err = CoerceResult[T](creates, &t)
 	}
-	creates.CopyResult(tv, false)
-	return nil
+	return
 }
 
-func CreateAll(handler Handler, target any) error {
+func CreateAll[T any](
+	handler Handler,
+) (t []T, tp *promise.Promise[[]T], err error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
-	tv := TargetSliceValue(target)
 	var builder CreatesBuilder
-	builder.WithType(tv.Type().Elem().Elem())
+	builder.WithType(TypeOf[T]())
 	creates := builder.NewCreation()
 	if result := handler.Handle(creates, true, nil); result.IsError() {
-		return result.Error()
+		err = result.Error()
+	} else {
+		_, tp, err = CoerceResults[T](creates, &t)
 	}
-	creates.CopyResult(tv, true)
-	return nil
+	return
 }
 
 // createsPolicy for creating instances covariantly.

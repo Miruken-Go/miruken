@@ -1,18 +1,19 @@
 package miruken
 
 import (
-	"fmt"
+	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/slices"
 	"reflect"
 )
 
 type (
-	// Callback represents any action.
+	// Callback represents any intention.
 	Callback interface {
 		Key() any
 		Source() any
 		Policy() Policy
 		ResultCount() int
-		Result(many bool) any
+		Result(many bool) (any, *promise.Promise[any])
 		SetResult(result any)
 		ReceiveResult(
 			result   any,
@@ -30,16 +31,23 @@ type (
 	}
 
 	// AcceptResultFunc accepts or rejects callback results.
-	AcceptResultFunc func (
+	AcceptResultFunc func(
 		result   any,
 		composer Handler,
 	) HandleResult
 
+	// AcceptPromiseResultFunc adjusts promise callback results.
+	AcceptPromiseResultFunc func(
+		pa *promise.Promise[any],
+	) *promise.Promise[any]
+
 	// CallbackBase is abstract Callback implementation.
 	CallbackBase struct {
-		results []any
-		result  any
-		accept  AcceptResultFunc
+		result        any
+		results       []any
+		promises      []*promise.Promise[any]
+		accept        AcceptResultFunc
+		acceptPromise AcceptPromiseResultFunc
 	}
 
 	// customizeDispatch customizes Callback dispatch.
@@ -65,22 +73,26 @@ func (c *CallbackBase) ResultCount() int {
 	return len(c.results)
 }
 
-func (c *CallbackBase) Result(many bool) any {
-	if result := c.result; result == nil {
-		if many {
-			if c.results == nil {
-				c.results = make([]any, 0, 0)
-			}
-			c.result = c.results
-		} else {
-			if len(c.results) == 0 {
-				c.result = nil
+func (c *CallbackBase) Result(
+	many bool,
+) (any, *promise.Promise[any]) {
+	if c.result == nil {
+		promises := c.promises
+		if count := len(promises); count > 0 {
+			if count == 1 {
+				return nil, promises[0].Then(func(any) any {
+					return c.ensureResult(many)
+				})
 			} else {
-				c.result = c.results[0]
+				return nil, promise.All(promises...).Then(func(any) any {
+					return c.ensureResult(many)
+				})
 			}
+		} else {
+			c.ensureResult(many)
 		}
 	}
-	return c.result
+	return c.result, nil
 }
 
 func (c *CallbackBase) SetResult(result any) {
@@ -93,6 +105,12 @@ func (c *CallbackBase) SetAcceptResult(
 	c.accept = accept
 }
 
+func (c *CallbackBase) SetAcceptPromiseResult(
+	accept AcceptPromiseResultFunc,
+) {
+	c.acceptPromise = accept
+}
+
 func (c *CallbackBase) AddResult(
 	result   any,
 	composer Handler,
@@ -100,11 +118,26 @@ func (c *CallbackBase) AddResult(
 	if IsNil(result) {
 		return NotHandled
 	}
-	if c.accept != nil {
-		return c.accept(result, composer)
+	accept := c.accept
+	if pr, ok := result.(promise.Reflect); ok {
+		idx := len(c.results)
+		c.results  = append(c.results, result)
+		c.promises = append(c.promises, pr.Then(func(res any) any {
+			if accept != nil {
+				accept(res, composer)
+				res = nil
+			}
+			if l := len(c.results); l > idx {
+				c.results[idx] = res
+			}
+			return nil
+		}))
+	} else if accept == nil {
+		c.results = append(c.results, result)
+	} else {
+		return accept(result, composer)
 	}
-	c.results = append(c.results, result)
-	c.result  = nil
+	c.result = nil
 	return Handled
 }
 
@@ -112,51 +145,124 @@ func (c *CallbackBase) ReceiveResult(
 	result   any,
 	strict   bool,
 	composer Handler,
-) (res HandleResult) {
+) HandleResult {
 	if IsNil(result) {
 		return NotHandled
 	}
 	if strict {
-		return c.AddResult(result, composer)
+		return c.includeResult(result, true, composer)
 	}
-	res = NotHandled
 	switch reflect.TypeOf(result).Kind() {
 	case reflect.Slice, reflect.Array:
-		forEach(result, func(idx int, value any) bool {
-			if value != nil {
-				res = res.Or(c.AddResult(value, composer))
-				return res.stop
-			}
-			return false
+		return c.addResults(result, composer)
+	default:
+		return c.includeResult(result, false, composer)
+	}
+}
+
+func CoerceResult[T any](
+	callback Callback,
+	target   *T,
+) (t T, tp *promise.Promise[T], _ error) {
+	if target == nil {
+		target = &t
+	}
+	if result, p := callback.Result(false); p == nil {
+		CopyIndirect(result, target)
+	} else {
+		tp = promise.Then(p, func(res any) T {
+			CopyIndirect(res, target)
+			return *target
 		})
+	}
+	return
+}
+
+func CoerceResults[T any](
+	callback Callback,
+	target   *[]T,
+) (t []T, tp *promise.Promise[[]T], _ error) {
+	if target == nil {
+		target = &t
+	}
+	if result, p := callback.Result(true); p == nil {
+		CopySliceIndirect(result.([]any), target)
+	} else {
+		tp = promise.Then(p, func(res any) []T {
+			CopySliceIndirect(res.([]any), target)
+			return *target
+		})
+	}
+	return
+}
+
+func (c *CallbackBase) ensureResult(many bool) any {
+	if c.result == nil {
+		results := slices.Filter(c.results, func(res any) bool {
+			return !IsNil(res)
+		})
+		if many {
+			c.result = results
+		} else if len(results) == 0 {
+			c.result = nil
+		} else {
+			c.result = results[0]
+		}
+	}
+	return c.result
+}
+
+func (c *CallbackBase) includeResult(
+	result   any,
+	strict   bool,
+	composer Handler,
+) HandleResult {
+	if IsNil(result) {
+		return NotHandled
+	}
+	if pr, ok := result.(promise.Reflect); ok {
+		pp := pr.Then(func(res any) any {
+			if strict {
+				c.AddResult(res, composer)
+			} else {
+				switch reflect.TypeOf(res).Kind() {
+				case reflect.Slice, reflect.Array:
+					c.addResults(res, composer)
+				default:
+					c.AddResult(res, composer)
+				}
+			}
+			return nil
+		})
+		if accept := c.acceptPromise; accept != nil {
+			pp = accept(pp)
+		}
+		return c.AddResult(pp, composer)
+	} else if strict {
+		return c.AddResult(result, composer)
+	}
+	switch reflect.TypeOf(result).Kind() {
+	case reflect.Slice, reflect.Array:
+		c.addResults(result, composer)
 	default:
 		return c.AddResult(result, composer)
 	}
-	return res
+	return Handled
 }
 
-func (c *CallbackBase) CopyResult(target any, many bool) {
-	if many {
-		CopySliceIndirect(c.Result(true).([]any), target)
-	} else {
-		CopyIndirect(c.Result(false), target)
-	}
-}
-
-func forEach(iter any, f func(i int, val any) bool) {
-	v := reflect.ValueOf(iter)
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	switch v.Kind() {
-	case reflect.Slice, reflect.Array:
-		for i := 0; i < v.Len(); i++ {
-			val := v.Index(i).Interface()
-			if f(i, val) {
-				return
+func (c *CallbackBase) addResults(
+	list     any,
+	composer Handler,
+) HandleResult {
+	res := NotHandled
+	v := reflect.ValueOf(list)
+	for i := 0; i < v.Len(); i++ {
+		val := v.Index(i).Interface()
+		if !IsNil(val) {
+			if res = res.Or(c.AddResult(val, composer)); res.stop {
+				break
 			}
 		}
-	default:
-		panic(fmt.Errorf("forEach expects a slice or array, received %q", v.Kind().String()))
 	}
+	return res
 }

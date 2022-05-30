@@ -86,27 +86,25 @@ type BindingConstraint interface {
 }
 
 // Named matches against a name.
-type Named struct {
-	name string
-}
+type Named string
 
 func (n *Named) Name() string {
-	return n.name
+	return string(*n)
 }
 
 func (n *Named) InitWithTag(tag reflect.StructTag) error {
 	if name, ok := tag.Lookup("name"); ok && len(strings.TrimSpace(name)) > 0 {
-		n.name = name
+		*n = Named(name)
 		return nil
 	}
-	return errors.New("the Named constraint requires a non-empty `name:[name]` tag")
+	return ErrNameMissing
 }
 
 func (n *Named) Require(metadata *BindingMetadata) {
 	if metadata == nil {
 		panic("metadata cannot be nil")
 	}
-	metadata.SetName(n.name)
+	metadata.SetName(string(*n))
 }
 
 func (n *Named) Matches(metadata *BindingMetadata) bool {
@@ -114,7 +112,7 @@ func (n *Named) Matches(metadata *BindingMetadata) bool {
 		panic("metadata cannot be nil")
 	}
 	name  := metadata.Name()
-	return name == "" || metadata.Name() == n.name
+	return name == "" || metadata.Name() == string(*n)
 }
 
 // Metadata matches against kev/value pairs.
@@ -265,7 +263,8 @@ type ConstraintBuilder struct {
 func (b *ConstraintBuilder) Named(
 	name string,
 ) *ConstraintBuilder {
-	return b.WithConstraint(&Named{name})
+	var n = Named(name)
+	return b.WithConstraint(&n)
 }
 
 func (b *ConstraintBuilder) WithConstraint(
@@ -355,3 +354,7 @@ func ApplyConstraints(
 	}
 	return nil
 }
+
+var (
+	ErrNameMissing = errors.New("the Named constraint requires a non-empty `name:[name]` tag")
+)

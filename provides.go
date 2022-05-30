@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
 
@@ -86,11 +87,20 @@ func (p *Provides) Dispatch(
 func (p *Provides) Resolve(
 	handler Handler,
 	many    bool,
-) (any, error) {
+) (any, *promise.Promise[any], error) {
 	if result := handler.Handle(p, many, nil); result.IsError() {
-		return nil, result.Error()
+		return nil, nil, result.Error()
 	}
-	return p.Result(many), nil
+	r, pr := p.Result(many)
+	return r, pr, nil
+}
+
+func (p *Provides) acceptPromise(
+	pa *promise.Promise[any],
+) *promise.Promise[any] {
+	return promise.Catch(pa, func(error) error {
+		return nil
+	})
 }
 
 // ProvidesBuilder builds Provides callbacks.
@@ -141,48 +151,47 @@ func (b *ProvidesBuilder) NewProvides() *Provides {
 		parent: b.parent,
 	}
 	ApplyConstraints(provides, b.constraints...)
+	provides.SetAcceptPromiseResult(provides.acceptPromise)
 	return provides
 }
 
 func Resolve[T any](
 	handler     Handler,
 	constraints ... func(*ConstraintBuilder),
-) (T, error) {
+) (t T, tp *promise.Promise[T], err error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
-	var target T
-	tv := TargetValue(&target)
 	var builder ProvidesBuilder
 	provides := builder.
-		WithKey(tv.Type().Elem()).
+		WithKey(TypeOf[T]()).
 		WithConstraints(constraints...).
 		NewProvides()
 	if result := handler.Handle(provides, false, nil); result.IsError() {
-		return target, result.Error()
+		err = result.Error()
+	} else {
+		_, tp, err = CoerceResult[T](provides, &t)
 	}
-	provides.CopyResult(tv, false)
-	return target, nil
+	return
 }
 
 func ResolveAll[T any](
 	handler     Handler,
 	constraints ... func(*ConstraintBuilder),
-) ([]T, error) {
+) (t []T, tp *promise.Promise[[]T], err error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
-	var target []T
-	tv := TargetSliceValue(&target)
 	var builder ProvidesBuilder
-	builder.WithKey(tv.Type().Elem().Elem()).
+	builder.WithKey(TypeOf[T]()).
 		    WithConstraints(constraints...)
 	provides := builder.NewProvides()
 	if result := handler.Handle(provides, true, nil); result.IsError() {
-		return target, result.Error()
+		err = result.Error()
+	} else {
+		_, tp, err = CoerceResults[T](provides, &t)
 	}
-	provides.CopyResult(tv, true)
-	return target, nil
+	return
 }
 
 // providesPolicy for providing instances covariantly with lifestyle.

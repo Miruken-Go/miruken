@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"errors"
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"strings"
 )
@@ -60,7 +61,7 @@ func (f *Format) InitWithTag(tag reflect.StructTag) error {
 		}
 	}
 	if IsNil(f.as){
-		return errors.New("the Format constraint requires a non-empty `as:format` tag")
+		return ErrFormatMissing
 	}
 	return nil
 }
@@ -140,28 +141,28 @@ func Map[T any](
 	handler Handler,
 	source  any,
 	format  ... any,
-) (T, error) {
+) (t T, tp *promise.Promise[T], err error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
 	if len(format) > 1 {
 		panic("only one format is allowed")
 	}
-	var target T
 	var builder MapsBuilder
 	builder.FromSource(source).
-		    ToTarget(&target)
+		    ToTarget(&t)
 	if len(format) == 1 {
 		builder.WithFormat(format[0])
 	}
 	maps := builder.NewMaps()
 	if result := handler.Handle(maps, false, nil); result.IsError() {
-		return target, result.Error()
+		err = result.Error()
 	} else if !result.handled {
-		return target, NotHandledError{maps}
+		err = NotHandledError{maps}
+	} else {
+		_, tp, err = CoerceResult[T](maps, &t)
 	}
-	maps.CopyResult(TargetValue(&target), false)
-	return target, nil
+	return
 }
 
 func MapInto[T any](
@@ -169,7 +170,7 @@ func MapInto[T any](
 	source  any,
 	target  *T,
 	format  ... any,
-) error {
+) (tp *promise.Promise[T], err error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
@@ -187,19 +188,20 @@ func MapInto[T any](
 	}
 	maps := builder.NewMaps()
 	if result := handler.Handle(maps, false, nil); result.IsError() {
-		return result.Error()
+		err = result.Error()
 	} else if !result.handled {
-		return NotHandledError{maps}
+		err = NotHandledError{maps}
+	} else {
+		_, tp, err = CoerceResult[T](maps, target)
 	}
-	maps.CopyResult(TargetValue(target), false)
-	return nil
+	return
 }
 
 func MapAll[T any](
 	handler Handler,
 	source  any,
 	format  ... any,
-) ([]T, error) {
+) (t []T, _ *promise.Promise[[]T], _ error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
@@ -209,31 +211,43 @@ func MapAll[T any](
 	if len(format) > 1 {
 		panic("only one format is allowed")
 	}
-	var target []T
-	ts      := reflect.ValueOf(source)
-	tv      := TargetSliceValue(&target)
-	tt      := tv.Type().Elem().Elem()
-	te      := reflect.New(tt).Interface()
-	results := make([]any, ts.Len())
+	ts := reflect.ValueOf(source)
+	t   = make([]T, ts.Len())
+	var promises []*promise.Promise[T]
 	for i := 0; i < ts.Len(); i++ {
 		var builder MapsBuilder
-		builder.FromSource(ts.Index(i).Interface()).ToTarget(te)
+		builder.FromSource(ts.Index(i).Interface()).ToTarget(&t[i])
 		if len(format) == 1 {
 			builder.WithFormat(format[0])
 		}
 		maps := builder.NewMaps()
 		if result := handler.Handle(maps, false, nil); result.IsError() {
-			return target, result.Error()
+			return nil, nil, result.Error()
 		} else if !result.handled {
-			return target, NotHandledError{maps}
+			return nil, nil, NotHandledError{maps}
 		}
-		results[i] = maps.Result(false)
+		if _, pm, err := CoerceResult[T](maps, &t[i]); err != nil {
+			return nil, nil, err
+		} else if pm != nil {
+			promises = append(promises, pm)
+		}
 	}
-	CopySliceIndirect(results, &target)
-	return target, nil
+	switch len(promises) {
+	case 0:
+		return
+	case 1:
+		return nil, promise.Then(promises[0], func(T) []T {
+			return t
+		}), nil
+	default:
+		return nil, promise.Then(promise.All(promises...), func([]T) []T {
+			return t
+		}), nil
+	}
 }
 
 var (
 	_mapsPolicy Policy = &BivariantPolicy{}
 	_formatType        = TypeOf[*Format]()
+	ErrFormatMissing   = errors.New("the Format constraint requires a non-empty `as:format` tag")
 )

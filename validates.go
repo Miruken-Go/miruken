@@ -408,7 +408,7 @@ func Validate(
 	handler Handler,
 	target  any,
 	groups ... any,
-) (*ValidationOutcome, error) {
+) (outcome *ValidationOutcome, err error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
@@ -419,17 +419,18 @@ func Validate(
 	}
 	validates := builder.NewValidates()
 	if result := handler.Handle(validates, true, nil); result.IsError() {
-		return nil, result.Error()
+		err = result.Error()
 	} else if !result.handled {
-		return nil, NotHandledError{validates}
+		err = NotHandledError{validates}
+	} else {
+		outcome = validates.Outcome()
+		if v, ok := target.(interface {
+			SetValidationOutcome(*ValidationOutcome)
+		}); ok {
+			v.SetValidationOutcome(outcome)
+		}
 	}
-	outcome := validates.Outcome()
-	if v, ok := target.(interface {
-		SetValidationOutcome(*ValidationOutcome)
-	}); ok {
-		v.SetValidationOutcome(outcome)
-	}
-	return outcome, nil
+	return
 }
 
 // ValidationInstaller enables validation support.

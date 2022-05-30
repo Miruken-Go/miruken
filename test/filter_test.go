@@ -411,10 +411,10 @@ func (suite *FilterTestSuite) TestFilters() {
 	suite.Run("Singleton", func () {
 		suite.Run("Implicit", func() {
 			handler, _ := suite.Setup()
-			singletonHandler, err := miruken.Resolve[*SingletonHandler](handler)
+			singletonHandler, _, err := miruken.Resolve[*SingletonHandler](handler)
 			suite.Nil(err)
 			suite.NotNil(singletonHandler)
-			singletonHandler2, err := miruken.Resolve[*SingletonHandler](handler)
+			singletonHandler2, _, err := miruken.Resolve[*SingletonHandler](handler)
 			suite.Nil(err)
 			suite.Same(singletonHandler, singletonHandler2)
 		})

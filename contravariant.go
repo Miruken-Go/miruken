@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
 
@@ -75,8 +76,7 @@ func (p *ContravariantPolicy) AcceptResults(
 			return results[0], result
 		}
 	}
-	return nil, NotHandled.WithError(
-		errors.New("contravariant policy: cannot accept more than 2 results"))
+	return nil, NotHandled.WithError(ErrConResultsExceeded)
 }
 
 func (p *ContravariantPolicy) NewMethodBinding(
@@ -119,7 +119,7 @@ func validateContravariantFunc(
 	funType reflect.Type,
 	spec    *policySpec,
 	skip    int,
-) (args []arg, key any, invalid error) {
+) (args []arg, key any, err error) {
 	numArgs := funType.NumIn()
 	args     = make([]arg, numArgs-skip)
 	args[0]  = spec.arg
@@ -137,29 +137,41 @@ func validateContravariantFunc(
 		}
 		index++
 	} else if _, isSpec := spec.arg.(zeroArg); isSpec {
-		invalid = errors.New("contravariant: missing callback argument")
+		err = ErrConMissingCallback
 	} else if key == nil {
 		key = _anyType
 	}
 
-	if err := buildDependencies(funType, index+skip, numArgs, args, index); err != nil {
-		invalid = multierror.Append(invalid, fmt.Errorf("contravariant: %w", err))
+	if inv := buildDependencies(funType, index+skip, numArgs, args, index); inv != nil {
+		err = multierror.Append(err, fmt.Errorf("contravariant: %w", inv))
 	}
 
 	switch funType.NumOut() {
-	case 0, 1: break
+	case 0: break
+	case 1:
+		if _, ok := promise.Inspect(funType.Out(0)); ok {
+			spec.flags = spec.flags | bindingPromise
+		}
 	case 2:
+		if _, ok := promise.Inspect(funType.Out(0)); ok {
+			spec.flags = spec.flags | bindingPromise
+		}
 		switch funType.Out(1) {
 		case _errorType, _handleResType: break
 		default:
-			invalid = multierror.Append(invalid, fmt.Errorf(
+			err = multierror.Append(err, fmt.Errorf(
 				"contravariant: when two return values, second must be %v or %v",
 				_errorType, _handleResType))
 		}
 	default:
-		invalid = multierror.Append(invalid, fmt.Errorf(
+		err = multierror.Append(err, fmt.Errorf(
 			"contravariant: at most two return values allowed and second must be %v or %v",
 			_errorType, _handleResType))
 	}
 	return
 }
+
+var (
+	ErrConResultsExceeded = errors.New("contravariant: cannot accept more than 2 results")
+	ErrConMissingCallback = errors.New("contravariant: missing callback argument")
+)

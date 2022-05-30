@@ -88,14 +88,14 @@ func (b *methodIntercept) Invoke(
 	handlerType := b.handlerType
 	callback    := context.Callback()
 	parent, _   := callback.(*Provides)
-	var builder ResolvingBuilder
+	var builder ResolvesBuilder
 	builder.
 		WithCallback(callback).
 		WithGreedy(context.Greedy()).
 		WithParent(parent).
 		WithKey(handlerType)
-	resolving := builder.NewResolving()
-	if result := context.Composer().Handle(resolving, true, nil); result.IsError() {
+	resolves := builder.NewResolves()
+	if result := context.Composer().Handle(resolves, true, nil); result.IsError() {
 		return nil, result.Error()
 	} else {
 		return []any{result}, nil

@@ -185,12 +185,12 @@ func (h *TeamHandler) RemoveTeam(
 	return team
 }
 
-type ValidateTestSuite struct {
+type ValidatesTestSuite struct {
 	suite.Suite
 	specs []any
 }
 
-func (suite *ValidateTestSuite) SetupTest() {
+func (suite *ValidatesTestSuite) SetupTest() {
 	suite.specs = []any{
 		&OpenValidator{},
 		&PlayerValidator{},
@@ -199,15 +199,15 @@ func (suite *ValidateTestSuite) SetupTest() {
 	}
 }
 
-func (suite *ValidateTestSuite) Setup() (miruken.Handler, error) {
+func (suite *ValidatesTestSuite) Setup() (miruken.Handler, error) {
 	return suite.SetupWith(suite.specs...)
 }
 
-func (suite *ValidateTestSuite) SetupWith(specs ... any) (miruken.Handler, error) {
+func (suite *ValidatesTestSuite) SetupWith(specs ... any) (miruken.Handler, error) {
 	return miruken.Setup(miruken.HandlerSpecs(specs...))
 }
 
-func (suite *ValidateTestSuite) TestValidation() {
+func (suite *ValidatesTestSuite) TestValidation() {
 	suite.Run("ValidationOutcome", func () {
 		suite.Run("Root Errors", func() {
 			outcome := &miruken.ValidationOutcome{}
@@ -318,7 +318,11 @@ func (suite *ValidateTestSuite) TestValidation() {
 	suite.Run("ValidateFilter", func () {
 		handler, _ := suite.Setup()
 		var handles miruken.Handles
-		handles.Policy().AddFilters(miruken.NewValidateProvider(false))
+		validatesFilter := miruken.NewValidateProvider(false)
+		handles.Policy().AddFilters(validatesFilter)
+		defer func() {
+			handles.Policy().RemoveFilters(validatesFilter)
+		}()
 
 		suite.Run("Validates Command", func() {
 			create := CreateTeam{TeamAction{ Team: Team{
@@ -329,7 +333,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 					License:   "A",
 				},
 			}}}
-			if team, err := miruken.Invoke[Team](handler, &create); err == nil {
+			if team, _, err := miruken.Invoke[Team](handler, &create); err == nil {
 				suite.Equal(1, team.Id)
 				suite.True(team.Active)
 				outcome := create.ValidationOutcome()
@@ -342,7 +346,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 
 		suite.Run("Rejects Command", func() {
 			var create CreateTeam
-			if team, err := miruken.Invoke[Team](handler, &create); err != nil {
+			if team, _, err := miruken.Invoke[Team](handler, &create); err != nil {
 				suite.IsType(&miruken.ValidationOutcome{}, err)
 				suite.Equal(0, team.Id)
 				outcome := create.ValidationOutcome()
@@ -356,7 +360,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 
 		suite.Run("Rejects Another Command", func() {
 			remove := &RemoveTeam{}
-			if team, err := miruken.Invoke[Team](handler, remove); err != nil {
+			if team, _, err := miruken.Invoke[Team](handler, remove); err != nil {
 				suite.IsType(&miruken.ValidationOutcome{}, err)
 				suite.False(team.Active)
 				outcome := remove.ValidationOutcome()
@@ -376,7 +380,7 @@ func (suite *ValidateTestSuite) TestValidation() {
 						License:   "B",
 					},
 				}}}
-				if _, err := miruken.Invoke[Team](handler, &create); err != nil {
+				if _, _, err := miruken.Invoke[Team](handler, &create); err != nil {
 					suite.IsType(&miruken.ValidationOutcome{}, err)
 					outcome := create.ValidationOutcome()
 					suite.NotNil(outcome)
@@ -390,6 +394,6 @@ func (suite *ValidateTestSuite) TestValidation() {
 	})
 }
 
-func TestValidateTestSuite(t *testing.T) {
-	suite.Run(t, new(ValidateTestSuite))
+func TestValidatesTestSuite(t *testing.T) {
+	suite.Run(t, new(ValidatesTestSuite))
 }

@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
 
@@ -77,41 +78,45 @@ func (b *HandlesBuilder) NewHandles() *Handles {
 	}
 }
 
-func Invoke[T any](handler Handler, callback any) (T, error) {
+func Invoke[T any](
+	handler  Handler,
+	callback any,
+) (t T, tp *promise.Promise[T], err error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
-	var target T
-	tv := TargetValue(&target)
 	var builder HandlesBuilder
-	handle := builder.
+	handles := builder.
 		WithCallback(callback).
 		NewHandles()
-	if result := handler.Handle(handle, false, nil); result.IsError() {
-		return target, result.Error()
+	if result := handler.Handle(handles, false, nil); result.IsError() {
+		err = result.Error()
 	} else if !result.handled {
-		return target, NotHandledError{callback}
+		err = NotHandledError{callback}
+	} else {
+		_, tp, err = CoerceResult[T](handles, &t)
 	}
-	handle.CopyResult(tv, false)
-	return target, nil
+	return
 }
 
-func InvokeAll[T any](handler Handler, callback any) ([]T, error) {
+func InvokeAll[T any](
+	handler Handler,
+	callback any,
+) (t []T, tp *promise.Promise[[]T], err error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
-	var target []T
-	tv := TargetSliceValue(&target)
 	var builder HandlesBuilder
 	builder.WithCallback(callback)
-	handle  := builder.NewHandles()
-	if result := handler.Handle(handle, true, nil); result.IsError() {
-		return target, result.Error()
+	handles := builder.NewHandles()
+	if result := handler.Handle(handles, true, nil); result.IsError() {
+		err = result.Error()
 	} else if !result.handled {
-		return target, NotHandledError{callback}
+		err = NotHandledError{callback}
+	} else {
+		_, tp, err = CoerceResults[T](handles, &t)
 	}
-	handle.CopyResult(tv, true)
-	return target, nil
+	return
 }
 
 var _handlesPolicy Policy = &ContravariantPolicy{}
