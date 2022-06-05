@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken/maps"
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"sort"
 	"strings"
@@ -63,14 +64,14 @@ func (v *Validates) Dispatch(
 }
 
 type Group struct {
-	groups map[any]struct{}
+	groups map[any]Void
 }
 
 func (g *Group) InitWithTag(tag reflect.StructTag) error {
 	if name, ok := tag.Lookup("name"); ok {
-		g.groups = make(map[any]struct{})
+		g.groups = make(map[any]Void)
 		if group := strings.TrimSpace(name); len(group) > 0 {
-			g.groups[group] = struct{}{}
+			g.groups[group] = Void{}
 		}
 	}
 	if len(g.groups) == 0 {
@@ -82,7 +83,7 @@ func (g *Group) InitWithTag(tag reflect.StructTag) error {
 func (g *Group) Merge(constraint BindingConstraint) bool {
 	if group, ok := constraint.(*Group); ok {
 		for grp := range group.groups {
-			g.groups[grp] = struct{}{}
+			g.groups[grp] = Void{}
 		}
 		return true
 	}
@@ -309,29 +310,28 @@ func (v validateFilter) Order() int {
 
 func (v validateFilter) Next(
 	next     Next,
-	context  HandleContext,
+	ctx      HandleContext,
 	provider FilterProvider,
-)  (result []any, err error) {
-	if vp, ok := provider.(*ValidateProvider); ok {
-		composer := context.Composer()
-		outcomeIn, errIn := Validate(composer, context.Callback().Source())
+)  (out []any, pout *promise.Promise[[]any], err error) {
+	if _, ok := provider.(*ValidateProvider); ok {
+		callback := ctx.Callback()
+		composer := ctx.Composer()
+		outcomeIn, poi, errIn := Validate(composer, callback.Source())
 		if errIn != nil {
-			return nil, errIn
+			return nil, nil, errIn
 		}
-		if !outcomeIn.Valid() {
-			return nil, outcomeIn
-		}
-		result, err = next.Filter()
-		if vp.validateResult && len(result) > 0 && !IsNil(result[0]) {
-			outcomeOut, errOut := Validate(composer, result[0])
-			if errOut != nil {
-				return nil, errOut
+		if poi == nil {
+			if !outcomeIn.Valid() {
+				return nil, nil, outcomeIn
 			}
-			if !outcomeOut.Valid() {
-				return nil, outcomeOut
-			}
+			return next.Pipe()
 		}
-		return result, err
+		return nil, promise.Then(poi, func(outIn *ValidationOutcome) []any {
+			if !outIn.Valid() {
+				panic(outIn)
+			}
+			return next.PipeAwait()
+		}), nil
 	}
 	return next.Abort()
 }
@@ -394,9 +394,9 @@ func (b *ValidatesBuilder) NewValidates() *Validates {
 	if groups := b.groups; len(groups) > 0 {
 		validates.groups = groups
 		validates.metadata = BindingMetadata{}
-		groupMap := make(map[any]struct{})
+		groupMap := make(map[any]Void)
 		for _, group := range groups {
-			groupMap[group] = struct{}{}
+			groupMap[group] = Void{}
 		}
 		(&Group{groups: groupMap}).Require(&validates.metadata)
 	}
@@ -408,7 +408,7 @@ func Validate(
 	handler Handler,
 	target  any,
 	groups ... any,
-) (outcome *ValidationOutcome, err error) {
+) (o *ValidationOutcome, po *promise.Promise[*ValidationOutcome], err error) {
 	if handler == nil {
 		panic("handler cannot be nil")
 	}
@@ -422,15 +422,28 @@ func Validate(
 		err = result.Error()
 	} else if !result.handled {
 		err = NotHandledError{validates}
+	} else if _, pv := validates.Result(false); pv == nil {
+		o = validates.Outcome()
+		setTargetValidationOutcome(target, o)
 	} else {
-		outcome = validates.Outcome()
-		if v, ok := target.(interface {
-			SetValidationOutcome(*ValidationOutcome)
-		}); ok {
-			v.SetValidationOutcome(outcome)
-		}
+		po = promise.Then(pv, func(any) *ValidationOutcome {
+			outcome := validates.Outcome()
+			setTargetValidationOutcome(target, outcome)
+			return outcome
+		})
 	}
 	return
+}
+
+func setTargetValidationOutcome(
+	target  any,
+	outcome *ValidationOutcome,
+) {
+	if v, ok := target.(interface {
+		SetValidationOutcome(*ValidationOutcome)
+	}); ok {
+		v.SetValidationOutcome(outcome)
+	}
 }
 
 // ValidationInstaller enables validation support.

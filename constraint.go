@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"strings"
 )
@@ -205,13 +206,13 @@ func (c *constraintFilter) Order() int {
 
 func (c *constraintFilter) Next(
 	next     Next,
-	context  HandleContext,
+	ctx      HandleContext,
 	provider FilterProvider,
-)  (result []any, err error) {
+)  ([]any, *promise.Promise[[]any], error) {
 	if cp, ok := provider.(interface {
 		Constraints() []BindingConstraint
 	}); ok {
-		if scope, ok := context.Callback().(BindingScope); ok {
+		if scope, ok := ctx.Callback().(BindingScope); ok {
 			metadata := scope.Metadata()
 			if metadata != nil {
 				for _, c := range cp.Constraints() {
@@ -222,7 +223,7 @@ func (c *constraintFilter) Next(
 			}
 		}
 	}
-	return next.Filter()
+	return next.Pipe()
 }
 
 var _constraintFilter = []Filter{&constraintFilter{}}

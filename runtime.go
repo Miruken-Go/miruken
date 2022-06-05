@@ -1,7 +1,6 @@
 package miruken
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -88,11 +87,7 @@ func CopyIndirect(src any, target any) {
 	val = reflect.Indirect(val)
 	typ := val.Type()
 	if src != nil {
-		if srcType := srcVal.Type(); srcType.AssignableTo(typ) {
-			val.Set(srcVal)
-		} else {
-			panic(fmt.Sprintf("%T must be assignable to %v", src, typ))
-		}
+		val.Set(srcVal)
 	} else {
 		val.Set(reflect.Zero(typ))
 	}
@@ -109,20 +104,13 @@ func CopySliceIndirect(src []any, target any) {
 	}
 	val = reflect.Indirect(val)
 	typ := val.Type()
-	elementType := typ.Elem()
 	if src == nil {
 		val.Set(reflect.MakeSlice(typ, 0, 0))
 		return
 	}
 	slice := reflect.MakeSlice(typ, len(src), len(src))
 	for i, element := range src {
-		if reflect.TypeOf(element).AssignableTo(elementType) {
-			slice.Index(i).Set(reflect.ValueOf(element))
-		} else {
-			panic(fmt.Sprintf(
-				"%T at index %v must be assignable to %v",
-				element, i, elementType))
-		}
+		slice.Index(i).Set(reflect.ValueOf(element))
 	}
 	val.Set(slice)
 }

@@ -77,19 +77,17 @@ func (c *CallbackBase) Result(
 	many bool,
 ) (any, *promise.Promise[any]) {
 	if c.result == nil {
-		promises := c.promises
-		if count := len(promises); count > 0 {
-			if count == 1 {
-				return nil, promises[0].Then(func(any) any {
-					return c.ensureResult(many)
-				})
-			} else {
-				return nil, promise.All(promises...).Then(func(any) any {
-					return c.ensureResult(many)
-				})
-			}
-		} else {
+		switch len(c.promises) {
+		case 0:
 			c.ensureResult(many)
+		case 1:
+			return nil, c.promises[0].Then(func(any) any {
+				return c.ensureResult(many)
+			})
+		default:
+			return nil, promise.All(c.promises...).Then(func(any) any {
+				return c.ensureResult(many)
+			})
 		}
 	}
 	return c.result, nil

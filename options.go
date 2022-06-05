@@ -3,6 +3,7 @@ package miruken
 import (
 	"fmt"
 	"github.com/imdario/mergo"
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
 
@@ -161,17 +162,17 @@ func (o FromOptions) Resolve(
 	typ reflect.Type,
 	dep DependencyArg,
 	ctx HandleContext,
-) (options reflect.Value, err error) {
+) (options reflect.Value, _ *promise.Promise[reflect.Value], err error) {
 	options = reflect.New(typ)
 	if GetOptions(ctx.composer, options.Interface()) {
 		if typ.Kind() == reflect.Ptr {
-			return options, nil
+			return options, nil, nil
 		}
-		return reflect.Indirect(options), nil
+		return reflect.Indirect(options), nil, nil
 	}
 	if dep.Optional() {
-		return reflect.Zero(typ), nil
+		return reflect.Zero(typ), nil, nil
 	}
-	return reflect.ValueOf(nil), fmt.Errorf(
-		"FromOptions: unable to resolve options %v", typ)
+	var v reflect.Value
+	return v, nil, fmt.Errorf("FromOptions: unable to resolve options %v", typ)
 }

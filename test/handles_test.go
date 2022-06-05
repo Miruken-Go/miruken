@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/slices"
 	"github.com/stretchr/testify/suite"
 	"reflect"
@@ -63,6 +64,44 @@ type BarHandler struct {}
 func (h *BarHandler) HandleBar(
 	_*miruken.Handles, _ Bar,
 ) {
+}
+
+// BarAsyncHandler
+type BarAsyncHandler struct {}
+
+func (h *BarAsyncHandler) HandleBar(
+	_*miruken.Handles, bar *Bar,
+) *promise.Promise[*Bar] {
+	bar.Inc()
+	return promise.Then(
+		promise.Delay(time.Duration(bar.Count()) * time.Millisecond),
+		func(void miruken.Void) *Bar { return bar })
+}
+
+func (h *BarAsyncHandler) HandleBoo(
+	_*miruken.Handles, boo *Boo,
+	baz *Baz,
+) *Baz {
+	boo.Inc()
+	baz.Inc()
+	return baz
+}
+
+func (h *BarAsyncHandler) HandleBamPromiseBazArg(
+	_*miruken.Handles, bam *Bam,
+	baz *promise.Promise[*Baz],
+) *Baz {
+	bam.Inc()
+	bam.Inc()
+	buz, _ := baz.Await()
+	buz.Inc()
+	return buz
+}
+
+func (h *BarAsyncHandler) ProvidesBaz(
+	_*miruken.Provides,
+) *promise.Promise[*Baz] {
+	return promise.Resolve(new(Baz))
 }
 
 // CounterHandler
@@ -281,7 +320,7 @@ func (c *Configuration) Resolve(
 	typ  reflect.Type,
 	dep  miruken.DependencyArg,
 	ctx  miruken.HandleContext,
-) (reflect.Value, error) {
+) (reflect.Value, *promise.Promise[reflect.Value], error) {
 	if c.config == nil {
 		c.config = &Config{
 			baseUrl: "https://server/api",
@@ -293,7 +332,7 @@ func (c *Configuration) Resolve(
 		}
 		c.config.created = time.Now().Format(layout)
 	}
-	return reflect.ValueOf(c.config), nil
+	return reflect.ValueOf(c.config), nil, nil
 }
 
 // DependencyResolverHandler
@@ -423,12 +462,12 @@ func (m *MetadataHandler) HandleFoo(
 	    miruken.Handles
 		Transactional   `mode:"requiresNew"`
 	 }, foo *Foo,
-	 context miruken.HandleContext,
+	 ctx miruken.HandleContext,
 ) Transactional {
 	foo.Inc()
 	if transactional, ok :=
 		slices.First(slices.OfType[any,Transactional](
-			context.Binding().Metadata())); ok {
+			ctx.Binding().Metadata())); ok {
 		return transactional
 	}
 	return Transactional{}
@@ -440,11 +479,11 @@ func (m *MetadataHandler) HandleBar(
 		miruken.Strict
 	    Anonymous
      }, bar *Bar,
-	context miruken.HandleContext,
+	ctx miruken.HandleContext,
 ) []Anonymous {
 	bar.Inc()
 	bar.Inc()
-	return slices.OfType[any, Anonymous](context.Binding().Metadata())
+	return slices.OfType[any, Anonymous](ctx.Binding().Metadata())
 }
 
 // MetadataInvalidHandler
@@ -940,7 +979,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 			suite.Run("Mismatch", func() {
 				defer func() {
 					if r := recover(); r != nil {
-						suite.Equal("*test.Foo must be assignable to *test.Bar", r)
+						suite.Equal("reflect.Set: value of type *test.Foo is not assignable to type *test.Bar", r)
 					} else {
 						suite.Fail("Expected error")
 					}
@@ -1063,6 +1102,48 @@ func (suite *HandlesTestSuite) TestHandles() {
 			// 2 for inferred instance
 			suite.Equal(5, bar.Count())
 		})
+	})
+}
+
+func (suite *HandlesTestSuite) TestAsyncHandles() {
+	suite.Run("Invariant", func() {
+		handler, _ := suite.SetupWith(
+			miruken.HandlerSpecs(&BarAsyncHandler{}))
+		bar := &Bar{Counted{2}}
+		b, p, err := miruken.Invoke[*Bar](handler, bar)
+		suite.Nil(err)
+		suite.Nil(b)
+		suite.NotNil(p)
+		b, err = p.Await()
+		suite.Nil(err)
+		suite.Same(bar, b)
+		suite.Equal(3, bar.Count())
+	})
+
+	suite.Run("Promise dependency", func() {
+		handler, _ := suite.SetupWith(
+			miruken.HandlerSpecs(&BarAsyncHandler{}))
+		boo := &Boo{Counted{4}}
+		baz, p, err := miruken.Invoke[*Baz](handler, boo)
+		suite.Nil(err)
+		suite.NotNil(p)
+		suite.Nil(baz)
+		baz, err = p.Await()
+		suite.Nil(err)
+		suite.Equal(5, boo.Count())
+		suite.Equal(1, baz.Count())
+	})
+
+	suite.Run("Promise dependency arg", func() {
+		handler, _ := suite.SetupWith(
+			miruken.HandlerSpecs(&BarAsyncHandler{}))
+		bam := &Bam{Counted{2}}
+		baz, p, err := miruken.Invoke[*Baz](handler, bam)
+		suite.Nil(err)
+		suite.Nil(p)
+		suite.NotNil(baz)
+		suite.Equal(4, bam.Count())
+		suite.Equal(1, baz.Count())
 	})
 }
 

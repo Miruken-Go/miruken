@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/suite"
 	"math"
 	"testing"
@@ -77,13 +78,13 @@ func (n NullFilter) Order() int {
 
 func (n NullFilter) Next(
 	next     miruken.Next,
-	context  miruken.HandleContext,
+	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  ([]any, error) {
-	if captured := extractCaptured(context.Callback()); captured != nil {
+)  ([]any, *promise.Promise[[]any], error) {
+	if captured := extractCaptured(ctx.Callback()); captured != nil {
 		captured.AddFilters(n)
 	}
-	return next.Filter()
+	return next.Pipe()
 }
 
 // LogFilter test filter
@@ -95,25 +96,25 @@ func (l *LogFilter) Order() int {
 
 func (l *LogFilter) Next(
 	next     miruken.Next,
-	context  miruken.HandleContext,
+	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  ([]any, error) {
-	return miruken.DynNext(l, next, context, provider)
+)  ([]any, *promise.Promise[[]any], error) {
+	return miruken.DynNext(l, next, ctx, provider)
 }
 
 func (l *LogFilter) DynNext(
 	next     miruken.Next,
-	context  miruken.HandleContext,
+	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 	logging Logging,
-)  ([]any, error) {
-	captured := extractCaptured(context.Callback())
+)  ([]any, *promise.Promise[[]any], error) {
+	captured := extractCaptured(ctx.Callback())
 	logging.Log(
 		fmt.Sprintf("Log callback %#v", captured))
 	if captured != nil {
 		captured.AddFilters(l)
 	}
-	return next.Filter()
+	return next.Pipe()
 }
 
 // ExceptionFilter test filter
@@ -125,19 +126,19 @@ func (e *ExceptionFilter) Order() int {
 
 func (e *ExceptionFilter) Next(
 	next     miruken.Next,
-	context  miruken.HandleContext,
+	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  ([]any, error) {
-	captured := extractCaptured(context.Callback())
+)  ([]any, *promise.Promise[[]any], error) {
+	captured := extractCaptured(ctx.Callback())
 	if captured != nil {
 		captured.AddFilters(e)
 	}
-	if result, err := next.Filter(); err != nil {
-		return result, err
+	if result, _, err := next.Pipe(); err != nil {
+		return result, nil, err
 	} else if _, ok := captured.(*BooC); ok {
-		return result, errors.New("system shutdown")
+		return result, nil, errors.New("system shutdown")
 	} else {
-		return result, err
+		return result, nil, err
 	}
 }
 
@@ -150,14 +151,14 @@ func (a *AbortFilter) Order() int {
 
 func (a *AbortFilter) Next(
 	next     miruken.Next,
-	context  miruken.HandleContext,
+	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  ([]any, error) {
-	if captured := extractCaptured(context.Callback());
+)  ([]any, *promise.Promise[[]any], error) {
+	if captured := extractCaptured(ctx.Callback());
 		captured == nil || captured.Handled() > 99 {
 		return next.Abort()
 	}
-	return next.Filter()
+	return next.Pipe()
 }
 
 func extractCaptured(callback miruken.Callback) Captured {
@@ -212,14 +213,14 @@ func (f FilteringHandler) HandleStuff(
 
 func (f FilteringHandler) Next(
 	next     miruken.Next,
-	context  miruken.HandleContext,
+	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  ([]any, error) {
-	if bar, ok := context.Callback().Source().(*BarC); ok {
+)  ([]any, *promise.Promise[[]any], error) {
+	if bar, ok := ctx.Callback().Source().(*BarC); ok {
 		bar.AddFilters(f)
 		bar.IncHandled(1)
 	}
-	return next.Filter()
+	return next.Pipe()
 }
 
 // SpecialFilteringHandler test handler

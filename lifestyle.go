@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/miruken-go/miruken/promise"
 	"math"
 	"sync"
 )
@@ -66,9 +67,9 @@ type singleton struct {
 
 func (s *singleton) Next(
 	next     Next,
-	context  HandleContext,
+	ctx      HandleContext,
 	provider FilterProvider,
-)  (result []any, err error) {
+)  (out []any, po *promise.Promise[[]any], err error) {
 	s.once.Do(func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -80,10 +81,14 @@ func (s *singleton) Next(
 				s.once = new(sync.Once)
 			}
 		}()
-		s.instance, err = next.Filter()
-		if err != nil || len(s.instance) == 0 {
+		if out, po, err = next.Pipe(); err == nil && po != nil {
+			out, err = po.Await()
+		}
+		if err != nil || len(out) == 0 {
 			s.once = new(sync.Once)
+		} else {
+			s.instance = out
 		}
 	})
-	return s.instance, err
+	return s.instance, nil, err
 }

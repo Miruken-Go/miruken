@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"errors"
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"sync"
 )
@@ -37,72 +38,76 @@ type scoped struct {
 
 func (s *scoped) Next(
 	next     Next,
-	context  HandleContext,
+	ctx      HandleContext,
 	provider FilterProvider,
-)  ([]any, error) {
+)  ([]any, *promise.Promise[[]any], error) {
 	rooted := false
 	if scp, ok := provider.(*Scoped); ok {
 		rooted = scp.rooted
 	}
-	if !s.isCompatibleWithParent(context, rooted) {
-		return nil, nil
+	if !s.isCompatibleWithParent(ctx, rooted) {
+		return nil, nil,nil
 	}
-	ctx, _, err := Resolve[*Context](context.Composer())
+	context, _, err := Resolve[*Context](ctx.Composer())
 	if err != nil {
-		return nil, err
-	} else if ctx == nil {
+		return nil, nil, err
+	} else if context == nil {
 		return next.Abort()
-	} else if ctx.State() != ContextActive {
-		return nil, errors.New("cannot scope instances to an inactive context")
+	} else if context.State() != ContextActive {
+		return nil, nil, errors.New("scoped: cannot scope instances to an inactive context")
 	} else if rooted {
-		ctx = ctx.Root()
+		context = context.Root()
 	}
 	var instance []any
 	s.lock.RLock()
 	if s.cache != nil {
-		instance = s.cache[ctx]
+		instance = s.cache[context]
 		if instance != nil {
 			defer s.lock.RUnlock()
-			return instance, nil
+			return instance, nil, nil
 		}
 	}
 	s.lock.RUnlock()
-	if res, err := next.Filter(); err != nil || len(res) == 0 {
-		return res, err
+	res, pr, err := next.Pipe()
+	if err == nil && pr != nil {
+		res, err = pr.Await()
+	}
+	if err != nil || len(res) == 0 {
+		return res, nil, err
 	} else {
 		s.lock.Lock()
 		if s.cache != nil {
-			if instance = s.cache[ctx]; instance != nil {
+			if instance = s.cache[context]; instance != nil {
 				defer s.lock.Unlock()
-				return instance, nil
+				return instance, nil, nil
 			}
 		} else {
 			s.cache = map[*Context][]any{}
 		}
 		instance     = res
-		s.cache[ctx] = res
+		s.cache[context] = res
 		s.lock.Unlock()
 	}
 	if contextual, ok := instance[0].(Contextual); ok {
-		contextual.SetContext(ctx)
+		contextual.SetContext(context)
 		unsubscribe := contextual.Observe(s)
-		ctx.Observe(ContextEndedObserverFunc(func(*Context, any) {
+		context.Observe(ContextEndedObserverFunc(func(*Context, any) {
 			s.lock.Lock()
-			delete(s.cache, ctx)
+			delete(s.cache, context)
 			s.lock.Unlock()
 			unsubscribe.Dispose()
 			s.tryDispose(instance[0])
 			contextual.SetContext(nil)
 		}))
 	} else {
-		ctx.Observe(ContextEndedObserverFunc(func(*Context, any) {
+		context.Observe(ContextEndedObserverFunc(func(*Context, any) {
 			s.lock.Lock()
-			delete(s.cache, ctx)
+			delete(s.cache, context)
 			s.lock.Unlock()
 			s.tryDispose(instance[0])
 		}))
 	}
-	return instance, nil
+	return instance, nil, nil
 }
 
 func (s *scoped) ContextChanging(
@@ -126,10 +131,10 @@ func (s *scoped) ContextChanging(
 }
 
 func (s *scoped) isCompatibleWithParent(
-	context  HandleContext,
-	rooted   bool,
+	ctx    HandleContext,
+	rooted  bool,
 ) bool {
-	if parent := context.Callback().(*Provides).Parent(); parent != nil {
+	if parent := ctx.Callback().(*Provides).Parent(); parent != nil {
 		if pb := parent.Binding(); pb != nil {
 			for _, filter := range pb.Filters() {
 				if scoped, ok := filter.(*Scoped); !ok || (!rooted && scoped.rooted) {

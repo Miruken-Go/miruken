@@ -17,7 +17,7 @@ type (
 		features []Feature
 		exclude  Predicate[HandlerSpec]
 		factory  HandlerDescriptorFactory
-		tags     map[any]struct{}
+		tags     map[any]Void
 	}
 )
 
@@ -69,10 +69,10 @@ func (s *SetupBuilder) DisableInference() {
 
 func (s *SetupBuilder) CanInstall(tag any) bool {
 	if tags := s.tags; tags == nil {
-		s.tags = map[any]struct{}{tag: {}}
+		s.tags = map[any]Void{tag: {}}
 		return true
 	} else if _, found := tags[tag]; !found {
-		tags[tag] = struct{}{}
+		tags[tag] = Void{}
 		return true
 	}
 	return false

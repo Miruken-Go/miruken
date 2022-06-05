@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"sort"
 	"sync"
@@ -15,72 +16,112 @@ const (
 	FilterStageValidation    = 50
 )
 
-// Next advances to the next step in a pipeline.
-type Next func (
+type (
+	// Next advances to the next step in a pipeline.
+	Next func (
+		composer Handler,
+		proceed  bool,
+	) ([]any, *promise.Promise[[]any], error)
+
+	// Filter defines a middleware step in a pipeline.
+	Filter interface {
+		Order() int
+		Next(
+			next     Next,
+			ctx      HandleContext,
+			provider FilterProvider,
+		) ([]any, *promise.Promise[[]any], error)
+	}
+
+	// FilterProvider provides one or more Filter's.
+	FilterProvider interface {
+		Required() bool
+		Filters(
+			binding  Binding,
+			callback any,
+			composer Handler,
+		) ([]Filter, error)
+	}
+
+	// FilterInstanceProvider provides existing Filters.
+	FilterInstanceProvider struct {
+		filters  []Filter
+		required bool
+	}
+
+	// Filtered is a container of Filters.
+	Filtered interface {
+		Filters() []FilterProvider
+		AddFilters(providers ... FilterProvider)
+		RemoveFilters(providers ... FilterProvider)
+		RemoveAllFilters()
+	}
+
+	// FilteredScope implements a container of Filters.
+	FilteredScope struct {
+		providers []FilterProvider
+	}
+)
+
+func (n Next) Pipe() ([]any, *promise.Promise[[]any], error) {
+	return mergeOutput(n(nil, true))
+}
+
+func (n Next) PipeAwait() []any {
+	return mergeOutputAwait(n(nil, true))
+}
+
+func (n Next) PipeComposer(
 	composer Handler,
-	proceed  bool,
-) ([]any, error)
-
-func (n Next) Filter() ([]any, error) {
-	return n(nil, true)
+) ([]any, *promise.Promise[[]any], error) {
+	return mergeOutput(n(composer, true))
 }
 
-func (n Next) WithComposer(composer Handler) ([]any, error) {
-	return n(composer, true)
+func (n Next) PipeComposerAsync(
+	composer Handler,
+) []any {
+	return mergeOutputAwait(n(composer, true))
 }
 
-func (n Next) Abort() ([]any, error) {
+func (n Next) Abort() ([]any, *promise.Promise[[]any], error) {
 	return n(nil, false)
 }
 
-// Filter defines a Middleware step in a pipeline.
-type Filter interface {
-	Order() int
-	Next(
-		next     Next,
-		context  HandleContext,
-		provider FilterProvider,
-	)  ([]any, error)
-}
+type (
+	// filterSpec describes a Filter.
+	filterSpec struct {
+		typ      reflect.Type
+		required bool
+		order    int
+	}
 
-// FilterProvider provides one or more Filter's.
-type FilterProvider interface {
-	Required() bool
-	Filters(
-		binding  Binding,
-		callback any,
-		composer Handler,
-	) ([]Filter, error)
-}
+	// filterSpecProvider resolves a Filter specification.
+	filterSpecProvider struct {
+		spec filterSpec
+	}
+)
 
-// filterSpec describes a Filter.
-type filterSpec struct {
-	typ      reflect.Type
-	required bool
-	order    int
-}
-
-// FilterSpecProvider resolves a Filter specification.
-type FilterSpecProvider struct {
-	spec filterSpec
-}
-
-func (f *FilterSpecProvider) Required() bool {
+func (f *filterSpecProvider) Required() bool {
 	return f.spec.required
 }
 
-func (f *FilterSpecProvider) Filters(
+func (f *filterSpecProvider) Filters(
 	binding  Binding,
 	callback any,
 	composer Handler,
 ) ([]Filter, error) {
-	spec     := f.spec
+	spec := f.spec
 	var builder ProvidesBuilder
 	provides := builder.WithKey(spec.typ).NewProvides()
-	// TODO: async
-	result, _, err := provides.Resolve(composer, false)
-	if result != nil && err == nil {
-		if filter, ok := result.(Filter); ok {
+	resolve, pr, err := provides.Resolve(composer, false)
+	if err != nil {
+		return nil, err
+	}
+	if pr != nil {
+		resolve, err = pr.Await()
+	}
+	if resolve != nil && err == nil {
+		if filter, ok := resolve.(Filter); ok {
 			if spec.order >= 0 {
 				if o, ok := filter.(interface{ SetOrder(order int) }); ok {
 					o.SetOrder(spec.order)
@@ -90,12 +131,6 @@ func (f *FilterSpecProvider) Filters(
 		}
 	}
 	return nil, err
-}
-
-// FilterInstanceProvider manages existing Filters.
-type FilterInstanceProvider struct {
-	filters  []Filter
-	required bool
 }
 
 func (f *FilterInstanceProvider) Required() bool {
@@ -115,19 +150,6 @@ func NewFilterInstanceProvider(
 	filters ... Filter,
 ) *FilterInstanceProvider {
 	return &FilterInstanceProvider{filters, required}
-}
-
-// Filtered models a container of Filters.
-type Filtered interface {
-	Filters() []FilterProvider
-	AddFilters(providers ... FilterProvider)
-	RemoveFilters(providers ... FilterProvider)
-	RemoveAllFilters()
-}
-
-// FilteredScope is a container of Filters.
-type FilteredScope struct {
-	providers []FilterProvider
 }
 
 func (f *FilteredScope) Filters() []FilterProvider {
@@ -181,19 +203,23 @@ type FilterOptions struct {
 	SkipFilters OptionBool
 }
 
-var disableFilters = Options(FilterOptions{
-	SkipFilters: OptionTrue,
-})
-var DisableFilters BuilderFunc = func (handler Handler) Handler {
-	return BuildUp(handler, disableFilters)
-}
+var (
+	disableFilters = Options(FilterOptions{
+		SkipFilters: OptionTrue,
+	})
 
-var enableFilters = Options(FilterOptions{
-	SkipFilters: OptionFalse,
-})
-var EnableFilters BuilderFunc = func (handler Handler) Handler {
-	return BuildUp(handler, enableFilters)
-}
+	enableFilters = Options(FilterOptions{
+		SkipFilters: OptionFalse,
+	})
+
+	DisableFilters BuilderFunc = func (handler Handler) Handler {
+		return BuildUp(handler, disableFilters)
+	}
+
+	EnableFilters BuilderFunc = func (handler Handler) Handler {
+		return BuildUp(handler, enableFilters)
+	}
+)
 
 func UseFilters(filters ... Filter) Builder {
 	return withFilters(false, filters...)
@@ -316,44 +342,44 @@ func orderedFilters(
 	return allFilters, nil
 }
 
-type CompletePipelineFunc func(HandleContext) ([]any, error)
+type CompletePipelineFunc func(
+	HandleContext,
+) ([]any, *promise.Promise[[]any], error)
 
 func pipeline(
-	context  HandleContext,
+	ctx      HandleContext,
 	filters  []providedFilter,
 	complete CompletePipelineFunc,
-) (results []any, err error) {
-	composer := context.Composer()
+) (results []any, pr *promise.Promise[[]any], err error) {
 	index, length := 0, len(filters)
-
 	var next Next
 	next = func(
-		comp     Handler,
+		composer Handler,
 		proceed  bool,
-	) ([]any, error) {
+	) ([]any, *promise.Promise[[]any], error) {
 		if !proceed {
-			return nil, RejectedError{context.Callback()}
+			return nil, nil, RejectedError{ctx.Callback()}
 		}
-		if comp != nil {
-			composer = comp
+		if composer != nil {
+			ctx.composer = composer
 		}
 		if index < length {
 			pf := filters[index]
 			index++
-			return pf.filter.Next(next, context, pf.provider)
+			return pf.filter.Next(next, ctx, pf.provider)
 		}
-		return complete(context)
+		return complete(ctx)
 	}
 
-	return next(composer, true)
+	return next(ctx.Composer(), true)
 }
 
 func DynNext(
 	filter   Filter,
 	next     Next,
-	context  HandleContext,
+	ctx      HandleContext,
 	provider FilterProvider,
-)  (results []any, invalid error) {
+)  (out []any, po *promise.Promise[[]any], err error) {
 	typ := reflect.TypeOf(filter)
 	_dynNextLock.RLock()
 	binding := _dynNextBinding[typ]
@@ -364,36 +390,49 @@ func DynNext(
 		if dynNext, ok := typ.MethodByName("DynNext"); !ok {
 			goto Invalid
 		} else if dynNextType := dynNext.Type;
-				dynNextType.NumIn() < 4 || dynNextType.NumOut() < 2 {
+				dynNextType.NumIn() < 4 || dynNextType.NumOut() < 3 {
 			goto Invalid
 		} else if dynNextType.In(1) != reflect.TypeOf(next) ||
 			dynNextType.In(2) != _handleCtxType ||
 			dynNextType.In(3) != _filterProviderType ||
 			dynNextType.Out(0) != _anySliceType ||
-			dynNextType.Out(1) != _errorType {
+			dynNextType.Out(1) != _promiseAnySliceType ||
+			dynNextType.Out(2) != _errorType {
 			goto Invalid
 		} else {
 			numArgs := dynNextType.NumIn()
 			args    := make([]arg, numArgs-4)  // skip receiver
-			if err := buildDependencies(dynNextType, 4, numArgs, args, 0); err != nil {
-				invalid = fmt.Errorf("DynNext: %w", err)
+			if inv := buildDependencies(dynNextType, 4, numArgs, args, 0); inv != nil {
+				err = fmt.Errorf("DynNext: %w", inv)
 			}
-			if invalid != nil {
-				return nil, MethodBindingError{dynNext, invalid}
+			if err != nil {
+				return nil, nil, MethodBindingError{dynNext, err}
 			}
 			binding = &nextBinding{dynNext, args}
 			_dynNextBinding[typ] = binding
 		}
 	}
-	if results, invalid = binding.invoke(context, filter, next, context, provider); invalid != nil {
-		return nil, invalid
+	if out, po, err = binding.invoke(ctx, filter, next, ctx, provider); err != nil {
+		return
+	} else if po == nil {
+		po,  _ = out[1].(*promise.Promise[[]any])
+		err, _ = out[2].(error)
+		out, _ = out[0].([]any)
 	} else {
-		res, _ := results[0].([]any)
-		err, _ := results[1].(error)
-		return res, err
+		po = promise.Then(po, func(o []any) []any {
+			if err, ok := o[2].(error); ok {
+				panic(err)
+			} else if ro, ok := o[0].([]any); ok {
+				return ro
+			} else {
+				return nil
+			}
+		})
 	}
+	return
+
 	Invalid:
-		return nil, fmt.Errorf(
+		return nil, nil, fmt.Errorf(
 			"filter %v requires a method DynNext(Next, HandleContext, FilterProvider, ...)",
 			typ)
 }
@@ -404,10 +443,10 @@ type nextBinding struct {
 }
 
 func (n *nextBinding) invoke(
-	context      HandleContext,
-	explicitArgs ... any,
-) ([]any, error) {
-	return callFunc(n.method.Func, context, n.args, explicitArgs...)
+	ctx      HandleContext,
+	initArgs ... any,
+) ([]any, *promise.Promise[[]any], error) {
+	return callFunc(n.method.Func, ctx, n.args, initArgs...)
 }
 
 var (

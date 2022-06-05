@@ -2,30 +2,29 @@ package promise
 
 import (
 	"reflect"
+	"sync"
+	"time"
 )
+
+type Void = struct {}
 
 type Reflect interface {
 	UnderlyingType() reflect.Type
-	UntypedPromise() *Promise[any]
+
 	Then(resolve func(data any) any) *Promise[any]
-	Catch(rejection func(err error) error) *Promise[any]
+	Catch(reject func(err error) error) *Promise[any]
+	AwaitAny() (any, error)
+
+	Lift(result any)
+	Coerce(promise *Promise[any])
 }
 
 func (p *Promise[T]) UnderlyingType() reflect.Type {
 	return reflect.TypeOf((*T)(nil)).Elem()
 }
 
-func (p *Promise[T]) UntypedPromise() *Promise[any] {
-	if pa, ok := (any(p)).(*Promise[any]); ok {
-		return pa
-	}
-	return Then(p, func(data T) any {
-		return data
-	})
-}
-
-func (p *Promise[T]) Then(resolution func(data any) any) *Promise[any] {
-	if resolution == nil {
+func (p *Promise[T]) Then(res func(data any) any) *Promise[any] {
+	if res == nil {
 		panic("resolve cannot be nil")
 	}
 	return New(func(resolve func(any), reject func(error)) {
@@ -34,21 +33,47 @@ func (p *Promise[T]) Then(resolution func(data any) any) *Promise[any] {
 			reject(err)
 			return
 		}
-		resolve(resolution(result))
+		resolve(res(result))
 	})
 }
 
-func (p *Promise[T]) Catch(rejection func(err error) error) *Promise[any] {
-	if rejection == nil {
+func (p *Promise[T]) Catch(rej func(err error) error) *Promise[any] {
+	if rej == nil {
 		panic("resolve cannot be nil")
 	}
 	return New(func(resolve func(any), reject func(error)) {
 		result, err := p.Await()
 		if err != nil {
-			reject(rejection(err))
+			reject(rej(err))
 			return
 		}
 		resolve(result)
+	})
+}
+
+func (p *Promise[T]) AwaitAny() (any, error) {
+	return p.Await()
+}
+
+func (p *Promise[T]) Lift(result any) {
+	p.mutex  = &sync.Mutex{}
+	p.wg     = &sync.WaitGroup{}
+	p.result = result.(T)
+}
+
+func (p *Promise[T]) Coerce(promise *Promise[any]) {
+	p.pending = true
+	p.mutex   = &sync.Mutex{}
+	p.wg      = &sync.WaitGroup{}
+
+	p.wg.Add(1)
+
+	promise.Then(func(result any) any {
+		p.resolve(result.(T))
+		return nil
+	}).Catch(func(err error) error {
+		p.reject(err)
+		return nil
 	})
 }
 
@@ -60,10 +85,34 @@ func Inspect(typ reflect.Type) (reflect.Type, bool) {
 	return nil, false
 }
 
+func Lift(typ reflect.Type, result any) Reflect {
+	if typ.Kind() != reflect.Ptr {
+		panic("typ must be a promise")
+	}
+	if !typ.Implements(_reflectType) {
+		panic("typ must be a promise")
+	}
+	promise := reflect.New(typ.Elem()).Interface().(Reflect)
+	promise.Lift(result)
+	return promise
+}
+
 func Coerce[T any](promise *Promise[any]) *Promise[T] {
 	return Then(promise, func(data any) T {
 		return data.(T)
 	})
+}
+
+func CoerceType(typ reflect.Type, promise *Promise[any]) Reflect {
+	if typ.Kind() != reflect.Ptr {
+		panic("typ must be a promise")
+	}
+	if !typ.Implements(_reflectType) {
+		panic("typ must be a promise")
+	}
+	p := reflect.New(typ.Elem()).Interface().(Reflect)
+	p.Coerce(promise)
+	return p
 }
 
 func Unwrap[T any](promise *Promise[*Promise[T]]) *Promise[T] {
@@ -80,6 +129,13 @@ func Unwrap[T any](promise *Promise[*Promise[T]]) *Promise[T] {
 				resolve(data)
 			}
 		}
+	})
+}
+
+func Delay(delay time.Duration) *Promise[Void] {
+	return New(func(resolve func(Void), reject func(error)) {
+		time.Sleep(delay)
+		resolve(Void{})
 	})
 }
 

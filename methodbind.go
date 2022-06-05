@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
 
@@ -48,17 +49,17 @@ func (b *methodBinding) Metadata() []any {
 }
 
 func (b *methodBinding) Invoke(
-	context      HandleContext,
-	explicitArgs ... any,
-) ([]any, error) {
-	if explicitArgs == nil {
-		explicitArgs = []any{context.handler}
+	ctx      HandleContext,
+	initArgs ... any,
+) ([]any, *promise.Promise[[]any], error) {
+	if initArgs == nil {
+		initArgs = []any{ctx.handler}
 	} else {
-		explicitArgs = append(explicitArgs, nil)
-		copy(explicitArgs[1:], explicitArgs)
-		explicitArgs[0] = context.handler
+		initArgs = append(initArgs, nil)
+		copy(initArgs[1:], initArgs)
+		initArgs[0] = ctx.handler
 	}
-	return callFunc(b.method.Func, context, b.args, explicitArgs...)
+	return callFunc(b.method.Func, ctx, b.args, initArgs...)
 }
 
 func (e MethodBindingError) Method() reflect.Method {

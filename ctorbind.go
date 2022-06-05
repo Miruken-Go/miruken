@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
 
@@ -41,9 +42,9 @@ func (b *constructorBinding) Metadata() []any {
 }
 
 func (b *constructorBinding) Invoke(
-	context      HandleContext,
-	explicitArgs ... any,
-) ([]any, error) {
+	ctx      HandleContext,
+	initArgs ... any,
+) ([]any, *promise.Promise[[]any], error) {
 	// constructorBinding's will be called on existing
 	// handlers if present.  This would result in an
 	// additional and unexpected instance created.
@@ -52,8 +53,8 @@ func (b *constructorBinding) Invoke(
 	// the creation will be skipped.  Otherwise, a true
 	// construction is desired.
 	handlerType := b.handlerType
-	if reflect.TypeOf(context.handler) == handlerType {
-		return nil, nil
+	if reflect.TypeOf(ctx.handler) == handlerType {
+		return nil, nil, nil
 	}
 	var receiver any
 	if handlerType.Kind() == reflect.Ptr {
@@ -61,7 +62,7 @@ func (b *constructorBinding) Invoke(
 	} else {
 		receiver = reflect.New(handlerType).Elem().Interface()
 	}
-	return []any{receiver}, nil
+	return []any{receiver}, nil, nil
 }
 
 func newConstructorBinding(

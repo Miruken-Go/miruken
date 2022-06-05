@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
 
@@ -41,7 +42,7 @@ type (
 	// miruken.ResolveAll(handler, &counted)
 	//
 	inferenceGuard struct {
-		resolved map[reflect.Type]struct{}
+		resolved map[reflect.Type]Void
 	}
 )
 
@@ -82,23 +83,23 @@ func (b *methodIntercept) SkipFilters() bool {
 }
 
 func (b *methodIntercept) Invoke(
-	context      HandleContext,
-	explicitArgs ... any,
-) ([]any, error) {
+	ctx      HandleContext,
+	initArgs ... any,
+) ([]any, *promise.Promise[[]any], error) {
 	handlerType := b.handlerType
-	callback    := context.Callback()
+	callback    := ctx.Callback()
 	parent, _   := callback.(*Provides)
 	var builder ResolvesBuilder
 	builder.
 		WithCallback(callback).
-		WithGreedy(context.Greedy()).
+		WithGreedy(ctx.Greedy()).
 		WithParent(parent).
 		WithKey(handlerType)
 	resolves := builder.NewResolves()
-	if result := context.Composer().Handle(resolves, true, nil); result.IsError() {
-		return nil, result.Error()
+	if result := ctx.Composer().Handle(resolves, true, nil); result.IsError() {
+		return nil, nil, result.Error()
 	} else {
-		return []any{result}, nil
+		return []any{result}, nil, nil
 	}
 }
 
@@ -115,9 +116,9 @@ func (g *inferenceGuard) CanDispatch(
 	if methodBinding, ok := binding.(*methodIntercept); ok {
 		handlerType := methodBinding.handlerType
 		if resolved := g.resolved; resolved == nil {
-			g.resolved = map[reflect.Type]struct{} { handlerType: {} }
+			g.resolved = map[reflect.Type]Void { handlerType: {} }
 		} else if _, found := resolved[handlerType]; !found {
-			resolved[handlerType] = struct{}{}
+			resolved[handlerType] = Void{}
 		} else {
 			return nil, false
 		}

@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"github.com/miruken-go/miruken/promise"
 	"math"
 	"reflect"
 )
@@ -18,27 +19,32 @@ func (i *initializer) Order() int {
 
 func (i *initializer) Next(
 	next     Next,
-	context  HandleContext,
+	ctx      HandleContext,
 	provider FilterProvider,
-)  ([]any, error) {
-	instance, err := next.Filter()
-	if err == nil && len(instance) > 0 {
-		var results []any
-		results, err = i.invoke(context, instance[0])
-		if len(results) > 0 {
-			if e, ok := results[len(results)-1].(error); ok {
-				err = e
-			}
-		}
+)  (out []any, pout *promise.Promise[[]any], err error) {
+	if out, pout, err = next.Pipe(); err != nil || len(out) == 0 {
+		return
 	}
-	return instance, err
+	if pout != nil {
+		pout = promise.Then(pout, func(oo []any) []any {
+			if len(oo) > 0 {
+				return mergeOutputAwait(i.invoke(ctx, oo[0]))
+			}
+			return oo
+ 		})
+	} else if _, pout, err = mergeOutput(i.invoke(ctx, out[0])); err == nil && pout != nil {
+		pout = promise.Then(pout, func(oo []any) []any {
+			return out
+		})
+	}
+	return
 }
 
 func (i *initializer) invoke(
-	context      HandleContext,
-	explicitArgs ... any,
-) ([]any, error) {
-	return callFunc(i.constructor.Func, context, i.args, explicitArgs...)
+	ctx      HandleContext,
+	initArgs ... any,
+) ([]any, *promise.Promise[[]any], error) {
+	return callFunc(i.constructor.Func, ctx, i.args, initArgs...)
 }
 
 // initializerProvider is a FilterProvider for initializer.

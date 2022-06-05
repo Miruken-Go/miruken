@@ -21,16 +21,6 @@ func TestPromise_UnderlyingType(t *testing.T) {
 	require.Equal(t, reflect.TypeOf(1), p2.UnderlyingType())
 }
 
-func TestPromise_UntypedPromise(t *testing.T) {
-	p := promise.New(func(resolve func(string), reject func(error)) {
-		resolve("Hello")
-	})
-	pu := p.UntypedPromise()
-	require.IsType(t, &promise.Promise[any]{}, pu)
-	result, _ := pu.Await()
-	require.Equal(t, "Hello", result)
-}
-
 func TestInspect(t *testing.T) {
 	p1 := promise.New(func(resolve func(string), reject func(error)) {
 		resolve("Hello")
@@ -50,6 +40,12 @@ func TestInspect(t *testing.T) {
 	require.False(t, ok)
 }
 
+func TestLift(t *testing.T) {
+	var p *promise.Promise[string]
+	p = promise.Lift(reflect.TypeOf(p), "Hello").(*promise.Promise[string])
+	require.NotNil(t, p)
+}
+
 func TestCoerce(t *testing.T) {
 	p := promise.New(func(resolve func(any), reject func(error)) {
 		resolve("Hello")
@@ -66,6 +62,28 @@ func TestCoerce_Fail(t *testing.T) {
 	pc := promise.Coerce[string](p)
 	_, err := pc.Await()
 	require.NotNil(t, err)
+	var ta *runtime.TypeAssertionError
+	require.ErrorAs(t, err, &ta)
+	require.Equal(t, "interface conversion: interface {} is int, not string", ta.Error())
+}
+
+func TestCoerceType(t *testing.T) {
+	p := promise.New(func(resolve func(any), reject func(error)) {
+		resolve("Hello")
+	})
+	var ps *promise.Promise[string]
+	pc := promise.CoerceType(reflect.TypeOf(ps), p).(*promise.Promise[string])
+	result, _ := pc.Await()
+	require.Equal(t, "Hello", result)
+}
+
+func TestCoerceType_Fail(t *testing.T) {
+	p := promise.New(func(resolve func(any), reject func(error)) {
+		resolve(22)
+	})
+	var ps *promise.Promise[string]
+	pc := promise.CoerceType(reflect.TypeOf(ps), p).(*promise.Promise[string])
+	_, err := pc.Await()
 	var ta *runtime.TypeAssertionError
 	require.ErrorAs(t, err, &ta)
 	require.Equal(t, "interface conversion: interface {} is int, not string", ta.Error())

@@ -3,6 +3,7 @@ package miruken
 import (
 	"fmt"
 	"github.com/hashicorp/go-multierror"
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
 
@@ -16,8 +17,8 @@ type (
 		Metadata()    []any
 		Invoke(
 			ctx HandleContext,
-			explicitArgs ... any,
-		) (results []any, err error)
+			initArgs ... any,
+		) ([]any, *promise.Promise[[]any], error)
 	}
 
 	// BindingReducer aggregates Binding results.

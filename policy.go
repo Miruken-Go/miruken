@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"strings"
 )
@@ -217,7 +218,7 @@ func bindFilters(
 					}
 				}
 			}
-			provider := &FilterSpecProvider{spec}
+			provider := &filterSpecProvider{spec}
 			if invalid := b.addFilterProvider(provider); invalid != nil {
 				err = fmt.Errorf(
 					"bindFilters: filter spec provider %v at index %v failed: %w",
@@ -267,14 +268,15 @@ func bindConstraints(
 }
 
 var (
-	_filterTag          = "filter"
-	_requiredArg        = "required"
-	_anyType            = TypeOf[any]()
-	_anySliceType       = TypeOf[[]any]()
-	_errorType          = TypeOf[error]()
-	_callbackType       = TypeOf[Callback]()
-	_filterType         = TypeOf[Filter]()
-	_filterProviderType = TypeOf[FilterProvider]()
-	_constraintType     = TypeOf[BindingConstraint]()
-	_handleResType      = TypeOf[HandleResult]()
+	_filterTag           = "filter"
+	_requiredArg         = "required"
+	_anyType             = TypeOf[any]()
+	_anySliceType        = TypeOf[[]any]()
+	_promiseAnySliceType = TypeOf[*promise.Promise[[]any]]()
+	_errorType           = TypeOf[error]()
+	_callbackType        = TypeOf[Callback]()
+	_filterType          = TypeOf[Filter]()
+	_filterProviderType  = TypeOf[FilterProvider]()
+	_constraintType      = TypeOf[BindingConstraint]()
+	_handleResType       = TypeOf[HandleResult]()
 )

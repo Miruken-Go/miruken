@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
+	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"sync"
 )
@@ -369,8 +370,9 @@ func (d *HandlerDescriptor) Dispatch(
 						return result, false
 					}
 				}
-				var out []any
-				var err error
+				var out  []any
+				var pout *promise.Promise[[]any]
+				var err  error
 				context := HandleContext{
 					handler,
 					callback,
@@ -379,20 +381,27 @@ func (d *HandlerDescriptor) Dispatch(
 					greedy,
 				}
 				if len(filters) == 0 {
-					out, err = binding.Invoke(context)
+					out, pout, err = binding.Invoke(context)
 				} else {
-					out, err = pipeline(context, filters, func(ctx HandleContext) ([]any, error) {
-						return binding.Invoke(ctx)
+					out, pout, err = pipeline(context, filters,
+						func(ctx HandleContext) ([]any, *promise.Promise[[]any], error) {
+							return binding.Invoke(ctx)
 					})
 				}
 				if err == nil {
-					res, accepted := policy.AcceptResults(out)
+					if pout != nil {
+						out = []any{promise.Then(pout, func(oo []any) any {
+							res, _ := policy.AcceptResults(oo)
+							return res
+						})}
+					}
+					res, accept := policy.AcceptResults(out)
 					if res != nil {
-						if accepted.handled {
-							accepted = accepted.And(callback.ReceiveResult(res, binding.Strict(), composer))
+						if accept.handled {
+							accept = accept.And(callback.ReceiveResult(res, binding.Strict(), composer))
 						}
 					}
-					result = result.Or(accepted)
+					result = result.Or(accept)
 				} else {
 					switch err.(type) {
 					case RejectedError:

@@ -9,45 +9,59 @@ import (
 
 // arg models a parameter of a method.
 type arg interface {
+	flags() bindingFlags
 	resolve(
 		typ reflect.Type,
 		ctx HandleContext,
-	) (reflect.Value, error)
+	) (reflect.Value, *promise.Promise[reflect.Value], error)
 }
 
 // zeroArg returns the Zero value of the argument type.
 type zeroArg struct {}
 
-func (a zeroArg) resolve(
+func (z zeroArg) flags() bindingFlags {
+	return bindingNone
+}
+
+func (z zeroArg) resolve(
 	typ reflect.Type,
 	ctx HandleContext,
-) (reflect.Value, error) {
-	return reflect.Zero(typ), nil
+) (reflect.Value, *promise.Promise[reflect.Value], error) {
+	return reflect.Zero(typ), nil, nil
 }
 
 // CallbackArg returns the raw callback.
 type CallbackArg struct {}
 
-func (a CallbackArg) resolve(
+func (c CallbackArg) flags() bindingFlags {
+	return bindingNone
+}
+
+func (c CallbackArg) resolve(
 	typ reflect.Type,
 	ctx HandleContext,
-) (reflect.Value, error) {
-	return reflect.ValueOf(ctx.Callback()), nil
+) (reflect.Value, *promise.Promise[reflect.Value], error) {
+	return reflect.ValueOf(ctx.Callback()), nil, nil
 }
 
 // sourceArg returns the callback source.
 type sourceArg struct {}
 
-func (a sourceArg) resolve(
+func (s sourceArg) flags() bindingFlags {
+	return bindingNone
+}
+
+func (s sourceArg) resolve(
 	typ reflect.Type,
 	ctx HandleContext,
-) (reflect.Value, error) {
+) (reflect.Value, *promise.Promise[reflect.Value], error) {
 	if src := ctx.Callback().Source(); src != nil {
 		if v := reflect.ValueOf(src); v.Type().AssignableTo(typ) {
-			return v, nil
+			return v, nil, nil
 		}
 	}
-	return reflect.ValueOf(nil), fmt.Errorf("arg: unable to resolve source: %v", typ)
+	var v reflect.Value
+	return v, nil, fmt.Errorf("arg: unable to resolve source: %v", typ)
 }
 
 // dependencySpec encapsulates dependency metadata.
@@ -109,6 +123,13 @@ type DependencyArg struct {
 	spec *dependencySpec
 }
 
+func (d DependencyArg) flags() bindingFlags {
+	if spec := d.spec; spec != nil {
+		return spec.flags
+	}
+	return bindingNone
+}
+
 func (d DependencyArg) Optional() bool {
 	return d.spec != nil && d.spec.flags & bindingOptional == bindingOptional
 }
@@ -142,21 +163,21 @@ func (d DependencyArg) logicalType(
 func (d DependencyArg) resolve(
 	typ reflect.Type,
 	ctx HandleContext,
-) (reflect.Value, error) {
+) (reflect.Value, *promise.Promise[reflect.Value], error) {
 	typ = d.logicalType(typ)
 	if typ == _handlerType {
-		return reflect.ValueOf(ctx.Composer()), nil
+		return reflect.ValueOf(ctx.Composer()), nil, nil
 	}
 	if typ == _handleCtxType {
-		return reflect.ValueOf(ctx), nil
+		return reflect.ValueOf(ctx), nil, nil
 	}
 	callback := ctx.Callback()
 	if val := reflect.ValueOf(callback); val.Type().AssignableTo(typ) {
-		return val, nil
+		return val, nil, nil
 	}
 	if src := callback.Source(); src != nil {
 		if val := reflect.ValueOf(src); val.Type().AssignableTo(typ) {
-			return val, nil
+			return val, nil, nil
 		}
 	}
 	var resolver DependencyResolver = &_defaultResolver
@@ -165,8 +186,7 @@ func (d DependencyArg) resolve(
 			resolver = spec.resolver
 		}
 	}
-	val, err := resolver.Resolve(typ, d, ctx)
-	return val, err
+	return resolver.Resolve(typ, d, ctx)
 }
 
 // DependencyResolver defines how an argument value is retrieved.
@@ -175,7 +195,7 @@ type DependencyResolver interface {
 		typ reflect.Type,
 		dep DependencyArg,
 		ctx HandleContext,
-	) (reflect.Value, error)
+	) (reflect.Value, *promise.Promise[reflect.Value], error)
 }
 
 // defaultDependencyResolver resolves the value from the Handler.
@@ -185,7 +205,7 @@ func (r *defaultDependencyResolver) Resolve(
 	typ reflect.Type,
 	dep DependencyArg,
 	ctx HandleContext,
-) (reflect.Value, error) {
+) (v reflect.Value, pv *promise.Promise[reflect.Value], err error) {
 	parent, _ := ctx.callback.(*Provides)
 	many := !dep.Strict() && typ.Kind() == reflect.Slice
 	var builder ProvidesBuilder
@@ -199,26 +219,36 @@ func (r *defaultDependencyResolver) Resolve(
 		builder.WithConstraints(spec.constraints...)
 	}
 	provides := builder.NewProvides()
-	// TODO: async
-	if result, _, err := provides.Resolve(ctx.composer, many); err == nil {
-		var val reflect.Value
+	if result, pr, inv := provides.Resolve(ctx.composer, many); inv != nil {
+		err = fmt.Errorf("arg: unable to resolve dependency %v: %w", typ, inv)
+	} else if pr == nil {
 		if many {
-			results := result.([]any)
-			val = reflect.New(typ).Elem()
-			CopySliceIndirect(results, val)
+			v = reflect.New(typ).Elem()
+			CopySliceIndirect(result.([]any), v)
 		} else if result != nil {
-			val = reflect.ValueOf(result)
+			v = reflect.ValueOf(result)
 		} else if dep.Optional() {
-			val = reflect.Zero(typ)
+			v = reflect.Zero(typ)
 		} else {
-			return reflect.ValueOf(nil), fmt.Errorf(
-				"arg: unable to resolve dependency %v", typ)
+			err = fmt.Errorf("arg: unable to resolve dependency %v", typ)
 		}
-		return val, nil
 	} else {
-		return reflect.ValueOf(nil), fmt.Errorf(
-			"arg: unable to resolve dependency %v: %w", typ, err)
+		pv = promise.Then(pr, func(res any) reflect.Value {
+			var val reflect.Value
+			if many {
+				val = reflect.New(typ).Elem()
+				CopySliceIndirect(res.([]any), v)
+			} else if res != nil {
+				val = reflect.ValueOf(res)
+			} else if dep.Optional() {
+				val = reflect.Zero(typ)
+			} else {
+				panic(fmt.Errorf("arg: unable to resolve dependency %v", typ))
+			}
+			return val
+		})
 	}
+	return
 }
 
 // HandleContext contain all the information about handling a Callback.
@@ -268,16 +298,43 @@ func resolveArgs(
 	args      []arg,
 	ctx       HandleContext,
 ) ([]reflect.Value, *promise.Promise[[]reflect.Value], error) {
-	var resolved []reflect.Value
+	var promises []*promise.Promise[Void]
+	resolved := make([]reflect.Value, len(args))
 	for i, arg := range args {
 		typ := funType.In(fromIndex + i)
-		if a, err := arg.resolve(typ, ctx); err != nil {
+		if a, pa, err := arg.resolve(typ, ctx); err != nil {
 			return nil, nil, UnresolvedArgError{arg, err}
+		} else if pa == nil {
+			if arg.flags() & bindingPromise == bindingPromise {
+				// Not a promise so lift
+				resolved[i] = reflect.ValueOf(promise.Lift(typ, a.Interface()))
+			} else {
+				resolved[i] = a
+			}
+		} else if arg.flags() & bindingPromise == bindingPromise {
+			// Already a promise so coerce
+			resolved[i] = reflect.ValueOf(
+				promise.CoerceType(typ, pa.Then(func(v any) any {
+					return v.(reflect.Value).Interface()
+				})))
 		} else {
-			resolved = append(resolved, a)
+			idx := i
+			promises = append(promises, promise.Then(pa, func(v reflect.Value) struct {} {
+				resolved[idx] = v
+				return Void{}
+			}))
 		}
 	}
-	return resolved, nil, nil
+	switch len(promises) {
+	case 0:
+		return resolved, nil, nil
+	case 1:
+		return nil, promise.Then(promises[0],
+			func(Void) []reflect.Value { return resolved }), nil
+	default:
+		return nil, promise.Then(promise.All(promises...),
+			func([]Void) []reflect.Value { return resolved }), nil
+	}
 }
 
 // Dependency typed
