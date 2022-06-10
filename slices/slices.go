@@ -4,113 +4,146 @@ import (
 	"fmt"
 )
 
-type MapFunc[T1, T2 any] interface {
-	~func(int, T1) T2 | ~func(T1) T2
+type MapFunc[IN, OUT any] interface {
+	~func(int, IN) OUT | ~func(IN) OUT
 }
 
-// Map turns a []T1 to a []T2 using a mapping function.
-// This function has two type parameters, T1 and T2.
+// Map turns a []IN to a []OUT using a mapping function.
+// This function has two type parameters, IN and OUT.
 // This works with slices of any type.
-func Map[T1, T2 any, F MapFunc[T1, T2]](s []T1, fun F) []T2 {
-	if s == nil {
+func Map[IN, OUT any, F MapFunc[IN, OUT]](in []IN, fun F) []OUT {
+	if in == nil {
 		return nil
 	}
-	if len(s) == 0 {
-		var r []T2
-		return r
+	if len(in) == 0 {
+		var out []OUT
+		return out
 	}
-	f := func(i int, ss T1) T2 {
-		switch tf := (any)(fun).(type) {
-		case func(int, T1) T2:
-			return tf(i, ss)
-		case func(T1) T2:
-			return tf(ss)
+	f := func(i int, item IN) OUT {
+		switch typ := (any)(fun).(type) {
+		case func(int, IN) OUT:
+			return typ(i, item)
+		case func(IN) OUT:
+			return typ(item)
 		}
 		panic(fmt.Sprintf("unrecognized Map function type %T", fun))
 	}
-	r := make([]T2, len(s))
-	for i, t := range s {
-		r[i] = f(i, t)
+	out := make([]OUT, len(in))
+	for i, item := range in {
+		out[i] = f(i, item)
 	}
-	return r
+	return out
 }
 
-type FilterFunc[T any] interface {
-	~func(int, T) bool | ~func(T) bool
+type FlatMapFunc[IN, OUT any] interface {
+	~func(int, IN) []OUT | ~func(IN) []OUT
+}
+
+// FlatMap turns a []IN to a []OUT using a mapping function.
+// This function has two type parameters, IN and OUT.
+// This works with slices of any type.
+func FlatMap[IN, OUT any, F FlatMapFunc[IN, OUT]](in []IN, fun F) []OUT {
+	if in == nil {
+		return nil
+	}
+	if len(in) == 0 {
+		var out []OUT
+		return out
+	}
+	f := func(i int, item IN) []OUT {
+		switch typ := (any)(fun).(type) {
+		case func(int, IN) []OUT:
+			return typ(i, item)
+		case func(IN) []OUT:
+			return typ(item)
+		}
+		panic(fmt.Sprintf("unrecognized Map function type %T", fun))
+	}
+	var out []OUT
+	for i, item := range in {
+		for _, s := range f(i, item) {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+type FilterFunc[IN any] interface {
+	~func(int, IN) bool | ~func(IN) bool
 }
 
 // Filter filters values from a slice using a filter function.
 // It returns a new slice with only the elements of s
 // for which f returned true.
-func Filter[T any, F FilterFunc[T]](s []T, fun F) []T {
-	var r []T
-	if len(s) == 0 {
-		return s
+func Filter[IN any, F FilterFunc[IN]](in []IN, fun F) []IN {
+	var out []IN
+	if len(in) == 0 {
+		return in
 	}
-	f := func(i int, s T) bool {
-		switch tf := (any)(fun).(type) {
-		case func(int, T) bool:
-			return tf(i, s)
-		case func(T) bool:
-			return tf(s)
+	f := func(i int, item IN) bool {
+		switch typ := (any)(fun).(type) {
+		case func(int, IN) bool:
+			return typ(i, item)
+		case func(IN) bool:
+			return typ(item)
 		default:
 			panic(fmt.Sprintf("unrecognized Filter function type %T", fun))
 		}
 	}
-	for i, t := range s {
-		if f(i, t) {
-			r = append(r, t)
+	for i, item := range in {
+		if f(i, item) {
+			out = append(out, item)
 		}
 	}
-	return r
+	return out
 }
 
 // OfType filters values from a slice satisfying a given type.
-func OfType[T1, T2 any](s []T1) []T2 {
-	var r []T2
-	if len(s) == 0 {
-		return r
+func OfType[IN, T any](in []IN) []T {
+	var out []T
+	if len(in) == 0 {
+		return out
 	}
-	for _, t := range s {
-		var a any = t
-		if tt, ok := a.(T2); ok{
-			r = append(r, tt)
+	for _, item := range in {
+		var a any = item
+		if tt, ok := a.(T); ok {
+			out = append(out, tt)
 		}
 	}
-	return r
+	return out
 }
 
-type AccumulatorFunc[T1, T2 any] func(r T2, i int, s T1) T2
+type AccumulatorFunc[IN, OUT any] func(out OUT, i int, item IN) OUT
 
-// Reduce reduces a []T1 to a single value using an accumulator function.
-func Reduce[T1, T2 any, F AccumulatorFunc[T1, T2]](
-	s []T1, initializer T2,
-	f AccumulatorFunc[T1, T2],
-) T2 {
-	r := initializer
-	if s != nil {
-		for i, t := range s {
-			r = f(r, i, t)
+// Reduce reduces a []IN to a single value using an accumulator function.
+func Reduce[IN, OUT any, F AccumulatorFunc[IN, OUT]](
+	in  []IN, initializer OUT,
+	fun AccumulatorFunc[IN, OUT],
+) OUT {
+	out := initializer
+	if in != nil {
+		for i, item := range in {
+			out = fun(out, i, item)
 		}
 	}
-	return r
+	return out
 }
 
 // First returns the First element (or zero value if empty) and bool if exists.
-func First[T any](s []T) (T, bool) {
-	if len(s) > 0 {
-		return s[0], true
+func First[IN any](in []IN) (IN, bool) {
+	if len(in) > 0 {
+		return in[0], true
 	}
-	var zero T
+	var zero IN
 	return zero, false
 }
 
 // Last returns the Last element (or zero value if empty) and bool if exists.
-func Last[T any](s []T) (T, bool) {
-	if len(s) > 0 {
-		return s[len(s)-1], true
+func Last[IN any](in []IN) (IN, bool) {
+	if len(in) > 0 {
+		return in[len(in)-1], true
 	}
-	var zero T
+	var zero IN
 	return zero, false
 }
 

@@ -33,7 +33,7 @@ func (i *initializer) Next(
 			return oo
  		})
 	} else if _, pout, err = mergeOutput(i.invoke(ctx, out[0])); err == nil && pout != nil {
-		pout = promise.Then(pout, func(oo []any) []any {
+		pout = promise.Then(pout, func([]any) []any {
 			return out
 		})
 	}

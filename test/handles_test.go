@@ -66,10 +66,10 @@ func (h *BarHandler) HandleBar(
 ) {
 }
 
-// BarAsyncHandler
-type BarAsyncHandler struct {}
+// AsyncHandler
+type AsyncHandler struct {}
 
-func (h *BarAsyncHandler) HandleBar(
+func (h *AsyncHandler) HandleBar(
 	_*miruken.Handles, bar *Bar,
 ) *promise.Promise[*Bar] {
 	bar.Inc()
@@ -78,16 +78,16 @@ func (h *BarAsyncHandler) HandleBar(
 		func(void miruken.Void) *Bar { return bar })
 }
 
-func (h *BarAsyncHandler) HandleBoo(
+func (h *AsyncHandler) HandleBoo(
 	_*miruken.Handles, boo *Boo,
 	baz *Baz,
-) *Baz {
+) *promise.Promise[*Baz] {
 	boo.Inc()
 	baz.Inc()
-	return baz
+	return promise.Resolve(baz)
 }
 
-func (h *BarAsyncHandler) HandleBamPromiseBazArg(
+func (h *AsyncHandler) HandleBamPromiseArg(
 	_*miruken.Handles, bam *Bam,
 	baz *promise.Promise[*Baz],
 ) *Baz {
@@ -98,10 +98,27 @@ func (h *BarAsyncHandler) HandleBamPromiseBazArg(
 	return buz
 }
 
-func (h *BarAsyncHandler) ProvidesBaz(
+func (h *AsyncHandler) HandleFooPromiseArgLift(
+	_*miruken.Handles, foo *Foo,
+	boo *promise.Promise[*Boo],
+) *Boo {
+	foo.Inc()
+	foo.Inc()
+	boz, _ := boo.Await()
+	boz.Inc()
+	return boz
+}
+
+func (h *AsyncHandler) ProvidesBaz(
 	_*miruken.Provides,
 ) *promise.Promise[*Baz] {
 	return promise.Resolve(new(Baz))
+}
+
+func (h *AsyncHandler) ProvidesBoo(
+	_*miruken.Provides,
+) *Boo {
+	return &Boo{Counted{5}}
 }
 
 // CounterHandler
@@ -1108,7 +1125,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 func (suite *HandlesTestSuite) TestAsyncHandles() {
 	suite.Run("Invariant", func() {
 		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&BarAsyncHandler{}))
+			miruken.HandlerSpecs(&AsyncHandler{}))
 		bar := &Bar{Counted{2}}
 		b, p, err := miruken.Invoke[*Bar](handler, bar)
 		suite.Nil(err)
@@ -1122,7 +1139,7 @@ func (suite *HandlesTestSuite) TestAsyncHandles() {
 
 	suite.Run("Promise dependency", func() {
 		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&BarAsyncHandler{}))
+			miruken.HandlerSpecs(&AsyncHandler{}))
 		boo := &Boo{Counted{4}}
 		baz, p, err := miruken.Invoke[*Baz](handler, boo)
 		suite.Nil(err)
@@ -1136,7 +1153,7 @@ func (suite *HandlesTestSuite) TestAsyncHandles() {
 
 	suite.Run("Promise dependency arg", func() {
 		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&BarAsyncHandler{}))
+			miruken.HandlerSpecs(&AsyncHandler{}))
 		bam := &Bam{Counted{2}}
 		baz, p, err := miruken.Invoke[*Baz](handler, bam)
 		suite.Nil(err)
@@ -1144,6 +1161,18 @@ func (suite *HandlesTestSuite) TestAsyncHandles() {
 		suite.NotNil(baz)
 		suite.Equal(4, bam.Count())
 		suite.Equal(1, baz.Count())
+	})
+
+	suite.Run("Promise dependency arg lift", func() {
+		handler, _ := suite.SetupWith(
+			miruken.HandlerSpecs(&AsyncHandler{}))
+		foo := &Foo{Counted{3}}
+		boo, p, err := miruken.Invoke[*Boo](handler, foo)
+		suite.Nil(err)
+		suite.Nil(p)
+		suite.NotNil(boo)
+		suite.Equal(5, foo.Count())
+		suite.Equal(6, boo.Count())
 	})
 }
 

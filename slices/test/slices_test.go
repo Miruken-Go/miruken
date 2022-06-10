@@ -26,6 +26,20 @@ func (suite *SlicesTestSuite) TestSlices() {
 		suite.Equal([]int{4}, slices.Map[string, int]([]string{"fish"}, func(s string) int { return len(s) }))
 	})
 
+	suite.Run("FlatMap", func() {
+		s := []string{"a", "b", "c"}
+		result := slices.FlatMap[string, string](s, func(i int, s string) []string {
+			return []string{s, strings.ToUpper(s)}
+		})
+		expected := []string{"a", "A", "b", "B", "c", "C"}
+
+		suite.Equal(expected, result)
+		suite.Len(slices.FlatMap[string, string]([]string{"X", "Y", "Z"},
+			func(s string) []string {
+				return []string{}
+			}), 0)
+	})
+
 	suite.Run("Filter", func() {
 		result := slices.Filter([]string{"car1", "car2", "bus1", "bus2"}, func(i int, s string) bool {
 			return strings.HasPrefix(s, "car")

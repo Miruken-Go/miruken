@@ -63,6 +63,9 @@ type (
 	suppressDispatch interface {
 		SuppressDispatch()
 	}
+
+	// Marker to expand results.
+	expandResults []any
 )
 
 func (c *CallbackBase) Source() any {
@@ -152,7 +155,8 @@ func (c *CallbackBase) ReceiveResult(
 	}
 	switch reflect.TypeOf(result).Kind() {
 	case reflect.Slice, reflect.Array:
-		return c.addResults(result, composer)
+		_, r := c.processResults(false, result, composer)
+		return r
 	default:
 		return c.includeResult(result, false, composer)
 	}
@@ -196,8 +200,14 @@ func CoerceResults[T any](
 
 func (c *CallbackBase) ensureResult(many bool) any {
 	if c.result == nil {
-		results := slices.Filter(c.results, func(res any) bool {
-			return !IsNil(res)
+		results := slices.FlatMap[any, any](c.results, func(res any) []any {
+			 if IsNil(res) {
+				 return nil
+			 }
+			 if expand, ok := res.(expandResults); ok {
+				 return expand
+			 }
+			 return []any{res}
 		})
 		if many {
 			c.result = results
@@ -220,17 +230,24 @@ func (c *CallbackBase) includeResult(
 	}
 	if pr, ok := result.(promise.Reflect); ok {
 		pp := pr.Then(func(res any) any {
-			if strict {
-				c.AddResult(res, composer)
-			} else {
-				switch reflect.TypeOf(res).Kind() {
-				case reflect.Slice, reflect.Array:
-					c.addResults(res, composer)
-				default:
-					c.AddResult(res, composer)
+			if !strict {
+				if p, ok := res.(promise.Reflect); ok {
+					// Promise of a promise so await
+					if rr, err := p.AwaitAny(); err != nil {
+						panic(err)
+					} else {
+						return rr
+					}
+				} else {
+					// Expand lists into single return
+					switch reflect.TypeOf(res).Kind() {
+					case reflect.Slice, reflect.Array:
+						r, _ := c.processResults(true, res, composer)
+						return r
+					}
 				}
 			}
-			return nil
+			return res
 		})
 		if accept := c.acceptPromise; accept != nil {
 			pp = accept(pp)
@@ -241,26 +258,30 @@ func (c *CallbackBase) includeResult(
 	}
 	switch reflect.TypeOf(result).Kind() {
 	case reflect.Slice, reflect.Array:
-		c.addResults(result, composer)
+		c.processResults(false, result, composer)
 	default:
 		return c.AddResult(result, composer)
 	}
 	return Handled
 }
 
-func (c *CallbackBase) addResults(
-	list     any,
+func (c *CallbackBase) processResults(
+	wrap     bool,
+	results  any,
 	composer Handler,
-) HandleResult {
+) (expandResults, HandleResult) {
 	res := NotHandled
-	v := reflect.ValueOf(list)
+	var expand expandResults
+	v := reflect.ValueOf(results)
 	for i := 0; i < v.Len(); i++ {
 		val := v.Index(i).Interface()
 		if !IsNil(val) {
-			if res = res.Or(c.AddResult(val, composer)); res.stop {
+			if wrap {
+				expand = append(expand, val)
+			} else if res = res.Or(c.AddResult(val, composer)); res.stop {
 				break
 			}
 		}
 	}
-	return res
+	return expand, res
 }

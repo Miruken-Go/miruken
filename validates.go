@@ -333,6 +333,7 @@ func (v validateFilter) Next(
 			return next.PipeAwait()
 		}), nil
 	}
+	// todo: validate result
 	return next.Abort()
 }
 
