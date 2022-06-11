@@ -66,61 +66,6 @@ func (h *BarHandler) HandleBar(
 ) {
 }
 
-// AsyncHandler
-type AsyncHandler struct {}
-
-func (h *AsyncHandler) HandleBar(
-	_*miruken.Handles, bar *Bar,
-) *promise.Promise[*Bar] {
-	bar.Inc()
-	return promise.Then(
-		promise.Delay(time.Duration(bar.Count()) * time.Millisecond),
-		func(void miruken.Void) *Bar { return bar })
-}
-
-func (h *AsyncHandler) HandleBoo(
-	_*miruken.Handles, boo *Boo,
-	baz *Baz,
-) *promise.Promise[*Baz] {
-	boo.Inc()
-	baz.Inc()
-	return promise.Resolve(baz)
-}
-
-func (h *AsyncHandler) HandleBamPromiseArg(
-	_*miruken.Handles, bam *Bam,
-	baz *promise.Promise[*Baz],
-) *Baz {
-	bam.Inc()
-	bam.Inc()
-	buz, _ := baz.Await()
-	buz.Inc()
-	return buz
-}
-
-func (h *AsyncHandler) HandleFooPromiseArgLift(
-	_*miruken.Handles, foo *Foo,
-	boo *promise.Promise[*Boo],
-) *Boo {
-	foo.Inc()
-	foo.Inc()
-	boz, _ := boo.Await()
-	boz.Inc()
-	return boz
-}
-
-func (h *AsyncHandler) ProvidesBaz(
-	_*miruken.Provides,
-) *promise.Promise[*Baz] {
-	return promise.Resolve(new(Baz))
-}
-
-func (h *AsyncHandler) ProvidesBoo(
-	_*miruken.Provides,
-) *Boo {
-	return &Boo{Counted{5}}
-}
-
 // CounterHandler
 type CounterHandler struct {}
 
@@ -383,6 +328,84 @@ func (m *MixedHandler) Mix(
 	default:
 		return ""
 	}
+}
+
+// SimpleAsyncHandler
+type SimpleAsyncHandler struct {}
+
+func (h *SimpleAsyncHandler) HandleBar(
+	_*miruken.Handles, bar *Bar,
+) *promise.Promise[*Bar] {
+	bar.Inc()
+	return promise.Then(
+		promise.Delay(time.Duration(bar.Count()) * time.Millisecond),
+		func(void miruken.Void) *Bar { return bar })
+}
+
+func (h *SimpleAsyncHandler) HandleBoo(
+	_*miruken.Handles, boo *Boo,
+	baz *Baz,
+) *promise.Promise[*Baz] {
+	boo.Inc()
+	baz.Inc()
+	return promise.Resolve(baz)
+}
+
+func (h *SimpleAsyncHandler) HandleBamPromiseArg(
+	_*miruken.Handles, bam *Bam,
+	baz *promise.Promise[*Baz],
+) *Baz {
+	bam.Inc()
+	bam.Inc()
+	buz, _ := baz.Await()
+	buz.Inc()
+	return buz
+}
+
+func (h *SimpleAsyncHandler) HandleFooPromiseArgLift(
+	_*miruken.Handles, foo *Foo,
+	boo *promise.Promise[*Boo],
+) *Boo {
+	foo.Inc()
+	foo.Inc()
+	boz, _ := boo.Await()
+	boz.Inc()
+	return boz
+}
+
+func (h *SimpleAsyncHandler) ProvidesBaz(
+	_*miruken.Provides,
+) *promise.Promise[*Baz] {
+	return promise.Resolve(new(Baz))
+}
+
+func (h *SimpleAsyncHandler) ProvidesBoo(
+	_*miruken.Provides,
+) *Boo {
+	return &Boo{Counted{5}}
+}
+
+// ComplexAsyncHandler
+type ComplexAsyncHandler struct {}
+
+func (h *ComplexAsyncHandler) HandleFoo(
+	_*struct{ miruken.Handles; miruken.Strict }, foo *Foo,
+	baz []*Baz,
+) []*Baz {
+	foo.Inc()
+	return baz
+}
+
+func (h *ComplexAsyncHandler) ProvidesBaz(
+	_*miruken.Provides,
+) *Baz {
+	return new(Baz)
+}
+
+func (h *ComplexAsyncHandler) ProvidesBazAsync(
+	_*miruken.Provides,
+) *promise.Promise[*Baz] {
+	return promise.Resolve(new(Baz))
 }
 
 // InvalidHandler
@@ -1122,57 +1145,75 @@ func (suite *HandlesTestSuite) TestHandles() {
 	})
 }
 
-func (suite *HandlesTestSuite) TestAsyncHandles() {
-	suite.Run("Invariant", func() {
-		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&AsyncHandler{}))
-		bar := &Bar{Counted{2}}
-		b, p, err := miruken.Invoke[*Bar](handler, bar)
-		suite.Nil(err)
-		suite.Nil(b)
-		suite.NotNil(p)
-		b, err = p.Await()
-		suite.Nil(err)
-		suite.Same(bar, b)
-		suite.Equal(3, bar.Count())
+func (suite *HandlesTestSuite) TestHandlesAsync() {
+	suite.Run("Simple", func() {
+		suite.Run("Returns Promise", func() {
+			handler, _ := suite.SetupWith(
+				miruken.HandlerSpecs(&SimpleAsyncHandler{}))
+			bar := &Bar{Counted{2}}
+			b, p, err := miruken.Invoke[*Bar](handler, bar)
+			suite.Nil(err)
+			suite.Nil(b)
+			suite.NotNil(p)
+			b, err = p.Await()
+			suite.Nil(err)
+			suite.Same(bar, b)
+			suite.Equal(3, bar.Count())
+		})
+
+		suite.Run("Promise dependency", func() {
+			handler, _ := suite.SetupWith(
+				miruken.HandlerSpecs(&SimpleAsyncHandler{}))
+			boo := &Boo{Counted{4}}
+			baz, p, err := miruken.Invoke[*Baz](handler, boo)
+			suite.Nil(err)
+			suite.NotNil(p)
+			suite.Nil(baz)
+			baz, err = p.Await()
+			suite.Nil(err)
+			suite.Equal(5, boo.Count())
+			suite.Equal(1, baz.Count())
+		})
+
+		suite.Run("Promise dependency arg", func() {
+			handler, _ := suite.SetupWith(
+				miruken.HandlerSpecs(&SimpleAsyncHandler{}))
+			bam := &Bam{Counted{2}}
+			baz, p, err := miruken.Invoke[*Baz](handler, bam)
+			suite.Nil(err)
+			suite.Nil(p)
+			suite.NotNil(baz)
+			suite.Equal(4, bam.Count())
+			suite.Equal(1, baz.Count())
+		})
+
+		suite.Run("Promise dependency arg lift", func() {
+			handler, _ := suite.SetupWith(
+				miruken.HandlerSpecs(&SimpleAsyncHandler{}))
+			foo := &Foo{Counted{3}}
+			boo, p, err := miruken.Invoke[*Boo](handler, foo)
+			suite.Nil(err)
+			suite.Nil(p)
+			suite.NotNil(boo)
+			suite.Equal(5, foo.Count())
+			suite.Equal(6, boo.Count())
+		})
 	})
 
-	suite.Run("Promise dependency", func() {
-		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&AsyncHandler{}))
-		boo := &Boo{Counted{4}}
-		baz, p, err := miruken.Invoke[*Baz](handler, boo)
-		suite.Nil(err)
-		suite.NotNil(p)
-		suite.Nil(baz)
-		baz, err = p.Await()
-		suite.Nil(err)
-		suite.Equal(5, boo.Count())
-		suite.Equal(1, baz.Count())
-	})
-
-	suite.Run("Promise dependency arg", func() {
-		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&AsyncHandler{}))
-		bam := &Bam{Counted{2}}
-		baz, p, err := miruken.Invoke[*Baz](handler, bam)
-		suite.Nil(err)
-		suite.Nil(p)
-		suite.NotNil(baz)
-		suite.Equal(4, bam.Count())
-		suite.Equal(1, baz.Count())
-	})
-
-	suite.Run("Promise dependency arg lift", func() {
-		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&AsyncHandler{}))
-		foo := &Foo{Counted{3}}
-		boo, p, err := miruken.Invoke[*Boo](handler, foo)
-		suite.Nil(err)
-		suite.Nil(p)
-		suite.NotNil(boo)
-		suite.Equal(5, foo.Count())
-		suite.Equal(6, boo.Count())
+	suite.Run("Complex", func() {
+		suite.Run("Promise strict many dependency", func() {
+			handler, _ := suite.SetupWith(
+				miruken.HandlerSpecs(&ComplexAsyncHandler{}))
+			foo := &Foo{Counted{4}}
+			baz, p, err := miruken.Invoke[[]*Baz](handler, foo)
+			suite.Nil(err)
+			suite.NotNil(p)
+			suite.Nil(baz)
+			baz, err = p.Await()
+			suite.Nil(err)
+			suite.Equal(5, foo.Count())
+			suite.Len(baz, 2)
+		})
 	})
 }
 

@@ -7,6 +7,10 @@ type Resolves struct {
 	succeeded bool
 }
 
+func (r *Resolves) Callback() Callback {
+	return r.callback
+}
+
 func (r *Resolves) Succeeded() bool {
 	return r.succeeded
 }

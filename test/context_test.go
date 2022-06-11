@@ -644,7 +644,7 @@ func (suite *ContextTestSuite) TestContextual() {
 		}
 		service.SetContext(nil)
 		if services, _, err := miruken.ResolveAll[*ScopedService](root); err == nil {
-			suite.NotNil(services)
+			suite.Nil(services)
 			suite.Len(services, 0)
 		} else {
 			suite.Fail("unexpected error: %v", err.Error())

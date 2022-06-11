@@ -64,7 +64,7 @@ type (
 		SuppressDispatch()
 	}
 
-	// Marker to expand results.
+	// marks a list of results to be expanded.
 	expandResults []any
 )
 
@@ -82,14 +82,14 @@ func (c *CallbackBase) Result(
 	if c.result == nil {
 		switch len(c.promises) {
 		case 0:
-			c.ensureResult(many)
+			c.ensureResult(many, false)
 		case 1:
 			return nil, c.promises[0].Then(func(any) any {
-				return c.ensureResult(many)
+				return c.ensureResult(many, true)
 			})
 		default:
 			return nil, promise.All(c.promises...).Then(func(any) any {
-				return c.ensureResult(many)
+				return c.ensureResult(many, true)
 			})
 		}
 	}
@@ -121,14 +121,22 @@ func (c *CallbackBase) AddResult(
 	}
 	accept := c.accept
 	if pr, ok := result.(promise.Reflect); ok {
+		// To avoid locking the results, promises are added to
+		// the results and promises list.  When resolved, the
+		// result is replaced at the same position.  A special
+		// expandResults type is used when the promise resolves
+		// in a list of results.
 		idx := len(c.results)
 		c.results  = append(c.results, result)
 		c.promises = append(c.promises, pr.Then(func(res any) any {
-			if accept != nil {
-				accept(res, composer)
-				res = nil
-			}
-			if l := len(c.results); l > idx {
+			if accept != nil  {
+				if l := len(c.results); l > idx {
+					c.results[idx] = nil
+				}
+				if !IsNil(res) {
+					accept(res, composer)
+				}
+			} else if l := len(c.results); l > idx {
 				c.results[idx] = res
 			}
 			return nil
@@ -173,6 +181,20 @@ func CoerceResult[T any](
 		CopyIndirect(result, target)
 	} else {
 		tp = promise.Then(p, func(res any) T {
+			// During processing of the callback, it may be
+			// promoted to asynchronous operation.
+			//   e.g.  async filter, async args
+			// It is necessary to unwrap the promise to obtain
+			// the correct result to bind to.
+			if !reflect.TypeOf(res).AssignableTo(TypeOf[T]()) {
+				if pr, ok := res.(promise.Reflect); ok {
+					if r, err := pr.AwaitAny(); err != nil {
+						panic(err)
+					} else {
+						res = r
+					}
+				}
+			}
 			CopyIndirect(res, target)
 			return *target
 		})
@@ -191,6 +213,15 @@ func CoerceResults[T any](
 		CopySliceIndirect(result.([]any), target)
 	} else {
 		tp = promise.Then(p, func(res any) []T {
+			if !reflect.TypeOf(res).AssignableTo(TypeOf[T]()) {
+				if pr, ok := res.(promise.Reflect); ok {
+					if r, err := pr.AwaitAny(); err != nil {
+						panic(err)
+					} else {
+						res = r
+					}
+				}
+			}
 			CopySliceIndirect(res.([]any), target)
 			return *target
 		})
@@ -198,17 +229,24 @@ func CoerceResults[T any](
 	return
 }
 
-func (c *CallbackBase) ensureResult(many bool) any {
+func (c *CallbackBase) ensureResult(many bool, expand bool) any {
 	if c.result == nil {
-		results := slices.FlatMap[any, any](c.results, func(res any) []any {
-			 if IsNil(res) {
-				 return nil
-			 }
-			 if expand, ok := res.(expandResults); ok {
-				 return expand
-			 }
-			 return []any{res}
-		})
+		var results []any
+		if expand {
+			results = slices.FlatMap[any, any](c.results, func(res any) []any {
+				if IsNil(res) {
+					return nil
+				}
+				if expand, ok := res.(expandResults); ok {
+					return expand
+				}
+				return []any{res}
+			})
+		} else {
+			results = slices.Filter(c.results, func(res any) bool {
+				return !IsNil(res)
+			})
+		}
 		if many {
 			c.result = results
 		} else if len(results) == 0 {
@@ -230,24 +268,26 @@ func (c *CallbackBase) includeResult(
 	}
 	if pr, ok := result.(promise.Reflect); ok {
 		pp := pr.Then(func(res any) any {
-			if !strict {
-				if p, ok := res.(promise.Reflect); ok {
-					// Promise of a promise so await
-					if rr, err := p.AwaitAny(); err != nil {
-						panic(err)
-					} else {
-						return rr
-					}
+			if strict {
+				return res
+			}
+			if p, ok := res.(promise.Reflect); ok {
+				// Promise of a promise so await
+				if r, err := p.AwaitAny(); err != nil {
+					panic(err)
 				} else {
-					// Expand lists into single return
-					switch reflect.TypeOf(res).Kind() {
-					case reflect.Slice, reflect.Array:
-						r, _ := c.processResults(true, res, composer)
-						return r
-					}
+					return r
+				}
+			} else {
+				// Squash list into expando result
+				switch reflect.TypeOf(res).Kind() {
+				case reflect.Slice, reflect.Array:
+					r, _ := c.processResults(true, res, composer)
+					return r
+				default:
+					return res
 				}
 			}
-			return res
 		})
 		if accept := c.acceptPromise; accept != nil {
 			pp = accept(pp)
@@ -265,8 +305,13 @@ func (c *CallbackBase) includeResult(
 	return Handled
 }
 
+// processResults adds an array or slice to the callbacks results.
+// If squash is requested, the results are encoded in a special
+// expandResults class that is expanded when results are returned.
+// This is necessary since async support uses in-place replacement
+// to avoid locking the results.
 func (c *CallbackBase) processResults(
-	wrap     bool,
+	squash   bool,
 	results  any,
 	composer Handler,
 ) (expandResults, HandleResult) {
@@ -276,7 +321,7 @@ func (c *CallbackBase) processResults(
 	for i := 0; i < v.Len(); i++ {
 		val := v.Index(i).Interface()
 		if !IsNil(val) {
-			if wrap {
+			if squash {
 				expand = append(expand, val)
 			} else if res = res.Or(c.AddResult(val, composer)); res.stop {
 				break

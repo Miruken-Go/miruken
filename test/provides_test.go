@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/suite"
 	"strings"
 	"testing"
+	"time"
 )
 
 // FooProvider
@@ -95,6 +97,46 @@ func (p *OpenProvider) Provide(
 		return &Bar{}
 	}
 	return nil
+}
+
+// SimpleAsyncProvider
+type SimpleAsyncProvider struct {
+	foo Foo
+}
+
+func (p *SimpleAsyncProvider) ProvideFoo(
+	*miruken.Provides,
+) *promise.Promise[*Foo] {
+	p.foo.Inc()
+	return promise.Then(promise.Delay(5 * time.Millisecond),
+		func(void miruken.Void) *Foo {
+			return &p.foo
+		})
+}
+
+// ComplexAsyncProvider
+type ComplexAsyncProvider struct {
+	bar Bar
+}
+
+func (p *ComplexAsyncProvider) Constructor(
+	_*struct{ miruken.Provides },
+) *promise.Promise[miruken.Void] {
+	return promise.Then(
+		promise.Delay(2 * time.Millisecond),
+			func(miruken.Void) miruken.Void {
+				p.bar.Inc()
+				return miruken.Void{}
+			})
+}
+
+func (p *ComplexAsyncProvider) ProvideBar(
+	_*miruken.Provides,
+	foo *Foo,
+) *Bar {
+	p.bar.Inc()
+	foo.Inc()
+	return &p.bar
 }
 
 // InvalidProvider
@@ -383,7 +425,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 			handler, _ := suite.SetupWith(miruken.Handlers(new(FooProvider)))
 			bars, _, err := miruken.ResolveAll[*Bar](handler)
 			suite.Nil(err)
-			suite.NotNil(bars)
+			suite.Nil(bars)
 		})
 	})
 
@@ -428,6 +470,44 @@ func (suite *ProvidesTestSuite) TestProvides() {
 			suite.Nil(err)
 			suite.NotNil(bar)
 			suite.Equal(2, bar.Count())
+		})
+	})
+}
+
+func (suite *ProvidesTestSuite) TestProvidesAsync() {
+	suite.Run("Simple", func () {
+		suite.Run("Returns Promise", func() {
+			handler, _ := suite.SetupWith(
+				miruken.HandlerSpecs(&SimpleAsyncProvider{}))
+			foo, pf, err := miruken.Resolve[*Foo](handler)
+			suite.Nil(err)
+			suite.Nil(foo)
+			suite.NotNil(pf)
+			foo, err = pf.Await()
+			suite.Nil(err)
+			suite.Equal(1, foo.Count())
+		})
+	})
+
+	suite.Run("Complex", func () {
+		suite.Run("Returns Promise", func() {
+			handler, _ := suite.SetupWith(
+				miruken.HandlerSpecs(&SimpleAsyncProvider{}),
+				miruken.HandlerSpecs(&ComplexAsyncProvider{}))
+			bar, pb, err := miruken.Resolve[*Bar](handler)
+			suite.Nil(err)
+			suite.Nil(bar)
+			suite.NotNil(pb)
+			bar, err = pb.Await()
+			suite.Nil(err)
+			suite.Equal(2, bar.Count())
+			foo, pf, err := miruken.Resolve[*Foo](handler)
+			suite.Nil(err)
+			suite.Nil(foo)
+			suite.NotNil(pf)
+			foo, err = pf.Await()
+			suite.Nil(err)
+			suite.Equal(3, foo.Count())
 		})
 	})
 }

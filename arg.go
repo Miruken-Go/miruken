@@ -237,7 +237,7 @@ func (r *defaultDependencyResolver) Resolve(
 			var val reflect.Value
 			if many {
 				val = reflect.New(typ).Elem()
-				CopySliceIndirect(res.([]any), v)
+				CopySliceIndirect(res.([]any), val)
 			} else if res != nil {
 				val = reflect.ValueOf(res)
 			} else if dep.Optional() {

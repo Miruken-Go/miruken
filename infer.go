@@ -88,6 +88,7 @@ func (b *methodIntercept) Invoke(
 ) ([]any, *promise.Promise[[]any], error) {
 	handlerType := b.handlerType
 	callback    := ctx.Callback()
+	composer    := ctx.Composer()
 	parent, _   := callback.(*Provides)
 	var builder ResolvesBuilder
 	builder.
@@ -96,9 +97,21 @@ func (b *methodIntercept) Invoke(
 		WithParent(parent).
 		WithKey(handlerType)
 	resolves := builder.NewResolves()
-	if result := ctx.Composer().Handle(resolves, true, nil); result.IsError() {
+	if result := composer.Handle(resolves, true, nil); result.IsError() {
 		return nil, nil, result.Error()
+	} else if _, p := resolves.Result(false); p != nil {
+		return nil, promise.Then(p, func(res any) []any {
+			if !resolves.Succeeded() {
+				panic(NotHandledError{callback})
+			}
+			// Since this promise with be added to the actual callback's
+			// results, return nil to ensure it is filtered out during a
+			// call to Callback.Result().
+			return nil
+		}), nil
 	} else {
+		// Make the HandleResult the effective return to no
+		// additional results are added to the actual callback.
 		return []any{result}, nil, nil
 	}
 }

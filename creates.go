@@ -62,7 +62,7 @@ func Create[T any](
 		NewCreation()
 	if result := handler.Handle(creates, false, nil); result.IsError() {
 		err = result.Error()
-	} else {
+	} else if result.handled {
 		_, tp, err = CoerceResult[T](creates, &t)
 	}
 	return
@@ -79,7 +79,7 @@ func CreateAll[T any](
 	creates := builder.NewCreation()
 	if result := handler.Handle(creates, true, nil); result.IsError() {
 		err = result.Error()
-	} else {
+	} else if result.handled {
 		_, tp, err = CoerceResults[T](creates, &t)
 	}
 	return

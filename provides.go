@@ -69,6 +69,7 @@ func (p *Provides) Dispatch(
 	composer Handler,
 ) (result HandleResult) {
 	result = NotHandled
+	count := p.ResultCount()
 	if p.metadata.IsEmpty() {
 		if typ, ok := p.key.(reflect.Type); ok {
 			if reflect.TypeOf(handler).AssignableTo(typ) {
@@ -79,7 +80,6 @@ func (p *Provides) Dispatch(
 			}
 		}
 	}
-	count := p.ResultCount()
 	return DispatchPolicy(handler, p, greedy, composer).
 		OtherwiseHandledIf(p.ResultCount() > count)
 }
@@ -169,7 +169,7 @@ func Resolve[T any](
 		NewProvides()
 	if result := handler.Handle(provides, false, nil); result.IsError() {
 		err = result.Error()
-	} else {
+	} else if result.handled {
 		_, tp, err = CoerceResult[T](provides, &t)
 	}
 	return
@@ -188,7 +188,7 @@ func ResolveAll[T any](
 	provides := builder.NewProvides()
 	if result := handler.Handle(provides, true, nil); result.IsError() {
 		err = result.Error()
-	} else {
+	} else if result.handled {
 		_, tp, err = CoerceResults[T](provides, &t)
 	}
 	return
