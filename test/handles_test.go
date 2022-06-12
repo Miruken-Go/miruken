@@ -408,6 +408,15 @@ func (h *ComplexAsyncHandler) ProvidesBazAsync(
 	return promise.Resolve(new(Baz))
 }
 
+// ErrorAsyncHandler
+type ErrorAsyncHandler struct {}
+
+func (h *ErrorAsyncHandler) HandleFoo(
+	_*miruken.Handles, foo *Foo,
+) *promise.Promise[*Bar] {
+	return promise.Reject[*Bar](fmt.Errorf("bad Foo %p", foo))
+}
+
 // InvalidHandler
 type InvalidHandler struct {}
 
@@ -1213,6 +1222,20 @@ func (suite *HandlesTestSuite) TestHandlesAsync() {
 			suite.Nil(err)
 			suite.Equal(5, foo.Count())
 			suite.Len(baz, 2)
+		})
+	})
+
+	suite.Run("Errors", func() {
+		suite.Run("Reject Promise", func() {
+			handler, _ := suite.SetupWith(
+				miruken.HandlerSpecs(&ErrorAsyncHandler{}))
+			foo := new(Foo)
+			bar, pb, err := miruken.Invoke[*Bar](handler, foo)
+			suite.Nil(err)
+			suite.Nil(bar)
+			suite.NotNil(pb)
+			_, err = pb.Await()
+			suite.EqualError(err, fmt.Sprintf("bad Foo %p", foo))
 		})
 	})
 }

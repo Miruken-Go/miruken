@@ -120,7 +120,7 @@ type ComplexAsyncProvider struct {
 }
 
 func (p *ComplexAsyncProvider) Constructor(
-	_*struct{ miruken.Provides },
+	_*struct{ miruken.Provides; miruken.Creates },
 ) *promise.Promise[miruken.Void] {
 	return promise.Then(
 		promise.Delay(2 * time.Millisecond),
@@ -346,9 +346,10 @@ func (suite *ProvidesTestSuite) TestProvides() {
 	})
 
 	suite.Run("Infer", func () {
-		handler, _ := suite.Setup()
-
 		suite.Run("Invariant", func() {
+			handler, _ := suite.SetupWith(
+				miruken.HandlerSpecs(
+					&SpecificationHandler{}))
 			foo := new(Foo)
 			result := handler.Handle(foo, false, nil)
 			suite.False(result.IsError())
@@ -358,16 +359,21 @@ func (suite *ProvidesTestSuite) TestProvides() {
 
 		suite.Run("Open", func () {
 			handler, _ := suite.Setup()
-			foo, _, err := miruken.ResolveAll[*Foo](handler)
+			foo, fp, err := miruken.ResolveAll[*Foo](handler)
 			suite.Nil(err)
+			if fp != nil {
+				foo, err = fp.Await()
+				suite.Nil(err)
+			}
 			// 1 from FooProvider.ProvideFoo
 			// 2 from ListProvider.ProvideFooSlice
 			// 1 from MultiProvider.ProvideFoo
 			// 1 from OpenProvider.Provides
+			// 1 from SimpleAsyncProvider.ProvideFoo
 			// None from SpecificationProvider.ProvideFoo since it
 			//   depends on an unsatisfied Baz
 			// 5 total
-			suite.Equal(5, len(foo))
+			suite.Equal(6, len(foo))
 		})
 
 		suite.Run("Disable", func() {

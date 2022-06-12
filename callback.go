@@ -268,26 +268,15 @@ func (c *CallbackBase) includeResult(
 	}
 	if pr, ok := result.(promise.Reflect); ok {
 		pp := pr.Then(func(res any) any {
-			if strict {
-				return res
-			}
-			if p, ok := res.(promise.Reflect); ok {
-				// Promise of a promise so await
-				if r, err := p.AwaitAny(); err != nil {
-					panic(err)
-				} else {
-					return r
-				}
-			} else {
+			if !strict {
 				// Squash list into expando result
 				switch reflect.TypeOf(res).Kind() {
 				case reflect.Slice, reflect.Array:
 					r, _ := c.processResults(true, res, composer)
 					return r
-				default:
-					return res
 				}
 			}
+			return res
 		})
 		if accept := c.acceptPromise; accept != nil {
 			pp = accept(pp)

@@ -104,7 +104,7 @@ func (b *methodIntercept) Invoke(
 			if !resolves.Succeeded() {
 				panic(NotHandledError{callback})
 			}
-			// Since this promise with be added to the actual callback's
+			// Since this promise will be added to the actual callback's
 			// results, return nil to ensure it is filtered out during a
 			// call to Callback.Result().
 			return nil

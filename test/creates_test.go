@@ -45,6 +45,20 @@ func (suite *CreatesTestSuite) TestCreates() {
 		suite.NotNil(multiProvider)
 		suite.Nil(err)
 	})
+
+	suite.Run("Returns Promise", func() {
+		handler, _ := suite.SetupWith(
+			miruken.HandlerSpecs(&SimpleAsyncProvider{}),
+			miruken.HandlerSpecs(&ComplexAsyncProvider{}))
+		c, pc, err := miruken.Create[*ComplexAsyncProvider](handler)
+		suite.Nil(err)
+		suite.Nil(c)
+		suite.NotNil(pc)
+		c, err = pc.Await()
+		suite.Nil(err)
+		suite.NotNil(c)
+		suite.Equal(1, c.bar.Count())
+	})
 }
 
 func TestCreatesTestSuite(t *testing.T) {
