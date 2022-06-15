@@ -318,7 +318,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 	suite.Run("ValidateFilter", func () {
 		handler, _ := suite.Setup()
 		var handles miruken.Handles
-		validatesFilter := miruken.NewValidateProvider(false)
+		validatesFilter := miruken.NewValidateProvider(true)
 		handles.Policy().AddFilters(validatesFilter)
 		defer func() {
 			handles.Policy().RemoveFilters(validatesFilter)

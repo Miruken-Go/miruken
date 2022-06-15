@@ -87,6 +87,10 @@ func (n Next) Abort() ([]any, *promise.Promise[[]any], error) {
 	return n(nil, false)
 }
 
+func (n Next) Fail(err error) ([]any, *promise.Promise[[]any], error) {
+	return nil, nil, err
+}
+
 type (
 	// filterSpec describes a Filter.
 	filterSpec struct {

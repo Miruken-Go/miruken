@@ -53,7 +53,7 @@ func (b *CreatesBuilder) NewCreation() *Creates {
 func Create[T any](
 	handler Handler,
 ) (t T, tp *promise.Promise[T], err error) {
-	if handler == nil {
+	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder CreatesBuilder
@@ -71,7 +71,7 @@ func Create[T any](
 func CreateAll[T any](
 	handler Handler,
 ) (t []T, tp *promise.Promise[[]T], err error) {
-	if handler == nil {
+	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder CreatesBuilder

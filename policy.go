@@ -142,16 +142,12 @@ func (p *policySpecBuilder) buildSpec(
 			return spec, nil
 		}
 	}
-	// Is it a callback arg?
-	if callbackOrSpec.Implements(_callbackType) {
-		if callbackOrSpec.Kind() == reflect.Interface {
-			return nil, fmt.Errorf("callback argument cannot be an interface: %v", callbackOrSpec)
-		} else {
-			return &policySpec{
-				policies: []Policy{p.policyOf(callbackOrSpec)},
-				arg:      CallbackArg{},
-			}, nil
-		}
+	// Is it a Callback arg?
+	if callbackOrSpec.Kind() != reflect.Interface && callbackOrSpec.Implements(_callbackType) {
+		return &policySpec{
+			policies: []Policy{p.policyOf(callbackOrSpec)},
+			arg:      CallbackArg{},
+		}, nil
 	}
 	return nil, nil
 }

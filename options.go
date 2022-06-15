@@ -107,7 +107,7 @@ func Options(options any) BuilderFunc {
 }
 
 func GetOptions(handler Handler, target any) bool {
-	if handler == nil {
+	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	tv := TargetValue(target)

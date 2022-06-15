@@ -65,7 +65,7 @@ func DispatchCallback(
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
-	if handler == nil {
+	if IsNil(handler) {
 		return NotHandled
 	}
 	switch d := callback.(type) {

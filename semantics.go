@@ -104,7 +104,7 @@ func (c *callSemantics) Handle(
 }
 
 func GetSemantics(handler Handler) *CallbackSemantics {
-	if handler == nil {
+	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	semantics := &CallbackSemantics{}

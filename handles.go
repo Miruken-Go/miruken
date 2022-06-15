@@ -82,7 +82,7 @@ func Invoke[T any](
 	handler  Handler,
 	callback any,
 ) (t T, tp *promise.Promise[T], err error) {
-	if handler == nil {
+	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder HandlesBuilder
@@ -103,7 +103,7 @@ func InvokeAll[T any](
 	handler Handler,
 	callback any,
 ) (t []T, tp *promise.Promise[[]T], err error) {
-	if handler == nil {
+	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder HandlesBuilder

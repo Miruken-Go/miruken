@@ -327,7 +327,7 @@ func (v validateFilter) Next(
 				return nil, nil, outcomeIn
 			}
 			// perform the next step in the pipeline
-			if out, pout, err = next.Pipe(); !(err == nil && vp.validateResult) {
+			if out, pout, err = next.Pipe(); !(err == nil && vp.validateOutput) {
 				// if error or skip output validation, return output
 				return
 			} else if pout == nil {
@@ -388,7 +388,7 @@ func (v validateFilter) Next(
 			}
 			oo := next.PipeAwait()
 			// validate output if requested and available
-			if vp.validateResult && len(oo) > 0 && !IsNil(oo[0]) {
+			if vp.validateOutput && len(oo) > 0 && !IsNil(oo[0]) {
 				outcomeOut, poo, errOut := Validate(composer, oo[0])
 				if errOut != nil {
 					// error validating output
@@ -413,12 +413,12 @@ func (v validateFilter) Next(
 
 // ValidateProvider is a FilterProvider for validation.
 type ValidateProvider struct {
-	validateResult bool
+	validateOutput bool
 }
 
 func (v *ValidateProvider) InitWithTag(tag reflect.StructTag) error {
 	if validate, ok := tag.Lookup("validate"); ok {
-		v.validateResult = validate == "result"
+		v.validateOutput = validate == "output"
 	}
 	return nil
 }
@@ -435,8 +435,8 @@ func (v *ValidateProvider) Filters(
 	return _validateFilter, nil
 }
 
-func NewValidateProvider(withResult bool) *ValidateProvider {
-	return &ValidateProvider{withResult}
+func NewValidateProvider(validateOutput bool) *ValidateProvider {
+	return &ValidateProvider{validateOutput}
 }
 
 // ValidatesBuilder builds Validates callbacks.
@@ -484,7 +484,7 @@ func Validate(
 	target  any,
 	groups ... any,
 ) (o *ValidationOutcome, po *promise.Promise[*ValidationOutcome], err error) {
-	if handler == nil {
+	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder ValidatesBuilder
@@ -523,25 +523,25 @@ func setTargetValidationOutcome(
 
 // ValidationInstaller enables validation support.
 type ValidationInstaller struct {
-	results bool
+	output bool
 }
 
-func (v *ValidationInstaller) ValidateResults() {
-	v.results = true
+func (v *ValidationInstaller) ValidateOutput () {
+	v.output = true
 }
 
 func (v *ValidationInstaller) Install(setup *SetupBuilder) error {
 	if setup.CanInstall(&_validationTag) {
-		setup.AddFilters(NewValidateProvider(v.results))
+		setup.AddFilters(NewValidateProvider(v.output))
 	}
 	return nil
 }
 
-func ValidateResults(installer *ValidationInstaller) {
-	installer.ValidateResults()
+func ValidateROutput(installer *ValidationInstaller) {
+	installer.ValidateOutput()
 }
 
-func WithValidation(
+func ValidationFeature(
 	config ... func(installer *ValidationInstaller),
 ) Feature {
 	installer := &ValidationInstaller{}

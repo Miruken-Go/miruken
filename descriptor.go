@@ -580,7 +580,7 @@ func NewMutableHandlerDescriptorFactory(
 func GetHandlerDescriptorFactory(
 	handler Handler,
 ) HandlerDescriptorFactory {
-	if handler == nil {
+	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	get := &getHandlerDescriptorFactory{}

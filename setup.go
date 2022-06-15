@@ -1,6 +1,8 @@
 package miruken
 
-import "github.com/hashicorp/go-multierror"
+import (
+	"github.com/hashicorp/go-multierror"
+)
 
 type (
 	// Feature encapsulates custom setup.

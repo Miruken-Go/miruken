@@ -7,6 +7,4 @@ type (
 	DisposableFunc func()
 )
 
-func (f DisposableFunc) Dispose() {
-	f()
-}
+func (f DisposableFunc) Dispose() { f() }

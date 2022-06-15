@@ -99,6 +99,11 @@ func (p *OpenProvider) Provide(
 	return nil
 }
 
+// UnmanagedHandler
+type UnmanagedHandler struct {}
+
+func (u *UnmanagedHandler) NoConstructor() {}
+
 // SimpleAsyncProvider
 type SimpleAsyncProvider struct {
 	foo Foo

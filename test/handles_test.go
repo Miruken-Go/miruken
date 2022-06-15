@@ -243,10 +243,6 @@ func (h *DependencyHandler) StrictDependency(
 	}
 }
 
-type UnmanagedHandler struct {}
-
-func (u *UnmanagedHandler) NoConstructor() {}
-
 type (
 	DateFormat string
 
@@ -445,12 +441,6 @@ func (h *InvalidHandler) SecondReturnMustBeErrorOrHandleResult(
 func (h *InvalidHandler) UntypedInterfaceDependency(
 	_*miruken.Handles, _ *Bar,
 	any any,
-) miruken.HandleResult {
-	return miruken.Handled
-}
-
-func (h *InvalidHandler) CallbackInterfaceArgument(
-	cb miruken.Callback,
 ) miruken.HandleResult {
 	return miruken.Handled
 }
@@ -1089,15 +1079,14 @@ func (suite *HandlesTestSuite) TestHandles() {
 						errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 						failures++
 					}
-					suite.Equal(8, failures)
+					suite.Equal(7, failures)
 				} else {
 					suite.Fail("Expected HandlerDescriptorError")
 				}
 			}
 		}()
 		_, err := suite.SetupWith(
-			miruken.HandlerSpecs(&InvalidHandler{}),
-			miruken.Handlers(new(InvalidHandler)))
+			miruken.HandlerSpecs(&InvalidHandler{}))
 		suite.Nil(err)
 		suite.Fail("should cause panic")
 	})

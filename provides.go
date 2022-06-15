@@ -159,7 +159,7 @@ func Resolve[T any](
 	handler     Handler,
 	constraints ... func(*ConstraintBuilder),
 ) (t T, tp *promise.Promise[T], err error) {
-	if handler == nil {
+	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder ProvidesBuilder
@@ -179,7 +179,7 @@ func ResolveAll[T any](
 	handler     Handler,
 	constraints ... func(*ConstraintBuilder),
 ) (t []T, tp *promise.Promise[[]T], err error) {
-	if handler == nil {
+	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder ProvidesBuilder

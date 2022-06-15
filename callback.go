@@ -296,9 +296,8 @@ func (c *CallbackBase) includeResult(
 
 // processResults adds an array or slice to the callbacks results.
 // If squash is requested, the results are encoded in a special
-// expandResults class that is expanded when results are returned.
-// This is necessary since async support uses in-place replacement
-// to avoid locking the results.
+// expandResults type that is expanded when results are requested.
+// This is used to allow in-place replacement to avoid locking the results.
 func (c *CallbackBase) processResults(
 	squash   bool,
 	results  any,

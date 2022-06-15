@@ -142,7 +142,7 @@ func Map[T any](
 	source  any,
 	format  ... any,
 ) (t T, tp *promise.Promise[T], err error) {
-	if handler == nil {
+	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	if len(format) > 1 {
@@ -171,7 +171,7 @@ func MapInto[T any](
 	target  *T,
 	format  ... any,
 ) (tp *promise.Promise[T], err error) {
-	if handler == nil {
+	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	if target == nil {
@@ -202,7 +202,7 @@ func MapAll[T any](
 	source  any,
 	format  ... any,
 ) (t []T, _ *promise.Promise[[]T], _ error) {
-	if handler == nil {
+	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	if IsNil(source) || reflect.TypeOf(source).Kind() != reflect.Slice {
