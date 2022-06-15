@@ -332,7 +332,7 @@ func (d *HandlerDescriptor) Dispatch(
 			if result.stop || (result.handled && !greedy) {
 				return result, true
 			}
-			if matches, _ := policy.MatchesKey(binding.Key(), key, binding.Strict()); matches {
+			if matches, _ := policy.MatchesKey(binding.Key(), key, false); matches {
 				if guard != nil {
 					reset, approve := guard.CanDispatch(handler, binding)
 					defer func() {

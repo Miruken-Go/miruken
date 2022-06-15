@@ -8,7 +8,7 @@ type Installer struct {}
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {
 		setup.RegisterHandlers(&Stash{})
-		setup.AddHandlers(&Stash{root: true})
+		setup.AddHandlers(NewStash(true))
 	}
 	return nil
 }

@@ -24,11 +24,11 @@ func (p *CovariantPolicy) IsVariantKey(
 
 func (p *CovariantPolicy) MatchesKey(
 	key, otherKey any,
-	strict        bool,
+	invariant     bool,
 ) (matches bool, exact bool) {
 	if key == otherKey {
 		return true, true
-	} else if strict {
+	} else if invariant {
 		return false, false
 	}
 	switch kt := otherKey.(type) {
@@ -49,7 +49,7 @@ func (p *CovariantPolicy) Less(
 	if otherBinding == nil {
 		panic("otherBinding cannot be nil")
 	}
-	matches, exact := p.MatchesKey(otherBinding.Key(), binding.Key(), otherBinding.Strict())
+	matches, exact := p.MatchesKey(otherBinding.Key(), binding.Key(), false)
 	return !exact && matches
 }
 

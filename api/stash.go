@@ -1,6 +1,9 @@
 package api
 
-import "github.com/miruken-go/miruken"
+import (
+	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/promise"
+)
 
 type (
 	// Stash is a temporary storage of data.
@@ -17,7 +20,8 @@ type (
 	// stashGet gets a value from the Stash.
 	stashGet struct {
 		stashAction
-		val any
+		found bool
+		val   any
 	}
 
 	// stashPut puts a value into the Stash.
@@ -36,6 +40,11 @@ func (s *stashAction) CanFilter() bool {
 	return false
 }
 
+func (g *stashGet) setValue(val any) {
+	g.val   = val
+	g.found = true
+}
+
 func (s *Stash) NoConstructor() {}
 
 func (s *Stash) Provide(
@@ -50,12 +59,11 @@ func (s *Stash) Get(
 	_*miruken.Handles, get *stashGet,
 ) miruken.HandleResult {
 	if val, ok := s.data[get.key]; ok {
-		get.val = val
-		return miruken.Handled
-	} else if s.root {
-		return miruken.Handled
+		get.setValue(val)
+	} else if !s.root {
+		return miruken.NotHandled
 	}
-	return miruken.NotHandled
+	return miruken.Handled
 }
 
 func (s *Stash) Put(
@@ -73,7 +81,7 @@ func (s *Stash) Drop(
 func StashGetKey(
 	handler miruken.Handler,
 	key     any,
-) (val any, err error) {
+) (val any, ok bool) {
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
@@ -82,23 +90,18 @@ func StashGetKey(
 	}
 	get := &stashGet{}
 	get.key = key
-	if result := handler.Handle(get, false, nil); result.IsError() {
-		err = result.Error()
-	} else if result.IsHandled() {
+	if result := handler.Handle(get, false, nil); result.IsHandled() {
 		val = get.val
-	} else {
-		err = miruken.NotHandledError{}
+		ok  = get.found
 	}
 	return
 }
 
 func StashGet[T any](
 	handler miruken.Handler,
-) (t T, err error) {
-	if val, e := StashGetKey(handler, miruken.TypeOf[T]()); e != nil {
-		err = e
-	} else if !miruken.IsNil(val) {
-		t = val.(T)
+) (t T, ok bool) {
+	if val, ok := StashGetKey(handler, miruken.TypeOf[T]()); ok {
+		return val.(T), true
 	}
 	return
 }
@@ -114,7 +117,7 @@ func StashPutKey(
 	if miruken.IsNil(key) {
 		panic("key cannot be nil")
 	}
-	put := &stashGet{val: val}
+	put := &stashPut{val: val}
 	put.key = key
 	if result := handler.Handle(put, false, nil); result.IsError() {
 		return result.Error()
@@ -129,6 +132,76 @@ func StashPut[T any](
 	val     T,
 ) error {
 	return StashPutKey(handler, miruken.TypeOf[T](), val)
+}
+
+func StashGetOrPutKey(
+	handler miruken.Handler,
+	key     any,
+	val     any,
+) (any, error) {
+	if v, ok := StashGetKey(handler, key); !ok {
+		return val, StashPutKey(handler, key, val)
+	} else {
+		return v, nil
+	}
+}
+
+func StashGetOrPut[T any](
+	handler miruken.Handler,
+	val     T,
+) (T, error) {
+	if v, ok := StashGet[T](handler); !ok {
+		return val, StashPut(handler, val)
+	} else {
+		return v, nil
+	}
+}
+
+func StashGetOrPutKeyFunc(
+	handler miruken.Handler,
+	key     any,
+	fun     func() (any, *promise.Promise[any]),
+) (any, *promise.Promise[any], error) {
+	if fun == nil {
+		panic("fun cannot be nil")
+	}
+	if v, ok := StashGetKey(handler, key); !ok {
+		if val, pv := fun(); pv != nil {
+			return nil, promise.Then(pv, func(res any) any {
+				if err := StashPutKey(handler, key, res); err != nil {
+					panic(err)
+				}
+				return res
+			}), nil
+		} else {
+			return val, nil, StashPutKey(handler, key, val)
+		}
+	} else {
+		return v, nil, nil
+	}
+}
+
+func StashGetOrPutFunc[T any](
+	handler miruken.Handler,
+	fun     func() (T, *promise.Promise[T]),
+) (T, *promise.Promise[T], error) {
+	if fun == nil {
+		panic("fun cannot be nil")
+	}
+	if v, ok := StashGet[T](handler); !ok {
+		if val, pv := fun(); pv != nil {
+			return val, promise.Then(pv, func(res T) T {
+				if err := StashPut(handler, res); err != nil {
+					panic(err)
+				}
+				return res
+			}), nil
+		} else {
+			return val, nil, StashPut(handler, val)
+		}
+	} else {
+		return v, nil, nil
+	}
 }
 
 func StashDropKey(

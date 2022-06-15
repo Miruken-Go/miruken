@@ -32,13 +32,13 @@ func (p *BivariantPolicy) IsVariantKey(
 
 func (p *BivariantPolicy) MatchesKey(
 	key, otherKey any,
-	strict        bool,
+	invariant     bool,
 ) (matches bool, exact bool) {
 	if bk, valid := key.(DiKey); valid {
 		if ok, valid := otherKey.(DiKey); valid {
 			if bk == ok {
 				return true, true
-			} else if strict {
+			} else if invariant {
 				return false, false
 			}
 			if matches, _ = p.in.MatchesKey(bk.In, ok.In, false); matches {
@@ -62,7 +62,7 @@ func (p *BivariantPolicy) Less(
 	if otherBinding == nil {
 		panic("otherBinding cannot be be nil")
 	}
-	matches, exact := p.MatchesKey(otherBinding.Key(), binding.Key(), otherBinding.Strict())
+	matches, exact := p.MatchesKey(otherBinding.Key(), binding.Key(), false)
 	return !exact && matches
 }
 

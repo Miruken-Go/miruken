@@ -72,11 +72,11 @@ func (c *ConsoleLogger) Log(msg string) {
 // NullFilter test filter
 type NullFilter struct {}
 
-func (n NullFilter) Order() int {
+func (n *NullFilter) Order() int {
 	return math.MaxInt32
 }
 
-func (n NullFilter) Next(
+func (n *NullFilter) Next(
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
@@ -325,7 +325,7 @@ func (suite *FilterTestSuite) SetupTest() {
 		&ConsoleLogger{},
 		&ExceptionFilter{},
 		&AbortFilter{},
-		NullFilter{},
+		&NullFilter{},
 	}
 }
 
@@ -340,7 +340,7 @@ func (suite *FilterTestSuite) SetupWith(specs ... any) (miruken.Handler, error) 
 func (suite *FilterTestSuite) TestFilters() {
 	suite.Run("FilterOptions", func () {
 		suite.Run("Merges", func () {
-			filters  := []miruken.Filter{NullFilter{}}
+			filters  := []miruken.Filter{&NullFilter{}}
 			provider := miruken.NewFilterInstanceProvider(false, filters...)
 			options  := miruken.FilterOptions{
 				Providers:   []miruken.FilterProvider{provider},
@@ -371,7 +371,7 @@ func (suite *FilterTestSuite) TestFilters() {
 		suite.IsType(&LogFilter{}, bar.Filters()[0])
 		suite.IsType(&ExceptionFilter{}, bar.Filters()[1])
 		suite.IsType(FilteringHandler{}, bar.Filters()[2])
-		suite.IsType(NullFilter{}, bar.Filters()[3])
+		suite.IsType(&NullFilter{}, bar.Filters()[3])
 	})
 
 	suite.Run("Abort Pipeline", func () {

@@ -32,11 +32,11 @@ type (
 	OrderHandler struct {}
 )
 
-func (c CancelOrderFilter) Order() int {
+func (c *CancelOrderFilter) Order() int {
 	return miruken.FilterStage
 }
 
-func (c CancelOrderFilter) AppliesTo(
+func (c *CancelOrderFilter) AppliesTo(
 	callback miruken.Callback,
 ) bool {
 	if h, ok := callback.(*miruken.Handles); ok {
@@ -46,7 +46,7 @@ func (c CancelOrderFilter) AppliesTo(
 	return false
 }
 
-func (c CancelOrderFilter) Next(
+func (c *CancelOrderFilter) Next(
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
@@ -60,7 +60,10 @@ func (c CancelOrderFilter) Next(
 }
 
 func (o *OrderHandler) Cancel(
-	cancel *CancelOrder,
+	_*struct{
+		miruken.Handles
+		CancelOrderFilter
+     }, cancel *CancelOrder,
 	order  *Order,
 ) (*Order, error) {
 	order.status = OrderCancelled
@@ -69,27 +72,96 @@ func (o *OrderHandler) Cancel(
 
 type StashTestSuite struct {
 	suite.Suite
-	handler miruken.Handler
 }
 
-func (suite *StashTestSuite) SetupTest() {
-	suite.handler, _ = miruken.Setup(
-		//TestFeature,
+func (suite *StashTestSuite) Setup() miruken.Handler {
+	handler, _ := miruken.Setup(
+		TestFeature,
 		api.Feature(),
 	)
+	return handler
 }
 
 func (suite *StashTestSuite) TestStash() {
-	suite.Run("Put", func() {
-		order := &Order{1, OrderCreated}
-		err := api.StashPut(suite.handler, order)
-		suite.Nil(err)
-	})
-
 	suite.Run("Unmanaged", func() {
-		stash, _, err := miruken.Create[*api.Stash](suite.handler)
+		handler := suite.Setup()
+		stash, _, err := miruken.Create[*api.Stash](handler)
 		suite.Nil(err)
 		suite.Nil(stash)
+	})
+
+	suite.Run("Put", func() {
+		handler := suite.Setup()
+		order := &Order{1, OrderCreated}
+		err := api.StashPut(handler, order)
+		suite.Nil(err)
+		o, ok := api.StashGet[*Order](handler)
+		suite.True(ok)
+		suite.Same(order, o)
+	})
+
+	suite.Run("GetOrPut", func() {
+		handler := suite.Setup()
+		order := &Order{1, OrderCreated}
+		o, err := api.StashGetOrPut(handler, order)
+		suite.Nil(err)
+		suite.Same(order, o)
+		o, ok := api.StashGet[*Order](handler)
+		suite.True(ok)
+		suite.Same(order, o)
+	})
+
+	suite.Run("Drop", func() {
+		handler1 := suite.Setup()
+		handler2 := miruken.AddHandlers(handler1, api.NewStash(false))
+		order := &Order{1, OrderCreated}
+		err := api.StashPut(handler2, order)
+		suite.Nil(err)
+		err = api.StashDrop[*Order](handler2)
+		suite.Nil(err)
+		_, ok := api.StashGet[*Order](handler2)
+		suite.False(ok)
+	})
+
+	suite.Run("Cascade", func() {
+		handler1 := suite.Setup()
+		order := &Order{1, OrderCreated}
+		handler2 := miruken.AddHandlers(handler1, api.NewStash(false))
+		err := api.StashPut(handler1, order)
+		suite.Nil(err)
+		o, ok := api.StashGet[*Order](handler2)
+		suite.True(ok)
+		suite.Same(order, o)
+	})
+
+	suite.Run("Hide", func() {
+		handler1 := suite.Setup()
+		order := &Order{1, OrderCreated}
+		handler2 := miruken.AddHandlers(handler1, api.NewStash(false))
+		err := api.StashPut(handler1, order)
+		suite.Nil(err)
+		err = api.StashPut[*Order](handler2, nil)
+		suite.Nil(err)
+		o, ok := api.StashGet[*Order](handler2)
+		suite.True(ok)
+		suite.Nil(o)
+	})
+
+	suite.Run("Provide", func() {
+		handler := suite.Setup()
+		order := &Order{1, OrderCreated}
+		err := api.StashPut(handler, order)
+		suite.Nil(err)
+		o, _, err := miruken.Resolve[*Order](handler)
+		suite.Nil(err)
+		suite.Same(order, o)
+	})
+
+	suite.Run("Access", func() {
+		handler := suite.Setup()
+		order , _, err := miruken.Invoke[*Order](handler, &CancelOrder{1})
+		suite.Nil(err)
+		suite.NotNil(order)
 	})
 }
 

@@ -13,7 +13,7 @@ type (
 		Filtered
 		Less(binding, otherBinding Binding) bool
 		IsVariantKey(key any) (bool, bool)
-		MatchesKey(key, otherKey any, strict bool) (bool, bool)
+		MatchesKey(key, otherKey any, invariant bool) (bool, bool)
 		AcceptResults(results []any) (any, HandleResult)
 	}
 
