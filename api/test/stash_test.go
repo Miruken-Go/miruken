@@ -159,7 +159,7 @@ func (suite *StashTestSuite) TestStash() {
 
 	suite.Run("Access", func() {
 		handler := suite.Setup()
-		order , _, err := miruken.Invoke[*Order](handler, &CancelOrder{1})
+		order , _, err := miruken.Execute[*Order](handler, &CancelOrder{1})
 		suite.Nil(err)
 		suite.NotNil(order)
 	})

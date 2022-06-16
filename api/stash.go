@@ -6,13 +6,13 @@ import (
 )
 
 type (
-	// Stash is a temporary storage of data.
+	// Stash is a transient storage of data.
 	Stash struct {
 		root bool
 		data map[any]any
 	}
 
-	// stashAction defines the Stash operations.
+	// stashAction defines Stash operations.
 	stashAction struct {
 		key any
 	}
@@ -45,8 +45,10 @@ func (g *stashGet) setValue(val any) {
 	g.found = true
 }
 
+// NoConstructor prevents Stash from being created implicitly.
 func (s *Stash) NoConstructor() {}
 
+// Provide retrieves an item by key.
 func (s *Stash) Provide(
 	_*struct{
 		miruken.Provides; miruken.Strict
@@ -55,6 +57,9 @@ func (s *Stash) Provide(
 	return s.data[provides.Key()]
 }
 
+// Get retrieves an item by key.
+// It is considered NotHandled if an item with the key is not found and
+// this Stash is not rooted.  This allows retrieval to propagate up the chain.
 func (s *Stash) Get(
 	_*miruken.Handles, get *stashGet,
 ) miruken.HandleResult {
@@ -66,12 +71,14 @@ func (s *Stash) Get(
 	return miruken.Handled
 }
 
+// Put stores an item by key.
 func (s *Stash) Put(
 	_*miruken.Handles, put *stashPut,
 ) {
 	s.data[put.key] = put.val
 }
 
+// Drop removes an item by key.
 func (s *Stash) Drop(
 	_*miruken.Handles, drop *stashDrop,
 ) {
@@ -230,6 +237,8 @@ func StashDrop[T any](
 	return StashDropKey(handler, miruken.TypeOf[T]())
 }
 
+// NewStash creates a new Stash.
+// When root is true, retrieval will not fail if not found.
 func NewStash(root bool) *Stash {
 	return &Stash{
 		root,

@@ -78,7 +78,32 @@ func (b *HandlesBuilder) NewHandles() *Handles {
 	}
 }
 
-func Invoke[T any](
+// Command invokes a callback with no results.
+// returns an empty promise if execution is asynchronous.
+func Command(
+	handler  Handler,
+	callback any,
+) (pv *promise.Promise[Void], err error) {
+	if IsNil(handler) {
+		panic("handler cannot be nil")
+	}
+	var builder HandlesBuilder
+	handles := builder.
+		WithCallback(callback).
+		NewHandles()
+	if result := handler.Handle(handles, false, nil); result.IsError() {
+		err = result.Error()
+	} else if !result.handled {
+		err = NotHandledError{callback}
+	} else {
+		pv, err = CompleteResult(handles)
+	}
+	return
+}
+
+// Execute executes a callback with results.
+// returns the results or promise if execution is asynchronous.
+func Execute[T any](
 	handler  Handler,
 	callback any,
 ) (t T, tp *promise.Promise[T], err error) {
@@ -99,7 +124,31 @@ func Invoke[T any](
 	return
 }
 
-func InvokeAll[T any](
+// CommandAll invokes a callback on all with no results.
+// returns an empty promise if execution is asynchronous.
+func CommandAll(
+	handler Handler,
+	callback any,
+) (pv *promise.Promise[Void], err error) {
+	if IsNil(handler) {
+		panic("handler cannot be nil")
+	}
+	var builder HandlesBuilder
+	builder.WithCallback(callback)
+	handles := builder.NewHandles()
+	if result := handler.Handle(handles, true, nil); result.IsError() {
+		err = result.Error()
+	} else if !result.handled {
+		err = NotHandledError{callback}
+	} else {
+		pv, err = CompleteResults(handles)
+	}
+	return
+}
+
+// ExecuteAll executes a callback on all and collects the results.
+// returns the results or promise if execution is asynchronous.
+func ExecuteAll[T any](
 	handler Handler,
 	callback any,
 ) (t []T, tp *promise.Promise[[]T], err error) {

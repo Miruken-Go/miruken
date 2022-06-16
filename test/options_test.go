@@ -51,12 +51,12 @@ func (suite *OptionsTestSuite) TestOptions() {
 		handler, _ :=suite.Setup()
 		handler = miruken.BuildUp(handler,
 			miruken.Options(ServerOptions{
-			Url:     "https://playsoccer.com",
-			Timeout: 30,
-			Headers: []Header{
-				{"Content-Key", "application/json"},
-				{"Content-Encoding", "compress"},
-			},
+				Url:     "https://playsoccer.com",
+				Timeout: 30,
+				Headers: []Header{
+					{"Content-Key", "application/json"},
+					{"Content-Encoding", "compress"},
+				},
 		}))
 		var options ServerOptions
 		suite.True(miruken.GetOptions(handler, &options))

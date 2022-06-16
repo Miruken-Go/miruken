@@ -202,6 +202,22 @@ func CoerceResult[T any](
 	return
 }
 
+func CompleteResult(
+	callback Callback,
+) (*promise.Promise[Void], error) {
+	if _, p := callback.Result(false); p != nil {
+		return promise.Then(p, func(res any) Void {
+			if pr, ok := res.(promise.Reflect); ok {
+				if _, err := pr.AwaitAny(); err != nil {
+					panic(err)
+				}
+			}
+			return Void{}
+		}), nil
+	}
+	return nil, nil
+}
+
 func CoerceResults[T any](
 	callback Callback,
 	target   *[]T,
@@ -227,6 +243,22 @@ func CoerceResults[T any](
 		})
 	}
 	return
+}
+
+func CompleteResults(
+	callback Callback,
+) (*promise.Promise[Void], error) {
+	if _, p := callback.Result(true); p != nil {
+		return promise.Then(p, func(res any) Void {
+			if pr, ok := res.(promise.Reflect); ok {
+				if _, err := pr.AwaitAny(); err != nil {
+					panic(err)
+				}
+			}
+			return Void{}
+		}), nil
+	}
+	return nil, nil
 }
 
 func (c *CallbackBase) ensureResult(many bool, expand bool) any {
