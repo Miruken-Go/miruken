@@ -63,6 +63,7 @@ func (v *Validates) Dispatch(
 	return DispatchPolicy(handler, v, greedy, composer)
 }
 
+// Group marks a set of related validations.
 type Group struct {
 	groups map[any]Void
 }
@@ -301,7 +302,8 @@ func (v *ValidationOutcome) parseIndexer(
 	}
 }
 
-// validateFilter validates business rules.
+// validateFilter validates the current input of the pipeline execution.
+// if validateOutput is true, it validates the current output as well.
 type validateFilter struct {}
 
 func (v validateFilter) Order() int {

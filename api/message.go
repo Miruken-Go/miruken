@@ -5,6 +5,9 @@ import (
 	"github.com/miruken-go/miruken/promise"
 )
 
+// Post sends a message without an expected response.
+// A new Stash is created to manage any transit state.
+// Returns an empty promise if the call is asynchronous.
 func Post(
 	handler miruken.Handler,
 	message any,
@@ -19,6 +22,10 @@ func Post(
 	return miruken.Command(stash, message)
 }
 
+// Send sends a request with an expected response.
+// A new Stash is created to manage any transit state.
+// Returns the TResponse if the call is synchronous or
+// return a promise to TResponse is asynchronous.
 func Send[TResponse any](
 	handler miruken.Handler,
 	request any,
@@ -33,6 +40,9 @@ func Send[TResponse any](
 	return miruken.Execute[TResponse](stash, request)
 }
 
+// Publish sends a message to all recipients.
+// A new Stash is created to manage any transit state.
+// Returns an empty promise if the call is asynchronous.
 func Publish(
 	handler miruken.Handler,
 	message any,

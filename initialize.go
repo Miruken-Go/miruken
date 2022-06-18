@@ -7,7 +7,7 @@ import (
 )
 
 // initializer is a Filter that invokes a 'Constructor'
-// method on the current result of the pipeline.
+// method on the current output of the pipeline execution.
 type initializer struct {
 	constructor reflect.Method
 	args        []arg
@@ -23,16 +23,20 @@ func (i *initializer) Next(
 	provider FilterProvider,
 )  (out []any, pout *promise.Promise[[]any], err error) {
 	if out, pout, err = next.Pipe(); err != nil || len(out) == 0 {
+		// no results so nothing to initialize
 		return
 	}
 	if pout != nil {
+		// wait for asynchronous results
 		pout = promise.Then(pout, func(oo []any) []any {
 			if len(oo) > 0 {
-				return mergeOutputAwait(i.invoke(ctx, oo[0]))
+				return mergeOutputAwait(i.construct(ctx, oo[0]))
 			}
+			// no results so nothing to initialize
 			return oo
  		})
-	} else if _, pout, err = mergeOutput(i.invoke(ctx, out[0])); err == nil && pout != nil {
+	} else if _, pout, err = mergeOutput(i.construct(ctx, out[0])); err == nil && pout != nil {
+		// asynchronous constructor so wait for completion
 		pout = promise.Then(pout, func([]any) []any {
 			return out
 		})
@@ -40,7 +44,7 @@ func (i *initializer) Next(
 	return
 }
 
-func (i *initializer) invoke(
+func (i *initializer) construct(
 	ctx      HandleContext,
 	initArgs ... any,
 ) ([]any, *promise.Promise[[]any], error) {
