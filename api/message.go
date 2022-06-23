@@ -25,7 +25,7 @@ func Post(
 // Send sends a request with an expected response.
 // A new Stash is created to manage any transit state.
 // Returns the TResponse if the call is synchronous or
-// return a promise to TResponse is asynchronous.
+// return a promise to TResponse if the call asynchronous.
 func Send[TResponse any](
 	handler miruken.Handler,
 	request any,

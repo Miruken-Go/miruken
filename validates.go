@@ -310,6 +310,13 @@ func (v validateFilter) Order() int {
 	return FilterStageValidation
 }
 
+func (v validateFilter) AppliesTo(
+	callback Callback,
+) bool {
+	handles, ok := callback.(*Handles)
+	return ok && !IsNil(handles.Source())
+}
+
 func (v validateFilter) Next(
 	next     Next,
 	ctx      HandleContext,

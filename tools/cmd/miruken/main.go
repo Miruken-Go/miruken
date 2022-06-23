@@ -182,7 +182,7 @@ func printTo(
     for _, f := range pkg.Files {
         for name, object := range f.Scope.Objects {
             if object.Kind == kind && (unexportFlag || ast.IsExported(name)) {
-                if spec := object.Decl.(*ast.TypeSpec); spec != nil {
+                if spec := object.Decl.(*ast.TypeSpec); spec != nil && spec.TypeParams == nil {
                     if _, ok := spec.Type.(*ast.StructType); ok {
                         if suffixes == nil {
                             names = append(names, name)
