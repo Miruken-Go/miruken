@@ -50,22 +50,22 @@ const (
 )
 
 type (
-	bindingBuilder interface {
-		configure(
+	bindingParser interface {
+		parse(
 			index   int,
 			field   reflect.StructField,
 			binding any,
 		) (bound bool, err error)
 	}
 
-	bindingBuilderFunc func (
+	bindingParserFunc func (
 		index   int,
 		field   reflect.StructField,
 		binding any,
 	) (bound bool, err error)
 )
 
-func (b bindingBuilderFunc) configure(
+func (b bindingParserFunc) parse(
 	index   int,
 	field   reflect.StructField,
 	binding any,
@@ -73,22 +73,45 @@ func (b bindingBuilderFunc) configure(
 	return b(index, field, binding)
 }
 
-func configureBinding(
-	source   reflect.Type,
-	binding  any,
-	builders []bindingBuilder,
+func parseBinding(
+	source  reflect.Type,
+	binding any,
+	parsers []bindingParser,
+) (err error) {
+	if err = parseStructBinding(source, binding, parsers); err == nil {
+		if b, ok := binding.(interface {
+			complete() error
+		}); ok {
+			err = b.complete()
+		}
+	}
+	return
+}
+
+func parseStructBinding(
+	typ     reflect.Type,
+	binding any,
+	parsers []bindingParser,
 ) (err error) {
 	checkedMetadata := false
 	var metadataOwner interface {
 		addMetadata(metadata any) error
 	}
-	for i := 0; i < source.NumField(); i++ {
+	NextField:
+	for i := 0; i < typ.NumField(); i++ {
 		bound := false
-		field := source.Field(i)
-		for _, builder := range builders {
-			if b, invalid := builder.configure(i, field, binding); invalid != nil {
+		field := typ.Field(i)
+		if fieldType := field.Type;
+			fieldType.Kind() == reflect.Struct && fieldType.Implements(_groupDefinition) {
+			if invalid := parseStructBinding(fieldType, binding, parsers); invalid != nil {
 				err = multierror.Append(err, invalid)
-				break
+			}
+			continue
+		}
+		for _, parser := range parsers {
+			if b, invalid := parser.parse(i, field, binding); invalid != nil {
+				err = multierror.Append(err, invalid)
+				continue NextField
 			} else if b {
 				bound = true
 				break
@@ -106,13 +129,6 @@ func configureBinding(
 					err = multierror.Append(err, invalid)
 				}
 			}
-		}
-	}
-	if err == nil {
-		if b, ok := binding.(interface {
-			complete() error
-		}); ok {
-			err = b.complete()
 		}
 	}
 	return err
@@ -139,7 +155,7 @@ func addMetadata(
 	}
 }
 
-func bindOptions(
+func parseOptions(
 	index   int,
 	field   reflect.StructField,
 	binding any,
@@ -152,7 +168,7 @@ func bindOptions(
 		}); ok {
 			if invalid := b.setStrict(index, field, true); invalid != nil {
 				err = multierror.Append(err, fmt.Errorf(
-					"bindOptions: strict field %v (%v) failed: %w",
+					"parseOptions: strict field %v (%v) failed: %w",
 					field.Name, index, invalid))
 			}
 		}
@@ -163,7 +179,7 @@ func bindOptions(
 		}); ok {
 			if invalid := b.setOptional(index, field, true); invalid != nil {
 				err = multierror.Append(err, fmt.Errorf(
-					"bindOptions: optional field %v (%v) failed: %w",
+					"parseOptions: optional field %v (%v) failed: %w",
 					field.Name, index, invalid))
 			}
 		}
@@ -174,7 +190,7 @@ func bindOptions(
 		}); ok {
 			if invalid := b.setSkipFilters(index, field, true); invalid != nil {
 				err = multierror.Append(err, fmt.Errorf(
-					"bindOptions: skipFilters on field %v (%v) failed: %w",
+					"parseOptions: skipFilters on field %v (%v) failed: %w",
 					field.Name, index, invalid))
 			}
 		}
@@ -186,4 +202,5 @@ var (
 	_strictType      = TypeOf[Strict]()
 	_optionalType    = TypeOf[Optional]()
 	_skipFiltersType = TypeOf[SkipFilters]()
+	_groupDefinition = TypeOf[interface{ DefinesBindingGroup() }]()
 )

@@ -523,14 +523,14 @@ func (f *mutableDescriptorFactory) RegisterHandler(
 
 // HandlerDescriptorFactoryBuilder build the HandlerDescriptorFactory.
 type HandlerDescriptorFactoryBuilder struct {
-	bindings []bindingBuilder
+	parsers  []bindingParser
 	observer HandlerDescriptorObserver
 }
 
 func (b *HandlerDescriptorFactoryBuilder) AddBindingBuilders(
-	bindings ...bindingBuilder,
+	parsers ...bindingParser,
 ) *HandlerDescriptorFactoryBuilder {
-	b.bindings = append(b.bindings, bindings...)
+	b.parsers = append(b.parsers, parsers...)
 	return b
 }
 
@@ -546,15 +546,15 @@ func (b *HandlerDescriptorFactoryBuilder) Build() HandlerDescriptorFactory {
 		descriptors: make(map[any]*HandlerDescriptor),
 		observer: b.observer,
 	}
-	bindings := make([]bindingBuilder, len(b.bindings)+4)
-	bindings[0] = &factory.policySpecBuilder
-	bindings[1] = bindingBuilderFunc(bindOptions)
-	bindings[2] = bindingBuilderFunc(bindFilters)
-	bindings[3] = bindingBuilderFunc(bindConstraints)
-	for i, binding := range b.bindings {
-		bindings[i+4] = binding
+	parsers := make([]bindingParser, len(b.parsers)+4)
+	parsers[0] = &factory.policySpecBuilder
+	parsers[1] = bindingParserFunc(parseOptions)
+	parsers[2] = bindingParserFunc(parseFilters)
+	parsers[3] = bindingParserFunc(parseConstraints)
+	for i, binding := range b.parsers {
+		parsers[i+4] = binding
 	}
-	factory.policySpecBuilder.bindings = bindings
+	factory.policySpecBuilder.parsers = parsers
 	return factory
 }
 

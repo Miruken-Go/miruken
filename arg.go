@@ -339,10 +339,10 @@ func resolveArgs(
 
 // Dependency typed
 
-var dependencyBuilders = []bindingBuilder{
-	bindingBuilderFunc(bindOptions),
-	bindingBuilderFunc(bindResolver),
-	bindingBuilderFunc(bindConstraints),
+var dependencyParsers = []bindingParser{
+	bindingParserFunc(parseOptions),
+	bindingParserFunc(parseResolver),
+	bindingParserFunc(parseConstraints),
 }
 
 func buildDependency(
@@ -361,7 +361,7 @@ func buildDependency(
 	if argType.Kind() == reflect.Struct &&
 		argType.Name() == "" {  // anonymous
 		spec := &dependencySpec{}
-		if err = configureBinding(argType, spec, dependencyBuilders); err != nil {
+		if err = parseBinding(argType, spec, dependencyParsers); err != nil {
 			return arg, err
 		}
 		arg.spec = spec
@@ -424,7 +424,7 @@ func buildDependencies(
 	return invalid
 }
 
-func bindResolver(
+func parseResolver(
 	index   int,
 	field   reflect.StructField,
 	binding any,
@@ -436,11 +436,11 @@ func bindResolver(
 		}); ok {
 			if resolver, invalid := newWithTag(dr, field.Tag); invalid != nil {
 				err = fmt.Errorf(
-					"bindResolver: new dependency resolver at field %v (%v) failed: %w",
+					"parseResolver: new dependency resolver at field %v (%v) failed: %w",
 					field.Name, index, invalid)
 			} else if invalid := b.setResolver(resolver.(DependencyResolver)); invalid != nil {
 				err = fmt.Errorf(
-					"bindResolver: dependency resolver %#v at field %v (%v) failed: %w",
+					"parseResolver: dependency resolver %#v at field %v (%v) failed: %w",
 					resolver, field.Name, index, invalid)
 			}
 		}

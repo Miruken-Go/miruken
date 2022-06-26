@@ -255,6 +255,11 @@ type (
 	Configuration struct {
 		config *Config
 	}
+
+	DefaultConfiguration struct {
+		Configuration
+		DateFormat  `layout:"02 Jan 06 15:04 MST"`
+	}
 )
 
 func (f *DateFormat) InitWithTag(tag reflect.StructTag) error {
@@ -287,21 +292,22 @@ func (c *Configuration) Resolve(
 		var layout string
 		if format, ok := slices.First(slices.OfType[any,DateFormat](dep.Metadata())); ok {
 			layout = string(format)
+		} else {
+			layout = "Mon, 02 Jan 2006 15:04:05 MST"
 		}
 		c.config.created = time.Now().Format(layout)
 	}
 	return reflect.ValueOf(c.config), nil, nil
 }
 
+func (d DefaultConfiguration) DefinesBindingGroup() {}
+
 // DependencyResolverHandler
 type DependencyResolverHandler struct{}
 
 func (h *DependencyResolverHandler) UseDependencyResolver(
 	_*miruken.Handles, foo *Foo,
-	_*struct{
-		Configuration
-		DateFormat  `layout:"02 Jan 06 15:04 MST"`
-	 }, config *Config,
+	_*struct{ DefaultConfiguration }, config *Config,
 ) *Config {
 	foo.Inc()
 	return config

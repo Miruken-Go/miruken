@@ -120,8 +120,8 @@ func (s *policySpec) complete() error {
 
 // policySpecBuilder builds policySpec from method metadata.
 type policySpecBuilder struct {
-	cache    map[reflect.Type]Policy
-	bindings []bindingBuilder
+	cache   map[reflect.Type]Policy
+	parsers []bindingParser
 }
 
 func (p *policySpecBuilder) buildSpec(
@@ -134,7 +134,7 @@ func (p *policySpecBuilder) buildSpec(
 			specType.Kind() == reflect.Struct &&
 			specType.NumField() > 0 {
 			spec = &policySpec{}
-			if err = configureBinding(specType, spec, p.bindings);
+			if err = parseBinding(specType, spec, p.parsers);
 				err != nil || len(spec.policies) == 0 {
 				return nil, err
 			}
@@ -165,7 +165,7 @@ func (p *policySpecBuilder) policyOf(
 	return policy
 }
 
-func (p *policySpecBuilder) configure(
+func (p *policySpecBuilder) parse(
 	index   int,
 	field   reflect.StructField,
 	binding any,
@@ -182,7 +182,7 @@ func (p *policySpecBuilder) configure(
 			policy := p.policyOf(cb)
 			if invalid := b.addPolicy(policy); invalid != nil {
 				err = fmt.Errorf(
-					"configure: policy %#v at index %v failed: %w",
+					"parse: policy %#v at index %v failed: %w",
 					policy, index, invalid)
 			}
 		}
@@ -190,7 +190,7 @@ func (p *policySpecBuilder) configure(
 	return bound, err
 }
 
-func bindFilters(
+func parseFilters(
 	index   int,
 	field   reflect.StructField,
 	binding any,
@@ -217,7 +217,7 @@ func bindFilters(
 			provider := &filterSpecProvider{spec}
 			if invalid := b.addFilterProvider(provider); invalid != nil {
 				err = fmt.Errorf(
-					"bindFilters: filter spec provider %v at index %v failed: %w",
+					"parseFilters: filter spec provider %v at index %v failed: %w",
 					provider, index, invalid)
 			}
 		}
@@ -228,11 +228,11 @@ func bindFilters(
 		}); ok {
 			if provider, invalid := newWithTag(fp, field.Tag); invalid != nil {
 				err = fmt.Errorf(
-					"bindFilters: new filter provider at index %v failed: %w",
+					"parseFilters: new filter provider at index %v failed: %w",
 					index, invalid)
 			} else if invalid := b.addFilterProvider(provider.(FilterProvider)); invalid != nil {
 				err = fmt.Errorf(
-					"bindFilters: filter provider %v at index %v failed: %w",
+					"parseFilters: filter provider %v at index %v failed: %w",
 					provider, index, invalid)
 			}
 		}
@@ -240,7 +240,7 @@ func bindFilters(
 	return bound, err
 }
 
-func bindConstraints(
+func parseConstraints(
 	index   int,
 	field   reflect.StructField,
 	binding any,
@@ -253,10 +253,10 @@ func bindConstraints(
 		}); ok {
 			if constraint, invalid := newWithTag(ct, field.Tag); invalid != nil {
 				err = fmt.Errorf(
-					"bindConstraints: new key at index %v failed: %w", index, invalid)
+					"parseConstraints: new key at index %v failed: %w", index, invalid)
 			} else if invalid := b.addConstraint(constraint.(BindingConstraint)); invalid != nil {
 				err = fmt.Errorf(
-					"bindConstraints: key %v at index %v failed: %w", constraint, index, invalid)
+					"parseConstraints: key %v at index %v failed: %w", constraint, index, invalid)
 			}
 		}
 	}
