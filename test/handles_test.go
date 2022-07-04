@@ -257,6 +257,7 @@ type (
 	}
 
 	DefaultConfiguration struct {
+		miruken.BindingGroup
 		Configuration
 		DateFormat  `layout:"02 Jan 06 15:04 MST"`
 	}
@@ -299,8 +300,6 @@ func (c *Configuration) Resolve(
 	}
 	return reflect.ValueOf(c.config), nil, nil
 }
-
-func (d DefaultConfiguration) DefinesBindingGroup() {}
 
 // DependencyResolverHandler
 type DependencyResolverHandler struct{}
