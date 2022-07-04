@@ -39,6 +39,10 @@ type (
 
 	// SkipFilters skips all non-required filters.
 	SkipFilters struct{}
+
+	// BindingGroup marks bindings that aggregate
+	// one or more binding metadata.
+	BindingGroup struct {}
 )
 
 const (
@@ -48,6 +52,8 @@ const (
 	bindingSkipFilters
 	bindingPromise
 )
+
+func (d BindingGroup) DefinesBindingGroup() {}
 
 type (
 	bindingParser interface {
@@ -101,8 +107,11 @@ func parseStructBinding(
 	for i := 0; i < typ.NumField(); i++ {
 		bound := false
 		field := typ.Field(i)
-		if fieldType := field.Type;
-			fieldType.Kind() == reflect.Struct && fieldType.Implements(_groupDefinition) {
+		fieldType := field.Type
+		if fieldType == _bindingGroupType {
+			continue
+		}
+		if fieldType.Kind() == reflect.Struct && fieldType.Implements(_definesBindingGroup) {
 			if invalid := parseStructBinding(fieldType, binding, parsers); invalid != nil {
 				err = multierror.Append(err, invalid)
 			}
@@ -199,8 +208,9 @@ func parseOptions(
 }
 
 var (
-	_strictType      = TypeOf[Strict]()
-	_optionalType    = TypeOf[Optional]()
-	_skipFiltersType = TypeOf[SkipFilters]()
-	_groupDefinition = TypeOf[interface{ DefinesBindingGroup() }]()
+	_strictType          = TypeOf[Strict]()
+	_optionalType        = TypeOf[Optional]()
+	_skipFiltersType     = TypeOf[SkipFilters]()
+	_bindingGroupType    = TypeOf[BindingGroup]()
+	_definesBindingGroup = TypeOf[interface{ DefinesBindingGroup() }]()
 )
