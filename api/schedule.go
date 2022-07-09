@@ -8,17 +8,17 @@ import (
 )
 
 type (
-	// Concurrent represents a group of requests to execute concurrently.
+	// ConcurrentBatch represents a batch of requests to execute concurrently.
 	// The operation returns after all requests are completed and
 	// includes all successes and failures.
-	Concurrent struct {
+	ConcurrentBatch struct {
 		Requests []any
 	}
 
-	// Sequential represents a group of requests to execute sequentially.
+	// SequentialBatch represents a batch of requests to execute sequentially.
 	// The operation aborts after the first failure and returns the
 	// successfully completed responses and first failure.
-	Sequential struct {
+	SequentialBatch struct {
 		Requests []any
 	}
 
@@ -46,7 +46,7 @@ func (s *Scheduler) Constructor(
 }
 
 func (s *Scheduler) HandleConcurrent(
-	_*miruken.Handles, concurrent *Concurrent,
+	_*miruken.Handles, concurrent *ConcurrentBatch,
 	composer miruken.Handler,
 ) *promise.Promise[*ScheduledResult] {
 	return promise.New(func(resolve func(*ScheduledResult), reject func(error)) {
@@ -70,7 +70,7 @@ func (s *Scheduler) HandleConcurrent(
 }
 
 func (s *Scheduler) HandleSequential(
-	_*miruken.Handles, sequential *Sequential,
+	_*miruken.Handles, sequential *SequentialBatch,
 	composer miruken.Handler,
 ) *promise.Promise[*ScheduledResult] {
 	return promise.New(func(resolve func(*ScheduledResult), reject func(error)) {
@@ -110,4 +110,43 @@ func process(
 		}
 	}
 	return Success(res), true
+}
+
+// Sequential processes a batch of requests sequentially.
+// Returns a batch of corresponding responses (or errors).
+func Sequential(
+	handler  miruken.Handler,
+	requests ... any,
+) *promise.Promise[[]either.Either[error, any]] {
+	if miruken.IsNil(handler) {
+		panic("handler cannot be nil")
+	}
+	return sendBatch(handler, &SequentialBatch{requests})
+}
+
+// Concurrent processes a batch of requests concurrently.
+// Returns a batch of corresponding responses (or errors).
+func Concurrent(
+	handler  miruken.Handler,
+	requests ... any,
+) *promise.Promise[[]either.Either[error, any]] {
+	if miruken.IsNil(handler) {
+		panic("handler cannot be nil")
+	}
+	return sendBatch(handler, &ConcurrentBatch{requests})
+}
+
+func sendBatch(
+	handler miruken.Handler,
+	batch   any,
+) *promise.Promise[[]either.Either[error, any]] {
+	if r, pr, err := Send[*ScheduledResult](handler, batch); err != nil {
+		return promise.Reject[[]either.Either[error, any]](err)
+	} else if pr != nil {
+		return promise.Then(pr, func(result *ScheduledResult) []either.Either[error, any] {
+			return result.Responses
+		})
+	} else {
+		return promise.Resolve(r.Responses)
+	}
 }

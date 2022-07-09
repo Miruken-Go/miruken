@@ -69,7 +69,7 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 	suite.Run("Sequential", func() {
 		suite.Run("Success", func() {
 			handler := suite.Setup()
-			sequential := &api.Sequential{
+			sequential := &api.SequentialBatch{
 				Requests: []any{
 					GetStockQuote{"APPL"},
 					GetStockQuote{"MSFT"},
@@ -93,9 +93,28 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 			}
 		})
 
+		suite.Run("Variadic", func() {
+			ps := api.Sequential(
+				suite.Setup(),
+				GetStockQuote{"APPL"},
+				GetStockQuote{"MSFT"},
+				GetStockQuote{"GOOGL"},
+			)
+			s, err := ps.Await()
+			suite.Nil(err)
+			suite.Len(s, 3)
+			symbols := make([]string, 3)
+			for i, response := range s {
+				symbols[i] = either.Fold(response,
+					func(err error) string { return err.Error() },
+					func(quote any) string { return quote.(StockQuote).Symbol })
+			}
+			suite.Equal([]string { "APPL", "MSFT", "GOOGL"}, symbols)
+		})
+
 		suite.Run("First Failure", func() {
 			handler := suite.Setup()
-			sequential := &api.Sequential{
+			sequential := &api.SequentialBatch{
 				Requests: []any{
 					GetStockQuote{"APPL"},
 					GetStockQuote{"EX"},
@@ -114,16 +133,14 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 					func(err error) string { return err.Error() },
 					func(quote any) string { return quote.(StockQuote).Symbol })
 			}
-			suite.Equal(
-				[]string { "APPL", "stock exchange is down"},
-				symbols)
+			suite.Equal([]string { "APPL", "stock exchange is down"}, symbols)
 		})
 	})
 
 	suite.Run("Concurrent", func() {
 		suite.Run("Success", func() {
 			handler := suite.Setup()
-			sequential := &api.Concurrent{
+			sequential := &api.ConcurrentBatch{
 				Requests: []any{
 					GetStockQuote{"APPL"},
 					GetStockQuote{"MSFT"},
@@ -142,14 +159,31 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 					func(err error) string { return err.Error() },
 					func(quote any) string { return quote.(StockQuote).Symbol })
 			}
-			suite.Equal(
-				[]string { "APPL", "MSFT", "GOOGL"},
-				symbols)
+			suite.Equal([]string { "APPL", "MSFT", "GOOGL"}, symbols)
+		})
+
+		suite.Run("Variadic", func() {
+			ps := api.Concurrent(
+				suite.Setup(),
+				GetStockQuote{"APPL"},
+				GetStockQuote{"MSFT"},
+				GetStockQuote{"GOOGL"},
+			)
+			s, err := ps.Await()
+			suite.Nil(err)
+			suite.Len(s, 3)
+			symbols := make([]string, 3)
+			for i, response := range s {
+				symbols[i] = either.Fold(response,
+					func(err error) string { return err.Error() },
+					func(quote any) string { return quote.(StockQuote).Symbol })
+			}
+			suite.Equal([]string { "APPL", "MSFT", "GOOGL"}, symbols)
 		})
 
 		suite.Run("Single Failure", func() {
 			handler := suite.Setup()
-			sequential := &api.Concurrent{
+			sequential := &api.ConcurrentBatch{
 				Requests: []any{
 					GetStockQuote{"APPL"},
 					GetStockQuote{"EX"},
@@ -168,14 +202,12 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 					func(err error) string { return err.Error() },
 					func(quote any) string { return quote.(StockQuote).Symbol })
 			}
-			suite.Equal(
-				[]string { "APPL", "stock exchange is down", "GOOGL"},
-				symbols)
+			suite.Equal([]string { "APPL", "stock exchange is down", "GOOGL"}, symbols)
 		})
 
 		suite.Run("Multiple Failures", func() {
 			handler := suite.Setup()
-			sequential := &api.Concurrent{
+			sequential := &api.ConcurrentBatch{
 				Requests: []any{
 					GetStockQuote{"APPL"},
 					GetStockQuote{"EX"},
@@ -194,9 +226,7 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 					func(err error) string { return err.Error() },
 					func(quote any) string { return quote.(StockQuote).Symbol })
 			}
-			suite.Equal(
-				[]string { "APPL", "stock exchange is down", "stock exchange is down"},
-				symbols)
+			suite.Equal([]string { "APPL", "stock exchange is down", "stock exchange is down"}, symbols)
 		})
 	})
 }
