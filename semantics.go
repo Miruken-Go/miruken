@@ -24,6 +24,10 @@ func (c *CallbackSemantics) CanFilter() bool {
 	return false
 }
 
+func (c *CallbackSemantics) CanBatch() bool {
+	return false
+}
+
 func (c *CallbackSemantics) HasOption(options SemanticFlags) bool  {
 	return (c.options & options) == options
 }

@@ -47,8 +47,15 @@ func (t *Trampoline) CanInfer() bool {
 }
 
 func (t *Trampoline) CanFilter() bool {
-	if infer, ok := t.callback.(interface{CanFilter() bool}); ok {
-		return infer.CanFilter()
+	if filter, ok := t.callback.(interface{CanFilter() bool}); ok {
+		return filter.CanFilter()
+	}
+	return true
+}
+
+func (t *Trampoline) CanBatch() bool {
+	if batch, ok := t.callback.(interface{CanBatch() bool}); ok {
+		return batch.CanBatch()
 	}
 	return true
 }

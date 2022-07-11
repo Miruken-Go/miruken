@@ -39,6 +39,10 @@ func (o *options) CanFilter() bool {
 	return false
 }
 
+func (o *options) CanBatch() bool {
+	return false
+}
+
 func (o *options) mergeFrom(options any) bool {
 	return MergeOptions(options, o.options)
 }
@@ -59,12 +63,13 @@ func (c *optionsHandler) Handle(
 		return NotHandled
 	}
 	tryInitializeComposer(&composer, c)
-	if comp, ok := callback.(*Composition); ok {
-		if callback = comp.Callback(); callback == nil {
+	cb := callback
+	if comp, ok := cb.(*Composition); ok {
+		if cb = comp.Callback(); cb == nil {
 			return c.Handler.Handle(callback, greedy, composer)
 		}
 	}
-	if opt, ok := callback.(*options); ok {
+	if opt, ok := cb.(*options); ok {
 		options := opt.options
 		if reflect.TypeOf(options).Elem().AssignableTo(c.optionsType) {
 			merged := false

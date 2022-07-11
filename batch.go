@@ -1,3 +1,243 @@
 package miruken
 
+import (
+	"github.com/miruken-go/miruken/promise"
+	"reflect"
+	"sync/atomic"
+)
 
+type (
+	batching interface {
+		CompleteBatch(
+			composer Handler,
+		) (any, *promise.Promise[any], error)
+	}
+
+	batch struct {
+		mutableHandlers
+		tags map[any]struct{}
+	}
+
+	noBatch struct {
+		Trampoline
+	}
+
+	batchHandler struct {
+		Handler
+		batch     *batch
+		completed int32
+	}
+
+	noBatchHandler struct {
+		Handler
+	}
+)
+
+func (b *batch) ShouldBatch(tag any) bool {
+	if len(b.tags) == 0 {
+		return true
+	}
+	_, ok := b.tags[tag]
+	return ok
+}
+
+func (b *batch) Complete(
+	composer Handler,
+) *promise.Promise[[]any] {
+	var results []*promise.Promise[any]
+	for _, handler := range b.Handlers() {
+		if c, ok := handler.(batching); ok {
+			if r, pr, err := c.CompleteBatch(composer); err != nil {
+				return promise.Reject[[]any](err)
+			} else if pr == nil {
+				results = append(results, promise.Resolve(r))
+			} else {
+				results = append(results, pr)
+			}
+		}
+	}
+	return promise.All(results...)
+}
+
+func (b *noBatch) CanBatch() bool {
+	return false
+}
+
+func (b *batchHandler) NoConstructor() {}
+
+func (b *batchHandler) Handle(
+	callback any,
+	greedy   bool,
+	composer Handler,
+) HandleResult {
+	if callback == nil {
+		return NotHandled
+	}
+	tryInitializeComposer(&composer, b)
+	cb := callback
+	if comp, ok := cb.(*Composition); ok {
+		cb = comp.Callback()
+	}
+	switch cb := cb.(type) {
+	case *Provides:
+		if typ, ok := cb.key.(reflect.Type); ok {
+			if batch := b.batch; batch == nil {
+				return NotHandled
+			} else if typ == _batchType {
+				return cb.ReceiveResult(batch, true, composer)
+			} else if typ.Implements(_batchingType) {
+				for _, h := range batch.Handlers() {
+					if _, ok := h.(batching); ok {
+						return cb.ReceiveResult(h, true, composer)
+					}
+				}
+				if batcher, err := newWithTag(typ, ""); err != nil {
+					batch.AddHandlers(batcher)
+					return cb.ReceiveResult(batcher, true, composer)
+				}
+			}
+		}
+	case *Handles:
+		if batch := b.batch; batch != nil {
+			if check, ok := callback.(interface{
+				CanBatch() bool
+			}); !ok || check.CanBatch() {
+				if r := batch.Handle(callback, greedy, composer);
+					r.IsHandled() && !r.ShouldStop() {
+					return r
+				}
+			}
+		}
+	}
+	return b.Handler.Handle(callback, greedy, composer)
+}
+
+func (b *batchHandler) Complete(
+	promises ... *promise.Promise[any],
+) *promise.Promise[[]any] {
+	if !atomic.CompareAndSwapInt32(&b.completed, 0, 1) {
+		panic("batch has already completed")
+	}
+	batch := b.batch
+	b.batch = nil
+	if results := batch.Complete(b); len(promises) == 0 {
+		return results
+	} else {
+		return promise.Then(results, func(res []any) []any {
+			if _, err := promise.All(promises...).Await(); err != nil {
+				panic(err)
+			}
+			return res
+		})
+	}
+}
+
+func (b *noBatchHandler) Handle(
+	callback any,
+	greedy   bool,
+	composer Handler,
+) HandleResult {
+	if callback == nil {
+		return NotHandled
+	}
+	tryInitializeComposer(&composer, b)
+	cb := callback
+	if comp, ok := callback.(*Composition); ok {
+		cb = comp.Callback()
+	}
+	if p, ok := cb.(*Provides); ok &&  p.Key() == _batchType {
+		return NotHandled
+	}
+	nb := &noBatch{}
+	nb.callback = callback
+	return b.Handler.Handle(nb, greedy, composer)
+}
+
+func Batch(
+	handler   Handler,
+	configure func(Handler),
+	tags       ... any,
+) *promise.Promise[[]any] {
+	if IsNil(handler) {
+		panic("handler cannot be nil")
+	}
+	if configure == nil {
+		panic("configure cannot be nil")
+	}
+	batch := &batchHandler{handler, newBatch(tags...), 0}
+	configure(batch)
+	return batch.Complete()
+}
+
+func BatchAsync(
+	handler   Handler,
+	configure func(Handler) *promise.Promise[any],
+	tags      ... any,
+) *promise.Promise[[]any] {
+	if IsNil(handler) {
+		panic("handler cannot be nil")
+	}
+	if configure == nil {
+		panic("configure cannot be nil")
+	}
+	batch := &batchHandler{handler, newBatch(tags...), 0}
+	return batch.Complete(configure(batch))
+}
+
+func BatchTag[T any](
+	handler   Handler,
+	configure func(Handler),
+) *promise.Promise[[]any] {
+	return Batch(handler, configure, TypeOf[T]())
+}
+
+func BatchAsyncAsync[T any](
+	handler   Handler,
+	configure func(Handler) *promise.Promise[any],
+) *promise.Promise[[]any] {
+	return BatchAsync(handler, configure, TypeOf[T]())
+}
+
+var NoBatch BuilderFunc = func(handler Handler) Handler {
+	if IsNil(handler) {
+		panic("handler cannot be nil")
+	}
+	return &noBatchHandler{handler}
+}
+
+func GetBatch[TB batching](handler Handler, tags ... any) TB {
+	var tb TB
+	if batch, _, err := Resolve[*batch](handler); err == nil && batch != nil {
+		for _, tag := range tags {
+			if !batch.ShouldBatch(tag) {
+				break
+			}
+		}
+		for _, handler := range batch.Handlers() {
+			if batcher, ok := handler.(TB); ok {
+				return batcher
+			}
+		}
+		if batcher, err := newWithTag(TypeOf[TB](), ""); err == nil {
+			batch.AddHandlers(batcher)
+			return batcher.(TB)
+		}
+	}
+	return tb
+}
+
+func newBatch(tags ... any) *batch {
+	if len(tags) == 0 {
+		return &batch{}
+	}
+	tagMap := make(map[any]struct{})
+	for _, tag := range tags {
+		tagMap[tag] = struct{}{}
+	}
+	return &batch{tags: tagMap}
+}
+
+var (
+	_batchType    = TypeOf[*batch]()
+	_batchingType = TypeOf[batching]()
+)

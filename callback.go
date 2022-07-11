@@ -186,7 +186,7 @@ func CoerceResult[T any](
 			//   e.g.  async filter, async args
 			// It is necessary to unwrap the promise to obtain
 			// the correct result to bind to.
-			if !reflect.TypeOf(res).AssignableTo(TypeOf[T]()) {
+			if res != nil && !reflect.TypeOf(res).AssignableTo(TypeOf[T]()) {
 				if pr, ok := res.(promise.Reflect); ok {
 					if r, err := pr.AwaitAny(); err != nil {
 						panic(err)
@@ -229,7 +229,7 @@ func CoerceResults[T any](
 		CopySliceIndirect(result.([]any), target)
 	} else {
 		tp = promise.Then(p, func(res any) []T {
-			if !reflect.TypeOf(res).AssignableTo(TypeOf[T]()) {
+			if res != nil && !reflect.TypeOf(res).AssignableTo(TypeOf[T]()) {
 				if pr, ok := res.(promise.Reflect); ok {
 					if r, err := pr.AwaitAny(); err != nil {
 						panic(err)
@@ -300,7 +300,7 @@ func (c *CallbackBase) includeResult(
 	}
 	if pr, ok := result.(promise.Reflect); ok {
 		pp := pr.Then(func(res any) any {
-			if !strict {
+			if !(strict || IsNil(res)) {
 				// Squash list into expando result
 				switch reflect.TypeOf(res).Kind() {
 				case reflect.Slice, reflect.Array:

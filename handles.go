@@ -41,8 +41,15 @@ func (h *Handles) CanInfer() bool {
 }
 
 func (h *Handles) CanFilter() bool {
-	if infer, ok := h.callback.(interface{CanFilter() bool}); ok {
-		return infer.CanFilter()
+	if filter, ok := h.callback.(interface{CanFilter() bool}); ok {
+		return filter.CanFilter()
+	}
+	return true
+}
+
+func (h *Handles) CanBatch() bool {
+	if batch, ok := h.callback.(interface{CanBatch() bool}); ok {
+		return batch.CanBatch()
 	}
 	return true
 }

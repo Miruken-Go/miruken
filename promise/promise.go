@@ -34,8 +34,13 @@ func New[T any](executor func(resolve func(T), reject func(error))) *Promise[T] 
 	p.wg.Add(1)
 
 	go func() {
-		defer p.handlePanic()
-		executor(p.resolve, p.reject)
+		if panicked, panicRes := p.handlePanic(executor); panicked {
+			if validErr, ok := panicRes.(error); ok {
+				p.reject(fmt.Errorf("panic recovery: %w", validErr))
+			} else {
+				p.reject(fmt.Errorf("panic recovery: %+v", panicRes))
+			}
+		}
 	}()
 
 	return p
@@ -69,13 +74,14 @@ func (p *Promise[T]) reject(err error) {
 	p.wg.Done()
 }
 
-func (p *Promise[T]) handlePanic() {
-	err := recover()
-	if validErr, ok := err.(error); ok {
-		p.reject(fmt.Errorf("panic recovery: %w", validErr))
-	} else {
-		p.reject(fmt.Errorf("panic recovery: %+v", err))
-	}
+func (p *Promise[T]) handlePanic(
+	executor func(resolve func(T), reject func(error)),
+) (panicked bool, panicRes interface{}) {
+	panicked = true
+	defer func() { panicRes = recover() }()
+	executor(p.resolve, p.reject)
+	panicked = false
+	return
 }
 
 // Await blocks until the promise is resolved or rejected.

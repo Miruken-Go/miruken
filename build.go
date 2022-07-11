@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"github.com/miruken-go/miruken/slices"
 	"sync"
 )
 
@@ -154,6 +155,15 @@ func (w *withHandlers) SuppressDispatch() {}
 type mutableHandlers struct {
 	handlers []Handler
 	lock     sync.RWMutex
+}
+
+func (m *mutableHandlers) Handlers() []any {
+	return slices.Map[Handler, any](m.handlers, func(handler Handler) any {
+		if a, ok := handler.(handlerAdapter); ok {
+			return a.handler
+		}
+		return handler
+	})
 }
 
 func (m *mutableHandlers) AddHandlers(

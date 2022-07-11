@@ -6,7 +6,7 @@ require (
 	github.com/bearbin/go-age v0.0.0-20210220235509-f0fa00c278ce
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/imdario/mergo v0.3.13
-	github.com/stretchr/testify v1.7.5
+	github.com/stretchr/testify v1.8.0
 )
 
 require (

@@ -610,4 +610,8 @@ func (g *getHandlerDescriptorFactory) Handle(
 
 func (g *getHandlerDescriptorFactory) SuppressDispatch() {}
 
+func (g *getHandlerDescriptorFactory) CabBatch() bool {
+	return false
+}
+
 var _suppressDispatchType = TypeOf[suppressDispatch]()
