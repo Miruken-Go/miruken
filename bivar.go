@@ -53,6 +53,11 @@ func (p *BivariantPolicy) MatchesKey(
 	}
 }
 
+
+func (p *BivariantPolicy) Strict() bool {
+	return true
+}
+
 func (p *BivariantPolicy) Less(
 	binding, otherBinding Binding,
 ) bool {

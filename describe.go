@@ -398,7 +398,8 @@ func (d *HandlerDescriptor) Dispatch(
 					res, accept := policy.AcceptResults(out)
 					if res != nil {
 						if accept.handled {
-							accept = accept.And(callback.ReceiveResult(res, binding.Strict(), composer))
+							strict := policy.Strict() || binding.Strict()
+							accept = accept.And(callback.ReceiveResult(res, strict, composer))
 						}
 					}
 					result = result.Or(accept)

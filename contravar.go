@@ -40,6 +40,10 @@ func (p *ContravariantPolicy) MatchesKey(
 	return false, false
 }
 
+func (p *ContravariantPolicy) Strict() bool {
+	return true
+}
+
 func (p *ContravariantPolicy) Less(
 	binding, otherBinding Binding,
 ) bool {

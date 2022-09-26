@@ -84,7 +84,7 @@ func (s *scoped) Next(
 		} else {
 			s.cache = map[*Context][]any{}
 		}
-		instance     = res
+		instance         = res
 		s.cache[context] = res
 		s.lock.Unlock()
 	}

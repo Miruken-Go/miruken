@@ -11,6 +11,7 @@ type (
 	// Policy manages behaviors and callback Binding's.
 	Policy interface {
 		Filtered
+		Strict() bool
 		Less(binding, otherBinding Binding) bool
 		IsVariantKey(key any) (bool, bool)
 		MatchesKey(key, otherKey any, invariant bool) (bool, bool)
