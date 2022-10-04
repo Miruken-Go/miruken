@@ -7,7 +7,6 @@ import (
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/suite"
-	"sync"
 	"testing"
 )
 
@@ -72,32 +71,24 @@ func (e *EmailBatcher) ConfirmSend(
 	_*miruken.Handles, confirm ConfirmSend,
 ) *promise.Promise[any]  {
 	e.messages = append(e.messages, string(confirm))
-	var wg sync.WaitGroup
-	wg.Add(1)
-	p := promise.New(func(resolve func(any), reject func(error)) {
-		e.resolves = append(e.resolves, func() {
-			resolve(fmt.Sprintf("%v batch", confirm))
-		})
-		wg.Done()
+	d := promise.Defer[any]()
+	e.resolves = append(e.resolves, func() {
+		d.Resolve(fmt.Sprintf("%v batch", confirm))
 	})
+	p := d.Promise()
 	e.promises = append(e.promises, p)
-	wg.Wait()
 	return p
 }
 
 func (e *EmailBatcher) FailConfirm(
 	_*miruken.Handles, fail FailConfirm,
 ) *promise.Promise[any] {
-	var wg sync.WaitGroup
-	wg.Add(1)
-	p := promise.New(func(resolve func(any), reject func(error)) {
-		e.resolves = append(e.resolves, func() {
-			reject(errors.New("can't send message"))
-		})
-		wg.Done()
+	d := promise.Defer[any]()
+	e.resolves = append(e.resolves, func() {
+		d.Reject(errors.New("can't send message"))
 	})
+	p := d.Promise()
 	e.promises = append(e.promises, p)
-	wg.Wait()
 	return p
 }
 
@@ -124,7 +115,7 @@ func (e *EmailBatcher) CompleteBatch(
 				return r
 			}), nil
 		}
-		return r,pr, nil
+		return r, pr, nil
 	}
 }
 
@@ -205,6 +196,56 @@ func (suite *BatchTestSuite) TestBatch() {
 		}).Await()
 		suite.NotNil(err)
 		suite.Nil(results)
+	})
+
+	suite.Run("No Batch After Await", func() {
+		handler, _ := suite.Setup()
+		results, err := miruken.Batch(handler, func(batch miruken.Handler) {
+			r, pr, err := api.Send[string](batch, ConfirmSend("hello"))
+			suite.Nil(err)
+			suite.Zero(r)
+			suite.NotNil(pr)
+			promise.Then(pr, func(res string) any {
+				suite.Equal("hello batch", res)
+				return nil
+			})
+		}).Await()
+		suite.Nil(err)
+		suite.Len(results, 1)
+		suite.Equal([]string{"hello"}, results[0])
+
+		r, pr, err := api.Send[string](handler, ConfirmSend("hello"))
+		suite.Nil(err)
+		suite.Zero(r)
+		suite.NotNil(pr)
+		r, err = pr.Await()
+		suite.Nil(err)
+		suite.Equal("hello", r)
+	})
+
+	suite.Run("No Batch After Completed", func() {
+		count := 0
+		handler, _ := suite.Setup()
+		results, err := miruken.BatchAsync(handler, func(batch miruken.Handler) *promise.Promise[any] {
+			r, pr, err := api.Send[string](batch, ConfirmSend("hello"))
+			suite.Nil(err)
+			suite.Zero(r)
+			suite.NotNil(pr)
+			return promise.Then(pr, func(res string) any {
+				r1, pr1, err1 := api.Send[string](batch, ConfirmSend("hello"))
+				suite.Nil(err)
+				suite.Zero(r)
+				suite.NotNil(pr)
+				r1, err1 = pr1.Await()
+				suite.Nil(err1)
+				suite.Equal("hello", r1)
+				count = 1
+				return nil
+			})
+		}).Await()
+		suite.Nil(err)
+		suite.Len(results, 1)
+		suite.Equal(1, count)
 	})
 }
 

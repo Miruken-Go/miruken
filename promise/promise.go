@@ -47,6 +47,10 @@ func New[T any](executor func(resolve func(T), reject func(error))) *Promise[T] 
 }
 
 func (p *Promise[T]) resolve(resolution T) {
+	if !p.pending {
+		return
+	}
+
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -61,6 +65,10 @@ func (p *Promise[T]) resolve(resolution T) {
 }
 
 func (p *Promise[T]) reject(err error) {
+	if !p.pending {
+		return
+	}
+
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 

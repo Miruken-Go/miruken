@@ -31,7 +31,15 @@ type (
 	noBatchHandler struct {
 		Handler
 	}
+
+	// Batched wraps a Callback participating in a batch operation.
+	Batched[T any] struct {
+		source   T
+		callback Callback
+	}
 )
+
+// batch
 
 func (b *batch) ShouldBatch(tag any) bool {
 	if len(b.tags) == 0 {
@@ -62,6 +70,8 @@ func (b *batch) Complete(
 func (b *noBatch) CanBatch() bool {
 	return false
 }
+
+// batchHandler
 
 func (b *batchHandler) NoConstructor() {}
 
@@ -151,6 +161,16 @@ func (b *noBatchHandler) Handle(
 	nb := &noBatch{}
 	nb.callback = callback
 	return b.Handler.Handle(nb, greedy, composer)
+}
+
+// Batched
+
+func (b *Batched[T]) Source() T {
+	return b.source
+}
+
+func (b *Batched[T]) Callback() Callback {
+	return b.callback
 }
 
 func Batch(
