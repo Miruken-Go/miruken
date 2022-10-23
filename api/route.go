@@ -2,7 +2,9 @@ package api
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/either"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/slices"
 )
 
 type (
@@ -15,6 +17,12 @@ type (
 	// BatchRouter handles Routed batch requests.
 	BatchRouter struct {
 		groups map[string][]pending
+	}
+
+	// RouteReply holds the responses for a route.
+	RouteReply struct {
+		Uri       string
+		Responses []any
 	}
 
 	pending struct {
@@ -37,7 +45,6 @@ func (r *Routed) Route() string {
 
 func (b *BatchRouter) NoConstructor() {}
 
-
 func (b *BatchRouter) Route(
 	_*miruken.Handles, routed Routed,
 	ctx miruken.HandleContext,
@@ -55,11 +62,36 @@ func (b *BatchRouter) RouteBatch(
 func (b *BatchRouter) CompleteBatch(
 	composer miruken.Handler,
 ) (any, *promise.Promise[any], error) {
-	//var promises *promise.Promise[any]
-	//for route, group := range b.groups {
-	//
-	//}
-	return nil, nil, nil
+	var complete []*promise.Promise[any]
+	for route, group := range b.groups {
+		uri := route
+		messages := slices.Map[pending, any](group, func (p pending) any {
+			return p.message
+		})
+		routeTo := RouteTo(&ConcurrentBatch{messages}, route)
+		complete = append(complete, promise.Then(sendBatch(composer, routeTo),
+			func(results []either.Either[error, any]) RouteReply {
+				responses := make([]any, len(results))
+				for i, response := range results {
+					responses[i] = either.Fold(response,
+						func (err error) any {
+							group[i].deferred.Reject(err)
+							return err
+						},
+						func (success any) any {
+							group[i].deferred.Resolve(success)
+							return success
+						})
+				}
+			return RouteReply{ uri, responses }
+		}).Catch(func(err error) error {
+			// cancel pending promises when available
+			return err
+		}))
+	}
+	return nil, promise.All(complete...).Then(func(data any) any {
+		return data
+	}), nil
 }
 
 func (b *BatchRouter) batch(
@@ -89,9 +121,8 @@ func (b *BatchRouter) batch(
 	return request.deferred.Promise()
 }
 
-
-// NewRouted wraps the message in a Routed container.
-func NewRouted(message any, route string) Routed {
+// RouteTo wraps the message in a Routed container.
+func RouteTo(message any, route string) Routed {
 	if miruken.IsNil(message) {
 		panic("message cannot be nil")
 	}

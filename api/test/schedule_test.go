@@ -140,14 +140,14 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 	suite.Run("Concurrent", func() {
 		suite.Run("Success", func() {
 			handler := suite.Setup()
-			sequential := &api.ConcurrentBatch{
+			concurrent := &api.ConcurrentBatch{
 				Requests: []any{
 					GetStockQuote{"APPL"},
 					GetStockQuote{"MSFT"},
 					GetStockQuote{"GOOGL"},
 				},
 			}
-			r, pr, err := api.Send[*api.ScheduledResult](handler, sequential)
+			r, pr, err := api.Send[*api.ScheduledResult](handler, concurrent)
 			suite.Nil(err)
 			suite.NotNil(pr)
 			r, err = pr.Await()
