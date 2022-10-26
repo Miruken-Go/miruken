@@ -310,13 +310,6 @@ func (v validateFilter) Order() int {
 	return FilterStageValidation
 }
 
-func (v validateFilter) AppliesTo(
-	callback Callback,
-) bool {
-	handles, ok := callback.(*Handles)
-	return ok && !IsNil(handles.Source())
-}
-
 func (v validateFilter) Next(
 	next     Next,
 	ctx      HandleContext,
@@ -434,6 +427,13 @@ func (v *ValidateProvider) InitWithTag(tag reflect.StructTag) error {
 
 func (v *ValidateProvider) Required() bool {
 	return false
+}
+
+func (v *ValidateProvider) AppliesTo(
+	callback Callback,
+) bool {
+	handles, ok := callback.(*Handles)
+	return ok && !IsNil(handles.Source())
 }
 
 func (v *ValidateProvider) Filters(

@@ -1,10 +1,13 @@
 package api
 
 import (
+	"errors"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/either"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/slices"
+	"reflect"
+	"strings"
 )
 
 type (
@@ -14,9 +17,9 @@ type (
 		route   string
 	}
 
-	// BatchRouter handles Routed batch requests.
-	BatchRouter struct {
-		groups map[string][]pending
+	// Routes is a FilterProvider of routesFilter.
+	Routes struct {
+		schemes []string
 	}
 
 	// RouteReply holds the responses for a route.
@@ -25,11 +28,20 @@ type (
 		Responses []any
 	}
 
+	// routesFilter coordinates miruken.Callback's participating in a batch.
+	routesFilter struct {}
+
+	// batchRouter handles Routed batch requests.
+	batchRouter struct {
+		groups map[string][]pending
+	}
+
 	pending struct {
 		message  any
 		deferred promise.Deferred[any]
 	}
 )
+
 
 // Routed
 
@@ -41,25 +53,78 @@ func (r *Routed) Route() string {
 	return r.route
 }
 
-// BatchRouter
 
-func (b *BatchRouter) NoConstructor() {}
+// Routes
 
-func (b *BatchRouter) Route(
+func (r *Routes) InitWithTag(tag reflect.StructTag) error {
+	if schemes, ok := tag.Lookup("scheme"); ok {
+		r.schemes = strings.Split(schemes, ",")
+	}
+	if len(r.schemes) == 0 {
+		return errors.New("the Routes filter requires a non-empty `schemes` tag")
+	}
+	return nil
+}
+
+func (r *Routes) Required() bool {
+	return true
+}
+
+func (r *Routes) AppliesTo(
+	callback miruken.Callback,
+) bool {
+	if handles, ok := callback.(*miruken.Handles); ok {
+		_, ok = handles.Source().(*Routed)
+		return ok
+	}
+	return false
+}
+
+func (r *Routes) Filters(
+	binding  miruken.Binding,
+	callback any,
+	composer miruken.Handler,
+) ([]miruken.Filter, error) {
+	return _routesFilter, nil
+}
+
+// routesFilter
+
+func (r routesFilter) Order() int {
+	return miruken.FilterStageLogging - 1
+}
+
+func (r routesFilter) Next(
+	next     miruken.Next,
+	ctx      miruken.HandleContext,
+	provider miruken.FilterProvider,
+)  (out []any, po *promise.Promise[[]any], err error) {
+	if _, ok := provider.(*Routes); ok {
+
+	}
+	return nil, nil, nil
+}
+
+
+// batchRouter
+
+func (b *batchRouter) NoConstructor() {}
+
+func (b *batchRouter) Route(
 	_*miruken.Handles, routed Routed,
 	ctx miruken.HandleContext,
 ) *promise.Promise[any] {
 	return b.batch(routed, ctx.Greedy())
 }
 
-func (b *BatchRouter) RouteBatch(
+func (b *batchRouter) RouteBatch(
 	_*miruken.Handles, routed miruken.Batched[Routed],
 	ctx miruken.HandleContext,
 ) *promise.Promise[any] {
 	return b.batch(routed.Source(), ctx.Greedy())
 }
 
-func (b *BatchRouter) CompleteBatch(
+func (b *batchRouter) CompleteBatch(
 	composer miruken.Handler,
 ) (any, *promise.Promise[any], error) {
 	var complete []*promise.Promise[any]
@@ -94,7 +159,7 @@ func (b *BatchRouter) CompleteBatch(
 	}), nil
 }
 
-func (b *BatchRouter) batch(
+func (b *batchRouter) batch(
 	routed  Routed,
 	publish bool,
 ) *promise.Promise[any] {
@@ -131,3 +196,5 @@ func RouteTo(message any, route string) Routed {
 	}
 	return Routed{message, route}
 }
+
+var _routesFilter = []miruken.Filter{routesFilter{}}

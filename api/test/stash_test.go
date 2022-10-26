@@ -36,16 +36,6 @@ func (c *CancelOrderFilter) Order() int {
 	return miruken.FilterStage
 }
 
-func (c *CancelOrderFilter) AppliesTo(
-	callback miruken.Callback,
-) bool {
-	if h, ok := callback.(*miruken.Handles); ok {
-		_, ok := h.Source().(*CancelOrder)
-		return ok
-	}
-	return false
-}
-
 func (c *CancelOrderFilter) Next(
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
