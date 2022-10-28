@@ -77,10 +77,37 @@ func (n Next) PipeComposer(
 	return mergeOutput(n(composer, true))
 }
 
-func (n Next) PipeComposerAsync(
+func (n Next) PipeComposerAwait(
 	composer Handler,
 ) []any {
 	return mergeOutputAwait(n(composer, true))
+}
+
+func (n Next) PipeHandle(
+	callback any,
+	greedy   bool,
+	composer Handler,
+) ([]any, *promise.Promise[[]any], error) {
+	if greedy {
+		if r, pr, e := ExecuteAll[any](BuildUp(composer, EnableFilters), callback); e != nil {
+			return nil, nil, e
+		} else if pr == nil {
+			return []any{r}, nil, nil
+		} else {
+			return nil, promise.Then(pr, func(res []any) []any {
+				return []any{res}
+			}), nil
+		}
+	}
+	if r, pr, e := Execute[any](BuildUp(composer, EnableFilters), callback); e != nil {
+		return nil, nil, e
+	} else if pr == nil {
+		return []any{r}, nil, nil
+	} else {
+		return nil, promise.Then(pr, func(res any) []any {
+			return []any{res}
+		}), nil
+	}
 }
 
 func (n Next) Abort() ([]any, *promise.Promise[[]any], error) {

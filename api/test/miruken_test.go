@@ -11,6 +11,7 @@ var TestFeature = miruken.InstallFeature(func(setup *miruken.SetupBuilder) error
 		&OrderHandler{},
 		&PresidentHandler{},
 		&StockQuoteHandler{},
+		&TrashHandler{},
 	)
 	return nil
 })

@@ -34,8 +34,8 @@ type (
 
 	// Batched wraps a Callback participating in a batch operation.
 	Batched[T any] struct {
-		source   T
-		callback Callback
+		Source   T
+		Callback Callback
 	}
 )
 
@@ -161,16 +161,6 @@ func (b *noBatchHandler) Handle(
 	nb := &noBatch{}
 	nb.callback = callback
 	return b.Handler.Handle(nb, greedy, composer)
-}
-
-// Batched
-
-func (b *Batched[T]) Source() T {
-	return b.source
-}
-
-func (b *Batched[T]) Callback() Callback {
-	return b.callback
 }
 
 func Batch(

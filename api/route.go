@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken/either"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/slices"
+	"net/url"
 	"reflect"
 	"strings"
 )
@@ -13,8 +14,8 @@ import (
 type (
 	// Routed wraps a message with route information.
 	Routed struct {
-		message any
-		route   string
+		Message any
+		Route   string
 	}
 
 	// Routes is a FilterProvider of routesFilter.
@@ -27,6 +28,8 @@ type (
 		Uri       string
 		Responses []any
 	}
+
+	PassThroughRouter struct {}
 
 	// routesFilter coordinates miruken.Callback's participating in a batch.
 	routesFilter struct {}
@@ -41,17 +44,6 @@ type (
 		deferred promise.Deferred[any]
 	}
 )
-
-
-// Routed
-
-func (r *Routed) Message() any {
-	return r.message
-}
-
-func (r *Routed) Route() string {
-	return r.route
-}
 
 
 // Routes
@@ -88,6 +80,35 @@ func (r *Routes) Filters(
 	return _routesFilter, nil
 }
 
+func (r *Routes) Satisfies(routed *Routed) bool {
+	if u, err := url.Parse(routed.Route); err == nil {
+		return slices.Contains(r.schemes, u.Scheme)
+	}
+	return false
+}
+
+
+// PassThroughRouter
+
+func (p *PassThroughRouter) Pass(
+	_*struct{
+		miruken.Handles
+		miruken.SkipFilters
+	  }, routed Routed,
+	composer miruken.Handler,
+) (any, miruken.HandleResult) {
+	if strings.EqualFold(routed.Route, "pass-through") {
+		if r, pr, err := Send[any](composer, routed.Message); err != nil {
+			return nil, miruken.NotHandled.WithError(err)
+		} else if pr == nil {
+			return r, miruken.Handled
+		} else {
+			return pr, miruken.Handled
+		}
+	}
+	return nil, miruken.NotHandled
+}
+
 // routesFilter
 
 func (r routesFilter) Order() int {
@@ -99,10 +120,20 @@ func (r routesFilter) Next(
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  (out []any, po *promise.Promise[[]any], err error) {
-	if _, ok := provider.(*Routes); ok {
-
+	if routes, ok := provider.(*Routes); ok {
+		callback := ctx.Callback()
+		routed   := callback.Source().(*Routed)
+		if routes.Satisfies(routed) {
+			composer := ctx.Composer()
+			if batch := miruken.GetBatch[*batchRouter](composer); batch != nil {
+				return next.PipeHandle(
+					miruken.Batched[*Routed]{routed, callback},
+					ctx.Greedy(),
+					composer)
+			}
+		}
 	}
-	return nil, nil, nil
+	return next.Pipe()
 }
 
 
@@ -121,7 +152,7 @@ func (b *batchRouter) RouteBatch(
 	_*miruken.Handles, routed miruken.Batched[Routed],
 	ctx miruken.HandleContext,
 ) *promise.Promise[any] {
-	return b.batch(routed.Source(), ctx.Greedy())
+	return b.batch(routed.Source, ctx.Greedy())
 }
 
 func (b *batchRouter) CompleteBatch(
@@ -134,22 +165,23 @@ func (b *batchRouter) CompleteBatch(
 			return p.message
 		})
 		routeTo := RouteTo(&ConcurrentBatch{messages}, route)
-		complete = append(complete, promise.Then(sendBatch(composer, routeTo),
-			func(results []either.Either[error, any]) RouteReply {
-				responses := make([]any, len(results))
-				for i, response := range results {
-					responses[i] = either.Fold(response,
-						func (err error) any {
-							group[i].deferred.Reject(err)
-							return err
-						},
-						func (success any) any {
-							group[i].deferred.Resolve(success)
-							return success
-						})
-				}
-			return RouteReply{ uri, responses }
-		}).Catch(func(err error) error {
+		complete = append(complete,
+			promise.Then(sendBatch(composer, routeTo),
+				func(results []either.Either[error, any]) RouteReply {
+					responses := make([]any, len(results))
+					for i, response := range results {
+						responses[i] = either.Fold(response,
+							func (err error) any {
+								group[i].deferred.Reject(err)
+								return err
+							},
+							func (success any) any {
+								group[i].deferred.Resolve(success)
+								return success
+							})
+					}
+				return RouteReply{ uri, responses }
+			}).Catch(func(err error) error {
 			// cancel pending promises when available
 			return err
 		}))
@@ -163,7 +195,7 @@ func (b *batchRouter) batch(
 	routed  Routed,
 	publish bool,
 ) *promise.Promise[any] {
-	route := routed.Route()
+	route := routed.Route
 
 	var group []pending
 	if groups := b.groups; groups != nil {
@@ -172,7 +204,7 @@ func (b *batchRouter) batch(
 		b.groups = make(map[string][]pending)
 	}
 
-	msg := routed.Message()
+	msg := routed.Message
 	if publish {
 		msg = Published{msg}
 	}

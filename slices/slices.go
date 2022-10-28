@@ -4,6 +4,16 @@ import (
 	"fmt"
 )
 
+// Contains checks for the existence of v in s.
+func Contains[E comparable](s []E, v E) bool {
+	for _, s := range s {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
 type MapFunc[IN, OUT any] interface {
 	~func(int, IN) OUT | ~func(IN) OUT
 }
