@@ -91,19 +91,21 @@ func (b *batchHandler) Handle(
 	switch cb := cb.(type) {
 	case *Provides:
 		if typ, ok := cb.key.(reflect.Type); ok {
-			if batch := b.batch; batch == nil {
-				return NotHandled
-			} else if typ == _batchType {
-				return cb.ReceiveResult(batch, true, composer)
-			} else if typ.Implements(_batchingType) {
-				for _, h := range batch.Handlers() {
-					if _, ok := h.(batching); ok {
-						return cb.ReceiveResult(h, true, composer)
-					}
+			if typ == _batchType {
+				if batch := b.batch; batch != nil {
+					return cb.ReceiveResult(batch, true, composer)
 				}
-				if batcher, err := newWithTag(typ, ""); err != nil {
-					batch.AddHandlers(batcher)
-					return cb.ReceiveResult(batcher, true, composer)
+			} else if typ.Implements(_batchingType) {
+				if batch := b.batch; batch != nil {
+					for _, h := range batch.Handlers() {
+						if _, ok := h.(batching); ok {
+							return cb.ReceiveResult(h, true, composer)
+						}
+					}
+					if batcher, err := newWithTag(typ, ""); err != nil {
+						batch.AddHandlers(batcher)
+						return cb.ReceiveResult(batcher, true, composer)
+					}
 				}
 			}
 		}

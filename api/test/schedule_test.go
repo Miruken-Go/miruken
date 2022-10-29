@@ -69,14 +69,14 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 	suite.Run("Sequential", func() {
 		suite.Run("Success", func() {
 			handler := suite.Setup()
-			sequential := &api.SequentialBatch{
+			sequential := api.SequentialBatch{
 				Requests: []any{
 					GetStockQuote{"APPL"},
 					GetStockQuote{"MSFT"},
 					GetStockQuote{"GOOGL"},
 				},
 			}
-			r, pr, err := api.Send[*api.ScheduledResult](handler, sequential)
+			r, pr, err := api.Send[api.ScheduledResult](handler, sequential)
 			suite.Nil(err)
 			suite.NotNil(pr)
 			r, err = pr.Await()
@@ -114,14 +114,14 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 
 		suite.Run("First Failure", func() {
 			handler := suite.Setup()
-			sequential := &api.SequentialBatch{
+			sequential := api.SequentialBatch{
 				Requests: []any{
 					GetStockQuote{"APPL"},
 					GetStockQuote{"EX"},
 					GetStockQuote{"EX"},
 				},
 			}
-			r, pr, err := api.Send[*api.ScheduledResult](handler, sequential)
+			r, pr, err := api.Send[api.ScheduledResult](handler, sequential)
 			suite.Nil(err)
 			suite.NotNil(pr)
 			r, err = pr.Await()
@@ -140,14 +140,14 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 	suite.Run("Concurrent", func() {
 		suite.Run("Success", func() {
 			handler := suite.Setup()
-			concurrent := &api.ConcurrentBatch{
+			concurrent := api.ConcurrentBatch{
 				Requests: []any{
 					GetStockQuote{"APPL"},
 					GetStockQuote{"MSFT"},
 					GetStockQuote{"GOOGL"},
 				},
 			}
-			r, pr, err := api.Send[*api.ScheduledResult](handler, concurrent)
+			r, pr, err := api.Send[api.ScheduledResult](handler, concurrent)
 			suite.Nil(err)
 			suite.NotNil(pr)
 			r, err = pr.Await()
@@ -183,14 +183,14 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 
 		suite.Run("Single Failure", func() {
 			handler := suite.Setup()
-			sequential := &api.ConcurrentBatch{
+			sequential := api.ConcurrentBatch{
 				Requests: []any{
 					GetStockQuote{"APPL"},
 					GetStockQuote{"EX"},
 					GetStockQuote{"GOOGL"},
 				},
 			}
-			r, pr, err := api.Send[*api.ScheduledResult](handler, sequential)
+			r, pr, err := api.Send[api.ScheduledResult](handler, sequential)
 			suite.Nil(err)
 			suite.NotNil(pr)
 			r, err = pr.Await()
@@ -207,14 +207,14 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 
 		suite.Run("Multiple Failures", func() {
 			handler := suite.Setup()
-			sequential := &api.ConcurrentBatch{
+			sequential := api.ConcurrentBatch{
 				Requests: []any{
 					GetStockQuote{"APPL"},
 					GetStockQuote{"EX"},
 					GetStockQuote{"EX"},
 				},
 			}
-			r, pr, err := api.Send[*api.ScheduledResult](handler, sequential)
+			r, pr, err := api.Send[api.ScheduledResult](handler, sequential)
 			suite.Nil(err)
 			suite.NotNil(pr)
 			r, err = pr.Await()

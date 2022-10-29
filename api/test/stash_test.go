@@ -53,7 +53,7 @@ func (o *OrderHandler) Cancel(
 	_*struct{
 		miruken.Handles
 		CancelOrderFilter
-     }, cancel *CancelOrder,
+      }, cancel *CancelOrder,
 	order  *Order,
 ) (*Order, error) {
 	order.status = OrderCancelled

@@ -66,7 +66,7 @@ func (r *Routes) AppliesTo(
 	callback miruken.Callback,
 ) bool {
 	if handles, ok := callback.(*miruken.Handles); ok {
-		_, ok = handles.Source().(*Routed)
+		_, ok = handles.Source().(Routed)
 		return ok
 	}
 	return false
@@ -80,9 +80,17 @@ func (r *Routes) Filters(
 	return _routesFilter, nil
 }
 
-func (r *Routes) Satisfies(routed *Routed) bool {
+func (r *Routes) Satisfies(routed Routed) bool {
 	if u, err := url.Parse(routed.Route); err == nil {
-		return slices.Contains(r.schemes, u.Scheme)
+		s := u.Scheme
+		if len(s) == 0 {
+			s = routed.Route
+		}
+		for _, scheme := range r.schemes {
+			if strings.EqualFold(s, scheme) {
+				return true
+			}
+		}
 	}
 	return false
 }
@@ -122,15 +130,17 @@ func (r routesFilter) Next(
 )  (out []any, po *promise.Promise[[]any], err error) {
 	if routes, ok := provider.(*Routes); ok {
 		callback := ctx.Callback()
-		routed   := callback.Source().(*Routed)
+		routed   := callback.Source().(Routed)
 		if routes.Satisfies(routed) {
 			composer := ctx.Composer()
 			if batch := miruken.GetBatch[*batchRouter](composer); batch != nil {
-				return next.PipeHandle(
-					miruken.Batched[*Routed]{routed, callback},
+				return next.Handle(
+					miruken.Batched[Routed]{routed, callback},
 					ctx.Greedy(),
 					composer)
 			}
+		} else {
+			return next.Abort()
 		}
 	}
 	return next.Pipe()
@@ -164,7 +174,7 @@ func (b *batchRouter) CompleteBatch(
 		messages := slices.Map[pending, any](group, func (p pending) any {
 			return p.message
 		})
-		routeTo := RouteTo(&ConcurrentBatch{messages}, route)
+		routeTo := RouteTo(ConcurrentBatch{messages}, route)
 		complete = append(complete,
 			promise.Then(sendBatch(composer, routeTo),
 				func(results []either.Either[error, any]) RouteReply {

@@ -83,30 +83,32 @@ func (n Next) PipeComposerAwait(
 	return mergeOutputAwait(n(composer, true))
 }
 
-func (n Next) PipeHandle(
+func (n Next) Handle(
 	callback any,
 	greedy   bool,
 	composer Handler,
 ) ([]any, *promise.Promise[[]any], error) {
-	if greedy {
-		if r, pr, e := ExecuteAll[any](BuildUp(composer, EnableFilters), callback); e != nil {
-			return nil, nil, e
-		} else if pr == nil {
-			return []any{r}, nil, nil
-		} else {
-			return nil, promise.Then(pr, func(res []any) []any {
-				return []any{res}
-			}), nil
-		}
-	}
-	if r, pr, e := Execute[any](BuildUp(composer, EnableFilters), callback); e != nil {
-		return nil, nil, e
-	} else if pr == nil {
-		return []any{r}, nil, nil
+	var cb Callback
+	if c, ok := callback.(Callback); ok {
+		cb = c
 	} else {
-		return nil, promise.Then(pr, func(res any) []any {
-			return []any{res}
-		}), nil
+		var builder HandlesBuilder
+		cb = builder.
+			WithCallback(callback).
+			NewHandles()
+	}
+	if result := composer.Handle(cb, greedy, nil); result.IsError() {
+		return nil, nil, result.Error()
+	} else if !result.handled {
+		return nil, nil, NotHandledError{callback}
+	} else {
+		if r, pr := cb.Result(greedy); pr != nil {
+			return nil, promise.Then(pr, func(data any) []any {
+				return []any{data}
+			}), nil
+		} else {
+			return []any{r}, nil, nil
+		}
 	}
 }
 

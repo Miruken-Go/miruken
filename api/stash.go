@@ -52,7 +52,7 @@ func (s *Stash) NoConstructor() {}
 func (s *Stash) Provide(
 	_*struct{
 		miruken.Provides; miruken.Strict
-	 }, provides *miruken.Provides,
+	  }, provides *miruken.Provides,
 ) any {
 	return s.data[provides.Key()]
 }

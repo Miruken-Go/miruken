@@ -41,15 +41,15 @@ func (s *Scheduler) Constructor(
 	_*struct{
 	    miruken.Provides
 	    miruken.Singleton
-	 },
+	  },
 ) {
 }
 
 func (s *Scheduler) HandleConcurrent(
-	_*miruken.Handles, concurrent *ConcurrentBatch,
+	_*miruken.Handles, concurrent ConcurrentBatch,
 	composer miruken.Handler,
-) *promise.Promise[*ScheduledResult] {
-	return promise.New(func(resolve func(*ScheduledResult), reject func(error)) {
+) *promise.Promise[ScheduledResult] {
+	return promise.New(func(resolve func(ScheduledResult), reject func(error)) {
 		requests := concurrent.Requests
 		responses := make([]either.Either[error, any], len(requests))
 
@@ -65,15 +65,15 @@ func (s *Scheduler) HandleConcurrent(
 		}
 
 		waitGroup.Wait()
-		resolve(&ScheduledResult{responses})
+		resolve(ScheduledResult{responses})
 	})
 }
 
 func (s *Scheduler) HandleSequential(
-	_*miruken.Handles, sequential *SequentialBatch,
+	_*miruken.Handles, sequential SequentialBatch,
 	composer miruken.Handler,
-) *promise.Promise[*ScheduledResult] {
-	return promise.New(func(resolve func(*ScheduledResult), reject func(error)) {
+) *promise.Promise[ScheduledResult] {
+	return promise.New(func(resolve func(ScheduledResult), reject func(error)) {
 		requests := sequential.Requests
 		var responses []either.Either[error, any]
 
@@ -85,12 +85,12 @@ func (s *Scheduler) HandleSequential(
 			}
 		}
 
-		resolve(&ScheduledResult{responses})
+		resolve(ScheduledResult{responses})
 	})
 }
 
 func (s *Scheduler) HandlePublish(
-	_*miruken.Handles, publish *Published,
+	_*miruken.Handles, publish Published,
 	composer miruken.Handler,
 ) (p *promise.Promise[miruken.Void], err error) {
 	return Publish(composer, publish.Message)
@@ -121,7 +121,7 @@ func Sequential(
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
-	return sendBatch(handler, &SequentialBatch{requests})
+	return sendBatch(handler, SequentialBatch{requests})
 }
 
 // Concurrent processes a batch of requests concurrently.
@@ -133,17 +133,17 @@ func Concurrent(
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
-	return sendBatch(handler, &ConcurrentBatch{requests})
+	return sendBatch(handler, ConcurrentBatch{requests})
 }
 
 func sendBatch(
 	handler miruken.Handler,
 	batch   any,
 ) *promise.Promise[[]either.Either[error, any]] {
-	if r, pr, err := Send[*ScheduledResult](handler, batch); err != nil {
+	if r, pr, err := Send[ScheduledResult](handler, batch); err != nil {
 		return promise.Reject[[]either.Either[error, any]](err)
 	} else if pr != nil {
-		return promise.Then(pr, func(result *ScheduledResult) []either.Either[error, any] {
+		return promise.Then(pr, func(result ScheduledResult) []either.Either[error, any] {
 			return result.Responses
 		})
 	} else {
