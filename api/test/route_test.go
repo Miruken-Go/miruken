@@ -98,9 +98,9 @@ func (suite *RouteTestSuite) TestRoute() {
 
 		suite.Run("Unrecognized", func() {
 			handler := suite.Setup()
-			r, pr, err := api.Send[StockQuote](handler,
-				api.RouteTo(GetStockQuote{"GOOGL"}, "NoWhere"))
-			suite.Error(miruken.NotHandledError{}, err)
+			getQuote := api.RouteTo(GetStockQuote{"GOOGL"}, "NoWhere")
+			r, pr, err := api.Send[StockQuote](handler, getQuote)
+			suite.IsType(err, miruken.NewNotHandledError(getQuote))
 			suite.Nil(pr)
 			suite.Zero(r.Symbol)
 			suite.Zero(r.Value)
@@ -112,13 +112,21 @@ func (suite *RouteTestSuite) TestRoute() {
 			handler := suite.Setup()
 			trash, _, _ := miruken.Resolve[*Trash](handler)
 			getQuote := GetStockQuote{"GOOGL"}
-			pb := miruken.Batch(handler, func(batch miruken.Handler) {
-				_, _, err := api.Send[StockQuote](batch, api.RouteTo(getQuote, "trash"))
+			called := false
+			pb := miruken.BatchAsync(handler, func(batch miruken.Handler) *promise.Promise[any]{
+				_, pq, err := api.Send[StockQuote](batch, api.RouteTo(getQuote, "trash"))
 				suite.Nil(err)
+				return pq.Catch(func(err error) error {
+					suite.Equal(err, api.ErrMissingResponse)
+					called = true
+					return nil
+				})
 			})
 			results, err := pb.Await()
 			suite.Nil(err)
-			suite.NotNil(results)
+			suite.True(called)
+			suite.Len(results, 1)
+			suite.Equal([]any{api.RouteReply{Uri: "trash", Responses: []any{}}}, results[0])
 			items := trash.Items()
 			suite.Len(items, 1)
 			suite.Equal(api.ConcurrentBatch{Requests: []any{getQuote}}, items[0])

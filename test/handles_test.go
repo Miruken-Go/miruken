@@ -743,7 +743,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 		suite.Run("Required", func () {
 			defer func() {
 				if r := recover(); r != nil {
-					if err, ok := r.(miruken.MethodBindingError); ok {
+					if err, ok := r.(*miruken.MethodBindingError); ok {
 						suite.Equal("RequiredDependency", err.Method().Name)
 					} else {
 						suite.Fail("Expected MethodBindingError")
@@ -1100,7 +1100,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 		defer func() {
 			if r := recover(); r != nil {
 				if err, ok := r.(*miruken.HandlerDescriptorError); ok {
-					var errMethod miruken.MethodBindingError
+					var errMethod *miruken.MethodBindingError
 					for reason := errors.Unwrap(err.Reason);
 						errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 						failures++

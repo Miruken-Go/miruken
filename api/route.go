@@ -179,6 +179,9 @@ func (b *batchRouter) CompleteBatch(
 			promise.Then(sendBatch(composer, routeTo),
 				func(results []either.Either[error, any]) RouteReply {
 					responses := make([]any, len(results))
+					for i := len(responses); i < len(messages); i++ {
+						group[i].deferred.Reject(ErrMissingResponse)
+					}
 					for i, response := range results {
 						responses[i] = either.Fold(response,
 							func (err error) any {
@@ -192,7 +195,10 @@ func (b *batchRouter) CompleteBatch(
 					}
 				return RouteReply{ uri, responses }
 			}).Catch(func(err error) error {
-			// cancel pending promises when available
+				cancelled := miruken.NewCancelledError("batch cancelled", err)
+				for _, p := range group {
+					p.deferred.Reject(cancelled)
+				}
 			return err
 		}))
 	}
@@ -239,4 +245,7 @@ func RouteTo(message any, route string) Routed {
 	return Routed{message, route}
 }
 
-var _routesFilter = []miruken.Filter{routesFilter{}}
+var (
+	ErrMissingResponse = errors.New("missing response in batch")
+	_routesFilter      = []miruken.Filter{routesFilter{}}
+)

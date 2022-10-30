@@ -100,7 +100,7 @@ func (n Next) Handle(
 	if result := composer.Handle(cb, greedy, nil); result.IsError() {
 		return nil, nil, result.Error()
 	} else if !result.handled {
-		return nil, nil, NotHandledError{callback}
+		return nil, nil, NewNotHandledError(callback)
 	} else {
 		if r, pr := cb.Result(greedy); pr != nil {
 			return nil, promise.Then(pr, func(data any) []any {
@@ -391,7 +391,7 @@ func pipeline(
 		proceed  bool,
 	) ([]any, *promise.Promise[[]any], error) {
 		if !proceed {
-			return nil, nil, RejectedError{ctx.Callback()}
+			return nil, nil, NewRejectedError(ctx.Callback())
 		}
 		if composer != nil {
 			ctx.composer = composer
@@ -439,7 +439,7 @@ func DynNext(
 				err = fmt.Errorf("DynNext: %w", inv)
 			}
 			if err != nil {
-				return nil, nil, MethodBindingError{dynNext, err}
+				return nil, nil, &MethodBindingError{dynNext, err}
 			}
 			binding = &nextBinding{dynNext, args}
 			_dynNextBinding[typ] = binding

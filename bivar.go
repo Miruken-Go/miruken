@@ -82,7 +82,7 @@ func (p *BivariantPolicy) NewMethodBinding(
 	spec   *policySpec,
 ) (Binding, error) {
 	if args, key, err := validateBivariantFunc(method.Type, spec, 1); err != nil {
-		return nil, MethodBindingError{method, err}
+		return nil, &MethodBindingError{method, err}
 	} else {
 		return &methodBinding{
 			FilteredScope{spec.filters},
@@ -100,7 +100,7 @@ func (p *BivariantPolicy) NewFuncBinding(
 	spec *policySpec,
 ) (Binding, error) {
 	if args, key, err := validateBivariantFunc(fun.Type(), spec, 0); err != nil {
-		return nil, FuncBindingError{fun, err}
+		return nil, &FuncBindingError{fun, err}
 	} else {
 		return &funcBinding{
 			FilteredScope{spec.filters},

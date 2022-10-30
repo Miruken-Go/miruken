@@ -102,7 +102,7 @@ func (b *methodIntercept) Invoke(
 	} else if _, p := resolves.Result(false); p != nil {
 		return nil, promise.Then(p, func(res any) []any {
 			if !resolves.Succeeded() {
-				panic(NotHandledError{callback})
+				panic(NewNotHandledError(callback))
 			}
 			// Since this promise will be added to the actual callback's
 			// results, return nil to ensure it is filtered out during a

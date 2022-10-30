@@ -96,8 +96,8 @@ func (c *callSemantics) Handle(
 		c.semantics.HasOption(SemanticBestEffort) {
 		if result := c.Handler.Handle(callback, greedy, composer); result.IsError() {
 			switch result.Error().(type) {
-			case NotHandledError: return Handled
-			case RejectedError: return Handled
+			case *NotHandledError: return Handled
+			case *RejectedError: return Handled
 			default: return result
 			}
 		} else {

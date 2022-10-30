@@ -263,7 +263,7 @@ func (suite *MapsTestSuite) TestMap() {
 			suite.Equal("{\"id\":1,\"name\":\"Tim Howard\"}", jsonString)
 
 			_, _, err = miruken.Map[string](handler, &data, "foo")
-			suite.Error(miruken.NotHandledError{}, err)
+			suite.IsType(err, &miruken.NotHandledError{})
 
 			var data2 PlayerData
 			_, err = miruken.MapInto(handler, jsonString, &data2, "application/json")
@@ -313,7 +313,7 @@ func (suite *MapsTestSuite) TestMap() {
 			defer func() {
 				if r := recover(); r != nil {
 					if err, ok := r.(*miruken.HandlerDescriptorError); ok {
-						var errMethod miruken.MethodBindingError
+						var errMethod *miruken.MethodBindingError
 						for reason := errors.Unwrap(err.Reason);
 							errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 							failures++

@@ -38,12 +38,16 @@ type NotHandledError struct {
 	callback any
 }
 
-func (e NotHandledError) Callback() any {
+func (e *NotHandledError) Callback() any {
 	return e.callback
 }
 
-func (e NotHandledError) Error() string {
+func (e *NotHandledError) Error() string {
 	return fmt.Sprintf("callback %#v not handled", e.callback)
+}
+
+func NewNotHandledError(callback any) *NotHandledError {
+	return &NotHandledError{callback}
 }
 
 // RejectedError reports a rejected callback.
@@ -51,12 +55,37 @@ type RejectedError struct {
 	callback any
 }
 
-func (e RejectedError) Callback() any {
+func (e *RejectedError) Callback() any {
 	return e.callback
 }
 
-func (e RejectedError) Error() string {
+func (e *RejectedError) Error() string {
 	return fmt.Sprintf("callback %#v was rejected", e.callback)
+}
+
+func NewRejectedError(callback any) *RejectedError {
+	return &RejectedError{callback}
+}
+
+// CancelledError reports a cancelled operation.
+type CancelledError struct {
+	message string
+	reason  error
+}
+
+func (e *CancelledError) Error() string {
+	if IsNil(e.reason) {
+		return e.message
+	}
+	return fmt.Sprintf("%v: %v", e.message, e.reason.Error())
+}
+
+func (e *CancelledError) Unwrap() error {
+	return e.reason
+}
+
+func NewCancelledError(message string, reason error) *CancelledError {
+	return &CancelledError{message, reason}
 }
 
 func DispatchCallback(

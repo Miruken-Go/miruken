@@ -313,7 +313,9 @@ func (e *HandlerDescriptorError) Error() string {
 	return fmt.Sprintf("invalid handler: %v reason: %v", e.spec, e.Reason)
 }
 
-func (e *HandlerDescriptorError) Unwrap() error { return e.Reason }
+func (e *HandlerDescriptorError) Unwrap() error {
+	return e.Reason
+}
 
 func (d *HandlerDescriptor) Dispatch(
 	policy   Policy,
@@ -405,9 +407,9 @@ func (d *HandlerDescriptor) Dispatch(
 					result = result.Or(accept)
 				} else {
 					switch err.(type) {
-					case RejectedError:
-					case NotHandledError:
-					case UnresolvedArgError:
+					case *RejectedError:
+					case *NotHandledError:
+					case *UnresolvedArgError:
 						break
 					default:
 						result = result.WithError(err)

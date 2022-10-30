@@ -90,7 +90,7 @@ func (p *ContravariantPolicy) NewMethodBinding(
 	spec   *policySpec,
 ) (Binding, error) {
 	if args, key, err := validateContravariantFunc(method.Type, spec, 1); err != nil {
-		return nil, MethodBindingError{method, err}
+		return nil, &MethodBindingError{method, err}
 	} else {
 		return &methodBinding{
 			FilteredScope{spec.filters},
@@ -108,7 +108,7 @@ func (p *ContravariantPolicy) NewFuncBinding(
 	spec *policySpec,
 ) (Binding, error) {
 	if args, key, err := validateContravariantFunc(fun.Type(), spec, 0); err != nil {
-		return nil, FuncBindingError{fun, err}
+		return nil, &FuncBindingError{fun, err}
 	} else {
 		return &funcBinding{
 			FilteredScope{spec.filters},

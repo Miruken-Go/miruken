@@ -456,7 +456,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 		defer func() {
 			if r := recover(); r != nil {
 				if err, ok := r.(*miruken.HandlerDescriptorError); ok {
-					var errMethod miruken.MethodBindingError
+					var errMethod *miruken.MethodBindingError
 					for reason := errors.Unwrap(err.Reason);
 						errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
 						failures++

@@ -62,12 +62,14 @@ func (b *methodBinding) Invoke(
 	return callFunc(b.method.Func, ctx, b.args, initArgs...)
 }
 
-func (e MethodBindingError) Method() reflect.Method {
+func (e *MethodBindingError) Method() reflect.Method {
 	return e.method
 }
 
-func (e MethodBindingError) Error() string {
+func (e *MethodBindingError) Error() string {
 	return fmt.Sprintf("invalid method %v: %v", e.method.Name, e.reason)
 }
 
-func (e MethodBindingError) Unwrap() error { return e.reason }
+func (e *MethodBindingError) Unwrap() error {
+	return e.reason
+}

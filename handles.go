@@ -101,7 +101,7 @@ func Command(
 	if result := handler.Handle(handles, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.handled {
-		err = NotHandledError{callback}
+		err = NewNotHandledError(callback)
 	} else {
 		pv, err = CompleteResult(handles)
 	}
@@ -124,7 +124,7 @@ func Execute[T any](
 	if result := handler.Handle(handles, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.handled {
-		err = NotHandledError{callback}
+		err = NewNotHandledError(callback)
 	} else {
 		_, tp, err = CoerceResult[T](handles, &t)
 	}
@@ -146,7 +146,7 @@ func CommandAll(
 	if result := handler.Handle(handles, true, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.handled {
-		err = NotHandledError{callback}
+		err = NewNotHandledError(callback)
 	} else {
 		pv, err = CompleteResults(handles)
 	}
@@ -168,7 +168,7 @@ func ExecuteAll[T any](
 	if result := handler.Handle(handles, true, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.handled {
-		err = NotHandledError{callback}
+		err = NewNotHandledError(callback)
 	} else {
 		_, tp, err = CoerceResults[T](handles, &t)
 	}

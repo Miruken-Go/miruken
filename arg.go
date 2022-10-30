@@ -286,11 +286,13 @@ type UnresolvedArgError struct {
 	Reason error
 }
 
-func (e UnresolvedArgError) Error() string {
+func (e *UnresolvedArgError) Error() string {
 	return fmt.Sprintf("unresolved arg %#v: %v", e.arg, e.Reason)
 }
 
-func (e UnresolvedArgError) Unwrap() error { return e.Reason }
+func (e *UnresolvedArgError) Unwrap() error {
+	return e.Reason
+}
 
 func resolveArgs(
 	funType   reflect.Type,
@@ -303,7 +305,7 @@ func resolveArgs(
 	for i, arg := range args {
 		typ := funType.In(fromIndex + i)
 		if a, pa, err := arg.resolve(typ, ctx); err != nil {
-			return nil, nil, UnresolvedArgError{arg, err}
+			return nil, nil, &UnresolvedArgError{arg, err}
 		} else if pa == nil {
 			if arg.flags() & bindingPromise == bindingPromise {
 				// Not a promise so lift

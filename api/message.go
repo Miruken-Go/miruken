@@ -95,7 +95,7 @@ func Publish(
 	}()
 	if pv, err := miruken.CommandAll(stash, message); err == nil {
 		return pv, err
-	} else if _, ok := err.(miruken.NotHandledError); ok {
+	} else if _, ok := err.(*miruken.NotHandledError); ok {
 		return nil, nil
 	} else {
 		return pv, err

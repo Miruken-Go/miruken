@@ -59,15 +59,17 @@ func (b *funcBinding) Invoke(
 	return callFunc(b.fun, ctx, b.args, initArgs...)
 }
 
-func (e FuncBindingError) Func() reflect.Value {
+func (e *FuncBindingError) Func() reflect.Value {
 	return e.fun
 }
 
-func (e FuncBindingError) Error() string {
+func (e *FuncBindingError) Error() string {
 	return fmt.Sprintf("invalid function %v: %v", e.fun, e.reason)
 }
 
-func (e FuncBindingError) Unwrap() error { return e.reason }
+func (e *FuncBindingError) Unwrap() error {
+	return e.reason
+}
 
 // callFunc calls the function stored in the fun argument.
 // It resolves the args input and appends them to the initArgs
