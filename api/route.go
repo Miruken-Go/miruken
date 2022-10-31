@@ -102,19 +102,17 @@ func (p *PassThroughRouter) Pass(
 	_*struct{
 		miruken.Handles
 		miruken.SkipFilters
+		Routes `scheme:"pass-through"`
 	  }, routed Routed,
 	composer miruken.Handler,
 ) (any, miruken.HandleResult) {
-	if strings.EqualFold(routed.Route, "pass-through") {
-		if r, pr, err := Send[any](composer, routed.Message); err != nil {
-			return nil, miruken.NotHandled.WithError(err)
-		} else if pr == nil {
-			return r, miruken.Handled
-		} else {
-			return pr, miruken.Handled
-		}
+	if r, pr, err := Send[any](composer, routed.Message); err != nil {
+		return nil, miruken.NotHandled.WithError(err)
+	} else if pr == nil {
+		return r, miruken.Handled
+	} else {
+		return pr, miruken.Handled
 	}
-	return nil, miruken.NotHandled
 }
 
 // routesFilter

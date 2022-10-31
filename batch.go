@@ -181,9 +181,9 @@ func Batch(
 	return batch.Complete()
 }
 
-func BatchAsync(
+func BatchAsync[T any](
 	handler   Handler,
-	configure func(Handler) *promise.Promise[any],
+	configure func(Handler) *promise.Promise[T],
 	tags      ... any,
 ) *promise.Promise[[]any] {
 	if IsNil(handler) {
@@ -193,7 +193,9 @@ func BatchAsync(
 		panic("configure cannot be nil")
 	}
 	batch := &batchHandler{handler, newBatch(tags...), 0}
-	return batch.Complete(configure(batch))
+	return batch.Complete(configure(batch).Then(func(data any) any {
+		return data
+	}))
 }
 
 func BatchTag[T any](

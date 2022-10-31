@@ -4,7 +4,9 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/slices"
 	"github.com/stretchr/testify/suite"
+	"sync/atomic"
 	"testing"
 )
 
@@ -113,14 +115,15 @@ func (suite *RouteTestSuite) TestRoute() {
 			trash, _, _ := miruken.Resolve[*Trash](handler)
 			getQuote := GetStockQuote{"GOOGL"}
 			called := false
-			pb := miruken.BatchAsync(handler, func(batch miruken.Handler) *promise.Promise[any]{
-				_, pq, err := api.Send[StockQuote](batch, api.RouteTo(getQuote, "trash"))
-				suite.Nil(err)
-				return pq.Catch(func(err error) error {
-					suite.Equal(err, api.ErrMissingResponse)
-					called = true
-					return nil
-				})
+			pb := miruken.BatchAsync(handler,
+				func(batch miruken.Handler) *promise.Promise[any]{
+					_, pq, err := api.Send[StockQuote](batch, api.RouteTo(getQuote, "trash"))
+					suite.Nil(err)
+					return pq.Catch(func(err error) error {
+						suite.Equal(err, api.ErrMissingResponse)
+						called = true
+						return nil
+					})
 			})
 			results, err := pb.Await()
 			suite.Nil(err)
@@ -130,6 +133,41 @@ func (suite *RouteTestSuite) TestRoute() {
 			items := trash.Items()
 			suite.Len(items, 1)
 			suite.Equal(api.ConcurrentBatch{Requests: []any{getQuote}}, items[0])
+		})
+
+		suite.Run("Pass Through", func() {
+			handler := suite.Setup()
+			var counter int32
+			pb := miruken.BatchAsync(handler,
+				func(batch miruken.Handler) *promise.Promise[[]StockQuote] {
+					_, pq1, err1 := api.Send[StockQuote](batch,
+						api.RouteTo(GetStockQuote{"GOOGL"}, "pass-through"))
+					suite.Nil(err1)
+					p1 := promise.Then(pq1, func(quote StockQuote) StockQuote {
+						suite.Equal("GOOGL", quote.Symbol)
+						atomic.AddInt32(&counter, 1)
+						return quote
+					})
+					_, pq2, err2 := api.Send[StockQuote](batch,
+						api.RouteTo(GetStockQuote{"APPL"}, "pass-through"))
+					suite.Nil(err2)
+					p2 := promise.Then(pq2, func(quote StockQuote) StockQuote {
+						suite.Equal("APPL", quote.Symbol)
+						atomic.AddInt32(&counter, 1)
+						return quote
+					})
+					return promise.All(p1, p2)
+			})
+			results, err := pb.Await()
+			suite.Nil(err)
+			suite.Equal(int32(2), counter)
+			suite.Len(results, 1)
+			groups := slices.OfType[any, []any](results)
+			suite.Len(groups, 1)
+			replies := slices.OfType[any, api.RouteReply](groups[0])
+			suite.Len(replies, 1)
+			suite.Equal("pass-through", replies[0].Uri)
+			suite.Len(replies[0].Responses, 2)
 		})
 	})
 }
