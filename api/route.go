@@ -244,6 +244,6 @@ func RouteTo(message any, route string) Routed {
 }
 
 var (
-	ErrMissingResponse = errors.New("missing response in batch")
+	ErrMissingResponse = errors.New("missing batch response")
 	_routesFilter      = []miruken.Filter{routesFilter{}}
 )

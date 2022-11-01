@@ -205,11 +205,11 @@ func BatchTag[T any](
 	return Batch(handler, configure, TypeOf[T]())
 }
 
-func BatchAsyncAsync[T any](
+func BatchTagAsync[T any, E any](
 	handler   Handler,
-	configure func(Handler) *promise.Promise[any],
+	configure func(Handler) *promise.Promise[T],
 ) *promise.Promise[[]any] {
-	return BatchAsync(handler, configure, TypeOf[T]())
+	return BatchAsync(handler, configure, TypeOf[E]())
 }
 
 var NoBatch BuilderFunc = func(handler Handler) Handler {
