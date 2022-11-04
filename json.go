@@ -11,8 +11,10 @@ type (
 
 	// JsonOptions customizes json formatting.
 	JsonOptions struct {
-		Prefix string
-		Indent string
+		Prefix        string
+		Indent        string
+		TypeIdField   string
+		TypeIdMapping string
 	}
 )
 

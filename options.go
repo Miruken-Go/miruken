@@ -26,7 +26,7 @@ func (b OptionBool) Bool() bool {
 	}
 }
 
-// Options represent extensible settings.
+// options represent extensible settings.
 type options struct {
 	options any
 }
