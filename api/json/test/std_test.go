@@ -4,13 +4,21 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/api/json"
 	"github.com/stretchr/testify/suite"
 	"io"
 	"strings"
 	"testing"
 )
 
-type PlayerMapper struct{}
+type (
+	PlayerMapper struct{}
+
+	PlayerData struct {
+		Id   int
+		Name string
+	}
+)
 
 func (m *PlayerMapper) ToPlayerJson(
 	_*struct{
@@ -28,7 +36,7 @@ type JsonTestSuite struct {
 
 func (suite *JsonTestSuite) SetupTest() {
 	suite.specs = []any{
-		&miruken.JsonMapper{},
+		&json.StdMapper{},
 	}
 }
 
@@ -67,7 +75,7 @@ func (suite *JsonTestSuite) TestJson() {
 					38,
 				}
 				json, _, err := miruken.Map[string](
-					miruken.BuildUp(handler, miruken.Options(miruken.JsonOptions{Indent: "  "})),
+					miruken.BuildUp(handler, miruken.Options(json.Options{Indent: "  "})),
 					data, "application/json")
 				suite.Nil(err)
 				suite.Equal("{\n  \"Name\": \"Sarah Conner\",\n  \"Age\": 38\n}", json)
@@ -109,7 +117,7 @@ func (suite *JsonTestSuite) TestJson() {
 				var b bytes.Buffer
 				stream := io.Writer(&b)
 				_, err := miruken.MapInto(
-					miruken.BuildUp(handler, miruken.Options(miruken.JsonOptions{Indent: "  "})),
+					miruken.BuildUp(handler, miruken.Options(json.Options{Indent: "  "})),
 					data, &stream, "application/json")
 				suite.Nil(err)
 				suite.Equal("{\n  \"Name\": \"James Webb\",\n  \"Age\": 85\n}\n", b.String())
@@ -117,7 +125,7 @@ func (suite *JsonTestSuite) TestJson() {
 
 			suite.Run("ToJsonOverride", func() {
 				handler, _ := suite.SetupWith(
-					&miruken.JsonMapper{},
+					&json.StdMapper{},
 					&PlayerMapper{})
 
 				data := PlayerData{

@@ -1,16 +1,17 @@
-package miruken
+package json
 
 import (
 	"encoding/json"
+	"github.com/miruken-go/miruken"
 	"io"
 )
 
 type (
-	// JsonMapper formats to and from json.
-	JsonMapper struct{}
+	// StdMapper formats to and from json using encoding/json.
+	StdMapper struct{}
 
-	// JsonOptions customizes json formatting.
-	JsonOptions struct {
+	// Options customizes json formatting.
+	Options struct {
 		Prefix        string
 		Indent        string
 		TypeIdField   string
@@ -18,15 +19,15 @@ type (
 	}
 )
 
-func (m *JsonMapper) ToJson(
+func (m *StdMapper) ToJson(
 	_*struct{
-		Maps
-		Format `as:"application/json"`
-	  }, maps *Maps,
+	miruken.Maps
+		miruken.Format `as:"application/json"`
+	  }, maps *miruken.Maps,
 	_*struct{
-		Optional
-		FromOptions
-	  }, options JsonOptions,
+	miruken.Optional
+	miruken.FromOptions
+	  }, options Options,
 ) (js string, err error) {
 	var data []byte
 	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
@@ -37,17 +38,17 @@ func (m *JsonMapper) ToJson(
 	return string(data), err
 }
 
-func (m *JsonMapper) ToJsonStream(
+func (m *StdMapper) ToJsonStream(
 	_*struct{
-		Maps
-		Format `as:"application/json"`
-	  }, maps *Maps,
+	miruken.Maps
+		miruken.Format `as:"application/json"`
+	  }, maps *miruken.Maps,
 	_*struct{
-		Optional
-		FromOptions
-	  }, options JsonOptions,
+	miruken.Optional
+	miruken.FromOptions
+	  }, options Options,
 ) (stream io.Writer, err error) {
-	if writer, ok := maps.target.(*io.Writer); ok && !IsNil(writer) {
+	if writer, ok := maps.Target().(*io.Writer); ok && !miruken.IsNil(writer) {
 		enc := json.NewEncoder(*writer)
 		if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
 			enc.SetIndent(prefix, indent)
@@ -58,24 +59,24 @@ func (m *JsonMapper) ToJsonStream(
 	return stream, err
 }
 
-func (m *JsonMapper) FromJson(
+func (m *StdMapper) FromJson(
 	_*struct{
-		Maps
-		Format `as:"application/json"`
+	miruken.Maps
+		miruken.Format `as:"application/json"`
 	  }, jsonString string,
-	maps *Maps,
+	maps *miruken.Maps,
 ) (any, error) {
 	target := maps.Target()
 	err    := json.Unmarshal([]byte(jsonString), target)
 	return target, err
 }
 
-func (m *JsonMapper) FromJsonStream(
+func (m *StdMapper) FromJsonStream(
 	_*struct{
-		Maps
-		Format `as:"application/json"`
+	miruken.Maps
+		miruken.Format `as:"application/json"`
 	  }, stream io.Reader,
-	maps *Maps,
+	maps *miruken.Maps,
 ) (any, error) {
 	target := maps.Target()
 	dec    := json.NewDecoder(stream)
