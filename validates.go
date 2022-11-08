@@ -546,7 +546,7 @@ func (v *ValidationInstaller) Install(setup *SetupBuilder) error {
 	return nil
 }
 
-func ValidateROutput(installer *ValidationInstaller) {
+func ValidateOutput(installer *ValidationInstaller) {
 	installer.ValidateOutput()
 }
 

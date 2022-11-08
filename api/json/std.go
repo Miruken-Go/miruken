@@ -6,28 +6,25 @@ import (
 	"io"
 )
 
+// StdMapper formats to and from json using encoding/json.
 type (
-	// StdMapper formats to and from json using encoding/json.
 	StdMapper struct{}
 
-	// Options customizes json formatting.
-	Options struct {
-		Prefix        string
-		Indent        string
-		TypeIdField   string
-		TypeIdMapping string
+	StdOptions struct {
+		Prefix string
+		Indent string
 	}
 )
 
 func (m *StdMapper) ToJson(
 	_*struct{
-	miruken.Maps
+		miruken.Maps
 		miruken.Format `as:"application/json"`
 	  }, maps *miruken.Maps,
 	_*struct{
-	miruken.Optional
-	miruken.FromOptions
-	  }, options Options,
+	    miruken.Optional
+	    miruken.FromOptions
+	  }, options StdOptions,
 ) (js string, err error) {
 	var data []byte
 	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
@@ -40,13 +37,13 @@ func (m *StdMapper) ToJson(
 
 func (m *StdMapper) ToJsonStream(
 	_*struct{
-	miruken.Maps
+	    miruken.Maps
 		miruken.Format `as:"application/json"`
 	  }, maps *miruken.Maps,
 	_*struct{
-	miruken.Optional
-	miruken.FromOptions
-	  }, options Options,
+	    miruken.Optional
+	    miruken.FromOptions
+	  }, options StdOptions,
 ) (stream io.Writer, err error) {
 	if writer, ok := maps.Target().(*io.Writer); ok && !miruken.IsNil(writer) {
 		enc := json.NewEncoder(*writer)
@@ -61,7 +58,7 @@ func (m *StdMapper) ToJsonStream(
 
 func (m *StdMapper) FromJson(
 	_*struct{
-	miruken.Maps
+	    miruken.Maps
 		miruken.Format `as:"application/json"`
 	  }, jsonString string,
 	maps *miruken.Maps,
@@ -73,7 +70,7 @@ func (m *StdMapper) FromJson(
 
 func (m *StdMapper) FromJsonStream(
 	_*struct{
-	miruken.Maps
+	    miruken.Maps
 		miruken.Format `as:"application/json"`
 	  }, stream io.Reader,
 	maps *miruken.Maps,
