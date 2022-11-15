@@ -17,6 +17,7 @@ type (
 		handlers []any
 		specs    []any
 		features []Feature
+		builders []Builder
 		exclude  Predicate[HandlerSpec]
 		factory  HandlerDescriptorFactory
 		tags     map[any]Void
@@ -40,6 +41,13 @@ func (s *SetupBuilder) RegisterHandlers(
 	specs ... any,
 ) *SetupBuilder {
 	s.specs = append(s.specs, specs...)
+	return s
+}
+
+func (s *SetupBuilder) AddBuilder(
+	builders ... Builder,
+) *SetupBuilder {
+	s.builders = append(s.builders, builders...)
 	return s
 }
 
@@ -118,6 +126,10 @@ func (s *SetupBuilder) Build() (handler Handler, buildErrors error) {
 	// Handler overrides
 	if explicit := s.handlers; len(explicit) > 0 {
 		handler = AddHandlers(handler, explicit...)
+	}
+
+	if builders := s.builders; len(builders) > 0 {
+		handler = BuildUp(handler, builders...)
 	}
 
 	// call after setup hooks

@@ -18,7 +18,8 @@ type JsonIterTestSuite struct {
 
 func (suite *JsonIterTestSuite) Setup(specs ... any) (miruken.Handler, error) {
 	return miruken.Setup(
-		json.Feature(json.UseJsonIterator()),
+		json.Feature(
+			json.UseJsonIteratorWithConfig(jsoniter.Config{SortMapKeys: true})),
 		miruken.HandlerSpecs(specs...))
 }
 
@@ -35,9 +36,9 @@ func (suite *JsonIterTestSuite) TestJson() {
 					"John Smith",
 					23,
 				}
-				json, _, err := miruken.Map[string](handler, data, "application/json")
+				j, _, err := miruken.Map[string](handler, data, "application/json")
 				suite.Nil(err)
-				suite.Equal("{\"Name\":\"John Smith\",\"Age\":23}", json)
+				suite.Equal("{\"Name\":\"John Smith\",\"Age\":23}", j)
 			})
 
 			suite.Run("ToJsonWithOptions", func() {
@@ -64,13 +65,7 @@ func (suite *JsonIterTestSuite) TestJson() {
 					"Id":    2,
 					"Name": "George Best",
 				}
-				j, _, err := miruken.Map[string](
-					miruken.BuildUp(handler, miruken.Options(json.IterOptions{
-						Config: jsoniter.Config{
-							SortMapKeys: true,
-						},
-					})),
-					data, "application/json")
+				j, _, err := miruken.Map[string](handler, data, "application/json")
 				suite.Nil(err)
 				suite.Equal("{\"Id\":2,\"Name\":\"George Best\"}", j)
 			})

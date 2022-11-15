@@ -16,6 +16,8 @@ type (
 	}
 )
 
+// StdMapper
+
 func (m *StdMapper) ToJson(
 	_*struct{
 		miruken.Maps
