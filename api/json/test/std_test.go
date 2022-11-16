@@ -7,9 +7,12 @@ import (
 	"github.com/miruken-go/miruken/api/json"
 	"github.com/stretchr/testify/suite"
 	"io"
+	"reflect"
 	"strings"
 	"testing"
 )
+
+//go:generate $GOPATH/bin/miruken -tests
 
 type (
 	PlayerMapper struct{}
@@ -18,6 +21,8 @@ type (
 		Id   int
 		Name string
 	}
+
+	TypeFieldMapper struct {}
 )
 
 func (m *PlayerMapper) ToPlayerJson(
@@ -29,12 +34,38 @@ func (m *PlayerMapper) ToPlayerJson(
 	return fmt.Sprintf("{\"id\":%v,\"name\":\"%v\"}", data.Id, data.Name)
 }
 
+func (m *TypeFieldMapper) PlayerTypeField(
+	_*struct{
+		miruken.Maps
+		miruken.Format `as:"type:json"`
+	  }, _ PlayerData,
+) json.TypeFieldInfo {
+	return json.TypeFieldInfo{Name: "$type", Value: "Player"}
+}
+
+func (m *TypeFieldMapper) DefaultTypeField(
+	_*struct{
+		miruken.Maps
+		miruken.Format `as:"type:json"`
+	  }, maps *miruken.Maps,
+) (json.TypeFieldInfo, miruken.HandleResult) {
+	typ := reflect.TypeOf(maps.Source())
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
+	if name := typ.Name(); len(name) == 0 {
+		return json.TypeFieldInfo{}, miruken.NotHandled
+	} else {
+		return json.TypeFieldInfo{Name: "$type", Value: typ.String()}, miruken.Handled
+	}
+}
 type JsonStdTestSuite struct {
 	suite.Suite
 }
 
 func (suite *JsonStdTestSuite) Setup(specs ... any) (miruken.Handler, error) {
 	return miruken.Setup(
+		TestFeature,
 		json.Feature(json.UseStandard()),
 		miruken.HandlerSpecs(specs...))
 }
@@ -157,6 +188,31 @@ func (suite *JsonStdTestSuite) TestJson() {
 				suite.Nil(err)
 				suite.Equal("Ralph Hall", data.Name)
 				suite.Equal(84, data.Age)
+			})
+		})
+
+		suite.Run("TypeField", func() {
+			handler, _ := suite.Setup()
+
+			suite.Run("Explicit", func() {
+				t, _, err := miruken.Map[json.TypeFieldInfo](handler, PlayerData{}, "type:json")
+				suite.Nil(err)
+				suite.Equal(json.TypeFieldInfo{Name: "$type", Value: "Player"}, t)
+			})
+
+			suite.Run("Default", func() {
+				type Car struct {
+					Engine string
+				}
+				t, _, err := miruken.Map[json.TypeFieldInfo](handler, Car{}, "type:json")
+				suite.Nil(err)
+				suite.Equal(json.TypeFieldInfo{Name: "$type", Value: "test.Car"}, t)
+			})
+
+			suite.Run("Anonymous Fails", func() {
+				var d struct{}
+				_, _, err := miruken.Map[json.TypeFieldInfo](handler, d, "type:json")
+				suite.IsType(err, &miruken.NotHandledError{})
 			})
 		})
 	})

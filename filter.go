@@ -233,16 +233,16 @@ func (f *FilteredScope) RemoveAllFilters() {
 // FilterOptions are used to control Filter processing.
 type FilterOptions struct {
 	Providers   []FilterProvider
-	SkipFilters OptionBool
+	SkipFilters Option[bool]
 }
 
 var (
 	disableFilters = Options(FilterOptions{
-		SkipFilters: OptionTrue,
+		SkipFilters: SetOption(true),
 	})
 
 	enableFilters = Options(FilterOptions{
-		SkipFilters: OptionFalse,
+		SkipFilters: SetOption(false),
 	})
 
 	DisableFilters BuilderFunc = func (handler Handler) Handler {
@@ -297,15 +297,12 @@ func orderedFilters(
 	bindingSkip := binding.SkipFilters()
 	var allProviders []FilterProvider
 	var addProvider = func (p FilterProvider) {
-		switch skipFilters {
-		case OptionTrue:
-			if !p.Required() {
+		if skipFilters.Set() {
+			if skipFilters.Value() && !p.Required() {
 				return
 			}
-		case OptionNone:
-			if bindingSkip && !p.Required() {
-				return
-			}
+		} else if bindingSkip && !p.Required() {
+			return
 		}
 		allProviders = append(allProviders, p)
 	}
@@ -332,7 +329,7 @@ func orderedFilters(
 			addProvider(p)
 		}
 	}
-	if skipFilters != OptionTrue {
+	if skipFilters != SetOption(true) {
 		handler = BuildUp(handler, DisableFilters)
 	}
 	var allFilters []providedFilter

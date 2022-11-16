@@ -1,7 +1,6 @@
 package json
 
 import (
-	jsoniter "github.com/json-iterator/go"
 	"github.com/miruken-go/miruken"
 )
 
@@ -13,13 +12,6 @@ type Installer struct {
 
 func (i *Installer) UseStandard(options *StdOptions) {
 	i.mapper = &StdMapper{}
-	if !miruken.IsNil(options) {
-		i.options = *options
-	}
-}
-
-func (i *Installer) UseJsonIterator(options *IterOptions) {
-	i.mapper  = &IterMapper{}
 	if !miruken.IsNil(options) {
 		i.options = *options
 	}
@@ -48,24 +40,6 @@ func UseStandard() func(installer *Installer) {
 func UseStandardWithOptions(options StdOptions) func(installer *Installer) {
 	return func(installer *Installer) {
 		installer.UseStandard(&options)
-	}
-}
-
-func UseJsonIterator() func(installer *Installer) {
-	return func(installer *Installer) {
-		installer.UseJsonIterator(nil)
-	}
-}
-
-func UseJsonIteratorWithConfig(config jsoniter.Config) func(installer *Installer) {
-	return func(installer *Installer) {
-		installer.UseJsonIterator(&IterOptions{Config: config})
-	}
-}
-
-func UseJsonIteratorInstance(instance jsoniter.API) func(installer *Installer) {
-	return func(installer *Installer) {
-		installer.UseJsonIterator(&IterOptions{Api: instance})
 	}
 }
 

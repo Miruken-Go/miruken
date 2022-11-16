@@ -7,23 +7,45 @@ import (
 	"reflect"
 )
 
-// OptionBool should be used in option structs instead of bool to
-// be able to represent a bool not set.  Otherwise, the Zero value
-// for of a bool cannot be distinguished from false.
-type OptionBool byte
-const (
-	OptionNone OptionBool = iota
-	OptionFalse
-	OptionTrue
-)
+// mergeable allows custom merge behavior.
+type mergeable interface {
+	MergeFrom(options any) bool
+}
 
-func (b OptionBool) Bool() bool {
-	switch b {
-	case OptionFalse: return false
-	case OptionTrue: return true
-	default:
-		panic("only OptionFalse and OptionTrue can convert to a bool")
+// Option should be used in option structs to distinguish unset
+// values from Zero values.
+type Option[T any] struct {
+	set bool
+	val T
+}
+
+func (o *Option[T]) Set() bool {
+	return o.set
+}
+
+func (o *Option[T]) Value() T {
+	return o.val
+}
+
+func (o *Option[T]) SetValue(val T) {
+	o.val = val
+}
+
+func (o *Option[T]) MergeFrom(option any) bool {
+	if o.set {
+		return false
 	}
+	if other, ok := option.(Option[T]); ok && other.set {
+		o.val = other.val
+		o.set = true
+		return true
+	}
+	return false
+}
+
+// SetOption create a new Option set to val.
+func SetOption[T any](val T) Option[T] {
+	return Option[T]{true, val}
 }
 
 // options represent extensible settings.
@@ -73,9 +95,7 @@ func (c *optionsHandler) Handle(
 		options := opt.options
 		if reflect.TypeOf(options).Elem().AssignableTo(c.optionsType) {
 			merged := false
-			if o, ok := options.(interface {
-				MergeFrom(options any) bool
-			}); ok {
+			if o, ok := options.(mergeable); ok {
 				merged = o.MergeFrom(c.options)
 			} else {
 				merged = opt.mergeFrom(c.options)
@@ -92,7 +112,9 @@ func (c *optionsHandler) Handle(
 }
 
 func MergeOptions(from, into any) bool {
-	return mergo.Merge(into, from, mergo.WithAppendSlice) == nil
+	return mergo.Merge(into, from,
+		mergo.WithAppendSlice,
+		mergo.WithTransformers(&optionTransformer{})) == nil
 }
 
 func Options(options any) BuilderFunc {
@@ -181,3 +203,31 @@ func (o FromOptions) Resolve(
 	var v reflect.Value
 	return v, nil, fmt.Errorf("FromOptions: unable to resolve options %v", typ)
 }
+
+type optionTransformer struct {}
+
+func (t optionTransformer) Transformer(
+	typ reflect.Type,
+) func(dst, src reflect.Value) error {
+	addr := false
+	if !typ.AssignableTo(_mergeableType) && typ.Kind() != reflect.Ptr {
+		typ = reflect.PtrTo(typ)
+		addr = true
+	}
+	if !addr || typ.AssignableTo(_mergeableType) {
+		return func(dst, src reflect.Value) error {
+			if addr {
+				dst = dst.Addr()
+			}
+			if d, ok := dst.Interface().(mergeable); ok && !IsNil(d) {
+				if s := src.Interface(); !IsNil(s) {
+					d.MergeFrom(s)
+				}
+			}
+			return nil
+		}
+	}
+	return nil
+}
+
+var _mergeableType = TypeOf[mergeable]()

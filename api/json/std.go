@@ -11,8 +11,9 @@ type (
 	StdMapper struct{}
 
 	StdOptions struct {
-		Prefix string
-		Indent string
+		Prefix            string
+		Indent            string
+		TypeFieldHandling TypeFieldHandling
 	}
 )
 

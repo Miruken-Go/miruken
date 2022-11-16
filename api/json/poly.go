@@ -1,7 +1,7 @@
 package json
 
 type (
-	TypeFieldHandling uint
+	TypeFieldHandling uint8
 
 	TypeFieldInfo struct {
 		Name  string
