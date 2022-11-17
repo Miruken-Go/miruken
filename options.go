@@ -114,7 +114,7 @@ func (c *optionsHandler) Handle(
 func MergeOptions(from, into any) bool {
 	return mergo.Merge(into, from,
 		mergo.WithAppendSlice,
-		mergo.WithTransformers(&optionTransformer{})) == nil
+		mergo.WithTransformers(_optionTransformer)) == nil
 }
 
 func Options(options any) BuilderFunc {
@@ -230,4 +230,7 @@ func (t optionTransformer) Transformer(
 	return nil
 }
 
-var _mergeableType = TypeOf[mergeable]()
+var (
+	_mergeableType     = TypeOf[mergeable]()
+	_optionTransformer = &optionTransformer{}
+)

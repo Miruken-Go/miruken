@@ -2,8 +2,10 @@ package json
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/miruken-go/miruken"
 	"io"
+	"reflect"
 )
 
 // StdMapper formats to and from json using encoding/json.
@@ -13,7 +15,7 @@ type (
 	StdOptions struct {
 		Prefix            string
 		Indent            string
-		TypeFieldHandling TypeFieldHandling
+		TypeFieldHandling miruken.Option[TypeFieldHandling]
 	}
 )
 
@@ -28,12 +30,20 @@ func (m *StdMapper) ToJson(
 	    miruken.Optional
 	    miruken.FromOptions
 	  }, options StdOptions,
+	ctx miruken.HandleContext,
 ) (js string, err error) {
 	var data []byte
-	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
-		data, err = json.MarshalIndent(maps.Source(), prefix, indent)
+	src := maps.Source()
+	if options.TypeFieldHandling == miruken.SetOption(TypeFieldHandlingRoot) {
+		data, err = json.Marshal(typeEncodeContainer{
+			src,
+			&options,
+			ctx.Composer(),
+		})
+	} else if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
+		data, err = json.MarshalIndent(src, prefix, indent)
 	} else {
-		data, err = json.Marshal(maps.Source())
+		data, err = json.Marshal(src)
 	}
 	return string(data), err
 }
@@ -82,4 +92,33 @@ func (m *StdMapper) FromJsonStream(
 	dec    := json.NewDecoder(stream)
 	err    := dec.Decode(target)
 	return target, err
+}
+
+type (
+	typeEncodeContainer struct {
+		v         any
+		options  *StdOptions
+		composer  miruken.Handler
+	}
+)
+
+// typeEncodeContainer
+
+func (c typeEncodeContainer) MarshalJSON() ([]byte, error) {
+	v   := c.v
+	if byt, err := json.Marshal(v); err != nil {
+		return nil, err
+	} else {
+		if typ := reflect.TypeOf(v); typ != nil && typ.Kind() == reflect.Struct {
+			typInfo, _, err := miruken.Map[TypeFieldInfo](c.composer, v, "type:json")
+			if err != nil {
+				return nil, fmt.Errorf("no type info \"%v\": %w", typ, err)
+			}
+			typeId := []byte(fmt.Sprintf("\"%v\":\"%v\",", typInfo.Name, typInfo.Value))
+			byt = append(byt, typeId...)
+			copy(byt[len(typeId)+1:], byt[1:])
+			copy(byt[1:], typeId)
+		}
+		return byt, nil
+	}
 }

@@ -12,5 +12,4 @@ type (
 const (
 	TypeFieldHandlingNone TypeFieldHandling = 0
 	TypeFieldHandlingRoot TypeFieldHandling = 1 << iota
-	TypeFieldHandlingInterfaces
 )

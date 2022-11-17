@@ -22,8 +22,16 @@ type (
 		Name string
 	}
 
+	TeamData struct {
+		Id      int
+		Name    string
+		Players []PlayerData
+	}
+
 	TypeFieldMapper struct {}
 )
+
+// PlayerMapper
 
 func (m *PlayerMapper) ToPlayerJson(
 	_*struct{
@@ -31,16 +39,18 @@ func (m *PlayerMapper) ToPlayerJson(
 	    miruken.Format `as:"application/json"`
       }, data PlayerData,
 ) string {
-	return fmt.Sprintf("{\"id\":%v,\"name\":\"%v\"}", data.Id, data.Name)
+	return fmt.Sprintf("{\"id\":%v,\"name\":\"%v\"}", data.Id, strings.ToUpper(data.Name))
 }
 
-func (m *TypeFieldMapper) PlayerTypeField(
+// TypeFieldMapper
+
+func (m *TypeFieldMapper) TeamTypeInfo(
 	_*struct{
 		miruken.Maps
 		miruken.Format `as:"type:json"`
-	  }, _ PlayerData,
+	  }, _ TeamData,
 ) json.TypeFieldInfo {
-	return json.TypeFieldInfo{Name: "$type", Value: "Player"}
+	return json.TypeFieldInfo{Name: "$type", Value: "Team"}
 }
 
 func (m *TypeFieldMapper) DefaultTypeField(
@@ -59,6 +69,7 @@ func (m *TypeFieldMapper) DefaultTypeField(
 		return json.TypeFieldInfo{Name: "$type", Value: typ.String()}, miruken.Handled
 	}
 }
+
 type JsonStdTestSuite struct {
 	suite.Suite
 }
@@ -86,6 +97,26 @@ func (suite *JsonStdTestSuite) TestJson() {
 				j, _, err := miruken.Map[string](handler, data, "application/json")
 				suite.Nil(err)
 				suite.Equal("{\"Name\":\"John Smith\",\"Age\":23}", j)
+			})
+
+			suite.Run("ToJsonTyped", func() {
+				data := TeamData{
+					Id: 9,
+					Name: "Breakaway",
+					Players: []PlayerData{
+						{1, "Sean Rose"},
+						{4, "Mark Kingston"},
+						{8, "Michael Binder"},
+					},
+				}
+				j, _, err := miruken.Map[string](
+					miruken.BuildUp(handler, miruken.Options(
+						json.StdOptions{
+							TypeFieldHandling: miruken.SetOption(json.TypeFieldHandlingRoot),
+						})),
+						data, "application/json")
+				suite.Nil(err)
+				suite.Equal("{\"$type\":\"Team\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}", j)
 			})
 
 			suite.Run("ToJsonWithOptions", func() {
@@ -146,8 +177,6 @@ func (suite *JsonStdTestSuite) TestJson() {
 			})
 
 			suite.Run("ToJsonOverride", func() {
-				handler, _ := suite.Setup(&PlayerMapper{})
-
 				data := PlayerData{
 					Id:   1,
 					Name: "Tim Howard",
@@ -155,7 +184,25 @@ func (suite *JsonStdTestSuite) TestJson() {
 
 				j, _, err := miruken.Map[string](handler, data, "application/json")
 				suite.Nil(err)
-				suite.Equal("{\"id\":1,\"name\":\"Tim Howard\"}", j)
+				suite.Equal("{\"id\":1,\"name\":\"TIM HOWARD\"}", j)
+			})
+
+			suite.Run("ToJsonMissingTypeInfo", func() {
+				data := struct{
+					Name string
+					Age  int
+				}{
+					"James Webb",
+					85,
+				}
+				_, _, err := miruken.Map[string](
+					miruken.BuildUp(handler, miruken.Options(
+						json.StdOptions{
+							TypeFieldHandling: miruken.SetOption(json.TypeFieldHandlingRoot),
+						})),
+						data, "application/json")
+				suite.NotNil(err)
+				suite.Contains(err.Error(), "no type info")
 			})
 
 			suite.Run("FromJson", func() {
@@ -188,31 +235,6 @@ func (suite *JsonStdTestSuite) TestJson() {
 				suite.Nil(err)
 				suite.Equal("Ralph Hall", data.Name)
 				suite.Equal(84, data.Age)
-			})
-		})
-
-		suite.Run("TypeField", func() {
-			handler, _ := suite.Setup()
-
-			suite.Run("Explicit", func() {
-				t, _, err := miruken.Map[json.TypeFieldInfo](handler, PlayerData{}, "type:json")
-				suite.Nil(err)
-				suite.Equal(json.TypeFieldInfo{Name: "$type", Value: "Player"}, t)
-			})
-
-			suite.Run("Default", func() {
-				type Car struct {
-					Engine string
-				}
-				t, _, err := miruken.Map[json.TypeFieldInfo](handler, Car{}, "type:json")
-				suite.Nil(err)
-				suite.Equal(json.TypeFieldInfo{Name: "$type", Value: "test.Car"}, t)
-			})
-
-			suite.Run("Anonymous Fails", func() {
-				var d struct{}
-				_, _, err := miruken.Map[json.TypeFieldInfo](handler, d, "type:json")
-				suite.IsType(err, &miruken.NotHandledError{})
 			})
 		})
 	})
