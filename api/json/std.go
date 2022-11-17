@@ -15,6 +15,7 @@ type (
 	StdOptions struct {
 		Prefix            string
 		Indent            string
+		EscapeHTML        miruken.Option[bool]
 		TypeFieldHandling miruken.Option[TypeFieldHandling]
 	}
 )
@@ -35,12 +36,10 @@ func (m *StdMapper) ToJson(
 	var data []byte
 	src := maps.Source()
 	if options.TypeFieldHandling == miruken.SetOption(TypeFieldHandlingRoot) {
-		data, err = json.Marshal(typeEncodeContainer{
-			src,
-			&options,
-			ctx.Composer(),
-		})
-	} else if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
+		src = typeEncodeContainer{src, &options,ctx.Composer()}
+	}
+	prefix, indent := options.Prefix, options.Indent
+	if len(prefix) > 0 || len(indent) > 0 {
 		data, err = json.MarshalIndent(src, prefix, indent)
 	} else {
 		data, err = json.Marshal(src)
@@ -53,6 +52,7 @@ func (m *StdMapper) ToJsonStream(
 	    miruken.Maps
 		miruken.Format `as:"application/json"`
 	  }, maps *miruken.Maps,
+	ctx miruken.HandleContext,
 	_*struct{
 	    miruken.Optional
 	    miruken.FromOptions
@@ -63,7 +63,14 @@ func (m *StdMapper) ToJsonStream(
 		if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
 			enc.SetIndent(prefix, indent)
 		}
-		err    = enc.Encode(maps.Source())
+		if escapeHTML := options.EscapeHTML; escapeHTML.Set() {
+			enc.SetEscapeHTML(escapeHTML.Value())
+		}
+		src := maps.Source()
+		if options.TypeFieldHandling == miruken.SetOption(TypeFieldHandlingRoot) {
+			src = typeEncodeContainer{src, &options,ctx.Composer()}
+		}
+		err    = enc.Encode(src)
 		stream = *writer
 	}
 	return stream, err
