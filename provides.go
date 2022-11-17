@@ -8,11 +8,10 @@ import (
 // Provides results covariantly.
 type Provides struct {
 	CallbackBase
-	key       any
-	parent   *Provides
-	handler   any
-	binding   Binding
-	metadata  BindingMetadata
+	key     any
+	parent *Provides
+	handler any
+	binding Binding
 }
 
 func (p *Provides) Key() any {
@@ -29,10 +28,6 @@ func (p *Provides) Parent() *Provides {
 
 func (p *Provides) Binding() Binding {
 	return p.binding
-}
-
-func (p *Provides) Metadata() *BindingMetadata {
-	return &p.metadata
 }
 
 func (p *Provides) CanDispatch(

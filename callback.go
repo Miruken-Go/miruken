@@ -48,6 +48,7 @@ type (
 		promises      []*promise.Promise[any]
 		accept        AcceptResultFunc
 		acceptPromise AcceptPromiseResultFunc
+		metadata      BindingMetadata
 	}
 
 	// customizeDispatch customizes Callback dispatch.
@@ -168,6 +169,10 @@ func (c *CallbackBase) ReceiveResult(
 	default:
 		return c.includeResult(result, false, composer)
 	}
+}
+
+func (c *CallbackBase) Metadata() *BindingMetadata {
+	return &c.metadata
 }
 
 func CoerceResult[T any](

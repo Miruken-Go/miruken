@@ -10,10 +10,9 @@ import (
 // Maps callbacks bivariantly.
 type Maps struct {
 	CallbackBase
-	source   any
-	target   any
-	format   any
-	metadata BindingMetadata
+	source any
+	target any
+	format any
 }
 
 func (m *Maps) Source() any {
@@ -36,10 +35,6 @@ func (m *Maps) Key() any {
 
 func (m *Maps) Policy() Policy {
 	return _mapsPolicy
-}
-
-func (m *Maps) Metadata() *BindingMetadata {
-	return &m.metadata
 }
 
 func (m *Maps) Dispatch(
@@ -130,9 +125,8 @@ func (b *MapsBuilder) NewMaps() *Maps {
 		target: b.target,
 	}
 	if format := b.format; format != nil {
-		maps.format   = format
-		maps.metadata = BindingMetadata{}
-		(&Format{as: format}).Require(&maps.metadata)
+		maps.format = format
+		(&Format{as: format}).Require(maps.Metadata())
 	}
 	return maps
 }

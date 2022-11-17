@@ -13,10 +13,9 @@ import (
 // Validates callbacks contravariantly.
 type Validates struct {
 	CallbackBase
-	source   any
-	groups   []any
-	outcome  ValidationOutcome
-	metadata BindingMetadata
+	source  any
+	groups  []any
+	outcome ValidationOutcome
 }
 
 func (v *Validates) Source() any {
@@ -49,10 +48,6 @@ func (v *Validates) Key() any {
 
 func (v *Validates) Policy() Policy {
 	return _validatesPolicy
-}
-
-func (v *Validates) Metadata() *BindingMetadata {
-	return &v.metadata
 }
 
 func (v *Validates) Dispatch(
@@ -477,12 +472,11 @@ func (b *ValidatesBuilder) NewValidates() *Validates {
 	}
 	if groups := b.groups; len(groups) > 0 {
 		validates.groups = groups
-		validates.metadata = BindingMetadata{}
 		groupMap := make(map[any]Void)
 		for _, group := range groups {
 			groupMap[group] = Void{}
 		}
-		(&Group{groups: groupMap}).Require(&validates.metadata)
+		(&Group{groups: groupMap}).Require(validates.Metadata())
 	}
 	return validates
 }
