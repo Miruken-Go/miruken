@@ -238,11 +238,11 @@ type FilterOptions struct {
 
 var (
 	disableFilters = Options(FilterOptions{
-		SkipFilters: SetOption(true),
+		SkipFilters: Set(true),
 	})
 
 	enableFilters = Options(FilterOptions{
-		SkipFilters: SetOption(false),
+		SkipFilters: Set(false),
 	})
 
 	DisableFilters BuilderFunc = func (handler Handler) Handler {
@@ -329,7 +329,7 @@ func orderedFilters(
 			addProvider(p)
 		}
 	}
-	if skipFilters != SetOption(true) {
+	if skipFilters != Set(true) {
 		handler = BuildUp(handler, DisableFilters)
 	}
 	var allFilters []providedFilter

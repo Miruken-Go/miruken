@@ -445,6 +445,7 @@ func NewValidateProvider(validateOutput bool) *ValidateProvider {
 
 // ValidatesBuilder builds Validates callbacks.
 type ValidatesBuilder struct {
+	CallbackBuilder
 	target any
 	groups []any
 }
@@ -468,7 +469,8 @@ func (b *ValidatesBuilder) WithGroups(
 
 func (b *ValidatesBuilder) NewValidates() *Validates {
 	validates := &Validates{
-		source: b.target,
+		CallbackBase: b.CallbackBase(),
+		source:       b.target,
 	}
 	if groups := b.groups; len(groups) > 0 {
 		validates.groups = groups

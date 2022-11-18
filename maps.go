@@ -7,13 +7,31 @@ import (
 	"strings"
 )
 
-// Maps callbacks bivariantly.
-type Maps struct {
-	CallbackBase
-	source any
-	target any
-	format any
-}
+type (
+	// Maps callbacks bivariantly.
+	Maps struct {
+		CallbackBase
+		source any
+		target any
+		format any
+	}
+
+	// Format is the BindingConstraint for matching formats.
+	Format struct {
+		as any
+	}
+
+	// MapsBuilder builds Maps callbacks.
+	MapsBuilder struct {
+		CallbackBuilder
+		source any
+		target any
+		format any
+	}
+)
+
+
+// Maps
 
 func (m *Maps) Source() any {
 	return m.source
@@ -45,9 +63,8 @@ func (m *Maps) Dispatch(
 	return DispatchPolicy(handler, m, greedy, composer)
 }
 
-type Format struct {
-	as any
-}
+
+// Format
 
 func (f *Format) InitWithTag(tag reflect.StructTag) error {
 	if as, ok := tag.Lookup("as"); ok {
@@ -82,12 +99,8 @@ func (f *Format) Matches(metadata *BindingMetadata) bool {
 	return false
 }
 
-// MapsBuilder builds Maps callbacks.
-type MapsBuilder struct {
-	source any
-	target any
-	format any
-}
+
+// MapsBuilder
 
 func (b *MapsBuilder) FromSource(
 	source any,
@@ -121,8 +134,9 @@ func (b *MapsBuilder) WithFormat(
 
 func (b *MapsBuilder) NewMaps() *Maps {
 	maps := &Maps{
-		source: b.source,
-		target: b.target,
+		CallbackBase: b.CallbackBase(),
+		source:       b.source,
+		target:       b.target,
 	}
 	if format := b.format; format != nil {
 		maps.format = format

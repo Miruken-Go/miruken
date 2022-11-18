@@ -53,6 +53,15 @@ func (m *TypeFieldMapper) TeamTypeInfo(
 	return json.TypeFieldInfo{Name: "$type", Value: "Team"}
 }
 
+func (m *TypeFieldMapper) TeamInstance(
+	_*struct{
+		miruken.Maps
+		miruken.Format `as:"$type:Team"`
+	  }, _ miruken.Maps,
+) (any, error) {
+	return TeamData{}, nil
+}
+
 func (m *TypeFieldMapper) DefaultTypeField(
 	_*struct{
 		miruken.Maps
@@ -137,7 +146,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				j, _, err := miruken.Map[string](
 					miruken.BuildUp(handler, miruken.Options(
 						json.StdOptions{
-							TypeFieldHandling: miruken.SetOption(json.TypeFieldHandlingRoot),
+							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
 						})),
 					data, "application/json")
 				suite.Nil(err)
@@ -158,7 +167,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 					miruken.BuildUp(handler, miruken.Options(
 						json.StdOptions{
 							Prefix: "abc", Indent: "def",
-							TypeFieldHandling: miruken.SetOption(json.TypeFieldHandlingRoot),
+							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
 						})),
 					data, "application/json")
 				suite.Nil(err)
@@ -212,7 +221,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				_, err := miruken.MapInto(
 					miruken.BuildUp(handler, miruken.Options(
 						json.StdOptions{
-							TypeFieldHandling: miruken.SetOption(json.TypeFieldHandlingRoot),
+							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
 						})),
 					data, &stream,"application/json")
 				suite.Nil(err)
@@ -235,7 +244,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 					miruken.BuildUp(handler, miruken.Options(
 						json.StdOptions{
 							Prefix: "abc", Indent: "def",
-							TypeFieldHandling: miruken.SetOption(json.TypeFieldHandlingRoot),
+							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
 						})),
 					data, &stream,"application/json")
 				suite.Nil(err)
@@ -264,7 +273,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				_, _, err := miruken.Map[string](
 					miruken.BuildUp(handler, miruken.Options(
 						json.StdOptions{
-							TypeFieldHandling: miruken.SetOption(json.TypeFieldHandlingRoot),
+							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
 						})),
 						data, "application/json")
 				suite.NotNil(err)

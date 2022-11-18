@@ -344,18 +344,18 @@ func (suite *FilterTestSuite) TestFilters() {
 			provider := miruken.NewFilterInstanceProvider(false, filters...)
 			options  := miruken.FilterOptions{
 				Providers:   []miruken.FilterProvider{provider},
-				SkipFilters: miruken.SetOption(true),
+				SkipFilters: miruken.Set(true),
 			}
 			other    := miruken.FilterOptions{}
 			other2   := miruken.FilterOptions{
 				Providers:   []miruken.FilterProvider{provider},
-				SkipFilters: miruken.SetOption(false),
+				SkipFilters: miruken.Set(false),
 			}
 			miruken.MergeOptions(options, &other)
-			suite.Equal(miruken.SetOption(true), other.SkipFilters)
+			suite.Equal(miruken.Set(true), other.SkipFilters)
 			suite.ElementsMatch([]miruken.FilterProvider{provider}, options.Providers)
 			miruken.MergeOptions(options, &other2)
-			suite.Equal(miruken.SetOption(false), other2.SkipFilters)
+			suite.Equal(miruken.Set(false), other2.SkipFilters)
 			suite.ElementsMatch([]miruken.FilterProvider{provider, provider}, other2.Providers)
 		})
 	})

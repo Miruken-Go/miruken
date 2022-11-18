@@ -66,6 +66,7 @@ func (h *Handles) Dispatch(
 
 // HandlesBuilder builds Handles callbacks.
 type HandlesBuilder struct {
+	CallbackBuilder
 	callback any
 }
 
@@ -81,7 +82,8 @@ func (b *HandlesBuilder) WithCallback(
 
 func (b *HandlesBuilder) NewHandles() *Handles {
 	return &Handles{
-		callback: b.callback,
+		CallbackBase: b.CallbackBase(),
+		callback:     b.callback,
 	}
 }
 

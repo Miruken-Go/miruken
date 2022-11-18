@@ -20,6 +20,7 @@ type (
 			strict   bool,
 			composer Handler,
 		) HandleResult
+		Metadata() *BindingMetadata
 	}
 
 	// CallbackGuard detects and prevents circular Callback dispatch.
@@ -51,6 +52,11 @@ type (
 		metadata      BindingMetadata
 	}
 
+	// CallbackBuilder builds common CallbackBase.
+ 	CallbackBuilder struct {
+		constraints  []ConstraintBuilderFunc
+	}
+
 	// customizeDispatch customizes Callback dispatch.
 	customizeDispatch interface {
 		Dispatch(
@@ -68,6 +74,9 @@ type (
 	// marks a list of results to be expanded.
 	expandResults []any
 )
+
+
+// CallbackBase
 
 func (c *CallbackBase) Source() any {
 	return nil
@@ -173,6 +182,24 @@ func (c *CallbackBase) ReceiveResult(
 
 func (c *CallbackBase) Metadata() *BindingMetadata {
 	return &c.metadata
+}
+
+
+// CallbackBuilder
+
+func (b *CallbackBuilder) WithConstraints(
+	constraints ... ConstraintBuilderFunc,
+) *CallbackBuilder {
+	if len(constraints) > 0 {
+		b.constraints = append(b.constraints, constraints...)
+	}
+	return b
+}
+
+func (b *CallbackBuilder) CallbackBase() CallbackBase {
+	cb := CallbackBase{}
+	ApplyConstraints(&cb, b.constraints...)
+	return cb
 }
 
 func CoerceResult[T any](

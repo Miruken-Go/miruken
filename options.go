@@ -7,13 +7,13 @@ import (
 	"reflect"
 )
 
-// mergeable allows custom merge behavior.
+// mergeable enables custom merge behavior.
 type mergeable interface {
 	MergeFrom(options any) bool
 }
 
-// Option should be used in option structs to distinguish unset
-// values from Zero values.
+// Option should be used in option structs if unset
+// values cannot be distinguished from Zero values.
 type Option[T any] struct {
 	set bool
 	val T
@@ -43,8 +43,8 @@ func (o *Option[T]) MergeFrom(option any) bool {
 	return false
 }
 
-// SetOption create a new Option set to val.
-func SetOption[T any](val T) Option[T] {
+// Set creates a new Option set to val.
+func Set[T any](val T) Option[T] {
 	return Option[T]{true, val}
 }
 

@@ -35,8 +35,8 @@ func (m *StdMapper) ToJson(
 ) (js string, err error) {
 	var data []byte
 	src := maps.Source()
-	if options.TypeFieldHandling == miruken.SetOption(TypeFieldHandlingRoot) {
-		src = typeEncodeContainer{src, ctx.Composer()}
+	if options.TypeFieldHandling == miruken.Set(TypeFieldHandlingRoot) {
+		src = &typeContainer{src, ctx.Composer()}
 	}
 	prefix, indent := options.Prefix, options.Indent
 	if len(prefix) > 0 || len(indent) > 0 {
@@ -67,8 +67,8 @@ func (m *StdMapper) ToJsonStream(
 			enc.SetEscapeHTML(escapeHTML.Value())
 		}
 		src := maps.Source()
-		if options.TypeFieldHandling == miruken.SetOption(TypeFieldHandlingRoot) {
-			src = typeEncodeContainer{src,ctx.Composer()}
+		if options.TypeFieldHandling == miruken.Set(TypeFieldHandlingRoot) {
+			src = &typeContainer{src,ctx.Composer()}
 		}
 		err    = enc.Encode(src)
 		stream = *writer
@@ -102,15 +102,13 @@ func (m *StdMapper) FromJsonStream(
 }
 
 type (
-	typeEncodeContainer struct {
+	typeContainer struct {
 		v         any
 		composer  miruken.Handler
 	}
 )
 
-// typeEncodeContainer
-
-func (c typeEncodeContainer) MarshalJSON() ([]byte, error) {
+func (c *typeContainer) MarshalJSON() ([]byte, error) {
 	v := c.v
 	if byt, err := json.Marshal(v); err != nil {
 		return nil, err
@@ -127,4 +125,12 @@ func (c typeEncodeContainer) MarshalJSON() ([]byte, error) {
 		}
 		return byt, nil
 	}
+}
+
+func (c *typeContainer) UnmarshalJSON(data []byte) error {
+	var fields map[string]*json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	return nil
 }

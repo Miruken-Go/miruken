@@ -123,17 +123,17 @@ func (suite *OptionsTestSuite) TestOptions() {
 		handler = miruken.BuildUp(handler,
 			miruken.Options(ServerOptions{
 				Url:       "https://directv.com",
-				KeepAlive: miruken.SetOption(true),
+				KeepAlive: miruken.Set(true),
 			}),
 			miruken.Options(ServerOptions{
 				Timeout:   60,
-				KeepAlive: miruken.SetOption(false),
+				KeepAlive: miruken.Set(false),
 			}))
 		var options ServerOptions
 		suite.True(miruken.GetOptions(handler, &options))
 		suite.Equal("https://directv.com", options.Url)
 		suite.Equal(60, options.Timeout)
-		suite.Equal(miruken.SetOption(false), options.KeepAlive)
+		suite.Equal(miruken.Set(false), options.KeepAlive)
 	})
 
 	suite.Run("AppendsSlice", func () {

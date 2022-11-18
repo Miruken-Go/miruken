@@ -18,6 +18,9 @@ type (
 		name   string
 		values KeyValues
 	}
+
+	// ConstraintBuilderFunc configures a ConstraintBuilder.
+	ConstraintBuilderFunc func(*ConstraintBuilder)
 )
 
 func (b *BindingMetadata) Name() string {
@@ -212,13 +215,11 @@ func (c *constraintFilter) Next(
 	if cp, ok := provider.(interface {
 		Constraints() []BindingConstraint
 	}); ok {
-		if scope, ok := ctx.Callback().(BindingScope); ok {
-			metadata := scope.Metadata()
-			if metadata != nil {
-				for _, c := range cp.Constraints() {
-					if !c.Matches(metadata) {
-						return next.Abort()
-					}
+		metadata := ctx.Callback().Metadata()
+		if metadata != nil {
+			for _, c := range cp.Constraints() {
+				if !c.Matches(metadata) {
+					return next.Abort()
 				}
 			}
 		}
@@ -239,13 +240,6 @@ func (c *ConstraintProvider) Constraints() []BindingConstraint {
 
 func (c *ConstraintProvider) Required() bool {
 	return true
-}
-
-func (c *ConstraintProvider) AppliesTo(
-	callback Callback,
-) bool {
-	_, ok := callback.(BindingScope)
-	return ok
 }
 
 func (c *ConstraintProvider) Filters(
@@ -298,25 +292,25 @@ func (b *ConstraintBuilder) Metadata() (metadata *BindingMetadata) {
 	return metadata
 }
 
-func WithName(name string) func(*ConstraintBuilder) {
+func WithName(name string) ConstraintBuilderFunc {
 	return func(c *ConstraintBuilder) {
 		c.Named(name)
 	}
 }
 
-func WithConstraint(constraint BindingConstraint) func(*ConstraintBuilder) {
+func WithConstraint(constraint BindingConstraint) ConstraintBuilderFunc {
 	return func(c *ConstraintBuilder) {
 		c.WithConstraint(constraint)
 	}
 }
 
-func WithMetadata(metadata BindingMetadata) func(*ConstraintBuilder) {
+func WithMetadata(metadata BindingMetadata) ConstraintBuilderFunc {
 	return func(c *ConstraintBuilder) {
 		c.WithMetadata(metadata)
 	}
 }
 
-func WithQualifier[T any]() func(*ConstraintBuilder) {
+func WithQualifier[T any]() ConstraintBuilderFunc {
 	return func(c *ConstraintBuilder) {
 		c.WithConstraint(Qualifier[T]{})
 	}
@@ -328,7 +322,7 @@ type ConstraintInitialize interface {
 	Init() error
 }
 
-func WithConstraintProvider[T ConstraintInitialize](provider T) func(*ConstraintBuilder) {
+func WithConstraintProvider[T ConstraintInitialize](provider T) ConstraintBuilderFunc {
 	return func(c *ConstraintBuilder) {
 		if err := provider.Init(); err != nil {
 			panic(fmt.Errorf("invalid provider: %w", err))
@@ -339,7 +333,7 @@ func WithConstraintProvider[T ConstraintInitialize](provider T) func(*Constraint
 
 func ApplyConstraints(
 	scope       BindingScope,
-	constraints ... func(*ConstraintBuilder),
+	constraints ... ConstraintBuilderFunc,
 ) *BindingMetadata {
 	if IsNil(scope) {
 		panic("scope cannot be nil")

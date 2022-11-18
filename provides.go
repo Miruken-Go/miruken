@@ -100,9 +100,9 @@ func (p *Provides) acceptPromise(
 
 // ProvidesBuilder builds Provides callbacks.
 type ProvidesBuilder struct {
+	CallbackBuilder
 	key          any
 	parent      *Provides
-	constraints  []func(*ConstraintBuilder)
 }
 
 func (b *ProvidesBuilder) WithKey(
@@ -122,46 +122,36 @@ func (b *ProvidesBuilder) WithParent(
 	return b
 }
 
-func (b *ProvidesBuilder) WithConstraints(
-	constraints ... func(*ConstraintBuilder),
-) *ProvidesBuilder {
-	if len(constraints) > 0 {
-		b.constraints = append(b.constraints, constraints...)
-	}
-	return b
-}
-
 func (b *ProvidesBuilder) Provides() Provides {
 	provides := Provides{
-		key:    b.key,
-		parent: b.parent,
+		CallbackBase: b.CallbackBase(),
+		key:          b.key,
+		parent:       b.parent,
 	}
-	ApplyConstraints(&provides, b.constraints...)
 	return provides
 }
 
 func (b *ProvidesBuilder) NewProvides() *Provides {
 	provides := &Provides{
-		key:    b.key,
-		parent: b.parent,
+		CallbackBase: b.CallbackBase(),
+		key:          b.key,
+		parent:       b.parent,
 	}
-	ApplyConstraints(provides, b.constraints...)
 	provides.SetAcceptPromiseResult(provides.acceptPromise)
 	return provides
 }
 
 func Resolve[T any](
 	handler     Handler,
-	constraints ... func(*ConstraintBuilder),
+	constraints ... ConstraintBuilderFunc,
 ) (t T, tp *promise.Promise[T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder ProvidesBuilder
-	provides := builder.
-		WithKey(TypeOf[T]()).
-		WithConstraints(constraints...).
-		NewProvides()
+	builder.WithKey(TypeOf[T]()).
+			WithConstraints(constraints...)
+	provides := builder.NewProvides()
 	if result := handler.Handle(provides, false, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {
@@ -172,7 +162,7 @@ func Resolve[T any](
 
 func ResolveAll[T any](
 	handler     Handler,
-	constraints ... func(*ConstraintBuilder),
+	constraints ... ConstraintBuilderFunc,
 ) (t []T, tp *promise.Promise[[]T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")

@@ -68,7 +68,7 @@ func (s sourceArg) resolve(
 type dependencySpec struct {
 	logicalType reflect.Type
 	resolver    DependencyResolver
-	constraints []func(*ConstraintBuilder)
+	constraints []ConstraintBuilderFunc
 	flags       bindingFlags
 	metadata    []any
 }
