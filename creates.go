@@ -53,15 +53,16 @@ func (b *CreatesBuilder) NewCreation() *Creates {
 }
 
 func Create[T any](
-	handler Handler,
+	handler         Handler,
+	constraints ... ConstraintBuilderFunc,
 ) (t T, tp *promise.Promise[T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder CreatesBuilder
-	creates := builder.
-		WithType(TypeOf[T]()).
-		NewCreation()
+	builder.WithType(TypeOf[T]()).
+			WithConstraints(constraints...)
+	creates := builder.NewCreation()
 	if result := handler.Handle(creates, false, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {
@@ -71,13 +72,15 @@ func Create[T any](
 }
 
 func CreateAll[T any](
-	handler Handler,
+	handler         Handler,
+	constraints ... ConstraintBuilderFunc,
 ) (t []T, tp *promise.Promise[[]T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder CreatesBuilder
-	builder.WithType(TypeOf[T]())
+	builder.WithType(TypeOf[T]()).
+			WithConstraints(constraints...)
 	creates := builder.NewCreation()
 	if result := handler.Handle(creates, true, nil); result.IsError() {
 		err = result.Error()

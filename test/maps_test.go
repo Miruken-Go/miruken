@@ -258,15 +258,15 @@ func (suite *MapsTestSuite) TestMap() {
 				Id:   1,
 				Name: "Tim Howard",
 			}
-			jsonString, _, err := miruken.Map[string](handler, &data, "application/json")
+			jsonString, _, err := miruken.Map[string](handler, &data, miruken.As("application/json"))
 			suite.Nil(err)
 			suite.Equal("{\"id\":1,\"name\":\"Tim Howard\"}", jsonString)
 
-			_, _, err = miruken.Map[string](handler, &data, "foo")
+			_, _, err = miruken.Map[string](handler, &data, miruken.As("foo"))
 			suite.IsType(err, &miruken.NotHandledError{})
 
 			var data2 PlayerData
-			_, err = miruken.MapInto(handler, jsonString, &data2, "application/json")
+			_, err = miruken.MapInto(handler, jsonString, &data2, miruken.As("application/json"))
 			suite.Nil(err)
 			suite.Equal(1, data.Id)
 			suite.Equal("Tim Howard", data.Name)

@@ -92,14 +92,15 @@ func (b *HandlesBuilder) NewHandles() *Handles {
 func Command(
 	handler  Handler,
 	callback any,
+	constraints ... ConstraintBuilderFunc,
 ) (pv *promise.Promise[Void], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder HandlesBuilder
-	handles := builder.
-		WithCallback(callback).
-		NewHandles()
+	builder.WithCallback(callback).
+			WithConstraints(constraints...)
+	handles := builder.NewHandles()
 	if result := handler.Handle(handles, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.handled {
@@ -113,16 +114,17 @@ func Command(
 // Execute executes a callback with results.
 // returns the results or promise if execution is asynchronous.
 func Execute[T any](
-	handler  Handler,
-	callback any,
+	handler         Handler,
+	callback        any,
+	constraints ... ConstraintBuilderFunc,
 ) (t T, tp *promise.Promise[T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder HandlesBuilder
-	handles := builder.
-		WithCallback(callback).
-		NewHandles()
+	builder.WithCallback(callback).
+			WithConstraints(constraints...)
+	handles := builder.NewHandles()
 	if result := handler.Handle(handles, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.handled {
@@ -136,14 +138,16 @@ func Execute[T any](
 // CommandAll invokes a callback on all with no results.
 // returns an empty promise if execution is asynchronous.
 func CommandAll(
-	handler Handler,
-	callback any,
+	handler         Handler,
+	callback        any,
+	constraints ... ConstraintBuilderFunc,
 ) (pv *promise.Promise[Void], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder HandlesBuilder
-	builder.WithCallback(callback)
+	builder.WithCallback(callback).
+			WithConstraints(constraints...)
 	handles := builder.NewHandles()
 	if result := handler.Handle(handles, true, nil); result.IsError() {
 		err = result.Error()
@@ -158,14 +162,16 @@ func CommandAll(
 // ExecuteAll executes a callback on all and collects the results.
 // returns the results or promise if execution is asynchronous.
 func ExecuteAll[T any](
-	handler Handler,
-	callback any,
+	handler         Handler,
+	callback        any,
+	constraints ... ConstraintBuilderFunc,
 ) (t []T, tp *promise.Promise[[]T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder HandlesBuilder
-	builder.WithCallback(callback)
+	builder.WithCallback(callback).
+			WithConstraints(constraints...)
 	handles := builder.NewHandles()
 	if result := handler.Handle(handles, true, nil); result.IsError() {
 		err = result.Error()

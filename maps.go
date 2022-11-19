@@ -13,7 +13,6 @@ type (
 		CallbackBase
 		source any
 		target any
-		format any
 	}
 
 	// Format is the BindingConstraint for matching formats.
@@ -26,7 +25,6 @@ type (
 		CallbackBuilder
 		source any
 		target any
-		format any
 	}
 )
 
@@ -39,10 +37,6 @@ func (m *Maps) Source() any {
 
 func (m *Maps) Target() any {
 	return m.target
-}
-
-func (m *Maps) Format() any {
-	return m.format
 }
 
 func (m *Maps) Key() any {
@@ -99,6 +93,12 @@ func (f *Format) Matches(metadata *BindingMetadata) bool {
 	return false
 }
 
+// As builds a Format as constraint.
+func As(format any) ConstraintBuilderFunc {
+	return func(builder *ConstraintBuilder) {
+		builder.WithConstraint(&Format{format})
+	}
+}
 
 // MapsBuilder
 
@@ -122,46 +122,26 @@ func (b *MapsBuilder) ToTarget(
 	return b
 }
 
-func (b *MapsBuilder) WithFormat(
-	format any,
-) *MapsBuilder {
-	if IsNil(format) {
-		panic("format cannot be nil")
-	}
-	b.format = format
-	return b
-}
-
 func (b *MapsBuilder) NewMaps() *Maps {
-	maps := &Maps{
+	return &Maps{
 		CallbackBase: b.CallbackBase(),
 		source:       b.source,
 		target:       b.target,
 	}
-	if format := b.format; format != nil {
-		maps.format = format
-		(&Format{as: format}).Require(maps.Metadata())
-	}
-	return maps
 }
 
 func Map[T any](
-	handler Handler,
-	source  any,
-	format  ... any,
+	handler         Handler,
+	source          any,
+	constraints ... ConstraintBuilderFunc,
 ) (t T, tp *promise.Promise[T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
-	if len(format) > 1 {
-		panic("only one format is allowed")
-	}
 	var builder MapsBuilder
 	builder.FromSource(source).
-		    ToTarget(&t)
-	if len(format) == 1 {
-		builder.WithFormat(format[0])
-	}
+		    ToTarget(&t).
+			WithConstraints(constraints...)
 	maps := builder.NewMaps()
 	if result := handler.Handle(maps, false, nil); result.IsError() {
 		err = result.Error()
@@ -174,10 +154,10 @@ func Map[T any](
 }
 
 func MapInto[T any](
-	handler Handler,
-	source  any,
-	target  *T,
-	format  ... any,
+	handler         Handler,
+	source          any,
+	target          *T,
+	constraints ... ConstraintBuilderFunc,
 ) (tp *promise.Promise[T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -185,15 +165,10 @@ func MapInto[T any](
 	if target == nil {
 		panic("target cannot be nil")
 	}
-	if len(format) > 1 {
-		panic("only one format is allowed")
-	}
 	var builder MapsBuilder
 	builder.FromSource(source).
-		ToTarget(target)
-	if len(format) == 1 {
-		builder.WithFormat(format[0])
-	}
+			ToTarget(target).
+			WithConstraints(constraints...)
 	maps := builder.NewMaps()
 	if result := handler.Handle(maps, false, nil); result.IsError() {
 		err = result.Error()
@@ -206,9 +181,9 @@ func MapInto[T any](
 }
 
 func MapAll[T any](
-	handler Handler,
-	source  any,
-	format  ... any,
+	handler         Handler,
+	source          any,
+	constraints ... ConstraintBuilderFunc,
 ) (t []T, _ *promise.Promise[[]T], _ error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -216,18 +191,14 @@ func MapAll[T any](
 	if IsNil(source) || reflect.TypeOf(source).Kind() != reflect.Slice {
 		panic("source must be a non-nil slice")
 	}
-	if len(format) > 1 {
-		panic("only one format is allowed")
-	}
 	ts := reflect.ValueOf(source)
 	t   = make([]T, ts.Len())
 	var promises []*promise.Promise[T]
 	for i := 0; i < ts.Len(); i++ {
 		var builder MapsBuilder
-		builder.FromSource(ts.Index(i).Interface()).ToTarget(&t[i])
-		if len(format) == 1 {
-			builder.WithFormat(format[0])
-		}
+		builder.FromSource(ts.Index(i).Interface()).
+				ToTarget(&t[i]).
+				WithConstraints(constraints...)
 		maps := builder.NewMaps()
 		if result := handler.Handle(maps, false, nil); result.IsError() {
 			return nil, nil, result.Error()

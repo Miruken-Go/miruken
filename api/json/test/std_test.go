@@ -103,7 +103,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 					"John Smith",
 					23,
 				}
-				j, _, err := miruken.Map[string](handler, data, "application/json")
+				j, _, err := miruken.Map[string](handler, data, miruken.As("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\"Name\":\"John Smith\",\"Age\":23}", j)
 			})
@@ -118,7 +118,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				}
 				j, _, err := miruken.Map[string](
 					miruken.BuildUp(handler, miruken.Options(json.StdOptions{Indent: "  "})),
-					data, "application/json")
+					data, miruken.As("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\n  \"Name\": \"Sarah Conner\",\n  \"Age\": 38\n}", j)
 			})
@@ -128,7 +128,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 					"Id":    2,
 					"Name": "George Best",
 				}
-				j, _, err := miruken.Map[string](handler, data, "application/json")
+				j, _, err := miruken.Map[string](handler, data, miruken.As("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\"Id\":2,\"Name\":\"George Best\"}", j)
 			})
@@ -148,7 +148,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 						json.StdOptions{
 							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
 						})),
-					data, "application/json")
+					data, miruken.As("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\"$type\":\"Team\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}", j)
 			})
@@ -169,7 +169,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 							Prefix: "abc", Indent: "def",
 							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
 						})),
-					data, "application/json")
+					data, miruken.As("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\nabcdef\"$type\": \"Team\",\nabcdef\"Id\": 9,\nabcdef\"Name\": \"Breakaway\",\nabcdef\"Players\": [\nabcdefdef{\nabcdefdefdef\"Id\": 1,\nabcdefdefdef\"Name\": \"Sean Rose\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 4,\nabcdefdefdef\"Name\": \"Mark Kingston\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 8,\nabcdefdefdef\"Name\": \"Michael Binder\"\nabcdefdef}\nabcdef]\nabc}", j)
 			})
@@ -184,7 +184,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				}
 				var b bytes.Buffer
 				stream := io.Writer(&b)
-				_, err := miruken.MapInto(handler, data, &stream, "application/json")
+				_, err := miruken.MapInto(handler, data, &stream, miruken.As("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\"Name\":\"James Webb\",\"Age\":85}\n", b.String())
 			})
@@ -201,7 +201,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				stream := io.Writer(&b)
 				_, err := miruken.MapInto(
 					miruken.BuildUp(handler, miruken.Options(json.StdOptions{Indent: "  "})),
-					data, &stream, "application/json")
+					data, &stream, miruken.As("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\n  \"Name\": \"James Webb\",\n  \"Age\": 85\n}\n", b.String())
 			})
@@ -223,7 +223,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 						json.StdOptions{
 							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
 						})),
-					data, &stream,"application/json")
+					data, &stream,miruken.As("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\"$type\":\"Team\",\"Id\":15,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}\n", b.String())
 			})
@@ -246,7 +246,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 							Prefix: "abc", Indent: "def",
 							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
 						})),
-					data, &stream,"application/json")
+					data, &stream,miruken.As("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\nabcdef\"$type\": \"Team\",\nabcdef\"Id\": 15,\nabcdef\"Name\": \"Breakaway\",\nabcdef\"Players\": [\nabcdefdef{\nabcdefdefdef\"Id\": 1,\nabcdefdefdef\"Name\": \"Sean Rose\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 4,\nabcdefdefdef\"Name\": \"Mark Kingston\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 8,\nabcdefdefdef\"Name\": \"Michael Binder\"\nabcdefdef}\nabcdef]\nabc}\n", b.String())
 			})
@@ -257,7 +257,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 					Name: "Tim Howard",
 				}
 
-				j, _, err := miruken.Map[string](handler, data, "application/json")
+				j, _, err := miruken.Map[string](handler, data, miruken.As("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\"id\":1,\"name\":\"TIM HOWARD\"}", j)
 			})
@@ -275,7 +275,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 						json.StdOptions{
 							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
 						})),
-						data, "application/json")
+						data, miruken.As("application/json"))
 				suite.NotNil(err)
 				suite.Contains(err.Error(), "no type info")
 			})
@@ -286,7 +286,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 					Age  int
 				}
 				j := "{\"Name\":\"Ralph Hall\",\"Age\":84}"
-				data, _, err := miruken.Map[Data](handler, j, "application/json")
+				data, _, err := miruken.Map[Data](handler, j, miruken.As("application/json"))
 				suite.Nil(err)
 				suite.Equal("Ralph Hall", data.Name)
 				suite.Equal(84, data.Age)
@@ -294,7 +294,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 
 			suite.Run("FromJsonMap", func() {
 				j := "{\"Name\":\"Ralph Hall\",\"Age\":84}"
-				data, _,  err := miruken.Map[map[string]any](handler, j, "application/json")
+				data, _,  err := miruken.Map[map[string]any](handler, j, miruken.As("application/json"))
 				suite.Nil(err)
 				suite.Equal(84.0, data["Age"])
 				suite.Equal("Ralph Hall", data["Name"])
@@ -306,7 +306,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 					Age  int
 				}
 				stream := strings.NewReader("{\"Name\":\"Ralph Hall\",\"Age\":84}")
-				data, _, err := miruken.Map[Data](handler, stream, "application/json")
+				data, _, err := miruken.Map[Data](handler, stream, miruken.As("application/json"))
 				suite.Nil(err)
 				suite.Equal("Ralph Hall", data.Name)
 				suite.Equal(84, data.Age)

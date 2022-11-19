@@ -114,7 +114,7 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 		return nil, err
 	} else {
 		if typ := reflect.TypeOf(v); typ != nil && typ.Kind() == reflect.Struct {
-			typInfo, _, err := miruken.Map[TypeFieldInfo](c.composer, v, "type:json")
+			typInfo, _, err := miruken.Map[TypeFieldInfo](c.composer, v, miruken.As("type:json"))
 			if err != nil {
 				return nil, fmt.Errorf("no type info \"%v\": %w", typ, err)
 			}
