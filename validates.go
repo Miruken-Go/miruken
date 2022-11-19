@@ -443,11 +443,23 @@ func NewValidateProvider(validateOutput bool) *ValidateProvider {
 	return &ValidateProvider{validateOutput}
 }
 
+// Rules builds a validation Group constraint.
+func Rules(groups ... any) ConstraintBuilderFunc {
+	return func(builder *ConstraintBuilder) {
+		if len(groups) > 0 {
+			groupMap := make(map[any]Void)
+			for _, group := range groups {
+				groupMap[group] = Void{}
+			}
+			builder.WithConstraint(&Group{groups: groupMap})
+		}
+	}
+}
+
 // ValidatesBuilder builds Validates callbacks.
 type ValidatesBuilder struct {
 	CallbackBuilder
 	target any
-	groups []any
 }
 
 func (b *ValidatesBuilder) Target(
@@ -460,43 +472,25 @@ func (b *ValidatesBuilder) Target(
 	return b
 }
 
-func (b *ValidatesBuilder) WithGroups(
-	groups ... any,
-) *ValidatesBuilder {
-	b.groups = groups
-	return b
-}
-
 func (b *ValidatesBuilder) NewValidates() *Validates {
-	validates := &Validates{
+	return &Validates{
 		CallbackBase: b.CallbackBase(),
 		source:       b.target,
 	}
-	if groups := b.groups; len(groups) > 0 {
-		validates.groups = groups
-		groupMap := make(map[any]Void)
-		for _, group := range groups {
-			groupMap[group] = Void{}
-		}
-		(&Group{groups: groupMap}).Require(validates.Metadata())
-	}
-	return validates
 }
 
 // Validate initiates validation of the source.
 func Validate(
-	handler Handler,
-	target  any,
-	groups ... any,
+	handler         Handler,
+	target          any,
+	constraints ... ConstraintBuilderFunc,
 ) (o *ValidationOutcome, po *promise.Promise[*ValidationOutcome], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder ValidatesBuilder
-	builder.Target(target)
-	if len(groups) > 0 {
-		builder.WithGroups(groups...)
-	}
+	builder.Target(target).
+			WithConstraints(constraints...)
 	validates := builder.NewValidates()
 	if result := handler.Handle(validates, true, nil); result.IsError() {
 		err = result.Error()

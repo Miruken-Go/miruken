@@ -95,6 +95,9 @@ func (f *Format) Matches(metadata *BindingMetadata) bool {
 
 // As builds a Format as constraint.
 func As(format any) ConstraintBuilderFunc {
+	if IsNil(format) {
+		panic("format cannot be nil")
+	}
 	return func(builder *ConstraintBuilder) {
 		builder.WithConstraint(&Format{format})
 	}
