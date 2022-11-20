@@ -17,6 +17,7 @@ type (
 		Indent            string
 		EscapeHTML        miruken.Option[bool]
 		TypeFieldHandling miruken.Option[TypeFieldHandling]
+		TypeProfile       string
 	}
 )
 
@@ -36,10 +37,9 @@ func (m *StdMapper) ToJson(
 	var data []byte
 	src := maps.Source()
 	if options.TypeFieldHandling == miruken.Set(TypeFieldHandlingRoot) {
-		src = &typeContainer{src, ctx.Composer()}
+		src = &typeContainer{src, &options, ctx.Composer()}
 	}
-	prefix, indent := options.Prefix, options.Indent
-	if len(prefix) > 0 || len(indent) > 0 {
+	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
 		data, err = json.MarshalIndent(src, prefix, indent)
 	} else {
 		data, err = json.Marshal(src)
@@ -68,7 +68,7 @@ func (m *StdMapper) ToJsonStream(
 		}
 		src := maps.Source()
 		if options.TypeFieldHandling == miruken.Set(TypeFieldHandlingRoot) {
-			src = &typeContainer{src,ctx.Composer()}
+			src = &typeContainer{src, &options,ctx.Composer()}
 		}
 		err    = enc.Encode(src)
 		stream = *writer
@@ -104,24 +104,26 @@ func (m *StdMapper) FromJsonStream(
 type (
 	typeContainer struct {
 		v         any
+		options   *StdOptions
 		composer  miruken.Handler
 	}
 )
 
 func (c *typeContainer) MarshalJSON() ([]byte, error) {
-	v := c.v
+	v, options := c.v, c.options
 	if byt, err := json.Marshal(v); err != nil {
 		return nil, err
 	} else {
 		if typ := reflect.TypeOf(v); typ != nil && typ.Kind() == reflect.Struct {
-			typInfo, _, err := miruken.Map[TypeFieldInfo](c.composer, v, miruken.As("type:json"))
+			field, profile := TypeProfileFieldName(options.TypeProfile)
+			typeId, _, err := miruken.Map[string](c.composer, v, miruken.As("type:" + profile))
 			if err != nil {
-				return nil, fmt.Errorf("no type info \"%v\": %w", typ, err)
+				return nil, fmt.Errorf("no \"%s\" type id for \"%v\": %w", profile, typ, err)
 			}
-			typeId := []byte(fmt.Sprintf("\"%v\":\"%v\",", typInfo.Name, typInfo.Value))
-			byt = append(byt, typeId...)
-			copy(byt[len(typeId)+1:], byt[1:])
-			copy(byt[1:], typeId)
+			typeInfo := []byte(fmt.Sprintf("\"%v\":\"%v\",", field, typeId))
+			byt = append(byt, typeInfo...)
+			copy(byt[len(typeInfo)+1:], byt[1:])
+			copy(byt[1:], typeInfo)
 		}
 		return byt, nil
 	}
