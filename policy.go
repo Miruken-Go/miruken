@@ -60,8 +60,18 @@ type policySpec struct {
 
 func (s *policySpec) addPolicy(
 	policy Policy,
+	field  reflect.StructField,
 ) error {
 	s.policies = append(s.policies, policy)
+	if key, ok := field.Tag.Lookup("key"); ok {
+		if stringKey, ok := s.key.(string); ok {
+			if stringKey != key {
+				return fmt.Errorf("can't reassign key \"%s\" to \"%s\"", stringKey, key)
+			}
+		} else {
+			s.key = key
+		}
+	}
 	return nil
 }
 
@@ -178,10 +188,10 @@ func (p *policySpecBuilder) parse(
 		}
 		bound = true
 		if b, ok := binding.(interface {
-			addPolicy(Policy) error
+			addPolicy(Policy, reflect.StructField) error
 		}); ok {
 			policy := p.policyOf(cb)
-			if invalid := b.addPolicy(policy); invalid != nil {
+			if invalid := b.addPolicy(policy, field); invalid != nil {
 				err = fmt.Errorf(
 					"parse: policy %#v at index %v failed: %w",
 					policy, index, invalid)

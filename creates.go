@@ -8,11 +8,11 @@ import (
 // Creates instances covariantly.
 type Creates struct {
 	CallbackBase
-	typ reflect.Type
+	key any
 }
 
 func (c *Creates) Key() any {
-	return c.typ
+	return c.key
 }
 
 func (c *Creates) Policy() Policy {
@@ -32,23 +32,23 @@ func (c *Creates) Dispatch(
 // CreatesBuilder builds Creates callbacks.
 type CreatesBuilder struct {
 	CallbackBuilder
-	typ reflect.Type
+	key any
 }
 
-func (b *CreatesBuilder) WithType(
-	typ reflect.Type,
+func (b *CreatesBuilder) WithKey(
+	key any,
 ) *CreatesBuilder {
-	if IsNil(typ) {
-		panic("type cannot be nil")
+	if IsNil(key) {
+		panic("key cannot be nil")
 	}
-	b.typ = typ
+	b.key = key
 	return b
 }
 
 func (b *CreatesBuilder) NewCreation() *Creates {
 	return &Creates{
 		CallbackBase: b.CallbackBase(),
-		typ: b.typ,
+		key: b.key,
 	}
 }
 
@@ -60,7 +60,7 @@ func Create[T any](
 		panic("handler cannot be nil")
 	}
 	var builder CreatesBuilder
-	builder.WithType(TypeOf[T]()).
+	builder.WithKey(TypeOf[T]()).
 			WithConstraints(constraints...)
 	creates := builder.NewCreation()
 	if result := handler.Handle(creates, false, nil); result.IsError() {
@@ -79,7 +79,7 @@ func CreateAll[T any](
 		panic("handler cannot be nil")
 	}
 	var builder CreatesBuilder
-	builder.WithType(TypeOf[T]()).
+	builder.WithKey(TypeOf[T]()).
 			WithConstraints(constraints...)
 	creates := builder.NewCreation()
 	if result := handler.Handle(creates, true, nil); result.IsError() {
@@ -89,6 +89,27 @@ func CreateAll[T any](
 	}
 	return
 }
+
+func CreateKey[T any](
+	handler         Handler,
+	key             any,
+	constraints ... ConstraintBuilderFunc,
+) (t T, tp *promise.Promise[T], err error) {
+	if IsNil(handler) {
+		panic("handler cannot be nil")
+	}
+	var builder CreatesBuilder
+	builder.WithKey(key).
+			WithConstraints(constraints...)
+	creates := builder.NewCreation()
+	if result := handler.Handle(creates, false, nil); result.IsError() {
+		err = result.Error()
+	} else if result.handled {
+		_, tp, err = CoerceResult[T](creates, &t)
+	}
+	return
+}
+
 
 // createsPolicy for creating instances covariantly.
 type createsPolicy struct {

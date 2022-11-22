@@ -59,6 +59,14 @@ func (suite *CreatesTestSuite) TestCreates() {
 		suite.NotNil(c)
 		suite.Equal(1, c.bar.Count())
 	})
+
+	suite.Run("Key", func () {
+		handler, _ := suite.SetupWith(
+			miruken.HandlerSpecs(&KeyProvider{}))
+		foo, _, err := miruken.CreateKey[*Foo](handler, "Foo")
+		suite.Nil(err)
+		suite.Equal(1, foo.Count())
+	})
 }
 
 func TestCreatesTestSuite(t *testing.T) {

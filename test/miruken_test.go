@@ -30,6 +30,7 @@ var TestFeature = miruken.InstallFeature(func(setup *miruken.SetupBuilder) error
 		&InvalidHandler{},
 		&InvalidMapper{},
 		&InvalidProvider{},
+		&KeyProvider{},
 		&ListProvider{},
 		&LogFilter{},
 		&MetadataHandler{},

@@ -30,11 +30,11 @@ func (p *CovariantPolicy) MatchesKey(
 		return true, true
 	} else if invariant {
 		return false, false
-	}
-	switch kt := otherKey.(type) {
-	case reflect.Type:
-		if bt, isType := key.(reflect.Type); isType {
-			return bt == _anyType || bt.AssignableTo(kt), false
+	} else if bt, isType := key.(reflect.Type); isType {
+		if bt == _anyType {
+			return true, false
+		} else if kt, isType := otherKey.(reflect.Type); isType {
+			return bt.AssignableTo(kt), false
 		}
 	}
 	return false, false

@@ -136,9 +136,13 @@ func validateContravariantFunc(
 	if len(args) > 1 {
 		if arg := funType.In(1+skip); arg.AssignableTo(_callbackType) {
 			args[1] = CallbackArg{}
-			if key == nil { key = _anyType }
+			if key == nil {
+				key = _anyType
+			}
 		} else {
-			if key == nil { key = arg }
+			if key == nil {
+				key = arg
+			}
 			args[1] = sourceArg{}
 		}
 		index++

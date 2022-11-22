@@ -26,7 +26,10 @@ func (p *policyBindings) insert(binding Binding) {
 	key := binding.Key()
 	if variant, unknown := p.policy.IsVariantKey(key); variant {
 		if unknown {
-			p.variant.PushBack(binding)
+			elem := p.variant.PushBack(binding)
+			if indexedElem := p.index[key]; indexedElem == nil {
+				p.index[key] = elem
+			}
 			return
 		}
 		indexedElem := p.index[key]
@@ -66,6 +69,7 @@ func (p *policyBindings) reduce(
 	}
 	done := false
 	result = NotHandled
+	// Check variant keys (reflect.Type)
 	if variant, _ := p.policy.IsVariantKey(key); variant {
 		elem := p.index[key]
 		if elem == nil {
@@ -77,12 +81,24 @@ func (p *policyBindings) reduce(
 			}
 			elem = elem.Next()
 		}
+		return result
+	// Check invariant keys (string)
 	} else if p.invariant != nil {
 		if bs := p.invariant[key]; bs != nil {
 			for _, b := range bs {
-				result, done = reducer(b, result)
-				if done { break }
+				if result, done = reducer(b, result); done {
+					break
+				}
 			}
+		}
+	}
+	// Check unknown keys (any)
+	if unk := p.index[_anyType]; unk != nil {
+		for unk != nil {
+			if result, done = reducer(unk.Value.(Binding), result); done {
+				break
+			}
+			unk = unk.Next()
 		}
 	}
 	return result

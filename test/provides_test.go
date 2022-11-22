@@ -86,6 +86,22 @@ func (p *SpecificationProvider) ProvideBar(
 	return []*Bar{&p.bar, {}}
 }
 
+// KeyProvider
+type KeyProvider struct {
+	foo Foo
+}
+
+func (p *KeyProvider) ProvideKey(
+	_*struct{
+		miruken.Provides `key:"Foo"`
+		miruken.Creates
+	  },
+) *Foo {
+	p.foo.Inc()
+	return &p.foo
+}
+
+// OpenProvider
 type OpenProvider struct{}
 
 func (p *OpenProvider) Provide(
@@ -95,6 +111,8 @@ func (p *OpenProvider) Provide(
 		return &Foo{}
 	} else if key == miruken.TypeOf[*Bar]() {
 		return &Bar{}
+	} else if key == "Foo" {
+		return &Foo{Counted{1}}
 	}
 	return nil
 }
@@ -246,6 +264,15 @@ func (suite *ProvidesTestSuite) TestProvides() {
 		suite.Nil(foo)
 	})
 
+	suite.Run("Key", func () {
+		handler, _ := suite.SetupWith(
+			miruken.HandlerSpecs(&KeyProvider{}),
+			miruken.Handlers(new(FooProvider)))
+		foo, _, err := miruken.ResolveKey[*Foo](handler, "Foo")
+		suite.Nil(err)
+		suite.Equal(1, foo.Count())
+	})
+
 	suite.Run("Open", func () {
 		handler, _ := suite.SetupWith(
 			miruken.HandlerSpecs(&OpenProvider{}),
@@ -256,6 +283,9 @@ func (suite *ProvidesTestSuite) TestProvides() {
 		bar, _, err := miruken.Resolve[*Bar](handler)
 		suite.Nil(err)
 		suite.Equal(0, bar.Count())
+		foo, _, err = miruken.ResolveKey[*Foo](handler, "Foo")
+		suite.Nil(err)
+		suite.Equal(1, foo.Count())
 	})
 
 	suite.Run("Multiple", func () {

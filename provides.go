@@ -179,6 +179,26 @@ func ResolveAll[T any](
 	return
 }
 
+func ResolveKey[T any](
+	handler     Handler,
+	key         any,
+	constraints ... ConstraintBuilderFunc,
+) (t T, tp *promise.Promise[T], err error) {
+	if IsNil(handler) {
+		panic("handler cannot be nil")
+	}
+	var builder ProvidesBuilder
+	builder.WithKey(key).
+			WithConstraints(constraints...)
+	provides := builder.NewProvides()
+	if result := handler.Handle(provides, false, nil); result.IsError() {
+		err = result.Error()
+	} else if result.handled {
+		_, tp, err = CoerceResult[T](provides, &t)
+	}
+	return
+}
+
 // providesPolicy for providing instances covariantly with lifestyle.
 type providesPolicy struct {
 	CovariantPolicy
