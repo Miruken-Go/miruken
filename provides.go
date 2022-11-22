@@ -144,13 +144,21 @@ func (b *ProvidesBuilder) NewProvides() *Provides {
 func Resolve[T any](
 	handler     Handler,
 	constraints ... ConstraintBuilderFunc,
+) (T, *promise.Promise[T], error) {
+	return ResolveKey[T](handler, TypeOf[T](), constraints...)
+}
+
+func ResolveKey[T any](
+	handler     Handler,
+	key         any,
+	constraints ... ConstraintBuilderFunc,
 ) (t T, tp *promise.Promise[T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder ProvidesBuilder
-	builder.WithKey(TypeOf[T]()).
-			WithConstraints(constraints...)
+	builder.WithKey(key).
+		WithConstraints(constraints...)
 	provides := builder.NewProvides()
 	if result := handler.Handle(provides, false, nil); result.IsError() {
 		err = result.Error()
@@ -179,25 +187,6 @@ func ResolveAll[T any](
 	return
 }
 
-func ResolveKey[T any](
-	handler     Handler,
-	key         any,
-	constraints ... ConstraintBuilderFunc,
-) (t T, tp *promise.Promise[T], err error) {
-	if IsNil(handler) {
-		panic("handler cannot be nil")
-	}
-	var builder ProvidesBuilder
-	builder.WithKey(key).
-			WithConstraints(constraints...)
-	provides := builder.NewProvides()
-	if result := handler.Handle(provides, false, nil); result.IsError() {
-		err = result.Error()
-	} else if result.handled {
-		_, tp, err = CoerceResult[T](provides, &t)
-	}
-	return
-}
 
 // providesPolicy for providing instances covariantly with lifestyle.
 type providesPolicy struct {

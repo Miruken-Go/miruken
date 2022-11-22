@@ -53,15 +53,6 @@ func (m *TypeIdMapper) TeamDotNet(
 	return "Team"
 }
 
-func (m *TypeIdMapper) TeamInstance(
-	_*struct{
-		miruken.Maps
-		miruken.Format `as:"@type:Team"`
-	  }, _ miruken.Maps,
-) (any, error) {
-	return TeamData{}, nil
-}
-
 func (m *TypeIdMapper) DefaultTypeId(
 	_*struct{
 		miruken.Maps
@@ -92,9 +83,29 @@ func (suite *JsonStdTestSuite) Setup(specs ... any) (miruken.Handler, error) {
 
 func (suite *JsonStdTestSuite) TestJson() {
 	suite.Run("Maps", func () {
-		suite.Run("Json", func() {
-			handler, _ := suite.Setup()
+		handler, _ := suite.Setup()
 
+		suite.Run("Fields", func() {
+			suite.Run("DotNet", func() {
+				field, _, err := miruken.MapKey[string](handler, "dotnet", miruken.As("json:type"))
+				suite.Nil(err)
+				suite.Equal("$type", field)
+			})
+
+			suite.Run("Java", func() {
+				field, _, err := miruken.MapKey[string](handler, "java", miruken.As("json:type"))
+				suite.Nil(err)
+				suite.Equal("@type", field)
+			})
+
+			suite.Run("Default", func() {
+				field, _, err := miruken.MapKey[string](handler, "go", miruken.As("json:type"))
+				suite.Nil(err)
+				suite.Equal("@type", field)
+			})
+		})
+
+		suite.Run("Json", func() {
 			suite.Run("ToJson", func() {
 				data := struct{
 					Name string

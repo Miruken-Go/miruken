@@ -55,13 +55,21 @@ func (b *CreatesBuilder) NewCreation() *Creates {
 func Create[T any](
 	handler         Handler,
 	constraints ... ConstraintBuilderFunc,
+) (T, *promise.Promise[T], error) {
+	return CreateKey[T](handler, TypeOf[T](), constraints...)
+}
+
+func CreateKey[T any](
+	handler         Handler,
+	key             any,
+	constraints ... ConstraintBuilderFunc,
 ) (t T, tp *promise.Promise[T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder CreatesBuilder
-	builder.WithKey(TypeOf[T]()).
-			WithConstraints(constraints...)
+	builder.WithKey(key).
+		WithConstraints(constraints...)
 	creates := builder.NewCreation()
 	if result := handler.Handle(creates, false, nil); result.IsError() {
 		err = result.Error()
@@ -86,26 +94,6 @@ func CreateAll[T any](
 		err = result.Error()
 	} else if result.handled {
 		_, tp, err = CoerceResults[T](creates, &t)
-	}
-	return
-}
-
-func CreateKey[T any](
-	handler         Handler,
-	key             any,
-	constraints ... ConstraintBuilderFunc,
-) (t T, tp *promise.Promise[T], err error) {
-	if IsNil(handler) {
-		panic("handler cannot be nil")
-	}
-	var builder CreatesBuilder
-	builder.WithKey(key).
-			WithConstraints(constraints...)
-	creates := builder.NewCreation()
-	if result := handler.Handle(creates, false, nil); result.IsError() {
-		err = result.Error()
-	} else if result.handled {
-		_, tp, err = CoerceResult[T](creates, &t)
 	}
 	return
 }

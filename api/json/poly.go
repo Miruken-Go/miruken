@@ -1,12 +1,49 @@
 package json
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/miruken-go/miruken"
+)
 
-type TypeFieldHandling uint8
+type (
+	TypeFieldHandling uint8
+
+	TypeProfileMapper struct {}
+)
+
 const (
 	TypeFieldHandlingNone TypeFieldHandling = 0
 	TypeFieldHandlingRoot TypeFieldHandling = 1 << iota
 )
+
+// TypeProfileMapper
+
+func (m *TypeProfileMapper) DotNet(
+	_*struct{
+		miruken.Maps   `key:"dotnet"`
+		miruken.Format `as:"json:type"`
+	  }, _ *miruken.Maps,
+) string {
+	return "$type"
+}
+
+func (m *TypeProfileMapper) Java(
+	_*struct{
+		miruken.Maps   `key:"java"`
+		miruken.Format `as:"json:type"`
+	  }, _ *miruken.Maps,
+) string {
+	return "@type"
+}
+
+func (m *TypeProfileMapper) Default(
+	_*struct{
+		miruken.Maps
+		miruken.Format `as:"json:type"`
+	  }, _ *miruken.Maps,
+) string {
+	return "@type"
+}
 
 // RegisterTypeProfile registers a new type profile with
 // the name of the json field used to identify the local

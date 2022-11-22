@@ -11,11 +11,12 @@ type (
 	// Maps callbacks bivariantly.
 	Maps struct {
 		CallbackBase
+		key    any
 		source any
 		target any
 	}
 
-	// Format is the BindingConstraint for matching formats.
+	// Format is a BindingConstraint for matching formats.
 	Format struct {
 		as any
 	}
@@ -23,6 +24,7 @@ type (
 	// MapsBuilder builds Maps callbacks.
 	MapsBuilder struct {
 		CallbackBuilder
+		key    any
 		source any
 		target any
 	}
@@ -40,7 +42,10 @@ func (m *Maps) Target() any {
 }
 
 func (m *Maps) Key() any {
-	in  := reflect.TypeOf(m.source)
+	in := m.key
+	if in == nil {
+		in = reflect.TypeOf(m.source)
+	}
 	out := reflect.TypeOf(m.target).Elem()
 	return DiKey{in, out}
 }
@@ -105,6 +110,16 @@ func As(format any) ConstraintBuilderFunc {
 
 // MapsBuilder
 
+func (b *MapsBuilder) WithKey(
+	key any,
+) *MapsBuilder {
+	if IsNil(key) {
+		panic("key cannot be nil")
+	}
+	b.key = key
+	return b
+}
+
 func (b *MapsBuilder) FromSource(
 	source any,
 ) *MapsBuilder {
@@ -128,6 +143,7 @@ func (b *MapsBuilder) ToTarget(
 func (b *MapsBuilder) NewMaps() *Maps {
 	return &Maps{
 		CallbackBase: b.CallbackBase(),
+		key:          b.key,
 		source:       b.source,
 		target:       b.target,
 	}
@@ -179,6 +195,29 @@ func MapInto[T any](
 		err = NewNotHandledError(maps)
 	} else {
 		_, tp, err = CoerceResult[T](maps, target)
+	}
+	return
+}
+
+func MapKey[T any](
+	handler         Handler,
+	key             any,
+	constraints ... ConstraintBuilderFunc,
+) (t T, tp *promise.Promise[T], err error) {
+	if IsNil(handler) {
+		panic("handler cannot be nil")
+	}
+	var builder MapsBuilder
+	builder.WithKey(key).
+			ToTarget(&t).
+			WithConstraints(constraints...)
+	maps := builder.NewMaps()
+	if result := handler.Handle(maps, false, nil); result.IsError() {
+		err = result.Error()
+	} else if !result.handled {
+		err = NewNotHandledError(maps)
+	} else {
+		_, tp, err = CoerceResult[T](maps, &t)
 	}
 	return
 }

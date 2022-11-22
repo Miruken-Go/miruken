@@ -25,14 +25,14 @@ type (
 func (p *policyBindings) insert(binding Binding) {
 	key := binding.Key()
 	if variant, unknown := p.policy.IsVariantKey(key); variant {
+		indexedElem := p.index[key]
 		if unknown {
 			elem := p.variant.PushBack(binding)
-			if indexedElem := p.index[key]; indexedElem == nil {
+			if indexedElem == nil {
 				p.index[key] = elem
 			}
 			return
 		}
-		indexedElem := p.index[key]
 		insert := indexedElem
 		if insert == nil {
 			insert = p.variant.Front()

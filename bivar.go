@@ -175,6 +175,8 @@ func validateBivariantFunc(
 
 	if key == nil {
 		key = DiKey{ In: in, Out: out }
+	} else if _, ok := key.(DiKey); !ok {
+		key = DiKey{ In: key, Out: out }
 	}
 	return
 }
