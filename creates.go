@@ -69,11 +69,13 @@ func CreateKey[T any](
 	}
 	var builder CreatesBuilder
 	builder.WithKey(key).
-		WithConstraints(constraints...)
+			WithConstraints(constraints...)
 	creates := builder.NewCreation()
 	if result := handler.Handle(creates, false, nil); result.IsError() {
 		err = result.Error()
-	} else if result.handled {
+	} else if !result.handled {
+		err = &NotHandledError{creates}
+	} else {
 		_, tp, err = CoerceResult[T](creates, &t)
 	}
 	return

@@ -495,7 +495,7 @@ func Validate(
 	if result := handler.Handle(validates, true, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.handled {
-		err = NewNotHandledError(validates)
+		err = &NotHandledError{validates}
 	} else if _, pv := validates.Result(false); pv == nil {
 		o = validates.Outcome()
 		setTargetValidationOutcome(target, o)

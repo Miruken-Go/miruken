@@ -2,6 +2,7 @@ package json
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"io"
@@ -17,9 +18,13 @@ type (
 		Indent            string
 		EscapeHTML        miruken.Option[bool]
 		TypeFieldHandling miruken.Option[TypeFieldHandling]
-		TypeProfile       string
 	}
 )
+
+var (
+	AsApplicationJson = miruken.As("application/json")
+)
+
 
 // StdMapper
 
@@ -32,12 +37,16 @@ func (m *StdMapper) ToJson(
 	    miruken.Optional
 	    miruken.FromOptions
 	  }, options StdOptions,
+	_*struct{
+		miruken.Optional
+		miruken.FromOptions
+	  }, polyOptions PolymorphicOptions,
 	ctx miruken.HandleContext,
 ) (js string, err error) {
 	var data []byte
 	src := maps.Source()
 	if options.TypeFieldHandling == miruken.Set(TypeFieldHandlingRoot) {
-		src = &typeContainer{src, &options, ctx.Composer()}
+		src = &typeContainer{src, polyOptions.KnownTypeFields, ctx.Composer()}
 	}
 	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
 		data, err = json.MarshalIndent(src, prefix, indent)
@@ -52,11 +61,15 @@ func (m *StdMapper) ToJsonStream(
 	    miruken.Maps
 		miruken.Format `as:"application/json"`
 	  }, maps *miruken.Maps,
-	ctx miruken.HandleContext,
 	_*struct{
 	    miruken.Optional
 	    miruken.FromOptions
 	  }, options StdOptions,
+	_*struct{
+		miruken.Optional
+		miruken.FromOptions
+	  }, polyOptions PolymorphicOptions,
+	ctx miruken.HandleContext,
 ) (stream io.Writer, err error) {
 	if writer, ok := maps.Target().(*io.Writer); ok && !miruken.IsNil(writer) {
 		enc := json.NewEncoder(*writer)
@@ -68,7 +81,7 @@ func (m *StdMapper) ToJsonStream(
 		}
 		src := maps.Source()
 		if options.TypeFieldHandling == miruken.Set(TypeFieldHandlingRoot) {
-			src = &typeContainer{src, &options,ctx.Composer()}
+			src = &typeContainer{src, polyOptions.KnownTypeFields,ctx.Composer()}
 		}
 		err    = enc.Encode(src)
 		stream = *writer
@@ -81,10 +94,24 @@ func (m *StdMapper) FromJson(
 	    miruken.Maps
 		miruken.Format `as:"application/json"`
 	  }, jsonString string,
+	_*struct{
+		miruken.Optional
+		miruken.FromOptions
+	  }, options StdOptions,
+	_*struct{
+		miruken.Optional
+		miruken.FromOptions
+	  }, polyOptions PolymorphicOptions,
 	maps *miruken.Maps,
+	ctx  miruken.HandleContext,
 ) (any, error) {
 	target := maps.Target()
-	err    := json.Unmarshal([]byte(jsonString), target)
+	if options.TypeFieldHandling == miruken.Set(TypeFieldHandlingRoot) {
+		tc := typeContainer{target, polyOptions.KnownTypeFields, ctx.Composer()}
+		err := json.Unmarshal([]byte(jsonString), &tc)
+		return tc.v, err
+	}
+	err := json.Unmarshal([]byte(jsonString), target)
 	return target, err
 }
 
@@ -93,37 +120,52 @@ func (m *StdMapper) FromJsonStream(
 	    miruken.Maps
 		miruken.Format `as:"application/json"`
 	  }, stream io.Reader,
+	_*struct{
+		miruken.Optional
+		miruken.FromOptions
+	  }, options StdOptions,
+	_*struct{
+		miruken.Optional
+		miruken.FromOptions
+	  }, polyOptions PolymorphicOptions,
 	maps *miruken.Maps,
+	ctx  miruken.HandleContext,
 ) (any, error) {
 	target := maps.Target()
 	dec    := json.NewDecoder(stream)
-	err    := dec.Decode(target)
+	if options.TypeFieldHandling == miruken.Set(TypeFieldHandlingRoot) {
+		tc := typeContainer{target, polyOptions.KnownTypeFields, ctx.Composer()}
+		err := dec.Decode(&tc)
+		return tc.v, err
+	}
+	err := dec.Decode(target)
 	return target, err
 }
 
 type (
+	// typeContainer is a helper type used to emit type field
+	// information for polymorphic serialization/deserialization.
 	typeContainer struct {
 		v         any
-		options   *StdOptions
+		fields    []string
 		composer  miruken.Handler
 	}
 )
 
 func (c *typeContainer) MarshalJSON() ([]byte, error) {
-	v, options := c.v, c.options
+	v := c.v
 	if byt, err := json.Marshal(v); err != nil {
 		return nil, err
 	} else {
 		if typ := reflect.TypeOf(v); typ != nil && typ.Kind() == reflect.Struct {
-			field, profile := TypeProfileFieldName(options.TypeProfile)
-			typeId, _, err := miruken.Map[string](c.composer, v, miruken.As("type:" + profile))
+			typeInfo, _, err := miruken.Map[TypeFieldInfo](c.composer, v)
 			if err != nil {
-				return nil, fmt.Errorf("no \"%s\" type id for \"%v\": %w", profile, typ, err)
+				return nil, err
 			}
-			typeInfo := []byte(fmt.Sprintf("\"%v\":\"%v\",", field, typeId))
-			byt = append(byt, typeInfo...)
-			copy(byt[len(typeInfo)+1:], byt[1:])
-			copy(byt[1:], typeInfo)
+			typeProperty := []byte(fmt.Sprintf("\"%v\":\"%v\",", typeInfo.Field, typeInfo.Value))
+			byt = append(byt, typeProperty...)
+			copy(byt[len(typeProperty)+1:], byt[1:])
+			copy(byt[1:], typeProperty)
 		}
 		return byt, nil
 	}
@@ -133,6 +175,30 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 	var fields map[string]*json.RawMessage
 	if err := json.Unmarshal(data, &fields); err != nil {
 		return err
+	}
+	var field string
+	var typeIdRaw *json.RawMessage
+	for _, field = range c.fields {
+		if typeIdRaw = fields[field]; typeIdRaw != nil {
+			break
+		}
+	}
+	if typeIdRaw == nil {
+		return errors.New("missing type field")
+	}
+	var typeId string
+	if err := json.Unmarshal(*typeIdRaw, &typeId); err != nil {
+		return err
+	} else if len(typeId) == 0 {
+		return fmt.Errorf("empty type id for field \"%s\"", field)
+	} else {
+		if v, _, err := miruken.CreateKey[any](c.composer, typeId); err != nil {
+			return err
+		} else if err := json.Unmarshal(data, v); err != nil {
+			return err
+		} else {
+			c.v = v
+		}
 	}
 	return nil
 }

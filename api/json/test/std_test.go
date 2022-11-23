@@ -7,7 +7,6 @@ import (
 	"github.com/miruken-go/miruken/api/json"
 	"github.com/stretchr/testify/suite"
 	"io"
-	"reflect"
 	"strings"
 	"testing"
 )
@@ -42,32 +41,18 @@ func (m *PlayerMapper) ToPlayerJson(
 	return fmt.Sprintf("{\"id\":%v,\"name\":\"%v\"}", data.Id, strings.ToUpper(data.Name))
 }
 
-// TypeIdMapper
-
-func (m *TypeIdMapper) TeamDotNet(
-	_*struct{
-		miruken.Maps
-		miruken.Format `as:"type:go"`
-	  }, _ TeamData,
-) string {
-	return "Team"
+func (m *TypeIdMapper) PlayerDotNet(
+	_ *miruken.Maps, _ PlayerData,
+) json.TypeFieldInfo {
+	return json.TypeFieldInfo{Field: "$type", Value: "Player,TeamApi"}
 }
 
-func (m *TypeIdMapper) DefaultTypeId(
+func (m *TypeIdMapper) CreateTeam(
 	_*struct{
-		miruken.Maps
-		miruken.Format `as:"type:"`
-	  }, maps *miruken.Maps,
-) (string, miruken.HandleResult) {
-	typ := reflect.TypeOf(maps.Source())
-	if typ.Kind() == reflect.Ptr {
-		typ = typ.Elem()
-	}
-	if name := typ.Name(); len(name) == 0 {
-		return "", miruken.NotHandled
-	} else {
-		return typ.String(), miruken.Handled
-	}
+		miruken.Creates `key:"test.TeamData"`
+	  }, _ *miruken.Creates,
+) *TeamData {
+	return &TeamData{}
 }
 
 type JsonStdTestSuite struct {
@@ -78,6 +63,7 @@ func (suite *JsonStdTestSuite) Setup(specs ... any) (miruken.Handler, error) {
 	return miruken.Setup(
 		TestFeature,
 		json.Feature(json.UseStandard()),
+		miruken.HandlerSpecs(&json.GoTypeFieldMapper{}),
 		miruken.HandlerSpecs(specs...))
 }
 
@@ -85,23 +71,12 @@ func (suite *JsonStdTestSuite) TestJson() {
 	suite.Run("Maps", func () {
 		handler, _ := suite.Setup()
 
-		suite.Run("Fields", func() {
-			suite.Run("DotNet", func() {
-				field, _, err := miruken.MapKey[string](handler, "dotnet", miruken.As("json:type"))
+		suite.Run("TypeInfo", func() {
+			suite.Run("TypeId", func() {
+				info, _, err := miruken.Map[json.TypeFieldInfo](handler, PlayerData{})
 				suite.Nil(err)
-				suite.Equal("$type", field)
-			})
-
-			suite.Run("Java", func() {
-				field, _, err := miruken.MapKey[string](handler, "java", miruken.As("json:type"))
-				suite.Nil(err)
-				suite.Equal("@type", field)
-			})
-
-			suite.Run("Default", func() {
-				field, _, err := miruken.MapKey[string](handler, "go", miruken.As("json:type"))
-				suite.Nil(err)
-				suite.Equal("@type", field)
+				suite.Equal("$type", info.Field)
+				suite.Equal("Player,TeamApi", info.Value)
 			})
 		})
 
@@ -114,7 +89,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 					"John Smith",
 					23,
 				}
-				j, _, err := miruken.Map[string](handler, data, miruken.As("application/json"))
+				j, _, err := miruken.Map[string](handler, data, json.AsApplicationJson)
 				suite.Nil(err)
 				suite.Equal("{\"Name\":\"John Smith\",\"Age\":23}", j)
 			})
@@ -129,7 +104,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				}
 				j, _, err := miruken.Map[string](
 					miruken.BuildUp(handler, miruken.Options(json.StdOptions{Indent: "  "})),
-					data, miruken.As("application/json"))
+					data, json.AsApplicationJson)
 				suite.Nil(err)
 				suite.Equal("{\n  \"Name\": \"Sarah Conner\",\n  \"Age\": 38\n}", j)
 			})
@@ -139,7 +114,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 					"Id":    2,
 					"Name": "George Best",
 				}
-				j, _, err := miruken.Map[string](handler, data, miruken.As("application/json"))
+				j, _, err := miruken.Map[string](handler, data, json.AsApplicationJson)
 				suite.Nil(err)
 				suite.Equal("{\"Id\":2,\"Name\":\"George Best\"}", j)
 			})
@@ -159,9 +134,9 @@ func (suite *JsonStdTestSuite) TestJson() {
 						json.StdOptions{
 							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
 						})),
-					data, miruken.As("application/json"))
+					data, json.AsApplicationJson)
 				suite.Nil(err)
-				suite.Equal("{\"@type\":\"Team\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}", j)
+				suite.Equal("{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}", j)
 			})
 
 			suite.Run("ToJsonTypedIndent", func() {
@@ -180,9 +155,9 @@ func (suite *JsonStdTestSuite) TestJson() {
 							Prefix: "abc", Indent: "def",
 							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
 						})),
-					data, miruken.As("application/json"))
+					data, json.AsApplicationJson)
 				suite.Nil(err)
-				suite.Equal("{\nabcdef\"@type\": \"Team\",\nabcdef\"Id\": 9,\nabcdef\"Name\": \"Breakaway\",\nabcdef\"Players\": [\nabcdefdef{\nabcdefdefdef\"Id\": 1,\nabcdefdefdef\"Name\": \"Sean Rose\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 4,\nabcdefdefdef\"Name\": \"Mark Kingston\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 8,\nabcdefdefdef\"Name\": \"Michael Binder\"\nabcdefdef}\nabcdef]\nabc}", j)
+				suite.Equal("{\nabcdef\"@type\": \"test.TeamData\",\nabcdef\"Id\": 9,\nabcdef\"Name\": \"Breakaway\",\nabcdef\"Players\": [\nabcdefdef{\nabcdefdefdef\"Id\": 1,\nabcdefdefdef\"Name\": \"Sean Rose\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 4,\nabcdefdefdef\"Name\": \"Mark Kingston\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 8,\nabcdefdefdef\"Name\": \"Michael Binder\"\nabcdefdef}\nabcdef]\nabc}", j)
 			})
 
 			suite.Run("ToJsonStream", func() {
@@ -195,7 +170,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				}
 				var b bytes.Buffer
 				stream := io.Writer(&b)
-				_, err := miruken.MapInto(handler, data, &stream, miruken.As("application/json"))
+				_, err := miruken.MapInto(handler, data, &stream, json.AsApplicationJson)
 				suite.Nil(err)
 				suite.Equal("{\"Name\":\"James Webb\",\"Age\":85}\n", b.String())
 			})
@@ -212,7 +187,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				stream := io.Writer(&b)
 				_, err := miruken.MapInto(
 					miruken.BuildUp(handler, miruken.Options(json.StdOptions{Indent: "  "})),
-					data, &stream, miruken.As("application/json"))
+					data, &stream, json.AsApplicationJson)
 				suite.Nil(err)
 				suite.Equal("{\n  \"Name\": \"James Webb\",\n  \"Age\": 85\n}\n", b.String())
 			})
@@ -234,9 +209,9 @@ func (suite *JsonStdTestSuite) TestJson() {
 						json.StdOptions{
 							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
 						})),
-					data, &stream,miruken.As("application/json"))
+					data, &stream,json.AsApplicationJson)
 				suite.Nil(err)
-				suite.Equal("{\"@type\":\"Team\",\"Id\":15,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}\n", b.String())
+				suite.Equal("{\"@type\":\"test.TeamData\",\"Id\":15,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}\n", b.String())
 			})
 
 			suite.Run("ToJsonStreamTypedIndent", func() {
@@ -257,9 +232,9 @@ func (suite *JsonStdTestSuite) TestJson() {
 							Prefix: "abc", Indent: "def",
 							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
 						})),
-					data, &stream,miruken.As("application/json"))
+					data, &stream,json.AsApplicationJson)
 				suite.Nil(err)
-				suite.Equal("{\nabcdef\"@type\": \"Team\",\nabcdef\"Id\": 15,\nabcdef\"Name\": \"Breakaway\",\nabcdef\"Players\": [\nabcdefdef{\nabcdefdefdef\"Id\": 1,\nabcdefdefdef\"Name\": \"Sean Rose\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 4,\nabcdefdefdef\"Name\": \"Mark Kingston\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 8,\nabcdefdefdef\"Name\": \"Michael Binder\"\nabcdefdef}\nabcdef]\nabc}\n", b.String())
+				suite.Equal("{\nabcdef\"@type\": \"test.TeamData\",\nabcdef\"Id\": 15,\nabcdef\"Name\": \"Breakaway\",\nabcdef\"Players\": [\nabcdefdef{\nabcdefdefdef\"Id\": 1,\nabcdefdefdef\"Name\": \"Sean Rose\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 4,\nabcdefdefdef\"Name\": \"Mark Kingston\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 8,\nabcdefdefdef\"Name\": \"Michael Binder\"\nabcdefdef}\nabcdef]\nabc}\n", b.String())
 			})
 
 			suite.Run("ToJsonOverride", func() {
@@ -268,7 +243,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 					Name: "Tim Howard",
 				}
 
-				j, _, err := miruken.Map[string](handler, data, miruken.As("application/json"))
+				j, _, err := miruken.Map[string](handler, data, json.AsApplicationJson)
 				suite.Nil(err)
 				suite.Equal("{\"id\":1,\"name\":\"TIM HOWARD\"}", j)
 			})
@@ -286,9 +261,8 @@ func (suite *JsonStdTestSuite) TestJson() {
 						json.StdOptions{
 							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
 						})),
-						data, miruken.As("application/json"))
+						data, json.AsApplicationJson)
 				suite.NotNil(err)
-				suite.Contains(err.Error(), "no \"go\" type id for")
 			})
 
 			suite.Run("FromJson", func() {
@@ -297,15 +271,14 @@ func (suite *JsonStdTestSuite) TestJson() {
 					Age  int
 				}
 				j := "{\"Name\":\"Ralph Hall\",\"Age\":84}"
-				data, _, err := miruken.Map[Data](handler, j, miruken.As("application/json"))
+				data, _, err := miruken.Map[Data](handler, j, json.AsApplicationJson)
 				suite.Nil(err)
-				suite.Equal("Ralph Hall", data.Name)
-				suite.Equal(84, data.Age)
+				suite.Equal(Data{Name: "Ralph Hall", Age: 84}, data)
 			})
 
 			suite.Run("FromJsonMap", func() {
 				j := "{\"Name\":\"Ralph Hall\",\"Age\":84}"
-				data, _,  err := miruken.Map[map[string]any](handler, j, miruken.As("application/json"))
+				data, _,  err := miruken.Map[map[string]any](handler, j, json.AsApplicationJson)
 				suite.Nil(err)
 				suite.Equal(84.0, data["Age"])
 				suite.Equal("Ralph Hall", data["Name"])
@@ -317,10 +290,46 @@ func (suite *JsonStdTestSuite) TestJson() {
 					Age  int
 				}
 				stream := strings.NewReader("{\"Name\":\"Ralph Hall\",\"Age\":84}")
-				data, _, err := miruken.Map[Data](handler, stream, miruken.As("application/json"))
+				data, _, err := miruken.Map[Data](handler, stream, json.AsApplicationJson)
 				suite.Nil(err)
-				suite.Equal("Ralph Hall", data.Name)
-				suite.Equal(84, data.Age)
+				suite.Equal(Data{Name: "Ralph Hall", Age: 84}, data)
+			})
+
+			suite.Run("FromJsonTyped", func() {
+				j := "{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Olivier Giroud\"}"
+				data, _, err := miruken.Map[*TeamData](
+					miruken.BuildUp(handler, miruken.Options(
+						json.StdOptions{
+							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
+						})),
+					j, json.AsApplicationJson)
+				suite.Nil(err)
+				suite.NotNil(data)
+				suite.Equal(TeamData{Id: 9, Name: "Olivier Giroud"}, *data)
+			})
+
+			suite.Run("FromJsonStreamTyped", func() {
+				stream := strings.NewReader("{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Olivier Giroud\"}")
+				data, _, err := miruken.Map[*TeamData](
+					miruken.BuildUp(handler, miruken.Options(
+						json.StdOptions{
+							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
+						})),
+					stream, json.AsApplicationJson)
+				suite.Nil(err)
+				suite.NotNil(data)
+				suite.Equal(TeamData{Id: 9, Name: "Olivier Giroud"}, *data)
+			})
+
+			suite.Run("FromJsonMissingTypeInfo", func() {
+				j := "{\"@type\":\"test.Team\",\"Id\":9,\"Name\":\"Olivier Giroud\"}"
+				_, _, err := miruken.Map[*TeamData](
+					miruken.BuildUp(handler, miruken.Options(
+						json.StdOptions{
+							TypeFieldHandling: miruken.Set(json.TypeFieldHandlingRoot),
+						})),
+					j, json.AsApplicationJson)
+				suite.NotNil(err)
 			})
 		})
 	})

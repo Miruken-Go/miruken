@@ -193,7 +193,7 @@ func (b *batchRouter) CompleteBatch(
 					}
 				return RouteReply{ uri, responses }
 			}).Catch(func(err error) error {
-				cancelled := miruken.NewCancelledError("batch cancelled", err)
+				cancelled := &miruken.CancelledError{Message: "batch cancelled", Reason: err}
 				for _, p := range group {
 					p.deferred.Reject(cancelled)
 				}

@@ -129,7 +129,7 @@ func StashPutKey(
 	if result := handler.Handle(put, false, nil); result.IsError() {
 		return result.Error()
 	} else if !result.IsHandled() {
-		return miruken.NewNotHandledError(put)
+		return &miruken.NotHandledError{put}
 	}
 	return nil
 }
@@ -226,7 +226,7 @@ func StashDropKey(
 	if result := handler.Handle(drop, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.IsHandled() {
-		err = miruken.NewNotHandledError(drop)
+		err = &miruken.NotHandledError{drop}
 	}
 	return
 }

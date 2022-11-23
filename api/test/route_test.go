@@ -102,7 +102,7 @@ func (suite *RouteTestSuite) TestRoute() {
 			handler := suite.Setup()
 			getQuote := api.RouteTo(GetStockQuote{"GOOGL"}, "NoWhere")
 			r, pr, err := api.Send[StockQuote](handler, getQuote)
-			suite.IsType(err, miruken.NewNotHandledError(getQuote))
+			suite.IsType(err, &miruken.NotHandledError{})
 			suite.Nil(pr)
 			suite.Zero(r.Symbol)
 			suite.Zero(r.Value)

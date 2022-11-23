@@ -87,7 +87,7 @@ func (p *policyBindings) reduce(
 		if bs := p.invariant[key]; bs != nil {
 			for _, b := range bs {
 				if result, done = reducer(b, result); done {
-					break
+					return result
 				}
 			}
 		}

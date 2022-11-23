@@ -75,9 +75,8 @@ func (suite *StashTestSuite) Setup() miruken.Handler {
 func (suite *StashTestSuite) TestStash() {
 	suite.Run("Unmanaged", func() {
 		handler := suite.Setup()
-		stash, _, err := miruken.Create[*api.Stash](handler)
-		suite.Nil(err)
-		suite.Nil(stash)
+		_, _, err := miruken.Create[*api.Stash](handler)
+		suite.IsType(err, &miruken.NotHandledError{})
 	})
 
 	suite.Run("Put", func() {

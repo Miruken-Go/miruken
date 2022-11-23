@@ -165,7 +165,7 @@ func Map[T any](
 	if result := handler.Handle(maps, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.handled {
-		err = NewNotHandledError(maps)
+		err = &NotHandledError{maps}
 	} else {
 		_, tp, err = CoerceResult[T](maps, &t)
 	}
@@ -192,7 +192,7 @@ func MapInto[T any](
 	if result := handler.Handle(maps, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.handled {
-		err = NewNotHandledError(maps)
+		err = &NotHandledError{maps}
 	} else {
 		_, tp, err = CoerceResult[T](maps, target)
 	}
@@ -215,7 +215,7 @@ func MapKey[T any](
 	if result := handler.Handle(maps, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.handled {
-		err = NewNotHandledError(maps)
+		err = &NotHandledError{maps}
 	} else {
 		_, tp, err = CoerceResult[T](maps, &t)
 	}
@@ -245,7 +245,7 @@ func MapAll[T any](
 		if result := handler.Handle(maps, false, nil); result.IsError() {
 			return nil, nil, result.Error()
 		} else if !result.handled {
-			return nil, nil, NewNotHandledError(maps)
+			return nil, nil, &NotHandledError{maps}
 		}
 		if _, pm, err := CoerceResult[T](maps, &t[i]); err != nil {
 			return nil, nil, err
