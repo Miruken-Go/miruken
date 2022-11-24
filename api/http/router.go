@@ -12,9 +12,10 @@ import (
 type (
 	// Options customizes http operations.
 	Options struct {
+		Timeout time.Duration
 	}
 
-	// Router routes messages over an http transport.
+	// Router routes messages over a http transport.
 	Router struct {}
 )
 

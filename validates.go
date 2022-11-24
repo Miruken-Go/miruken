@@ -298,7 +298,7 @@ func (v *ValidationOutcome) parseIndexer(
 }
 
 // validateFilter validates the current input of the pipeline execution.
-// if validateOutput is true, it validates the current output as well.
+// if validateOutput is true, it validates the current output As well.
 type validateFilter struct {}
 
 func (v validateFilter) Order() int {
@@ -444,16 +444,15 @@ func NewValidateProvider(validateOutput bool) *ValidateProvider {
 }
 
 // Rules builds a validation Group constraint.
-func Rules(groups ... any) ConstraintBuilderFunc {
-	return func(builder *ConstraintBuilder) {
-		if len(groups) > 0 {
-			groupMap := make(map[any]Void)
-			for _, group := range groups {
-				groupMap[group] = Void{}
-			}
-			builder.WithConstraint(&Group{groups: groupMap})
-		}
+func Rules(groups ... any) BindingConstraint {
+	if len(groups) == 0 {
+		panic("at least one group required")
 	}
+	groupMap := make(map[any]Void)
+	for _, group := range groups {
+		groupMap[group] = Void{}
+	}
+	return &Group{groups: groupMap}
 }
 
 // ValidatesBuilder builds Validates callbacks.
@@ -483,7 +482,7 @@ func (b *ValidatesBuilder) NewValidates() *Validates {
 func Validate(
 	handler         Handler,
 	target          any,
-	constraints ... ConstraintBuilderFunc,
+	constraints ... any,
 ) (o *ValidationOutcome, po *promise.Promise[*ValidationOutcome], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")

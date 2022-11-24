@@ -68,7 +68,7 @@ func (s sourceArg) resolve(
 type dependencySpec struct {
 	logicalType reflect.Type
 	resolver    DependencyResolver
-	constraints []ConstraintBuilderFunc
+	constraints []any
 	flags       bindingFlags
 	metadata    []any
 }
@@ -105,9 +105,7 @@ func (s *dependencySpec) setResolver(
 func (s *dependencySpec) addConstraint(
 	constraint BindingConstraint,
 ) error {
-	s.constraints = append(s.constraints, func(builder *ConstraintBuilder) {
-		builder.WithConstraint(constraint)
-	})
+	s.constraints = append(s.constraints, constraint)
 	return nil
 }
 
@@ -352,7 +350,7 @@ func buildDependency(
 ) (arg DependencyArg, err error) {
 	if argType == _anyType {
 		return arg, fmt.Errorf(
-			"type %v cannot be used as a dependency",
+			"type %v cannot be used As a dependency",
 			_anyType)
 	}
 	// Is it a *struct arg binding?

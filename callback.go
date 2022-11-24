@@ -54,7 +54,7 @@ type (
 
 	// CallbackBuilder builds common CallbackBase.
  	CallbackBuilder struct {
-		constraints  []ConstraintBuilderFunc
+		constraints  []any
 	}
 
 	// customizeDispatch customizes Callback dispatch.
@@ -188,7 +188,7 @@ func (c *CallbackBase) Metadata() *BindingMetadata {
 // CallbackBuilder
 
 func (b *CallbackBuilder) WithConstraints(
-	constraints ... ConstraintBuilderFunc,
+	constraints ... any,
 ) *CallbackBuilder {
 	if len(constraints) > 0 {
 		b.constraints = append(b.constraints, constraints...)

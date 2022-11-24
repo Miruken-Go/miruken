@@ -19,7 +19,7 @@ type (
 	}
 
 	// A Context represents the scope at a give point in time.
-	// It has a beginning and an end and can handle callbacks as well as
+	// It has a beginning and an end and can handle callbacks As well As
 	// notify observers of lifecycle changes.  In addition, it maintains
 	// parent-child relationships and thus can form a graph.
 	Context struct {

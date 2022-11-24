@@ -266,7 +266,7 @@ func (b *ConstraintBuilder) WithConstraint(
 	constraint BindingConstraint,
 ) *ConstraintBuilder {
 	if IsNil(constraint) {
-		panic("key cannot be nil")
+		panic("constraint cannot be nil")
 	}
 	constraint.Require(b.Metadata())
 	return b
@@ -292,48 +292,22 @@ func (b *ConstraintBuilder) Metadata() (metadata *BindingMetadata) {
 	return metadata
 }
 
-func WithName(name string) ConstraintBuilderFunc {
-	return func(c *ConstraintBuilder) {
-		c.Named(name)
-	}
-}
-
-func WithConstraint(constraint BindingConstraint) ConstraintBuilderFunc {
-	return func(c *ConstraintBuilder) {
-		c.WithConstraint(constraint)
-	}
-}
-
-func WithMetadata(metadata BindingMetadata) ConstraintBuilderFunc {
-	return func(c *ConstraintBuilder) {
-		c.WithMetadata(metadata)
-	}
-}
-
-func WithQualifier[T any]() ConstraintBuilderFunc {
-	return func(c *ConstraintBuilder) {
-		c.WithConstraint(Qualifier[T]{})
-	}
-}
-
 // ConstraintInitialize defines generic contract for providers.
 type ConstraintInitialize interface {
 	BindingConstraint
 	Init() error
 }
 
-func WithConstraintProvider[T ConstraintInitialize](provider T) ConstraintBuilderFunc {
-	return func(c *ConstraintBuilder) {
-		if err := provider.Init(); err != nil {
-			panic(fmt.Errorf("invalid provider: %w", err))
-		}
-		c.WithConstraint(provider)
+func WithConstraintProvider[T ConstraintInitialize](provider T) BindingConstraint {
+	if err := provider.Init(); err != nil {
+		panic(fmt.Errorf("invalid provider: %w", err))
 	}
+	return provider
 }
 
 func ApplyConstraints(
 	scope       BindingScope,
-	constraints ... ConstraintBuilderFunc,
+	constraints ... any,
 ) *BindingMetadata {
 	if IsNil(scope) {
 		panic("scope cannot be nil")
@@ -341,8 +315,15 @@ func ApplyConstraints(
 	if metadata := scope.Metadata(); metadata != nil {
 		builder := ConstraintBuilder{metadata}
 		for _, constraint := range constraints {
-			if constraint != nil {
-				constraint(&builder)
+			switch c := constraint.(type) {
+			case string:
+				builder.Named(c)
+			case BindingConstraint:
+				builder.WithConstraint(c)
+			case BindingMetadata:
+				builder.WithMetadata(c)
+			case ConstraintBuilderFunc:
+				c(&builder)
 			}
 		}
 		return builder.Metadata()

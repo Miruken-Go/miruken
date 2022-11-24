@@ -179,21 +179,18 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 	suite.Run("Named", func () {
 		suite.Run("Resolve", func() {
 			handler, _ := suite.Setup()
-			appSettings, _, err := miruken.Resolve[AppSettings](
-				handler, miruken.WithName("local"))
+			appSettings, _, err := miruken.Resolve[AppSettings](handler, "local")
 			suite.Nil(err)
 			suite.IsType(&LocalSettings{}, appSettings)
 
-			appSettings, _, err = miruken.Resolve[AppSettings](
-				handler,  miruken.WithName("remote"))
+			appSettings, _, err = miruken.Resolve[AppSettings](handler, "remote")
 			suite.Nil(err)
 			suite.IsType(&RemoteSettings{}, appSettings)
 		})
 
 		suite.Run("ResolveAll", func() {
 			handler, _ := suite.Setup()
-			appSettings, _, err := miruken.ResolveAll[AppSettings](
-				handler, miruken.WithName("remote"))
+			appSettings, _, err := miruken.ResolveAll[AppSettings](handler, "remote")
 			suite.Nil(err)
 			suite.Len(appSettings, 1)
 		})
@@ -218,8 +215,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 			suite.Equal("Jack", doctor.FirstName())
 			suite.Equal("Zigler", doctor.LastName())
 
-			programmer, _, err := miruken.Resolve[Person](
-				handler, miruken.WithQualifier[Programmer]())
+			programmer, _, err := miruken.Resolve[Person](handler, Programmer{})
 			suite.Nil(err)
 			suite.NotNil(programmer)
 			suite.Equal("Paul", programmer.FirstName())

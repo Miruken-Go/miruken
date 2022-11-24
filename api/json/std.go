@@ -22,7 +22,7 @@ type (
 )
 
 var (
-	AsApplicationJson = miruken.As("application/json")
+	AsApplicationJson = &miruken.Format{As: "application/json"}
 )
 
 

@@ -143,7 +143,7 @@ func (b *ProvidesBuilder) NewProvides() *Provides {
 
 func Resolve[T any](
 	handler     Handler,
-	constraints ... ConstraintBuilderFunc,
+	constraints ... any,
 ) (T, *promise.Promise[T], error) {
 	return ResolveKey[T](handler, TypeOf[T](), constraints...)
 }
@@ -151,7 +151,7 @@ func Resolve[T any](
 func ResolveKey[T any](
 	handler     Handler,
 	key         any,
-	constraints ... ConstraintBuilderFunc,
+	constraints ... any,
 ) (t T, tp *promise.Promise[T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -170,7 +170,7 @@ func ResolveKey[T any](
 
 func ResolveAll[T any](
 	handler     Handler,
-	constraints ... ConstraintBuilderFunc,
+	constraints ... any,
 ) (t []T, tp *promise.Promise[[]T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")

@@ -16,17 +16,17 @@ type (
 		target any
 	}
 
-	// Format is a BindingConstraint for matching formats.
-	Format struct {
-		as any
-	}
-
 	// MapsBuilder builds Maps callbacks.
 	MapsBuilder struct {
 		CallbackBuilder
 		key    any
 		source any
 		target any
+	}
+
+	// Format is a BindingConstraint for matching formats.
+	Format struct {
+		As any
 	}
 )
 
@@ -68,10 +68,10 @@ func (m *Maps) Dispatch(
 func (f *Format) InitWithTag(tag reflect.StructTag) error {
 	if as, ok := tag.Lookup("as"); ok {
 		if format := strings.TrimSpace(as); len(format) > 0 {
-			f.as = format
+			f.As = format
 		}
 	}
-	if IsNil(f.as){
+	if IsNil(f.As){
 		return ErrFormatMissing
 	}
 	return nil
@@ -79,33 +79,31 @@ func (f *Format) InitWithTag(tag reflect.StructTag) error {
 
 func (f *Format) Merge(constraint BindingConstraint) bool {
 	if format, ok := constraint.(*Format); ok {
-		f.as = format.as
+		f.As = format.As
 		return true
 	}
 	return false
 }
 
 func (f *Format) Require(metadata *BindingMetadata) {
-	if as := f.as; !IsNil(as) {
+	if as := f.As; !IsNil(as) {
 		metadata.Set(_formatType, as)
 	}
 }
 
 func (f *Format) Matches(metadata *BindingMetadata) bool {
 	if format, ok := metadata.Get(_formatType); ok {
-		return format == f.as
+		return format == f.As
 	}
 	return false
 }
 
-// As builds a Format as constraint.
-func As(format any) ConstraintBuilderFunc {
+// As builds a Format As constraint.
+func As(format any) BindingConstraint {
 	if IsNil(format) {
 		panic("format cannot be nil")
 	}
-	return func(builder *ConstraintBuilder) {
-		builder.WithConstraint(&Format{format})
-	}
+	return &Format{format}
 }
 
 // MapsBuilder
@@ -152,7 +150,7 @@ func (b *MapsBuilder) NewMaps() *Maps {
 func Map[T any](
 	handler         Handler,
 	source          any,
-	constraints ... ConstraintBuilderFunc,
+	constraints ... any,
 ) (t T, tp *promise.Promise[T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -176,7 +174,7 @@ func MapInto[T any](
 	handler         Handler,
 	source          any,
 	target          *T,
-	constraints ... ConstraintBuilderFunc,
+	constraints ... any,
 ) (tp *promise.Promise[T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -202,7 +200,7 @@ func MapInto[T any](
 func MapKey[T any](
 	handler         Handler,
 	key             any,
-	constraints ... ConstraintBuilderFunc,
+	constraints ... any,
 ) (t T, tp *promise.Promise[T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -225,7 +223,7 @@ func MapKey[T any](
 func MapAll[T any](
 	handler         Handler,
 	source          any,
-	constraints ... ConstraintBuilderFunc,
+	constraints ... any,
 ) (t []T, _ *promise.Promise[[]T], _ error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -270,5 +268,5 @@ func MapAll[T any](
 var (
 	_mapsPolicy Policy = &BivariantPolicy{}
 	_formatType        = TypeOf[*Format]()
-	ErrFormatMissing   = errors.New("the Format constraint requires a non-empty `as:format` tag")
+	ErrFormatMissing   = errors.New("the Format constraint requires a non-empty `As:format` tag")
 )

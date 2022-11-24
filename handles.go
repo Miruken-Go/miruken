@@ -92,7 +92,7 @@ func (b *HandlesBuilder) NewHandles() *Handles {
 func Command(
 	handler  Handler,
 	callback any,
-	constraints ... ConstraintBuilderFunc,
+	constraints ... any,
 ) (pv *promise.Promise[Void], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -116,7 +116,7 @@ func Command(
 func Execute[T any](
 	handler         Handler,
 	callback        any,
-	constraints ... ConstraintBuilderFunc,
+	constraints ... any,
 ) (t T, tp *promise.Promise[T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -140,7 +140,7 @@ func Execute[T any](
 func CommandAll(
 	handler         Handler,
 	callback        any,
-	constraints ... ConstraintBuilderFunc,
+	constraints ... any,
 ) (pv *promise.Promise[Void], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -164,7 +164,7 @@ func CommandAll(
 func ExecuteAll[T any](
 	handler         Handler,
 	callback        any,
-	constraints ... ConstraintBuilderFunc,
+	constraints ... any,
 ) (t []T, tp *promise.Promise[[]T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")

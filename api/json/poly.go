@@ -29,7 +29,7 @@ const (
 
 // GoTypeFieldMapper
 
-func (m *GoTypeFieldMapper) DefaultTypeInfo(
+func (m *GoTypeFieldMapper) GoTypeInfo(
 	maps *miruken.Maps,
 ) (TypeFieldInfo, miruken.HandleResult) {
 	typ := reflect.TypeOf(maps.Source())
