@@ -285,7 +285,7 @@ type UnresolvedArgError struct {
 }
 
 func (e *UnresolvedArgError) Error() string {
-	return fmt.Sprintf("unresolved arg %#v: %v", e.arg, e.Reason)
+	return fmt.Sprintf("unresolved arg %+v: %v", e.arg, e.Reason)
 }
 
 func (e *UnresolvedArgError) Unwrap() error {

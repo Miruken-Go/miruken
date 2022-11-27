@@ -104,7 +104,7 @@ func Fold[L, R, A any](e Either[L, R], l func(L) A, r func(R) A) A {
 			a = r(v.val)
 		}
 	default:
-		panic(fmt.Sprintf("invalid either: %#v", e))
+		panic(fmt.Sprintf("invalid either: %+v", e))
 	}
 	return a
 }
@@ -124,6 +124,6 @@ func Match[L, R any](e Either[L, R], l func(L), r func(R)) {
 			r(v.val)
 		}
 	default:
-		panic(fmt.Sprintf("invalid either: %#v", e))
+		panic(fmt.Sprintf("invalid either: %+v", e))
 	}
 }

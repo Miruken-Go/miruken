@@ -7,6 +7,23 @@ import (
 	"github.com/miruken-go/miruken/promise"
 )
 
+type (
+	// PolymorphicHandling is an enum that determines
+	// if messages are augmented with type discriminators.
+	PolymorphicHandling uint8
+
+	// PolymorphicOptions provide options for controlling
+	// polymorphic messaging.
+	PolymorphicOptions struct {
+		PolymorphicHandling miruken.Option[PolymorphicHandling]
+	}
+)
+
+const (
+	PolymorphicHandlingNone PolymorphicHandling = 0
+	PolymorphicHandlingRoot PolymorphicHandling = 1 << iota
+)
+
 // Failure returns a new failed result.
 func Failure(val error) either.Either[error, any] {
 	return either.Left(val)

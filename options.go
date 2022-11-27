@@ -27,6 +27,13 @@ func (o *Option[T]) Value() T {
 	return o.val
 }
 
+func (o *Option[T]) ValueOrDefault(val T) T {
+	if o.set {
+		return o.val
+	}
+	return val
+}
+
 func (o *Option[T]) SetValue(val T) {
 	o.val = val
 }

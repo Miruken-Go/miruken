@@ -98,14 +98,6 @@ func (f *Format) Matches(metadata *BindingMetadata) bool {
 	return false
 }
 
-// As builds a Format As constraint.
-func As(format any) BindingConstraint {
-	if IsNil(format) {
-		panic("format cannot be nil")
-	}
-	return &Format{format}
-}
-
 // MapsBuilder
 
 func (b *MapsBuilder) WithKey(

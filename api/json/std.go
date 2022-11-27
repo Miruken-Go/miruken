@@ -5,26 +5,22 @@ import (
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/api"
 	"io"
 	"reflect"
 )
 
-// StdMapper formats to and from json using encoding/json.
 type (
+	// StdMapper formats to and from json using encoding/json.
 	StdMapper struct{}
 
+	// StdOptions provide options for controlling json encoding.
 	StdOptions struct {
-		Prefix            string
-		Indent            string
-		EscapeHTML        miruken.Option[bool]
-		TypeFieldHandling miruken.Option[TypeFieldHandling]
+		Prefix     string
+		Indent     string
+		EscapeHTML miruken.Option[bool]
 	}
 )
-
-var (
-	AsApplicationJson = &miruken.Format{As: "application/json"}
-)
-
 
 // StdMapper
 
@@ -40,13 +36,13 @@ func (m *StdMapper) ToJson(
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
-	  }, polyOptions PolymorphicOptions,
+	  }, polyOptions api.PolymorphicOptions,
 	ctx miruken.HandleContext,
 ) (js string, err error) {
 	var data []byte
 	src := maps.Source()
-	if options.TypeFieldHandling == miruken.Set(TypeFieldHandlingRoot) {
-		src = &typeContainer{src, polyOptions.KnownTypeFields, ctx.Composer()}
+	if polyOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
+		src = &typeContainer{src, ctx.Composer()}
 	}
 	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
 		data, err = json.MarshalIndent(src, prefix, indent)
@@ -68,7 +64,7 @@ func (m *StdMapper) ToJsonStream(
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
-	  }, polyOptions PolymorphicOptions,
+	  }, polyOptions api.PolymorphicOptions,
 	ctx miruken.HandleContext,
 ) (stream io.Writer, err error) {
 	if writer, ok := maps.Target().(*io.Writer); ok && !miruken.IsNil(writer) {
@@ -80,8 +76,8 @@ func (m *StdMapper) ToJsonStream(
 			enc.SetEscapeHTML(escapeHTML.Value())
 		}
 		src := maps.Source()
-		if options.TypeFieldHandling == miruken.Set(TypeFieldHandlingRoot) {
-			src = &typeContainer{src, polyOptions.KnownTypeFields,ctx.Composer()}
+		if polyOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
+			src = &typeContainer{src, ctx.Composer()}
 		}
 		err    = enc.Encode(src)
 		stream = *writer
@@ -101,13 +97,13 @@ func (m *StdMapper) FromJson(
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
-	  }, polyOptions PolymorphicOptions,
+	  }, polyOptions api.PolymorphicOptions,
 	maps *miruken.Maps,
 	ctx  miruken.HandleContext,
 ) (any, error) {
 	target := maps.Target()
-	if options.TypeFieldHandling == miruken.Set(TypeFieldHandlingRoot) {
-		tc := typeContainer{target, polyOptions.KnownTypeFields, ctx.Composer()}
+	if polyOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
+		tc := typeContainer{target, ctx.Composer()}
 		err := json.Unmarshal([]byte(jsonString), &tc)
 		return tc.v, err
 	}
@@ -127,14 +123,14 @@ func (m *StdMapper) FromJsonStream(
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
-	  }, polyOptions PolymorphicOptions,
+	  }, polyOptions api.PolymorphicOptions,
 	maps *miruken.Maps,
 	ctx  miruken.HandleContext,
 ) (any, error) {
 	target := maps.Target()
 	dec    := json.NewDecoder(stream)
-	if options.TypeFieldHandling == miruken.Set(TypeFieldHandlingRoot) {
-		tc := typeContainer{target, polyOptions.KnownTypeFields, ctx.Composer()}
+	if polyOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
+		tc := typeContainer{target,ctx.Composer()}
 		err := dec.Decode(&tc)
 		return tc.v, err
 	}
@@ -146,9 +142,8 @@ type (
 	// typeContainer is a helper type used to emit type field
 	// information for polymorphic serialization/deserialization.
 	typeContainer struct {
-		v         any
-		fields    []string
-		composer  miruken.Handler
+		v        any
+		composer miruken.Handler
 	}
 )
 
@@ -176,9 +171,11 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &fields); err != nil {
 		return err
 	}
-	var field string
-	var typeIdRaw *json.RawMessage
-	for _, field = range c.fields {
+	var (
+		field     string
+		typeIdRaw *json.RawMessage
+	)
+	for _, field = range KnownTypeFields {
 		if typeIdRaw = fields[field]; typeIdRaw != nil {
 			break
 		}

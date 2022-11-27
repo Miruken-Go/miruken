@@ -110,7 +110,7 @@ func (l *LogFilter) DynNext(
 )  ([]any, *promise.Promise[[]any], error) {
 	captured := extractCaptured(ctx.Callback())
 	logging.Log(
-		fmt.Sprintf("Log callback %#v", captured))
+		fmt.Sprintf("Log callback %+v", captured))
 	if captured != nil {
 		captured.AddFilters(l)
 	}
