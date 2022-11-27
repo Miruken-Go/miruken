@@ -20,7 +20,10 @@ var KnownTypeFields = []string{"$type", "@type"}
 // GoTypeFieldMapper
 
 func (m *GoTypeFieldMapper) GoTypeInfo(
-	maps *miruken.Maps,
+	_*struct{
+		miruken.Maps
+		miruken.Format `to:"type:info"`
+	  }, maps *miruken.Maps,
 ) (TypeFieldInfo, error) {
 	typ := reflect.TypeOf(maps.Source())
 	if typ.Kind() == reflect.Ptr {

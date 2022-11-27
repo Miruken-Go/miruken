@@ -24,12 +24,21 @@ type (
 		target any
 	}
 
-	// Format is a BindingConstraint for matching formats.
+	// FormatDirection indicates direction of formatting.
+	FormatDirection uint8
+
+	// Format is a BindingConstraint for applying formatting.
 	Format struct {
-		As any
+		Direction FormatDirection
+		Tag       any
 	}
 )
 
+const (
+	FormatDirectionNone FormatDirection = 0
+	FormatDirectionTo FormatDirection = 1 << iota
+	FormatDirectionFrom
+)
 
 // Maps
 
@@ -66,12 +75,18 @@ func (m *Maps) Dispatch(
 // Format
 
 func (f *Format) InitWithTag(tag reflect.StructTag) error {
-	if as, ok := tag.Lookup("as"); ok {
-		if format := strings.TrimSpace(as); len(format) > 0 {
-			f.As = format
-		}
+	var format string
+	if to, ok := tag.Lookup("to"); ok {
+		format      = to
+		f.Direction = FormatDirectionTo
+	} else if from, ok := tag.Lookup("from"); ok {
+		format      = from
+		f.Direction = FormatDirectionFrom
 	}
-	if IsNil(f.As){
+	if format = strings.TrimSpace(format); len(format) > 0 {
+		f.Tag = format
+	}
+	if IsNil(f.Tag) {
 		return ErrFormatMissing
 	}
 	return nil
@@ -79,23 +94,36 @@ func (f *Format) InitWithTag(tag reflect.StructTag) error {
 
 func (f *Format) Merge(constraint BindingConstraint) bool {
 	if format, ok := constraint.(*Format); ok {
-		f.As = format.As
+		f.Direction = format.Direction
+		f.Tag       = format.Tag
 		return true
 	}
 	return false
 }
 
 func (f *Format) Require(metadata *BindingMetadata) {
-	if as := f.As; !IsNil(as) {
-		metadata.Set(_formatType, as)
+	if tag := f.Tag; !IsNil(tag) {
+		metadata.Set(_formatType, f)
 	}
 }
 
 func (f *Format) Matches(metadata *BindingMetadata) bool {
-	if format, ok := metadata.Get(_formatType); ok {
-		return format == f.As
+	if m, ok := metadata.Get(_formatType); ok {
+		if format, ok := m.(*Format); ok {
+			return *format == *f
+		}
 	}
 	return false
+}
+
+// To maps to a format.
+func To(format string) *Format {
+	return &Format{FormatDirectionTo, format}
+}
+
+// From maps from a format.
+func From(format string) *Format {
+	return &Format{FormatDirectionFrom, format}
 }
 
 // MapsBuilder
@@ -260,5 +288,5 @@ func MapAll[T any](
 var (
 	_mapsPolicy Policy = &BivariantPolicy{}
 	_formatType        = TypeOf[*Format]()
-	ErrFormatMissing   = errors.New("the Format constraint requires a non-empty `As:format` tag")
+	ErrFormatMissing   = errors.New("the Format constraint requires a non-empty tag")
 )

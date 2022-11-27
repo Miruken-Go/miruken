@@ -102,7 +102,7 @@ type (
 func (m *FormatMapper) ToPlayerJson(
 	_*struct{
 		miruken.Maps
-		miruken.Format `as:"application/json"`
+		miruken.Format `to:"application/json"`
 	  }, data *PlayerData,
 ) string {
 	return fmt.Sprintf("{\"id\":%v,\"name\":\"%v\"}", data.Id, data.Name)
@@ -111,7 +111,7 @@ func (m *FormatMapper) ToPlayerJson(
 func (m *FormatMapper) FromPlayerJson(
 	_*struct{
 		miruken.Maps
-		miruken.Format `as:"application/json"`
+		miruken.Format `from:"application/json"`
 	  }, jsonString string,
 ) (PlayerData, error) {
 	data := PlayerData{}
@@ -258,15 +258,15 @@ func (suite *MapsTestSuite) TestMap() {
 				Id:   1,
 				Name: "Tim Howard",
 			}
-			jsonString, _, err := miruken.Map[string](handler, &data, &miruken.Format{As: "application/json"})
+			jsonString, _, err := miruken.Map[string](handler, &data, miruken.To("application/json"))
 			suite.Nil(err)
 			suite.Equal("{\"id\":1,\"name\":\"Tim Howard\"}", jsonString)
 
-			_, _, err = miruken.Map[string](handler, &data, &miruken.Format{As: "foo"})
+			_, _, err = miruken.Map[string](handler, &data, miruken.To("foo"))
 			suite.IsType(err, &miruken.NotHandledError{})
 
 			var data2 PlayerData
-			_, err = miruken.MapInto(handler, jsonString, &data2, &miruken.Format{As: "application/json"})
+			_, err = miruken.MapInto(handler, jsonString, &data2, miruken.From("application/json"))
 			suite.Nil(err)
 			suite.Equal(1, data.Id)
 			suite.Equal("Tim Howard", data.Name)

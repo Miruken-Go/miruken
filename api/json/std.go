@@ -7,7 +7,6 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"io"
-	"reflect"
 )
 
 type (
@@ -27,7 +26,7 @@ type (
 func (m *StdMapper) ToJson(
 	_*struct{
 		miruken.Maps
-		miruken.Format `as:"application/json"`
+		miruken.Format `to:"application/json"`
 	  }, maps *miruken.Maps,
 	_*struct{
 	    miruken.Optional
@@ -55,7 +54,7 @@ func (m *StdMapper) ToJson(
 func (m *StdMapper) ToJsonStream(
 	_*struct{
 	    miruken.Maps
-		miruken.Format `as:"application/json"`
+		miruken.Format `to:"application/json"`
 	  }, maps *miruken.Maps,
 	_*struct{
 	    miruken.Optional
@@ -88,7 +87,7 @@ func (m *StdMapper) ToJsonStream(
 func (m *StdMapper) FromJson(
 	_*struct{
 	    miruken.Maps
-		miruken.Format `as:"application/json"`
+		miruken.Format `from:"application/json"`
 	  }, jsonString string,
 	_*struct{
 		miruken.Optional
@@ -114,7 +113,7 @@ func (m *StdMapper) FromJson(
 func (m *StdMapper) FromJsonStream(
 	_*struct{
 	    miruken.Maps
-		miruken.Format `as:"application/json"`
+		miruken.Format `from:"application/json"`
 	  }, stream io.Reader,
 	_*struct{
 		miruken.Optional
@@ -151,17 +150,17 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 	v := c.v
 	if byt, err := json.Marshal(v); err != nil {
 		return nil, err
-	} else {
-		if typ := reflect.TypeOf(v); typ != nil && typ.Kind() == reflect.Struct {
-			typeInfo, _, err := miruken.Map[TypeFieldInfo](c.composer, v)
-			if err != nil {
-				return nil, err
-			}
-			typeProperty := []byte(fmt.Sprintf("\"%v\":\"%v\",", typeInfo.Field, typeInfo.Value))
-			byt = append(byt, typeProperty...)
-			copy(byt[len(typeProperty)+1:], byt[1:])
-			copy(byt[1:], typeProperty)
+	} else if len(byt) > 0 && byt[0] == '{' {
+		typeInfo, _, err := miruken.Map[TypeFieldInfo](c.composer, v, miruken.To("type:info"))
+		if err != nil {
+			return nil, err
 		}
+		typeProperty := []byte(fmt.Sprintf("\"%v\":\"%v\",", typeInfo.Field, typeInfo.Value))
+		byt = append(byt, typeProperty...)
+		copy(byt[len(typeProperty)+1:], byt[1:])
+		copy(byt[1:], typeProperty)
+		return byt, nil
+	} else {
 		return byt, nil
 	}
 }

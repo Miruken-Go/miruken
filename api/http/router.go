@@ -1,8 +1,8 @@
 package http
 
 import (
-	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
@@ -51,21 +51,13 @@ func (r *Router) Route(
 		}
 
 		composer := ctx.Composer()
-		format   := options.Format.ValueOrDefault(_defaultContentType)
-		pay, err := r.encodePayload(routed.Message, format, composer)
+		format   := options.Format.ValueOrDefault(defaultContentType)
+		payload, err := encodePayload(routed.Message, format, nil, composer)
 		if err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 		}
 
-		var body bytes.Buffer
-		enc := json.NewEncoder(&body)
-		msg := Message{(*json.RawMessage)(&pay)}
-		if err := enc.Encode(msg); err != nil {
-			reject(fmt.Errorf("http router: %w", err))
-			return
-		}
-
-		req, err  := http.NewRequest(http.MethodPost, uri, &body)
+		req, err  := http.NewRequest(http.MethodPost, uri, payload)
 		if err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 			return
@@ -88,7 +80,11 @@ func (r *Router) Route(
 			return
 		}
 
-		if r, err := r.decodeResponse(res, composer); err != nil {
+		contentType := res.Header.Get("Content-type")
+		if len(contentType) == 0 {
+			contentType = format
+		}
+		if r, err := decodePayload(res.Body, contentType, composer); err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 		} else {
 			resolve(r)
@@ -96,49 +92,11 @@ func (r *Router) Route(
 	})
 }
 
-func (r *Router) encodePayload(
-	msg      any,
-	format   string,
-	composer miruken.Handler,
-) ([]byte, error) {
-	var payload bytes.Buffer
-	stream := io.Writer(&payload)
-	if _, err := miruken.MapInto(
-		miruken.BuildUp(composer, _polyOptions),
-		msg, &stream, &miruken.Format{As: format}); err == nil {
-		return payload.Bytes(), nil
-	} else {
-		return nil, err
-	}
-}
-
-func (r *Router) decodeResponse(
-	res      *http.Response,
-	composer miruken.Handler,
-) (any, error) {
-	var msg Message
-	decoder := json.NewDecoder(res.Body)
-	if err := decoder.Decode(&msg); err != nil {
-		return nil, err
-	} else if pay := msg.Payload; pay == nil {
-		return nil, nil
-	} else {
-		contentType := res.Header.Get("Content-type")
-		if len(contentType) == 0 {
-			contentType = _defaultContentType
-		}
-		data, _, err := miruken.Map[any](
-			miruken.BuildUp(composer, _polyOptions),
-			bytes.NewReader(*pay), &miruken.Format{As: contentType})
-		return data, err
-	}
-}
-
 func (r *Router) decodeError(
 	res      *http.Response,
 	composer miruken.Handler,
 ) error {
-	return fmt.Errorf("http router: %s (%d)", res.Status, res.StatusCode)
+	return errors.New(res.Status)
 }
 
 func (r *Router) getResourceUri(
@@ -150,11 +108,3 @@ func (r *Router) getResourceUri(
 	}
 	return url.JoinPath(routed.Route, "process")
 }
-
-var (
-	_defaultContentType = "application/json"
-
-	_polyOptions = miruken.Options(api.PolymorphicOptions{
-		PolymorphicHandling: miruken.Set(api.PolymorphicHandlingRoot),
-	})
-)
