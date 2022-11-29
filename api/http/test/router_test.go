@@ -54,8 +54,8 @@ func (t *TeamApiHandler) NewCreateTeam(
 
 func (t *TeamApiHandler) NewTeam(
 	_*struct{
-	miruken.Creates `key:"test.TeamData"`
-}, _ *miruken.Creates,
+		miruken.Creates `key:"test.TeamData"`
+	  }, _ *miruken.Creates,
 ) *TeamData {
 	return &TeamData{}
 }
@@ -87,7 +87,6 @@ func (suite *RouterTestSuite) TearDownTest() {
 	suite.srv.CloseClientConnections()
 	suite.srv.Close()
 }
-
 
 func (suite *RouterTestSuite) TestRouter() {
 	suite.Run("Route", func() {

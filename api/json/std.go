@@ -2,7 +2,6 @@ package json
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
@@ -92,10 +91,6 @@ func (m *StdMapper) FromJson(
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
-	  }, options StdOptions,
-	_*struct{
-		miruken.Optional
-		miruken.FromOptions
 	  }, polyOptions api.PolymorphicOptions,
 	maps *miruken.Maps,
 	ctx  miruken.HandleContext,
@@ -115,10 +110,6 @@ func (m *StdMapper) FromJsonStream(
 	    miruken.Maps
 		miruken.Format `from:"application/json"`
 	  }, stream io.Reader,
-	_*struct{
-		miruken.Optional
-		miruken.FromOptions
-	  }, options StdOptions,
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
@@ -180,7 +171,7 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 		}
 	}
 	if typeIdRaw == nil {
-		return errors.New("missing type field")
+		return json.Unmarshal(data, c.v)
 	}
 	var typeId string
 	if err := json.Unmarshal(*typeIdRaw, &typeId); err != nil {
