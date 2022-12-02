@@ -1,11 +1,13 @@
 package json
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"io"
+	"reflect"
 )
 
 type (
@@ -138,7 +140,25 @@ type (
 )
 
 func (c *typeContainer) MarshalJSON() ([]byte, error) {
-	v := c.v
+	v   := c.v
+	typ := reflect.TypeOf(v)
+	if typ != nil && typ.Kind() == reflect.Slice {
+		s   := reflect.ValueOf(v)
+		arr := make([]*json.RawMessage, 0, s.Len())
+		for i := 0; i < s.Len(); i++ {
+			var b bytes.Buffer
+			writer := io.Writer(&b)
+			enc    := json.NewEncoder(writer)
+			elem   := typeContainer{s.Index(i).Interface(), c.composer}
+			if err := enc.Encode(&elem); err != nil {
+				return nil, fmt.Errorf("can't marshal array index %d: %w", i, err)
+			} else {
+				raw := json.RawMessage(b.Bytes())
+				arr = append(arr, &raw)
+			}
+		}
+		v = arr
+	}
 	if byt, err := json.Marshal(v); err != nil {
 		return nil, err
 	} else if len(byt) > 0 && byt[0] == '{' {
@@ -146,7 +166,11 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		typeProperty := []byte(fmt.Sprintf("\"%v\":\"%v\",", typeInfo.Field, typeInfo.Value))
+		var comma string
+		if len(byt) > 1 && byt[1] != '}' {
+			comma = ","
+		}
+		typeProperty := []byte(fmt.Sprintf("\"%v\":\"%v\"%s", typeInfo.Field, typeInfo.Value, comma))
 		byt = append(byt, typeProperty...)
 		copy(byt[len(typeProperty)+1:], byt[1:])
 		copy(byt[1:], typeProperty)
@@ -159,6 +183,28 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 func (c *typeContainer) UnmarshalJSON(data []byte) error {
 	var fields map[string]*json.RawMessage
 	if err := json.Unmarshal(data, &fields); err != nil {
+		if me, ok := err.(*json.UnmarshalTypeError); ok {
+			if me.Value == "array" {
+				var raw []*json.RawMessage
+				if err = json.Unmarshal(data, &raw); err == nil {
+					arr := make([]any, 0, len(raw))
+					for i, elem := range raw {
+						var target any
+						r   := bytes.NewReader(*elem)
+						dec := json.NewDecoder(r)
+						tc  := typeContainer{&target,c.composer}
+						if err := dec.Decode(&tc); err != nil {
+							return fmt.Errorf("can't unmarshal array index %d: %w", i, err)
+						} else {
+							arr = append(arr, tc.v)
+						}
+					}
+					c.v = arr
+				}
+			} else {
+				return json.Unmarshal(data, c.v)
+			}
+		}
 		return err
 	}
 	var (

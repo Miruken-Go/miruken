@@ -29,8 +29,8 @@ type (
 
 	// Format is a BindingConstraint for applying formatting.
 	Format struct {
-		Direction FormatDirection
-		Tag       any
+		direction FormatDirection
+		rule      any
 	}
 )
 
@@ -74,35 +74,43 @@ func (m *Maps) Dispatch(
 
 // Format
 
+func (f *Format) Direction() FormatDirection {
+	return f.direction
+}
+
+func (f *Format) Rule() any {
+	return f.rule
+}
+
 func (f *Format) InitWithTag(tag reflect.StructTag) error {
 	var format string
 	if to, ok := tag.Lookup("to"); ok {
 		format      = to
-		f.Direction = FormatDirectionTo
+		f.direction = FormatDirectionTo
 	} else if from, ok := tag.Lookup("from"); ok {
 		format      = from
-		f.Direction = FormatDirectionFrom
+		f.direction = FormatDirectionFrom
 	}
 	if format = strings.TrimSpace(format); len(format) > 0 {
-		f.Tag = format
+		f.rule = format
 	}
-	if IsNil(f.Tag) {
-		return ErrFormatMissing
+	if IsNil(f.rule) {
+		return ErrInvalidFormatRule
 	}
 	return nil
 }
 
 func (f *Format) Merge(constraint BindingConstraint) bool {
 	if format, ok := constraint.(*Format); ok {
-		f.Direction = format.Direction
-		f.Tag       = format.Tag
+		f.direction = format.direction
+		f.rule      = format.rule
 		return true
 	}
 	return false
 }
 
 func (f *Format) Require(metadata *BindingMetadata) {
-	if tag := f.Tag; !IsNil(tag) {
+	if rule := f.rule; !IsNil(rule) {
 		metadata.Set(_formatType, f)
 	}
 }
@@ -286,7 +294,7 @@ func MapAll[T any](
 }
 
 var (
-	_mapsPolicy Policy = &BivariantPolicy{}
-	_formatType        = TypeOf[*Format]()
-	ErrFormatMissing   = errors.New("the Format constraint requires a non-empty tag")
+	_mapsPolicy Policy   = &BivariantPolicy{}
+	_formatType          = TypeOf[*Format]()
+	ErrInvalidFormatRule = errors.New("the Format rule is invalid")
 )

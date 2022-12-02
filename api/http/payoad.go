@@ -8,8 +8,6 @@ import (
 	"io"
 )
 
-const defaultContentType = "application/json"
-
 func encodePayload(
 	payload  any,
 	format   string,
@@ -17,26 +15,27 @@ func encodePayload(
 	composer miruken.Handler,
 ) (io.Reader, error) {
 	var buf bytes.Buffer
-	stream := io.Writer(&buf)
-	if _, err := miruken.MapInto(
-		miruken.BuildUp(composer, _polyOptions),
-		payload, &stream, miruken.To(format)); err != nil {
-		return nil, err
-	} else {
-		w := writer
-		var r io.Reader
-		if writer == nil {
-			var buf bytes.Buffer
-			w, r = &buf, &buf
-		}
-		enc := json.NewEncoder(w)
-		pay := buf.Bytes()
-		msg := Message{(*json.RawMessage)(&pay)}
-		if err := enc.Encode(msg); err != nil {
+	if !miruken.IsNil(payload) {
+		stream := io.Writer(&buf)
+		if _, err := miruken.MapInto(
+			miruken.BuildUp(composer, _polyOptions),
+			payload, &stream, miruken.To(format)); err != nil {
 			return nil, err
 		}
-		return r, nil
 	}
+	w := writer
+	var r io.Reader
+	if writer == nil {
+		var buf bytes.Buffer
+		w, r = &buf, &buf
+	}
+	enc := json.NewEncoder(w)
+	pay := buf.Bytes()
+	msg := Message{(*json.RawMessage)(&pay)}
+	if err := enc.Encode(msg); err != nil {
+		return nil, err
+	}
+	return r, nil
 }
 
 func decodePayload(

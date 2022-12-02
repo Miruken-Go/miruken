@@ -5,6 +5,7 @@ import (
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/http"
 	"github.com/miruken-go/miruken/api/json"
+	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/suite"
 	"net/http/httptest"
 	"sync/atomic"
@@ -30,8 +31,18 @@ type (
 		Players []PlayerData
 	}
 
+	TeamCreated struct {
+		Team TeamData
+	}
+
+	GetTeamNotifications struct {}
+
 	TeamApiHandler struct {
 		nextId int32
+	}
+
+	TeamApiConsumer struct {
+		notifications []any
 	}
 )
 
@@ -39,9 +50,12 @@ type (
 
 func (t *TeamApiHandler) CreateTeam(
 	_*miruken.Handles, create *CreateTeam,
-) *TeamData {
+	ctx miruken.HandleContext,
+) *promise.Promise[*TeamData] {
 	id := atomic.AddInt32(&t.nextId,1)
-	return &TeamData{id,create.Name, create.Players}
+	team := &TeamData{id,create.Name, create.Players}
+	_, _ = api.Publish(ctx.Composer(), &TeamCreated{Team: *team})
+	return promise.Resolve(team)
 }
 
 func (t *TeamApiHandler) NewCreateTeam(
@@ -52,12 +66,43 @@ func (t *TeamApiHandler) NewCreateTeam(
 	return &CreateTeam{}
 }
 
+func (t *TeamApiHandler) NewTeamCreated(
+	_*struct{
+		miruken.Creates `key:"test.TeamCreated"`
+	  }, _ *miruken.Creates,
+) *TeamCreated {
+	return &TeamCreated{}
+}
+
+func (t *TeamApiHandler) NewGetTeamNotifications(
+	_*struct{
+		miruken.Creates `key:"test.GetTeamNotifications"`
+	}, _ *miruken.Creates,
+) *GetTeamNotifications {
+	return &GetTeamNotifications{}
+}
+
 func (t *TeamApiHandler) NewTeam(
 	_*struct{
 		miruken.Creates `key:"test.TeamData"`
 	  }, _ *miruken.Creates,
 ) *TeamData {
 	return &TeamData{}
+}
+
+
+// TeamApiConsumer
+
+func (t *TeamApiConsumer) TeamCreated(
+	_*miruken.Handles, created *TeamCreated,
+) {
+	t.notifications = append(t.notifications, created)
+}
+
+func (t *TeamApiConsumer) TeamNotifications(
+	_*miruken.Handles, get *GetTeamNotifications,
+) []any {
+	return t.notifications
 }
 
 type RouterTestSuite struct {
@@ -78,8 +123,7 @@ func (suite *RouterTestSuite) SetupTest() {
 		TestFeature,
 		http.Feature(),
 		miruken.HandlerSpecs(&json.GoTypeFieldMapper{}))
-	controller := &http.Controller{}
-	controller.SetContext(miruken.NewContext(handler))
+	controller := &http.Controller{Context: miruken.NewContext(handler)}
 	suite.srv = httptest.NewServer(controller)
 }
 
@@ -90,14 +134,47 @@ func (suite *RouterTestSuite) TearDownTest() {
 
 func (suite *RouterTestSuite) TestRouter() {
 	suite.Run("Route", func() {
-		handler := suite.Setup()
-		create  := api.RouteTo(CreateTeam{Name: "Tottenham"}, suite.srv.URL)
-		_, pp, err := api.Send[*TeamData](handler, create)
-		suite.Nil(err)
-		suite.NotNil(pp)
-		team, err := pp.Await()
-		suite.Nil(err)
-		suite.Equal(TeamData{1, "Tottenham", nil}, *team)
+		suite.Run("Send", func() {
+			handler := suite.Setup()
+			create := api.RouteTo(CreateTeam{Name: "Tottenham"}, suite.srv.URL)
+			_, pp, err := api.Send[*TeamData](handler, create)
+			suite.Nil(err)
+			suite.NotNil(pp)
+			team, err := pp.Await()
+			suite.Nil(err)
+			suite.Equal(TeamData{1, "Tottenham", nil}, *team)
+
+			get := api.RouteTo(GetTeamNotifications{}, suite.srv.URL)
+			events, pe, err := api.Send[[]any](handler, get)
+			suite.Nil(err)
+			suite.NotNil(pe)
+			events, err = pe.Await()
+			suite.Nil(err)
+			suite.NotNil(events)
+			created := &TeamCreated{TeamData{1, "Tottenham", nil}}
+			suite.Contains(events, created)
+		})
+
+		suite.Run("Publish", func() {
+			handler := suite.Setup()
+			created := TeamCreated{TeamData{8, "Liverpool", nil}}
+			notify  := api.RouteTo(created, suite.srv.URL)
+			pv, err := api.Publish(handler, notify)
+			suite.Nil(err)
+			suite.NotNil(pv)
+			_, err = pv.Await()
+			suite.Nil(err)
+
+			get := api.RouteTo(GetTeamNotifications{}, suite.srv.URL)
+			events, pe, err := api.Send[[]any](handler, get)
+			suite.Nil(err)
+			suite.NotNil(pe)
+			events, err = pe.Await()
+			suite.Nil(err)
+			suite.NotNil(events)
+			ev := &TeamCreated{TeamData{8, "Liverpool", nil}}
+			suite.Contains(events, ev)
+		})
 	})
 }
 

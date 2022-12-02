@@ -29,7 +29,8 @@ type (
 	Router struct {}
 )
 
-const defaultTimeout = 30 * time.Second
+const defaultTimeout     = 30 * time.Second
+const defaultContentType = "application/json"
 
 func (r *Router) Route(
 	_*struct{
