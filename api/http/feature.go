@@ -6,10 +6,19 @@ import (
 	"github.com/miruken-go/miruken/api/json"
 )
 
-// Installer configure http support.
-type Installer struct {
-	options Options
-}
+type (
+	// Installer configure http client support.
+	Installer struct {
+		options Options
+	}
+
+	// ServerInstaller configures http server support
+	ServerInstaller struct {
+	}
+)
+
+
+// Installer
 
 func (i *Installer) DependsOn() []miruken.Feature {
 	return []miruken.Feature{
@@ -19,7 +28,7 @@ func (i *Installer) DependsOn() []miruken.Feature {
 
 func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {
-		setup.RegisterHandlers(&Router{}, &Controller{})
+		setup.RegisterHandlers(&Router{})
 		setup.AddBuilder(miruken.Options(i.options))
 	}
 	return nil
@@ -31,6 +40,21 @@ func WithOptions(options Options) func(installer *Installer) {
 	}
 }
 
+
+// ServerInstaller
+
+func (i *ServerInstaller) DependsOn() []miruken.Feature {
+	return []miruken.Feature{Feature(), &api.Installer{}}
+}
+
+func (i *ServerInstaller) Install(setup *miruken.SetupBuilder) error {
+	if setup.CanInstall(&_serverFeatureTag) {
+		setup.RegisterHandlers(&StatusCodeMapper{})
+	}
+	return nil
+}
+
+// Feature configures http client support
 func Feature(
 	config ... func(installer *Installer),
 ) miruken.Feature {
@@ -43,4 +67,17 @@ func Feature(
 	return installer
 }
 
-var _featureTag byte
+// ServerFeature configures http server support
+func ServerFeature(
+	config ... func(installer *ServerInstaller),
+) miruken.Feature {
+	installer := &ServerInstaller{}
+	for _, configure := range config {
+		if configure != nil {
+			configure(installer)
+		}
+	}
+	return installer
+}
+
+var _featureTag, _serverFeatureTag byte

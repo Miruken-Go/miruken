@@ -3,6 +3,7 @@ package http
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -27,28 +28,28 @@ func (c *Controller) ServeHTTP(
 	if len(format) == 0 {
 		format = defaultContentType
 	}
-	if payload, err := decodePayload(r.Body, format, ctx); err != nil {
-		c.encodeError(err, r, w)
-	} else if payload == nil {
+	if msg, _, err := miruken.Map[api.Message](ctx, r.Body, miruken.From(format)); err != nil {
+		c.encodeError(err, w, r, ctx)
+	} else if msg.Payload == nil {
 		w.WriteHeader(http.StatusBadRequest)
 	} else if publish {
-		if pv, err := api.Publish(ctx, payload); err != nil {
-			c.encodeError(err, r, w)
+		if pv, err := api.Publish(ctx, msg.Payload); err != nil {
+			c.encodeError(err, w, r, ctx)
 		} else if pv == nil {
-			c.encodeResult(nil, format, r, w)
+			c.encodeResult(nil, format, w, r, ctx)
 		} else if _, err = pv.Await(); err == nil {
-			c.encodeResult(nil, format, r, w)
+			c.encodeResult(nil, format, w, r, ctx)
 		} else {
-			c.encodeError(err, r, w)
+			c.encodeError(err, w, r, ctx)
 		}
-	} else if res, pr, err := api.Send[any](ctx, payload); err != nil {
-		c.encodeError(err, r, w)
+	} else if res, pr, err := api.Send[any](ctx, msg.Payload); err != nil {
+		c.encodeError(err, w, r, ctx)
 	} else if pr == nil {
-		c.encodeResult(res, format, r, w)
+		c.encodeResult(res, format, w, r, ctx)
 	} else if res, err = pr.Await(); err == nil {
-		c.encodeResult(res, format, r, w)
+		c.encodeResult(res, format, w, r, ctx)
 	} else {
-		c.encodeError(err, r, w)
+		c.encodeError(err, w, r, ctx)
 	}
 }
 
@@ -74,19 +75,30 @@ func (c *Controller) validateRequest(
 func (c *Controller) encodeResult(
 	res      any,
 	format   string,
-	r        *http.Request,
 	w        http.ResponseWriter,
+	r        *http.Request,
+	ctx      *miruken.Context,
 ) {
 	w.Header().Set("Content-Type", format)
-	if _, err := encodePayload(res, format, w, c.Context); err != nil {
-		c.encodeError(err, r, w)
+	out := io.Writer(w)
+	msg := api.Message{Payload: res}
+	if _, err := miruken.MapInto(ctx, msg, &out, miruken.To(format)); err != nil {
+		c.encodeError(err, w, r, ctx)
 	}
 }
 
 func (c *Controller) encodeError(
 	err error,
-	r   *http.Request,
 	w   http.ResponseWriter,
+	r   *http.Request,
+	ctx *miruken.Context,
 ) {
-	w.WriteHeader(http.StatusInternalServerError)
+	statusCode := http.StatusInternalServerError
+	handler    := miruken.BuildUp(ctx, miruken.BestEffort)
+	if sc, _, sce := miruken.Map[int](handler, err, _toStatusCode); sc != 0 && sce == nil {
+		statusCode = sc
+	}
+	w.WriteHeader(statusCode)
 }
+
+var _toStatusCode = miruken.To("http:status-code")

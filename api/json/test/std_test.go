@@ -346,6 +346,26 @@ func (suite *JsonStdTestSuite) TestJson() {
 				suite.Equal(Data{Name: "Ralph Hall", Age: 84}, data)
 			})
 
+			suite.Run("FromJsonPrimitive", func() {
+				i, _, err := miruken.Map[int](handler, "9", miruken.From("application/json"))
+				suite.Nil(err)
+				suite.Equal(9, i)
+
+				s, _, err := miruken.Map[string](handler, "\"hello\"", miruken.From("application/json"))
+				suite.Nil(err)
+				suite.Equal("hello", s)
+			})
+
+			suite.Run("FromJsonArray", func() {
+				ia, _, err := miruken.Map[[]int](handler, "[3,6,9]", miruken.From("application/json"))
+				suite.Nil(err)
+				suite.Equal([]int{3,6,9}, ia)
+
+				sa, _, err := miruken.Map[[]string](handler, "[\"E\",\"F\",\"G\"]", miruken.From("application/json"))
+				suite.Nil(err)
+				suite.Equal([]string{"E","F","G"}, sa)
+			})
+
 			suite.Run("FromJsonMap", func() {
 				j := "{\"Name\":\"Ralph Hall\",\"Age\":84}"
 				data, _,  err := miruken.Map[map[string]any](handler, j, miruken.From("application/json"))
@@ -376,6 +396,35 @@ func (suite *JsonStdTestSuite) TestJson() {
 				suite.Equal(TeamData{Id: 9, Name: "Liverpool"}, *data)
 			})
 
+			suite.Run("FromJsonTypedPrimitive", func() {
+				i, _, err := miruken.Map[int](
+					miruken.BuildUp(handler, miruken.Options(
+						api.PolymorphicOptions{PolymorphicHandling: miruken.Set(api.PolymorphicHandlingRoot)})),
+					"99", miruken.From("application/json"))
+				suite.Nil(err)
+				suite.Equal(99, i)
+
+				s, _, err := miruken.Map[string](
+					miruken.BuildUp(handler, miruken.Options(
+						api.PolymorphicOptions{PolymorphicHandling: miruken.Set(api.PolymorphicHandlingRoot)})),
+					"\"world\"", miruken.From("application/json"))
+				suite.Nil(err)
+				suite.Equal("world", s)
+			})
+
+			suite.Run("FromJsonTypedArray", func() {
+				ia, _, err := miruken.Map[[]int](
+					miruken.BuildUp(handler, miruken.Options(
+						api.PolymorphicOptions{PolymorphicHandling: miruken.Set(api.PolymorphicHandlingRoot)})),
+					"[100,200,300]", miruken.From("application/json"))
+				suite.Nil(err)
+				suite.Equal([]int{100,200,300}, ia)
+
+				sa, _, err := miruken.Map[[]string](handler, "[\"E\",\"F\",\"G\"]", miruken.From("application/json"))
+				suite.Nil(err)
+				suite.Equal([]string{"E","F","G"}, sa)
+			})
+
 			suite.Run("FromJsonStreamTyped", func() {
 				stream := strings.NewReader("{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Manchester United\"}")
 				data, _, err := miruken.Map[*TeamData](
@@ -387,16 +436,16 @@ func (suite *JsonStdTestSuite) TestJson() {
 				suite.Equal(TeamData{Id: 9, Name: "Manchester United"}, *data)
 			})
 
-			suite.Run("FromJsonStreamTypedAny", func() {
+			suite.Run("FromJsonStreamTypedLate", func() {
 				stream := strings.NewReader("{\"@type\":\"test.TeamData\",\"Id\":11,\"Name\":\"Chelsea\"}")
-				data, _, err := miruken.Map[any](
+				late, _, err := miruken.Map[miruken.Late](
 					miruken.BuildUp(handler, miruken.Options(
 						api.PolymorphicOptions{PolymorphicHandling: miruken.Set(api.PolymorphicHandlingRoot)})),
 					stream, miruken.From("application/json"))
 				suite.Nil(err)
-				suite.NotNil(data)
-				suite.IsType(&TeamData{}, data)
-				suite.Equal(TeamData{Id: 11, Name: "Chelsea"}, *data.(*TeamData))
+				suite.NotNil(late)
+				suite.IsType(&TeamData{}, late.Value)
+				suite.Equal(TeamData{Id: 11, Name: "Chelsea"}, *late.Value.(*TeamData))
 			})
 
 			suite.Run("FromJsonNoTypeInfo", func() {
@@ -420,6 +469,18 @@ func (suite *JsonStdTestSuite) TestJson() {
 				suite.True(reflect.DeepEqual(map[string]any{
 					"Id": float64(19), "Name": "Wolves",
 				}, dat))
+			})
+
+			suite.Run("FromJsonNoTypeInfoLate", func() {
+				j := "{\"Id\":23,\"Name\":\"Everton\"}"
+				late, _, err := miruken.Map[miruken.Late](
+					miruken.BuildUp(handler, miruken.Options(
+						api.PolymorphicOptions{PolymorphicHandling: miruken.Set(api.PolymorphicHandlingRoot)})),
+					j, miruken.From("application/json"))
+				suite.Nil(err)
+				suite.True(reflect.DeepEqual(map[string]any{
+					"Id": float64(23), "Name": "Everton",
+				}, late.Value))
 			})
 
 			suite.Run("FromJsonMissingTypeInfo", func() {

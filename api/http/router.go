@@ -1,7 +1,7 @@
 package http
 
 import (
-	"encoding/json"
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
@@ -18,11 +18,6 @@ type (
 	Options struct {
 		Timeout miruken.Option[time.Duration]
 		Format  miruken.Option[string]
-	}
-
-	// Message is an envelope for polymorphic payloads.
-	Message struct {
-		Payload *json.RawMessage `json:"payload"`
 	}
 
 	// Router routes messages over a http transport.
@@ -53,12 +48,15 @@ func (r *Router) Route(
 
 		composer := ctx.Composer()
 		format   := options.Format.ValueOrDefault(defaultContentType)
-		payload, err := encodePayload(routed.Message, format, nil, composer)
-		if err != nil {
+
+		var b bytes.Buffer
+		out := io.Writer(&b)
+		msg := api.Message{Payload: routed.Message}
+		if _, err = miruken.MapInto(composer, msg, &out, miruken.To(format)); err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 		}
 
-		req, err  := http.NewRequest(http.MethodPost, uri, payload)
+		req, err  := http.NewRequest(http.MethodPost, uri, &b)
 		if err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 			return
@@ -85,10 +83,10 @@ func (r *Router) Route(
 		if len(contentType) == 0 {
 			contentType = format
 		}
-		if r, err := decodePayload(res.Body, contentType, composer); err != nil {
+		if msg, _, err := miruken.Map[api.Message](composer, res.Body, miruken.From(format)); err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 		} else {
-			resolve(r)
+			resolve(msg.Payload)
 		}
 	})
 }

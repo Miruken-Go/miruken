@@ -8,6 +8,11 @@ import (
 )
 
 type (
+	// Message is envelop for polymorphic messages.
+	Message struct {
+		Payload any
+	}
+
 	// PolymorphicHandling is an enum that determines
 	// if messages are augmented with type discriminators.
 	PolymorphicHandling uint8

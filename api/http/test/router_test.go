@@ -1,6 +1,7 @@
 package test
 
 import (
+	"errors"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/http"
@@ -47,6 +48,16 @@ type (
 )
 
 // TeamApiHandler
+
+func (t *TeamApiHandler) MustHaveTeamName(
+	validates *miruken.Validates, create *CreateTeam,
+) {
+	outcome := validates.Outcome()
+
+	if len(create.Name) == 0 {
+		outcome.AddError("Name", errors.New(`"Name" is required`))
+	}
+}
 
 func (t *TeamApiHandler) CreateTeam(
 	_*miruken.Handles, create *CreateTeam,
@@ -121,10 +132,11 @@ func (suite *RouterTestSuite) Setup() *miruken.Context {
 func (suite *RouterTestSuite) SetupTest() {
 	handler, _ := miruken.Setup(
 		TestFeature,
-		http.Feature(),
+		http.ServerFeature(),
+		miruken.ValidationFeature(),
 		miruken.HandlerSpecs(&json.GoTypeFieldMapper{}))
-	controller := &http.Controller{Context: miruken.NewContext(handler)}
-	suite.srv = httptest.NewServer(controller)
+	ctrl := &http.Controller{Context: miruken.NewContext(handler)}
+	suite.srv = httptest.NewServer(ctrl)
 }
 
 func (suite *RouterTestSuite) TearDownTest() {
@@ -174,6 +186,16 @@ func (suite *RouterTestSuite) TestRouter() {
 			suite.NotNil(events)
 			ev := &TeamCreated{TeamData{8, "Liverpool", nil}}
 			suite.Contains(events, ev)
+		})
+
+		suite.Run("ValidationError", func() {
+			handler := suite.Setup()
+			create := api.RouteTo(CreateTeam{}, suite.srv.URL)
+			_, pp, err := api.Send[*TeamData](handler, create)
+			suite.Nil(err)
+			suite.NotNil(pp)
+			_, err = pp.Await()
+			suite.NotNil(err)
 		})
 	})
 }

@@ -101,7 +101,7 @@ func (m *StdMapper) FromJson(
 	if polyOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
 		tc := typeContainer{target, ctx.Composer()}
 		err := json.Unmarshal([]byte(jsonString), &tc)
-		return tc.v, err
+		return target, err
 	}
 	err := json.Unmarshal([]byte(jsonString), target)
 	return target, err
@@ -124,7 +124,7 @@ func (m *StdMapper) FromJsonStream(
 	if polyOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
 		tc := typeContainer{target,ctx.Composer()}
 		err := dec.Decode(&tc)
-		return tc.v, err
+		return target, err
 	}
 	err := dec.Decode(target)
 	return target, err
@@ -162,7 +162,7 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 	if byt, err := json.Marshal(v); err != nil {
 		return nil, err
 	} else if len(byt) > 0 && byt[0] == '{' {
-		typeInfo, _, err := miruken.Map[TypeFieldInfo](c.composer, v, miruken.To("type:info"))
+		typeInfo, _, err := miruken.Map[TypeFieldInfo](c.composer, v, ToTypeInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -187,7 +187,14 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 			if me.Value == "array" {
 				var raw []*json.RawMessage
 				if err = json.Unmarshal(data, &raw); err == nil {
-					arr := make([]any, 0, len(raw))
+					var arr reflect.Value
+					typ := reflect.Indirect(reflect.ValueOf(c.v)).Type()
+					if typ.Kind() == reflect.Slice {
+						arr = reflect.MakeSlice(typ, 0, len(raw))
+					} else {
+						arr = reflect.ValueOf(make([]any, 0, len(raw)))
+					}
+					elemTyp := arr.Type().Elem()
 					for i, elem := range raw {
 						var target any
 						r   := bytes.NewReader(*elem)
@@ -196,10 +203,11 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 						if err := dec.Decode(&tc); err != nil {
 							return fmt.Errorf("can't unmarshal array index %d: %w", i, err)
 						} else {
-							arr = append(arr, tc.v)
+							v := reflect.ValueOf(target).Convert(elemTyp)
+							arr = reflect.Append(arr, v)
 						}
 					}
-					c.v = arr
+					miruken.CopyIndirect(arr.Interface(), c.v)
 				}
 			} else {
 				return json.Unmarshal(data, c.v)
@@ -217,6 +225,13 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 		}
 	}
 	if typeIdRaw == nil {
+		if late, ok := c.v.(*miruken.Late); ok {
+			if err := json.Unmarshal(data, &late.Value); err != nil {
+				return err
+			} else {
+				return nil
+			}
+		}
 		return json.Unmarshal(data, c.v)
 	}
 	var typeId string
@@ -230,7 +245,11 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 		} else if err := json.Unmarshal(data, v); err != nil {
 			return err
 		} else {
-			c.v = v
+			if late, ok := c.v.(*miruken.Late); ok {
+				late.Value = v
+			} else {
+				miruken.CopyIndirect(v, c.v)
+			}
 		}
 	}
 	return nil

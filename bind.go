@@ -26,6 +26,11 @@ type (
 		binding Binding,
 		result  HandleResult,
 	) (HandleResult, bool)
+
+	// Late is a container for late Binding results.
+	Late struct {
+		Value any
+	}
 )
 
 type (
