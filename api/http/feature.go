@@ -4,6 +4,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/json"
+	"github.com/miruken-go/miruken/validate"
 )
 
 type (
@@ -40,20 +41,6 @@ func WithOptions(options Options) func(installer *Installer) {
 	}
 }
 
-
-// ServerInstaller
-
-func (i *ServerInstaller) DependsOn() []miruken.Feature {
-	return []miruken.Feature{Feature(), &api.Installer{}}
-}
-
-func (i *ServerInstaller) Install(setup *miruken.SetupBuilder) error {
-	if setup.CanInstall(&_serverFeatureTag) {
-		setup.RegisterHandlers(&StatusCodeMapper{})
-	}
-	return nil
-}
-
 // Feature configures http client support
 func Feature(
 	config ... func(installer *Installer),
@@ -65,6 +52,23 @@ func Feature(
 		}
 	}
 	return installer
+}
+
+
+// ServerInstaller
+
+func (i *ServerInstaller) DependsOn() []miruken.Feature {
+	return []miruken.Feature{
+		Feature(),
+		validate.Feature(),
+		&api.Installer{}}
+}
+
+func (i *ServerInstaller) Install(setup *miruken.SetupBuilder) error {
+	if setup.CanInstall(&_serverFeatureTag) {
+		setup.RegisterHandlers(&StatusCodeMapper{})
+	}
+	return nil
 }
 
 // ServerFeature configures http server support

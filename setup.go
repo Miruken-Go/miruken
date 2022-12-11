@@ -146,6 +146,7 @@ func (s *SetupBuilder) Build() (handler Handler, buildErrors error) {
 	return handler, buildErrors
 }
 
+// TODO: traverse level order
 func (s *SetupBuilder) installGraph(
 	feature Feature,
 ) error {

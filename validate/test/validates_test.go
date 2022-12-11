@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/bearbin/go-age"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/validate"
 	"github.com/stretchr/testify/suite"
 	"reflect"
 	"testing"
@@ -11,14 +12,14 @@ import (
 )
 
 type Model struct {
-	outcome *miruken.ValidationOutcome
+	outcome *validate.Outcome
 }
 
-func (m *Model) ValidationOutcome() *miruken.ValidationOutcome {
+func (m *Model) ValidationOutcome() *validate.Outcome {
 	return m.outcome
 }
 
-func (m *Model) SetValidationOutcome(outcome *miruken.ValidationOutcome) {
+func (m *Model) SetValidationOutcome(outcome *validate.Outcome) {
 	m.outcome = outcome
 }
 
@@ -60,7 +61,7 @@ type RemoveTeam struct {
 }
 
 func (c *CreateTeam) ValidateMe(
-	validates *miruken.Validates,
+	validates *validate.Validates,
 ) {
 	if c.Team.Name == "Breakaway" {
 		validates.Outcome().
@@ -72,7 +73,7 @@ func (c *CreateTeam) ValidateMe(
 type PlayerValidator struct{}
 
 func (v *PlayerValidator) MustHaveNameAndDOB(
-	validates *miruken.Validates, player *Player,
+	validates *validate.Validates, player *Player,
 ) {
 	outcome := validates.Outcome()
 
@@ -91,10 +92,10 @@ func (v *PlayerValidator) MustHaveNameAndDOB(
 
 func (v *PlayerValidator) MustBeTenOrUnder(
 	_*struct{
-		miruken.Validates
-		miruken.Group `name:"Recreational"`
+	validate.Validates
+		validate.Group `name:"Recreational"`
 	  }, player *Player,
-	validates *miruken.Validates,
+	validates *validate.Validates,
 ) {
 	if dob := player.DOB; !dob.IsZero() {
 		if age.Age(dob) > 10 {
@@ -108,7 +109,7 @@ func (v *PlayerValidator) MustBeTenOrUnder(
 type TeamValidator struct{}
 
 func (v *TeamValidator) MustHaveName(
-	validates *miruken.Validates, team *Team,
+	validates *validate.Validates, team *Team,
 ) {
 	if name := team.Name; len(name) == 0 {
 		validates.Outcome().AddError("Name", errors.New(`"Name" is required`))
@@ -117,10 +118,10 @@ func (v *TeamValidator) MustHaveName(
 
 func (v *TeamValidator) MustHaveLicensedCoach(
 	_*struct{
-		miruken.Validates
-		miruken.Group `name:"ECNL"`
+	validate.Validates
+		validate.Group `name:"ECNL"`
 	  }, team *Team,
-	validates *miruken.Validates,
+	validates *validate.Validates,
 ) {
 	outcome := validates.Outcome()
 
@@ -132,7 +133,7 @@ func (v *TeamValidator) MustHaveLicensedCoach(
 }
 
 func (v *TeamValidator) CreateTeam(
-	validates *miruken.Validates, create *CreateTeam,
+	validates *validate.Validates, create *CreateTeam,
 ) {
 	team := &create.Team
 	v.MustHaveName(validates, team)
@@ -142,7 +143,7 @@ func (v *TeamValidator) CreateTeam(
 }
 
 func (v *TeamValidator) RemoveTeam(
-	validates *miruken.Validates, remove *RemoveTeam,
+	validates *validate.Validates, remove *RemoveTeam,
 ) {
 	if remove.Team.Id <= 0 {
 		outcome := validates.Outcome()
@@ -154,10 +155,10 @@ func (v *TeamValidator) RemoveTeam(
 type OpenValidator struct {}
 
 func (v *OpenValidator) Validate(
-	validates *miruken.Validates, target any,
+	validates *validate.Validates, target any,
 ) {
 	if v, ok := target.(interface {
-		ValidateMe(*miruken.Validates)
+		ValidateMe(*validate.Validates)
 	}); ok {
 		v.ValidateMe(validates)
 	}
@@ -208,9 +209,9 @@ func (suite *ValidatesTestSuite) SetupWith(specs ... any) (miruken.Handler, erro
 }
 
 func (suite *ValidatesTestSuite) TestValidation() {
-	suite.Run("ValidationOutcome", func () {
+	suite.Run("Outcome", func () {
 		suite.Run("Root Errors", func() {
-			outcome := &miruken.ValidationOutcome{}
+			outcome := &validate.Outcome{}
 			outcome.AddError("", errors.New("player not found"))
 			suite.Equal(": player not found", outcome.Error())
 			suite.Equal([]string{""}, outcome.Fields())
@@ -220,7 +221,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 		})
 
 		suite.Run("Simple Errors", func() {
-			outcome := &miruken.ValidationOutcome{}
+			outcome := &validate.Outcome{}
 			outcome.AddError("Name", errors.New(`"Name" can't be empty`))
 			suite.Equal(`Name: "Name" can't be empty`, outcome.Error())
 			suite.Equal([]string{"Name"}, outcome.Fields())
@@ -230,7 +231,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 		})
 
 		suite.Run("Nested Errors", func() {
-			outcome := &miruken.ValidationOutcome{}
+			outcome := &validate.Outcome{}
 			outcome.AddError("Company.Name", errors.New(`"Name" can't be empty`))
 			suite.Equal(`Company: (Name: "Name" can't be empty)`, outcome.Error())
 			suite.Equal([]string{"Company"}, outcome.Fields())
@@ -243,7 +244,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 		})
 
 		suite.Run("Mixed Errors", func() {
-			outcome := &miruken.ValidationOutcome{}
+			outcome := &validate.Outcome{}
 			outcome.AddError("Name", errors.New(`"Name" can't be empty`))
 			outcome.AddError("Company.Name", errors.New(`"Name" can't be empty`))
 			suite.Equal(`Company: (Name: "Name" can't be empty); Name: "Name" can't be empty`, outcome.Error())
@@ -257,7 +258,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 		})
 
 		suite.Run("Collection Errors", func() {
-			outcome := &miruken.ValidationOutcome{}
+			outcome := &validate.Outcome{}
 			outcome.AddError("Players[0]", errors.New(`"Players[0]" can't be empty`))
 			suite.Equal(`Players: (0: "Players[0]" can't be empty)`, outcome.Error())
 			suite.Equal([]string{"Players"}, outcome.Fields())
@@ -274,11 +275,11 @@ func (suite *ValidatesTestSuite) TestValidation() {
 		suite.Run("Cannot add path outcome directly", func() {
 			defer func() {
 				if r := recover(); r != nil {
-					suite.Equal("cannot add path ValidationOutcome directly", r)
+					suite.Equal("cannot add path Outcome directly", r)
 				}
 			}()
-			outcome := &miruken.ValidationOutcome{}
-			outcome.AddError("Foo", &miruken.ValidationOutcome{})
+			outcome := &validate.Outcome{}
+			outcome.AddError("Foo", &validate.Outcome{})
 			suite.Fail("Expected panic")
 		})
 	})
@@ -288,7 +289,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 			handler, _ := suite.Setup()
 			player := Player{DOB:  time.Date(2007, time.June,
 				14, 13, 26, 00, 0, time.Local) }
-			outcome, _, err := miruken.Validate(handler, &player)
+			outcome, _, err := validate.Validate(handler, &player)
 			suite.Nil(err)
 			suite.NotNil(outcome)
 			suite.False(outcome.Valid())
@@ -305,7 +306,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 				DOB:       time.Date(2007, time.June, 14,
 					13, 26, 00, 0, time.Local),
 			}
-			outcome, _, err := miruken.Validate(handler, &player, miruken.Rules("Recreational"))
+			outcome, _, err := validate.Validate(handler, &player, validate.Rules("Recreational"))
 			suite.Nil(err)
 			suite.NotNil(outcome)
 			suite.False(outcome.Valid())
@@ -318,7 +319,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 	suite.Run("ValidateFilter", func () {
 		handler, _ := suite.Setup()
 		var handles miruken.Handles
-		validatesFilter := miruken.NewValidateProvider(true)
+		validatesFilter := validate.NewValidateProvider(true)
 		handles.Policy().AddFilters(validatesFilter)
 		defer func() {
 			handles.Policy().RemoveFilters(validatesFilter)
@@ -347,7 +348,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 		suite.Run("Rejects Command", func() {
 			var create CreateTeam
 			if team, _, err := miruken.Execute[Team](handler, &create); err != nil {
-				suite.IsType(&miruken.ValidationOutcome{}, err)
+				suite.IsType(&validate.Outcome{}, err)
 				suite.Equal(0, team.Id)
 				outcome := create.ValidationOutcome()
 				suite.NotNil(outcome)
@@ -361,7 +362,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 		suite.Run("Rejects Another Command", func() {
 			remove := &RemoveTeam{}
 			if team, _, err := miruken.Execute[Team](handler, remove); err != nil {
-				suite.IsType(&miruken.ValidationOutcome{}, err)
+				suite.IsType(&validate.Outcome{}, err)
 				suite.False(team.Active)
 				outcome := remove.ValidationOutcome()
 				suite.NotNil(outcome)
@@ -381,7 +382,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 					},
 				}}}
 				if _, _, err := miruken.Execute[Team](handler, &create); err != nil {
-					suite.IsType(&miruken.ValidationOutcome{}, err)
+					suite.IsType(&validate.Outcome{}, err)
 					outcome := create.ValidationOutcome()
 					suite.NotNil(outcome)
 					suite.False(outcome.Valid())

@@ -7,6 +7,7 @@ import (
 	"github.com/miruken-go/miruken/api/http"
 	"github.com/miruken-go/miruken/api/json"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/validate"
 	"github.com/stretchr/testify/suite"
 	"net/http/httptest"
 	"sync/atomic"
@@ -50,7 +51,7 @@ type (
 // TeamApiHandler
 
 func (t *TeamApiHandler) MustHaveTeamName(
-	validates *miruken.Validates, create *CreateTeam,
+	validates *validate.Validates, create *CreateTeam,
 ) {
 	outcome := validates.Outcome()
 
@@ -133,7 +134,6 @@ func (suite *RouterTestSuite) SetupTest() {
 	handler, _ := miruken.Setup(
 		TestFeature,
 		http.ServerFeature(),
-		miruken.ValidationFeature(),
 		miruken.HandlerSpecs(&json.GoTypeFieldMapper{}))
 	ctrl := &http.Controller{Context: miruken.NewContext(handler)}
 	suite.srv = httptest.NewServer(ctrl)

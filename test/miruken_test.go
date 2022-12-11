@@ -41,9 +41,7 @@ var TestFeature = miruken.InstallFeature(func(setup *miruken.SetupBuilder) error
 		&NullFilter{},
 		&OpenMapper{},
 		&OpenProvider{},
-		&OpenValidator{},
 		&PersonProvider{},
-		&PlayerValidator{},
 		&RootedService{},
 		&ScopedService{},
 		&Service{},
@@ -54,8 +52,6 @@ var TestFeature = miruken.InstallFeature(func(setup *miruken.SetupBuilder) error
 		&SpecialFilteringHandler{},
 		&SpecificationHandler{},
 		&SpecificationProvider{},
-		&TeamHandler{},
-		&TeamValidator{},
 		&UnmanagedHandler{},
 	)
 	return nil

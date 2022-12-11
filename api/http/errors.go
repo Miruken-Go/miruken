@@ -2,6 +2,7 @@ package http
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/validate"
 	"net/http"
 )
 
@@ -10,7 +11,7 @@ type (
 )
 
 func (s *StatusCodeMapper) ValidationError(
-	_*miruken.Maps, _ *miruken.ValidationOutcome,
+	_*miruken.Maps, _ *validate.Outcome,
 ) int {
 	return http.StatusUnprocessableEntity
 }
