@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"container/list"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -95,11 +96,7 @@ func (s *SetupBuilder) Build() (handler Handler, buildErrors error) {
 	}
 	handler = &getHandlerDescriptorFactory{factory}
 
-	for _, feature := range s.features {
-		if err := s.installGraph(feature); err != nil {
-			buildErrors = multierror.Append(buildErrors, err)
-		}
-	}
+	buildErrors = s.installGraph(s.features)
 
 	if specs := s.specs; len(specs) > 0 {
 		hs := make([]HandlerSpec, 0, len(specs))
@@ -146,23 +143,34 @@ func (s *SetupBuilder) Build() (handler Handler, buildErrors error) {
 	return handler, buildErrors
 }
 
-// TODO: traverse level order
 func (s *SetupBuilder) installGraph(
-	feature Feature,
-) error {
-	if IsNil(feature) {
-		return nil
-	}
-	if dependsOn, ok := feature.(interface{
-		DependsOn() []Feature
-	}); ok {
-		for _, dep := range dependsOn.DependsOn() {
-			if err := s.installGraph(dep); err != nil {
-				return err
-			}
+	features []Feature,
+) (err error) {
+	// traverse level-order so overrides can be applied in any order
+	queue := list.New()
+	for _, feature := range features {
+		if !IsNil(feature) {
+			queue.PushBack(feature)
 		}
 	}
-	return feature.Install(s)
+	for queue.Len() > 0 {
+		front := queue.Front()
+		queue.Remove(front)
+		feature := front.Value.(Feature)
+		if dependsOn, ok := feature.(interface{
+			DependsOn() []Feature
+		}); ok {
+			for _, dep := range dependsOn.DependsOn() {
+				if !IsNil(dep) {
+					queue.PushBack(dep)
+				}
+			}
+		}
+		if ie := feature.Install(s); ie != nil {
+			err = multierror.Append(err, ie)
+		}
+	}
+	return err
 }
 
 func Handlers(handlers ... any) InstallFeature {

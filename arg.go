@@ -348,7 +348,7 @@ var dependencyParsers = []bindingParser{
 func buildDependency(
 	argType reflect.Type,
 ) (arg DependencyArg, err error) {
-	if argType == _anyType {
+	if _anyType.AssignableTo(argType) {
 		return arg, fmt.Errorf(
 			"type %v cannot be used As a dependency",
 			_anyType)

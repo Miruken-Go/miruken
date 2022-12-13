@@ -133,6 +133,14 @@ func (suite *SetupTestSuite) TestSetup() {
 		suite.NotNil(multi)
 	})
 
+	suite.Run("Overrides Dependencies", func () {
+		installer := &MyInstaller{10}
+		handler, err := miruken.Setup(&RootInstaller{}, installer)
+		suite.Nil(err)
+		suite.NotNil(handler)
+		suite.Equal(11, installer.count)
+	})
+
 	suite.Run("Errors", func () {
 		installer := BadInstaller{}
 		_, err := miruken.Setup(installer)

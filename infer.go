@@ -173,7 +173,7 @@ func newInferenceHandler(
 				// Only need one unknown binding to create link.
 				if last := bs.variant.Back(); last != nil {
 					binding := last.Value.(Binding)
-					if binding.Key() == _anyType {
+					if bt, ok := binding.Key().(reflect.Type); ok && _anyType.AssignableTo(bt) {
 						linkBinding(binding, pb, handlerType, false)
 					}
 				}
