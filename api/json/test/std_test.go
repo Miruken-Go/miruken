@@ -54,7 +54,7 @@ func (m *TypeIdMapper) PlayerDotNet(
 
 func (m *TypeIdMapper) CreateTeam(
 	_*struct{
-		miruken.Creates `key:"test.TeamData"`
+		_*miruken.Creates `key:"test.TeamData"`
 	  }, _ *miruken.Creates,
 ) *TeamData {
 	return &TeamData{}

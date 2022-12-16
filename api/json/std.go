@@ -188,13 +188,14 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 				var raw []*json.RawMessage
 				if err = json.Unmarshal(data, &raw); err == nil {
 					var arr reflect.Value
+					var elemTyp reflect.Type
 					typ := reflect.Indirect(reflect.ValueOf(c.v)).Type()
 					if typ.Kind() == reflect.Slice {
 						arr = reflect.MakeSlice(typ, 0, len(raw))
+						elemTyp = arr.Type().Elem()
 					} else {
 						arr = reflect.ValueOf(make([]any, 0, len(raw)))
 					}
-					elemTyp := arr.Type().Elem()
 					for i, elem := range raw {
 						var target any
 						r   := bytes.NewReader(*elem)
@@ -203,7 +204,10 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 						if err := dec.Decode(&tc); err != nil {
 							return fmt.Errorf("can't unmarshal array index %d: %w", i, err)
 						} else {
-							v := reflect.ValueOf(target).Convert(elemTyp)
+							v := reflect.ValueOf(target)
+							if elemTyp != nil {
+								v = v.Convert(elemTyp)
+							}
 							arr = reflect.Append(arr, v)
 						}
 					}

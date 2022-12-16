@@ -112,7 +112,7 @@ func (t *TeamApiConsumer) TeamCreated(
 }
 
 func (t *TeamApiConsumer) TeamNotifications(
-	_*miruken.Handles, get *GetTeamNotifications,
+	_*miruken.Handles, _ *GetTeamNotifications,
 ) []any {
 	return t.notifications
 }
@@ -195,7 +195,13 @@ func (suite *RouterTestSuite) TestRouter() {
 			suite.Nil(err)
 			suite.NotNil(pp)
 			_, err = pp.Await()
-			suite.NotNil(err)
+			var outcome *validate.Outcome
+			suite.ErrorAs(err, &outcome)
+			suite.Equal(`Name: "Name" is required`, outcome.Error())
+			suite.Equal([]string{"Name"}, outcome.Fields())
+			suite.ElementsMatch(
+				[]error{errors.New(`"Name" is required`)},
+				outcome.FieldErrors("Name"))
 		})
 	})
 }

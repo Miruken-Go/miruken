@@ -86,10 +86,18 @@ func CopyIndirect(src any, target any) {
 	}
 	val = reflect.Indirect(val)
 	typ := val.Type()
-	if src != nil {
-		val.Set(srcVal)
-	} else {
+	if typ.Kind() == reflect.Slice {
+		if sv, ok := CoerceSlice(srcVal, typ.Elem()); ok {
+			srcVal = sv
+		}
+	}
+	if src == nil {
 		val.Set(reflect.Zero(typ))
+	} else {
+		if st := srcVal.Type(); !st.AssignableTo(typ) && st.ConvertibleTo(typ) {
+			srcVal = srcVal.Convert(typ)
+		}
+		val.Set(srcVal)
 	}
 }
 
@@ -108,11 +116,63 @@ func CopySliceIndirect(src []any, target any) {
 		val.Set(reflect.MakeSlice(typ, 0, 0))
 		return
 	}
-	slice := reflect.MakeSlice(typ, len(src), len(src))
+	elemTyp := typ.Elem()
+	slice  := reflect.MakeSlice(typ, len(src), len(src))
 	for i, element := range src {
-		slice.Index(i).Set(reflect.ValueOf(element))
+		elVal := reflect.ValueOf(element)
+		elTyp := elVal.Type()
+		if !elTyp.AssignableTo(elemTyp) && elTyp.ConvertibleTo(elemTyp) {
+			elVal = elVal.Convert(elemTyp)
+		}
+		slice.Index(i).Set(elVal)
 	}
 	val.Set(slice)
+}
+
+
+// CoerceSlice attempts to upcast the elements of a slice
+// and return the newly promoted slice and true if successful.
+// If elemType is nil, the most specific type will be inferred.
+func CoerceSlice(
+	slice   reflect.Value,
+	elemTyp reflect.Type,
+) (reflect.Value, bool) {
+	st := slice.Type()
+	if st.Kind() != reflect.Slice {
+		panic("expected a slice value")
+	}
+	se := st.Elem()
+	sl := slice.Len()
+	if elemTyp == nil {
+		for i := 0; i < sl; i++ {
+			elem := slice.Index(i)
+			typ := elem.Type()
+			if typ.Kind() == reflect.Interface {
+				typ = elem.Elem().Type()
+			}
+			if elemTyp == nil {
+				elemTyp = typ
+			} else if typ != elemTyp {
+				if elemTyp.AssignableTo(typ) {
+					elemTyp = typ
+				} else {
+					return slice, false
+				}
+			}
+		}
+	}
+	if elemTyp == nil || elemTyp == se {
+		return slice, false
+	}
+	newSlice := reflect.MakeSlice(reflect.SliceOf(elemTyp), sl, sl)
+	for i := 0; i < sl; i++ {
+		elem := reflect.ValueOf(slice.Index(i).Interface())
+		if elt := elem.Type(); !elt.AssignableTo(elemTyp) && elt.ConvertibleTo(elemTyp) {
+			elem = elem.Convert(elemTyp)
+		}
+		newSlice.Index(i).Set(elem)
+	}
+	return newSlice, true
 }
 
 func coerceToPtr(

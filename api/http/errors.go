@@ -11,7 +11,10 @@ type (
 )
 
 func (s *StatusCodeMapper) ValidationError(
-	_*miruken.Maps, _ *validate.Outcome,
+	_*struct{
+		miruken.Maps
+		miruken.Format `to:"http:status-code"`
+	  }, _ *validate.Outcome,
 ) int {
 	return http.StatusUnprocessableEntity
 }

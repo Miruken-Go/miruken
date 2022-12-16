@@ -86,7 +86,7 @@ func (c *callSemantics) Handle(
 			c.Handler.Handle(callback, greedy, composer)
 		}
 		return Handled
-	case Composition:
+	case *Composition:
 		return c.Handler.Handle(callback, greedy, composer)
 	}
 	if c.semantics.IsSpecified(SemanticBroadcast) {

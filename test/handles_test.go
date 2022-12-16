@@ -1046,12 +1046,12 @@ func (suite *HandlesTestSuite) TestHandles() {
 			suite.Run("Mismatch", func() {
 				defer func() {
 					if r := recover(); r != nil {
-						suite.Equal("reflect.Set: value of type *test.Foo is not assignable to type *test.Bar", r)
+						suite.Equal("reflect.Set: value of type *test.Foo is not assignable to type int", r)
 					} else {
 						suite.Fail("Expected error")
 					}
 				}()
-				if _, _, err := miruken.Execute[*Bar](handler, new(Foo)); err != nil {
+				if _, _, err := miruken.Execute[int](handler, new(Foo)); err != nil {
 					suite.Fail("unexpected error", err.Error())
 				}
 			})

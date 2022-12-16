@@ -1,16 +1,34 @@
 package validate
 
 import (
+	"errors"
 	"fmt"
+	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/maps"
+	"github.com/miruken-go/miruken/slices"
 	"sort"
 	"strings"
 )
 
-// Outcome captures structured validation errors.
-type Outcome struct {
-	errors map[string][]error
-}
+type (
+	// Outcome captures structured validation errors.
+	Outcome struct {
+		errors map[string][]error
+	}
+
+	// ApiOutcome transports Outcome information over an api.
+	ApiOutcome struct {
+		PropertyName string
+		Errors       []string
+		Nested       []ApiOutcome
+	}
+
+	// ApiMapping maps validation errors for api transport.
+	ApiMapping struct {}
+)
+
+
+// Outcome
 
 func (v *Outcome) Valid() bool {
 	return v.errors == nil
@@ -188,3 +206,70 @@ func (v *Outcome) parseIndexer(
 	}
 }
 
+
+// ApiMapping
+
+func (m *ApiMapping) ForApi(
+	_*struct{
+		miruken.Maps
+		miruken.Format `to:"api:error"`
+	  }, outcome *Outcome,
+) (ao []ApiOutcome) {
+	if ao = buildApiOutcome(outcome); ao == nil {
+		ao = []ApiOutcome{}
+	}
+	return
+}
+
+func (m *ApiMapping) FromApi(
+	_*struct{
+		miruken.Maps
+		miruken.Format `from:"api:error"`
+	}, apiOutcome []*ApiOutcome,
+) (*Outcome, error) {
+	return buildOutcome(slices.Map[*ApiOutcome, ApiOutcome](apiOutcome,
+		func(ao *ApiOutcome) ApiOutcome {
+			return *ao
+		})), nil
+}
+
+func (m *ApiMapping) NewApiOutcome(
+	_*struct{
+		miruken.Creates `key:"validate.ApiOutcome"`
+	  }, _ *miruken.Creates,
+) *ApiOutcome {
+	return &ApiOutcome{}
+}
+
+func buildApiOutcome(outcome *Outcome) []ApiOutcome {
+	return slices.Map[string, ApiOutcome](
+		outcome.Fields(),
+		func(field string) ApiOutcome {
+			var messages []string
+			var children []ApiOutcome
+			for _, err := range outcome.FieldErrors(field) {
+				if child, ok := err.(*Outcome); ok {
+					children = append(children, buildApiOutcome(child)...)
+				} else {
+					messages = append(messages, err.Error())
+				}
+			}
+			return ApiOutcome{field, messages, children}
+		})
+}
+
+func buildOutcome(apiOutcome []ApiOutcome) *Outcome {
+	outcome := &Outcome{}
+	for _, ao := range apiOutcome {
+		field := ao.PropertyName
+		if failures := ao.Errors; len(failures) > 0 {
+			for _, msg := range failures {
+				outcome.AddError(field, errors.New(msg))
+			}
+		}
+		if nested := ao.Nested; len(nested) > 0 {
+			outcome.AddError(field, buildOutcome(nested))
+		}
+	}
+	return outcome
+}

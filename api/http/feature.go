@@ -24,6 +24,7 @@ type (
 func (i *Installer) DependsOn() []miruken.Feature {
 	return []miruken.Feature{
 		json.Feature(json.UseStandard()),
+		validate.Feature(),
 		&api.Installer{}}
 }
 
@@ -60,7 +61,6 @@ func Feature(
 func (i *ServerInstaller) DependsOn() []miruken.Feature {
 	return []miruken.Feature{
 		Feature(),
-		validate.Feature(),
 		&api.Installer{}}
 }
 

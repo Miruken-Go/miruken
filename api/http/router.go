@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"reflect"
 	"time"
 )
 
@@ -74,7 +75,7 @@ func (r *Router) Route(
 		}(res.Body)
 
 		if code := res.StatusCode; code < 200 || code >= 300 {
-			err := r.decodeError(res, composer)
+			err := r.decodeError(res, format, composer)
 			reject(fmt.Errorf("http router: %w", err))
 			return
 		}
@@ -93,8 +94,36 @@ func (r *Router) Route(
 
 func (r *Router) decodeError(
 	res      *http.Response,
+	format   string,
 	composer miruken.Handler,
 ) error {
+	contentType := res.Header.Get("Content-Type")
+	if len(contentType) == 0 {
+		contentType = format
+	}
+	if msg, _, err := miruken.Map[api.Message](composer, res.Body, miruken.From(format)); err == nil {
+		if payload := msg.Payload; payload != nil {
+			if err, _, ae := miruken.Map[error](composer, payload, api.ToError); ae == nil {
+				return err
+			} else {
+				// If mapping failed and error payload is a slice, attempt to coerce
+				// the slice into the most specific element type.  This is necessary
+				// since polymorphic slices will be decoded as []any and mapping
+				// functions typically declare concrete slices.
+				var nh *miruken.NotHandledError
+				if errors.As(ae, &nh) {
+					if val := reflect.ValueOf(payload); val.Type().Kind() == reflect.Slice {
+						if sv, ok := miruken.CoerceSlice(val, nil); ok {
+							slice := sv.Interface()
+							if err, _, ae = miruken.Map[error](composer, slice, api.ToError); ae == nil {
+								return err
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 	return errors.New(res.Status)
 }
 
