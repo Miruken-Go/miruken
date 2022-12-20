@@ -129,7 +129,6 @@ func CopySliceIndirect(src []any, target any) {
 	val.Set(slice)
 }
 
-
 // CoerceSlice attempts to upcast the elements of a slice
 // and return the newly promoted slice and true if successful.
 // If elemType is nil, the most specific type will be inferred.

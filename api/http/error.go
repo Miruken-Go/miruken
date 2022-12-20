@@ -10,6 +10,18 @@ type (
 	StatusCodeMapper struct {}
 )
 
+func (s *StatusCodeMapper) NotHandled(
+	_*struct{
+		miruken.Maps
+		miruken.Format `to:"http:status-code"`
+	  }, nhe *miruken.NotHandledError,
+) int {
+	if _, ok := nhe.Callback.(*miruken.Maps); ok {
+		return http.StatusUnsupportedMediaType
+	}
+	return http.StatusInternalServerError
+}
+
 func (s *StatusCodeMapper) ValidationError(
 	_*struct{
 		miruken.Maps

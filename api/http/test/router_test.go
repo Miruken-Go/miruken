@@ -1,6 +1,7 @@
 package test
 
 import (
+	json2 "encoding/json"
 	"errors"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
@@ -9,6 +10,7 @@ import (
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/validate"
 	"github.com/stretchr/testify/suite"
+	"io"
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
@@ -46,6 +48,8 @@ type (
 	TeamApiConsumer struct {
 		notifications []any
 	}
+
+	BadFormatter struct {}
 )
 
 // TeamApiHandler
@@ -75,7 +79,7 @@ func (t *TeamApiHandler) NewCreateTeam(
 		miruken.Creates `key:"test.CreateTeam"`
 	  }, _ *miruken.Creates,
 ) *CreateTeam {
-	return &CreateTeam{}
+	return new(CreateTeam)
 }
 
 func (t *TeamApiHandler) NewTeamCreated(
@@ -83,7 +87,7 @@ func (t *TeamApiHandler) NewTeamCreated(
 		miruken.Creates `key:"test.TeamCreated"`
 	  }, _ *miruken.Creates,
 ) *TeamCreated {
-	return &TeamCreated{}
+	return new(TeamCreated)
 }
 
 func (t *TeamApiHandler) NewGetTeamNotifications(
@@ -91,7 +95,7 @@ func (t *TeamApiHandler) NewGetTeamNotifications(
 		miruken.Creates `key:"test.GetTeamNotifications"`
 	}, _ *miruken.Creates,
 ) *GetTeamNotifications {
-	return &GetTeamNotifications{}
+	return new(GetTeamNotifications)
 }
 
 func (t *TeamApiHandler) NewTeam(
@@ -99,7 +103,7 @@ func (t *TeamApiHandler) NewTeam(
 		miruken.Creates `key:"test.TeamData"`
 	  }, _ *miruken.Creates,
 ) *TeamData {
-	return &TeamData{}
+	return new(TeamData)
 }
 
 
@@ -117,16 +121,35 @@ func (t *TeamApiConsumer) TeamNotifications(
 	return t.notifications
 }
 
+
+// BadFormatter
+
+func (f *BadFormatter) Bad(
+	_*struct{
+		miruken.Maps
+		miruken.Format `to:"bad"`
+	  }, msg api.Message,
+	maps *miruken.Maps,
+) (io.Writer, error) {
+	if writer, ok := maps.Target().(*io.Writer); ok && !miruken.IsNil(writer) {
+		enc := json2.NewEncoder(*writer)
+		err := enc.Encode(msg.Payload)
+		return *writer, err
+	}
+	return nil, nil
+}
+
 type RouterTestSuite struct {
 	suite.Suite
 	srv *httptest.Server
 }
 
-func (suite *RouterTestSuite) Setup() *miruken.Context {
+func (suite *RouterTestSuite) Setup(specs ... any) *miruken.Context {
 	handler, _ := miruken.Setup(
 		TestFeature,
 		http.Feature(),
-		miruken.HandlerSpecs(&json.GoTypeFieldMapper{}))
+		miruken.HandlerSpecs(&json.GoTypeFieldMapper{}),
+		miruken.HandlerSpecs(specs...))
 	return miruken.NewContext(handler)
 }
 
@@ -190,7 +213,7 @@ func (suite *RouterTestSuite) TestRouter() {
 
 		suite.Run("ValidationError", func() {
 			handler := suite.Setup()
-			create := api.RouteTo(CreateTeam{}, suite.srv.URL)
+			create  := api.RouteTo(CreateTeam{}, suite.srv.URL)
 			_, pp, err := api.Send[*TeamData](handler, create)
 			suite.Nil(err)
 			suite.NotNil(pp)
@@ -202,6 +225,18 @@ func (suite *RouterTestSuite) TestRouter() {
 			suite.ElementsMatch(
 				[]error{errors.New(`"Name" is required`)},
 				outcome.FieldErrors("Name"))
+		})
+
+		suite.Run("UnknownFormat", func() {
+			handler := miruken.BuildUp(
+				suite.Setup(&BadFormatter{}),
+				miruken.Options(http.Options{Format: miruken.Set("bad")}))
+			create  := api.RouteTo(CreateTeam{}, suite.srv.URL)
+			_, pp, err := api.Send[*TeamData](handler, create)
+			suite.Nil(err)
+			suite.NotNil(pp)
+			_, err = pp.Await()
+			suite.ErrorContains(err, "415 Unsupported Media Type")
 		})
 	})
 }

@@ -238,7 +238,7 @@ func (m *ApiMapping) NewApiOutcome(
 		miruken.Creates `key:"validate.ApiOutcome"`
 	  }, _ *miruken.Creates,
 ) *ApiOutcome {
-	return &ApiOutcome{}
+	return new(ApiOutcome)
 }
 
 func buildApiOutcome(outcome *Outcome) []ApiOutcome {

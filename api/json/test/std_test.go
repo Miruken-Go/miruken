@@ -57,7 +57,7 @@ func (m *TypeIdMapper) CreateTeam(
 		_*miruken.Creates `key:"test.TeamData"`
 	  }, _ *miruken.Creates,
 ) *TeamData {
-	return &TeamData{}
+	return new(TeamData)
 }
 
 type JsonStdTestSuite struct {
