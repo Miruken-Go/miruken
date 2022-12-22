@@ -237,6 +237,8 @@ func (suite *RouterTestSuite) TestRouter() {
 			suite.NotNil(pp)
 			_, err = pp.Await()
 			suite.ErrorContains(err, "415 Unsupported Media Type")
+			var nh *miruken.NotHandledError
+			suite.ErrorAs(err, &nh)
 		})
 	})
 }

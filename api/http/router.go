@@ -75,8 +75,17 @@ func (r *Router) Route(
 		}(res.Body)
 
 		if code := res.StatusCode; code < 200 || code >= 300 {
-			err := r.decodeError(res, format, composer)
-			reject(fmt.Errorf("http router: %w", err))
+			var err error
+			if code == http.StatusUnsupportedMediaType {
+				err = &miruken.NotHandledError{Callback: routed}
+			} else {
+				err = r.decodeError(res, format, composer)
+			}
+			if err == nil {
+				reject(errors.New(res.Status))
+			} else {
+				reject(fmt.Errorf("http router: (%s) %w", res.Status, err))
+			}
 			return
 		}
 
@@ -124,7 +133,7 @@ func (r *Router) decodeError(
 			}
 		}
 	}
-	return errors.New(res.Status)
+	return nil
 }
 
 func (r *Router) getResourceUri(
