@@ -119,6 +119,33 @@ func (m *FormatMapper) FromPlayerJson(
 	return data, err
 }
 
+func (m *FormatMapper) StartsWith(
+	_*struct{
+		miruken.Maps
+		miruken.Format `to:"/hello"`
+	  }, _ *PlayerData,
+) string {
+	return "startsWith"
+}
+
+func (m *FormatMapper) EndsWith(
+	_*struct{
+		miruken.Maps
+		miruken.Format `to:"world/"`
+	  }, _ *PlayerData,
+) string {
+	return "endsWith"
+}
+
+func (m *FormatMapper) Pattern(
+	_*struct{
+		miruken.Maps
+		miruken.Format `to:"/J\\d+![A-Z]+\\d/"`
+	  }, _ *PlayerData,
+) string {
+	return "pattern"
+}
+
 // InvalidMapper
 type InvalidMapper struct {}
 
@@ -327,6 +354,59 @@ func (suite *MapsTestSuite) TestMap() {
 			_, err := suite.SetupWith(&InvalidMapper{})
 			suite.Nil(err)
 			suite.Fail("should cause panic")
+		})
+	})
+
+	suite.Run("Format", func () {
+		suite.Run("StartsWith", func () {
+			handler, _ := suite.SetupWith(&FormatMapper{})
+			var data PlayerData
+			res, _, err := miruken.Map[string](handler, &data, miruken.To("hello"))
+			suite.Nil(err)
+			suite.Equal("startsWith", res)
+			res, _, err = miruken.Map[string](handler, &data, miruken.To("hellohello"))
+			suite.Nil(err)
+			suite.Equal("startsWith", res)
+			res, _, err = miruken.Map[string](handler, &data, miruken.To("/hello"))
+			suite.Nil(err)
+			suite.Equal("startsWith", res)
+			res, _, err = miruken.Map[string](handler, &data, miruken.To("hel"))
+			suite.NotNil(err)
+			res, _, err = miruken.Map[string](handler, &data, miruken.To("/hel"))
+			suite.NotNil(err)
+		})
+
+		suite.Run("EndsWith", func () {
+			handler, _ := suite.SetupWith(&FormatMapper{})
+			var data PlayerData
+			res, _, err := miruken.Map[string](handler, &data, miruken.To("world"))
+			suite.Nil(err)
+			suite.Equal("endsWith", res)
+			res, _, err = miruken.Map[string](handler, &data, miruken.To("theworld"))
+			suite.Nil(err)
+			suite.Equal("endsWith", res)
+			res, _, err = miruken.Map[string](handler, &data, miruken.To("world/"))
+			suite.Nil(err)
+			suite.Equal("endsWith", res)
+			res, _, err = miruken.Map[string](handler, &data, miruken.To("worldwide"))
+			suite.NotNil(err)
+			res, _, err = miruken.Map[string](handler, &data, miruken.To("wor/"))
+			suite.NotNil(err)
+		})
+
+		suite.Run("Pattern", func () {
+			handler, _ := suite.SetupWith(&FormatMapper{})
+			var data PlayerData
+			res, _, err := miruken.Map[string](handler, &data, miruken.To("J9!P3"))
+			suite.Nil(err)
+			suite.Equal("pattern", res)
+			res, _, err = miruken.Map[string](handler, &data, miruken.To("J256!ABC1"))
+			suite.Nil(err)
+			suite.Equal("pattern", res)
+			res, _, err = miruken.Map[string](handler, &data, miruken.To("J!2"))
+			suite.NotNil(err)
+			res, _, err = miruken.Map[string](handler, &data, miruken.To("J85!92"))
+			suite.NotNil(err)
 		})
 	})
 }

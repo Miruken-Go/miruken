@@ -2,8 +2,10 @@ package miruken
 
 import (
 	"errors"
+	"fmt"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
+	"regexp"
 	"strings"
 )
 
@@ -27,10 +29,15 @@ type (
 	// FormatDirection indicates direction of formatting.
 	FormatDirection uint8
 
+	// FormatRule describes how to interpret the format.
+	FormatRule uint8
+
 	// Format is a BindingConstraint for applying formatting.
 	Format struct {
-		direction FormatDirection
-		rule      any
+		direction  FormatDirection
+		rule       FormatRule
+		identifier string
+		pattern    *regexp.Regexp
 	}
 )
 
@@ -38,6 +45,11 @@ const (
 	FormatDirectionNone FormatDirection = 0
 	FormatDirectionTo FormatDirection = 1 << iota
 	FormatDirectionFrom
+
+	FormatRuleEquals     FormatRule = 0
+	FormatRuleStartsWith FormatRule = 1 << iota
+	FormatRuleEndsWith
+	FormatRulePattern
 )
 
 // Maps
@@ -78,39 +90,35 @@ func (f *Format) Direction() FormatDirection {
 	return f.direction
 }
 
-func (f *Format) Rule() any {
+func (f *Format) Rule() FormatRule {
 	return f.rule
 }
 
+func (f *Format) Identifier() string {
+	return f.identifier
+}
+
 func (f *Format) InitWithTag(tag reflect.StructTag) error {
-	var format string
 	if to, ok := tag.Lookup("to"); ok {
-		format      = to
 		f.direction = FormatDirectionTo
+		return f.parse(to)
 	} else if from, ok := tag.Lookup("from"); ok {
-		format      = from
 		f.direction = FormatDirectionFrom
+		return f.parse(from)
 	}
-	if format = strings.TrimSpace(format); len(format) > 0 {
-		f.rule = format
-	}
-	if IsNil(f.rule) {
-		return ErrInvalidFormatRule
-	}
-	return nil
+	return ErrInvalidFormat
 }
 
 func (f *Format) Merge(constraint BindingConstraint) bool {
 	if format, ok := constraint.(*Format); ok {
-		f.direction = format.direction
-		f.rule      = format.rule
+		*f = *format
 		return true
 	}
 	return false
 }
 
 func (f *Format) Require(metadata *BindingMetadata) {
-	if rule := f.rule; !IsNil(rule) {
+	if identifier := f.identifier; len(identifier) > 0 {
 		metadata.Set(_formatType, f)
 	}
 }
@@ -118,20 +126,104 @@ func (f *Format) Require(metadata *BindingMetadata) {
 func (f *Format) Matches(metadata *BindingMetadata) bool {
 	if m, ok := metadata.Get(_formatType); ok {
 		if format, ok := m.(*Format); ok {
-			return *format == *f
+			if f.direction != format.direction {
+				return false
+			}
+			switch f.rule {
+			case FormatRuleEquals:
+				switch format.rule {
+				case FormatRuleEquals:
+					return f.identifier == format.identifier
+				case FormatRuleStartsWith:
+					return strings.HasPrefix(f.identifier, format.identifier)
+				case FormatRuleEndsWith:
+					return strings.HasSuffix(f.identifier, format.identifier)
+				case FormatRulePattern:
+					return format.pattern.MatchString(f.identifier)
+				}
+			case FormatRuleStartsWith:
+				switch format.rule {
+				case FormatRuleEquals, FormatRuleStartsWith:
+					return strings.HasPrefix(format.identifier, f.identifier)
+				case FormatRulePattern:
+					return format.pattern.MatchString(f.identifier)
+				}
+			case FormatRuleEndsWith:
+				switch format.rule {
+				case FormatRuleEquals:
+					return strings.HasSuffix(format.identifier, f.identifier)
+				case FormatRuleEndsWith:
+					return strings.HasSuffix(f.identifier, format.identifier)
+				case FormatRulePattern:
+					return format.pattern.MatchString(f.identifier)
+				}
+			case FormatRulePattern:
+				switch format.rule {
+				case FormatRuleEquals, FormatRuleStartsWith, FormatRuleEndsWith:
+					return f.pattern.MatchString(format.identifier)
+				}
+			}
 		}
 	}
 	return false
 }
 
+func (f *Format) parse(format string) error {
+	format = strings.TrimSpace(format)
+	var start, end int
+	var startsWith, endsWith bool
+	if strings.HasPrefix(format, "//") {
+		start = 1
+	} else if strings.HasPrefix(format, "/") {
+		start      = 1
+		startsWith = true
+	}
+	if strings.HasSuffix(format, "//") {
+		end = 1
+	} else if strings.HasSuffix(format, "/") {
+		end      = 1
+		endsWith = true
+	}
+	if start > 0 || end > 0 {
+		format = strings.TrimSpace(format[start:len(format)-end])
+	}
+	if len(format) == 0 {
+		return ErrEmptyFormatIdentifier
+	}
+	if startsWith {
+		if endsWith {
+			if regex, err := regexp.Compile(format); err != nil {
+				return fmt.Errorf("invalid format pattern: %w", err)
+			} else {
+				f.pattern = regex
+			}
+			f.rule = FormatRulePattern
+		} else {
+			f.rule = FormatRuleStartsWith
+		}
+	} else if endsWith {
+		f.rule = FormatRuleEndsWith
+	}
+	f.identifier = format
+	return nil
+}
+
 // To maps to a format.
 func To(format string) *Format {
-	return &Format{FormatDirectionTo, format}
+	f := &Format{direction: FormatDirectionTo}
+	if err := f.parse(format); err != nil {
+		panic(err)
+	}
+	return f
 }
 
 // From maps from a format.
 func From(format string) *Format {
-	return &Format{FormatDirectionFrom, format}
+	f := &Format{direction: FormatDirectionFrom}
+	if err := f.parse(format); err != nil {
+		panic(err)
+	}
+	return f
 }
 
 // MapsBuilder
@@ -294,7 +386,8 @@ func MapAll[T any](
 }
 
 var (
-	_mapsPolicy Policy   = &BivariantPolicy{}
-	_formatType          = TypeOf[*Format]()
-	ErrInvalidFormatRule = errors.New("the Format rule is invalid")
+	_mapsPolicy Policy       = &BivariantPolicy{}
+	_formatType              = TypeOf[*Format]()
+	ErrInvalidFormat         = errors.New("invalid format tag")
+	ErrEmptyFormatIdentifier = errors.New("empty format identifier")
 )
