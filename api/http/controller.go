@@ -26,7 +26,7 @@ func (c *Controller) ServeHTTP(
 	defer ctx.Dispose()
 	format := r.Header.Get("Content-Type")
 	if len(format) == 0 {
-		format = defaultContentType
+		format = defaultFormat
 	}
 	if msg, _, err := miruken.Map[api.Message](ctx, r.Body, miruken.From(format)); err != nil {
 		c.encodeError(err, format, w, ctx)

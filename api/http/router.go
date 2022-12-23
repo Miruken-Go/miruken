@@ -25,8 +25,8 @@ type (
 	Router struct {}
 )
 
-const defaultTimeout     = 30 * time.Second
-const defaultContentType = "application/json"
+const defaultFormat = "application/json"
+const defaultTimeout = 30 * time.Second
 
 func (r *Router) Route(
 	_*struct{
@@ -48,7 +48,7 @@ func (r *Router) Route(
 		}
 
 		composer := ctx.Composer()
-		format   := options.Format.ValueOrDefault(defaultContentType)
+		format   := options.Format.ValueOrDefault(defaultFormat)
 
 		var b bytes.Buffer
 		out := io.Writer(&b)

@@ -10,7 +10,7 @@ type (
 	StatusCodeMapper struct {}
 )
 
-func (s *StatusCodeMapper) NotHandled(
+func (s *StatusCodeMapper) NotHandledError(
 	_*struct{
 		miruken.Maps
 		miruken.Format `to:"http:status-code"`
