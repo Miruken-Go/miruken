@@ -39,7 +39,7 @@ func (v *Provider) AppliesTo(
 }
 
 func (v *Provider) Filters(
-	binding miruken.Binding,
+	binding  miruken.Binding,
 	callback any,
 	composer miruken.Handler,
 ) ([]miruken.Filter, error) {

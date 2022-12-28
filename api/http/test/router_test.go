@@ -230,7 +230,7 @@ func (suite *RouterTestSuite) TestRouter() {
 		suite.Run("UnknownFormat", func() {
 			handler := miruken.BuildUp(
 				suite.Setup(&BadFormatter{}),
-				miruken.Options(http.Options{Format: miruken.Set("bad")}))
+				http.Format("bad"))
 			create  := api.RouteTo(CreateTeam{}, suite.srv.URL)
 			_, pp, err := api.Send[*TeamData](handler, create)
 			suite.Nil(err)

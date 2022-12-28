@@ -145,3 +145,9 @@ func (r *Router) getResourceUri(
 	}
 	return url.JoinPath(routed.Route, "process")
 }
+
+
+// Format returns a miruken.Builder requesting a specific format.
+func Format(format string) miruken.Builder {
+	return miruken.Options(Options{Format: miruken.Set(format)})
+}

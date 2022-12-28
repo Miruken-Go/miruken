@@ -106,7 +106,7 @@ func (l *LogFilter) DynNext(
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
-	logging Logging,
+	logging  Logging,
 )  ([]any, *promise.Promise[[]any], error) {
 	captured := extractCaptured(ctx.Callback())
 	logging.Log(

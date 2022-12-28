@@ -2,7 +2,7 @@ package promise
 
 import "sync"
 
-// Deferred represents the computation that fulfills a Promise.
+// Deferred represents a computation that fulfills a Promise.
 type Deferred[T any] struct {
 	promise *Promise[T]
 }

@@ -133,7 +133,7 @@ func (r routesFilter) Next(
 			composer := ctx.Composer()
 			if batch := miruken.GetBatch[*batchRouter](composer); batch != nil {
 				return next.Handle(
-					miruken.Batched[Routed]{routed, callback},
+					miruken.Batched[Routed]{Source: routed, Callback: callback},
 					ctx.Greedy(),
 					composer)
 			}

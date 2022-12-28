@@ -95,3 +95,9 @@ func (m *messageMapper) DecodeApiMessage(
 	err := dec.Decode(&msg)
 	return api.Message{Payload: payload}, err
 }
+
+
+// Polymorphic returns a miruken.Builder that enables polymorphic messaging.
+var Polymorphic miruken.Builder  = miruken.Options(api.PolymorphicOptions{
+		PolymorphicHandling: miruken.Set(api.PolymorphicHandlingRoot),
+	})

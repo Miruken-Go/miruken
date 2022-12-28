@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	"github.com/miruken-go/miruken/api/json/conjson"
+	"github.com/miruken-go/miruken/api/json/conjson/transform"
 	"io"
 	"reflect"
 )
@@ -16,9 +18,10 @@ type (
 
 	// StdOptions provide options for controlling json encoding.
 	StdOptions struct {
-		Prefix     string
-		Indent     string
-		EscapeHTML miruken.Option[bool]
+		Prefix       string
+		Indent       string
+		EscapeHTML   miruken.Option[bool]
+		Transformers []transform.Transformer
 	}
 )
 
@@ -43,6 +46,9 @@ func (m *StdMapper) ToJson(
 	src := maps.Source()
 	if polyOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
 		src = &typeContainer{src, ctx.Composer()}
+	}
+	if transformers := options.Transformers; len(transformers) > 0 {
+		src = &transformer{src, transformers}
 	}
 	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
 		data, err = json.MarshalIndent(src, prefix, indent)
@@ -79,6 +85,9 @@ func (m *StdMapper) ToJsonStream(
 		if polyOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
 			src = &typeContainer{src, ctx.Composer()}
 		}
+		if transformers := options.Transformers; len(transformers) > 0 {
+			src = &transformer{src, transformers}
+		}
 		err    = enc.Encode(src)
 		stream = *writer
 	}
@@ -93,11 +102,19 @@ func (m *StdMapper) FromJson(
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
+	  }, options StdOptions,
+	_*struct{
+		miruken.Optional
+		miruken.FromOptions
 	  }, polyOptions api.PolymorphicOptions,
 	maps *miruken.Maps,
 	ctx  miruken.HandleContext,
 ) (any, error) {
 	target := maps.Target()
+	if transformers := options.Transformers; len(transformers) > 0 {
+		t := transformer{target, transformers}
+		target = &t
+	}
 	if polyOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
 		tc := typeContainer{target, ctx.Composer()}
 		err := json.Unmarshal([]byte(jsonString), &tc)
@@ -115,12 +132,20 @@ func (m *StdMapper) FromJsonStream(
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
+	  }, options StdOptions,
+	_*struct{
+		miruken.Optional
+		miruken.FromOptions
 	  }, polyOptions api.PolymorphicOptions,
 	maps *miruken.Maps,
 	ctx  miruken.HandleContext,
 ) (any, error) {
 	target := maps.Target()
 	dec    := json.NewDecoder(stream)
+	if transformers := options.Transformers; len(transformers) > 0 {
+		t := transformer{target, transformers}
+		target = &t
+	}
 	if polyOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
 		tc := typeContainer{target,ctx.Composer()}
 		err := dec.Decode(&tc)
@@ -130,6 +155,17 @@ func (m *StdMapper) FromJsonStream(
 	return target, err
 }
 
+
+// Format returns a miruken.Builder for controlling indentation and formatting.
+func Format(prefix, indent string) miruken.Builder {
+	return miruken.Options(StdOptions{Prefix: prefix, Indent: indent})
+}
+
+// Transform returns a miruken.Builder that applies all transformations.
+func Transform(transformers ...transform.Transformer) miruken.Builder {
+	return miruken.Options(StdOptions{Transformers: transformers})
+}
+
 type (
 	// typeContainer is a helper type used to emit type field
 	// information for polymorphic serialization/deserialization.
@@ -137,7 +173,16 @@ type (
 		v        any
 		composer miruken.Handler
 	}
+
+	// transformer applies all transformations to the json bytes.
+	transformer struct {
+		v            any
+		transformers []transform.Transformer
+	}
 )
+
+
+// typeContainer
 
 func (c *typeContainer) MarshalJSON() ([]byte, error) {
 	v   := c.v
@@ -257,4 +302,19 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 		}
 	}
 	return nil
+}
+
+
+// transformer
+
+func (t *transformer) MarshalJSON() ([]byte, error) {
+	container := conjson.NewMarshaler(t.v, t.transformers...)
+	return json.Marshal(container)
+}
+
+func (t *transformer) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(
+		data,
+		conjson.NewUnmarshaler(t.v, t.transformers...),
+	)
 }
