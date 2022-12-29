@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/Rican7/conjson"
+	"github.com/Rican7/conjson/transform"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
-	"github.com/miruken-go/miruken/api/json/conjson"
-	"github.com/miruken-go/miruken/api/json/conjson/transform"
 	"io"
 	"reflect"
 )
@@ -155,14 +155,13 @@ func (m *StdMapper) FromJsonStream(
 	return target, err
 }
 
-
-// Format returns a miruken.Builder for controlling indentation and formatting.
-func Format(prefix, indent string) miruken.Builder {
+// StdFormat returns a miruken.Builder for controlling indentation and formatting.
+func StdFormat(prefix, indent string) miruken.Builder {
 	return miruken.Options(StdOptions{Prefix: prefix, Indent: indent})
 }
 
-// Transform returns a miruken.Builder that applies all transformations.
-func Transform(transformers ...transform.Transformer) miruken.Builder {
+// StdTransform returns a miruken.Builder that applies all transformations.
+func StdTransform(transformers ...transform.Transformer) miruken.Builder {
 	return miruken.Options(StdOptions{Transformers: transformers})
 }
 
@@ -308,13 +307,10 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 // transformer
 
 func (t *transformer) MarshalJSON() ([]byte, error) {
-	container := conjson.NewMarshaler(t.v, t.transformers...)
-	return json.Marshal(container)
+	conventions := conjson.NewMarshaler(t.v, t.transformers...)
+	return json.Marshal(conventions)
 }
 
 func (t *transformer) UnmarshalJSON(data []byte) error {
-	return json.Unmarshal(
-		data,
-		conjson.NewUnmarshaler(t.v, t.transformers...),
-	)
+	return json.Unmarshal(data, conjson.NewUnmarshaler(t.v, t.transformers...))
 }
