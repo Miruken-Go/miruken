@@ -25,8 +25,6 @@ type (
 	}
 )
 
-// StdMapper
-
 func (m *StdMapper) ToJson(
 	_*struct{
 		miruken.Maps
@@ -155,6 +153,7 @@ func (m *StdMapper) FromJsonStream(
 	return target, err
 }
 
+
 // StdFormat returns a miruken.Builder for controlling indentation and formatting.
 func StdFormat(prefix, indent string) miruken.Builder {
 	return miruken.Options(StdOptions{Prefix: prefix, Indent: indent})
@@ -165,23 +164,13 @@ func StdTransform(transformers ...transform.Transformer) miruken.Builder {
 	return miruken.Options(StdOptions{Transformers: transformers})
 }
 
-type (
-	// typeContainer is a helper type used to emit type field
-	// information for polymorphic serialization/deserialization.
-	typeContainer struct {
-		v        any
-		composer miruken.Handler
-	}
 
-	// transformer applies all transformations to the json bytes.
-	transformer struct {
-		v            any
-		transformers []transform.Transformer
-	}
-)
-
-
-// typeContainer
+// typeContainer is a helper type used to emit type field
+// information for polymorphic serialization/deserialization.
+type typeContainer struct {
+	v        any
+	composer miruken.Handler
+}
 
 func (c *typeContainer) MarshalJSON() ([]byte, error) {
 	v   := c.v
@@ -304,7 +293,11 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 }
 
 
-// transformer
+// transformer applies transformations to json serialization.
+type transformer struct {
+	v            any
+	transformers []transform.Transformer
+}
 
 func (t *transformer) MarshalJSON() ([]byte, error) {
 	conventions := conjson.NewMarshaler(t.v, t.transformers...)

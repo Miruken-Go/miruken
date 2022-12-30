@@ -14,7 +14,7 @@ func (v *Installer) ValidateOutput () {
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {
 		setup.RegisterHandlers(&ApiMapping{})
-		setup.AddFilters(NewValidateProvider(v.output))
+		setup.AddFilters(NewProvider(v.output))
 	}
 	return nil
 }

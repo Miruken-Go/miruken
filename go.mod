@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/Rican7/conjson v0.1.0
 	github.com/bearbin/go-age v0.0.0-20210220235509-f0fa00c278ce
+	github.com/go-logr/logr v1.2.3
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/imdario/mergo v0.3.13
 	github.com/stretchr/testify v1.8.1

@@ -46,9 +46,9 @@ func (v *Provider) Filters(
 	return _filters, nil
 }
 
-// NewValidateProvider builds a new Provider.
+// NewProvider builds a new Provider.
 // If validateOutput is true, all output will be validated too.
-func NewValidateProvider(validateOutput bool) *Provider {
+func NewProvider(validateOutput bool) *Provider {
 	return &Provider{validateOutput}
 }
 

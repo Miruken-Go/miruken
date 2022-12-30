@@ -62,6 +62,12 @@ func (b *methodBinding) Invoke(
 	return callFunc(b.method.Func, ctx, b.args, initArgs...)
 }
 
+func (b *methodBinding) Method() reflect.Method {
+	return b.method
+}
+
+// MethodBindingError
+
 func (e *MethodBindingError) Method() reflect.Method {
 	return e.method
 }

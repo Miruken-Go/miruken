@@ -84,7 +84,7 @@ func (t *TeamApiHandler) NewCreateTeam(
 
 func (t *TeamApiHandler) NewTeamCreated(
 	_*struct{
-		miruken.Creates `key:"test.TeamCreated"`
+		miruken.Creates `key:"*test.TeamCreated"`
 	  }, _ *miruken.Creates,
 ) *TeamCreated {
 	return new(TeamCreated)
@@ -100,7 +100,7 @@ func (t *TeamApiHandler) NewGetTeamNotifications(
 
 func (t *TeamApiHandler) NewTeam(
 	_*struct{
-		miruken.Creates `key:"test.TeamData"`
+		miruken.Creates `key:"*test.TeamData"`
 	  }, _ *miruken.Creates,
 ) *TeamData {
 	return new(TeamData)
@@ -192,7 +192,7 @@ func (suite *RouterTestSuite) TestRouter() {
 
 		suite.Run("Publish", func() {
 			handler := suite.Setup()
-			created := TeamCreated{TeamData{8, "Liverpool", nil}}
+			created := &TeamCreated{TeamData{8, "Liverpool", nil}}
 			notify  := api.RouteTo(created, suite.srv.URL)
 			pv, err := api.Publish(handler, notify)
 			suite.Nil(err)

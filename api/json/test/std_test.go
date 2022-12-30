@@ -399,21 +399,6 @@ func (suite *JsonStdTestSuite) TestJson() {
 				suite.Equal("{\"id\":1,\"name\":\"TIM HOWARD\"}", j)
 			})
 
-			suite.Run("ToJsonMissingTypeInfo", func() {
-				data := struct{
-					Name string
-					Age  int
-				}{
-					"James Webb",
-					85,
-				}
-				_, _, err := miruken.Map[string](
-					miruken.BuildUp(handler, json.Polymorphic),
-					data, miruken.To("application/json"))
-				suite.NotNil(err)
-				suite.ErrorContains(err, "no type info for anonymous struct { Name string; Age int }")
-			})
-
 			suite.Run("FromJson", func() {
 				type Data struct {
 					Name string

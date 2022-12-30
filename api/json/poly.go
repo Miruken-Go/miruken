@@ -2,7 +2,6 @@ package json
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"io"
@@ -49,14 +48,7 @@ func (m *GoTypeFieldMapper) GoTypeInfo(
 	  }, maps *miruken.Maps,
 ) (TypeFieldInfo, error) {
 	typ := reflect.TypeOf(maps.Source())
-	if typ.Kind() == reflect.Ptr {
-		typ = typ.Elem()
-	}
-	if name := typ.Name(); len(name) == 0 {
-		return TypeFieldInfo{}, fmt.Errorf("no type info for anonymous %+v", typ)
-	} else {
-		return TypeFieldInfo{"@type", typ.String()}, nil
-	}
+	return TypeFieldInfo{"@type", typ.String()}, nil
 }
 
 

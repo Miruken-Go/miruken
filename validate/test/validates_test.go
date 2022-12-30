@@ -319,7 +319,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 	suite.Run("ValidateFilter", func () {
 		handler, _ := suite.Setup()
 		var handles miruken.Handles
-		validatesFilter := validate.NewValidateProvider(true)
+		validatesFilter := validate.NewProvider(true)
 		handles.Policy().AddFilters(validatesFilter)
 		defer func() {
 			handles.Policy().RemoveFilters(validatesFilter)
