@@ -108,4 +108,6 @@ func (c *Controller) encodeError(
 	_, _ = miruken.MapInto(ctx, msg, &out, miruken.To(format))
 }
 
-var _toStatusCode = miruken.To("http:status-code")
+var (
+	_toStatusCode = miruken.To("http:status-code")
+)

@@ -9,29 +9,26 @@ import (
 )
 
 type (
-	// TypeFieldInfo defines the metadata for encoding
-	// polymorphic json message discriminators.
+	// TypeFieldInfo defines the metadata for describing polymorphic messages.
 	TypeFieldInfo struct {
 		Field string
 		Value string
 	}
 
-	// GoTypeFieldMapper provides TypeFieldInfo using the
-	// fully qualified package and type name.
+	// GoTypeFieldMapper provides TypeFieldInfo from  fully qualified package and name.
 	GoTypeFieldMapper struct {}
 
-	// message is a json specific envelope for polymorphic payloads.
+	// message is the internal envelope for polymorphic json payloads.
 	message struct {
 		Payload *typeContainer `json:"payload"`
 	}
 
-	// messageMapper provides the serialization/deserialization
-	// of json polymorphic payloads.
+	// messageMapper provides serialization/deserialization of message's.
 	messageMapper struct {}
 )
 
 var (
-	// ToTypeInfo request type information for a type.
+	// ToTypeInfo requests type information for a type.
 	ToTypeInfo = miruken.To("type:info")
 
 	// KnownTypeFields holds the list of json property names
@@ -89,7 +86,9 @@ func (m *messageMapper) DecodeApiMessage(
 }
 
 
-// Polymorphic returns a miruken.Builder that enables polymorphic messaging.
-var Polymorphic miruken.Builder  = miruken.Options(api.PolymorphicOptions{
+var (
+	// Polymorphic returns a miruken.Builder that enables polymorphic messaging.
+	Polymorphic miruken.Builder = miruken.Options(api.PolymorphicOptions{
 		PolymorphicHandling: miruken.Set(api.PolymorphicHandlingRoot),
 	})
+)

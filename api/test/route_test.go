@@ -116,7 +116,7 @@ func (suite *RouteTestSuite) TestRoute() {
 			getQuote := GetStockQuote{"GOOGL"}
 			called := false
 			pb := miruken.BatchAsync(handler,
-				func(batch miruken.Handler) *promise.Promise[any]{
+				func(batch miruken.Handler) *promise.Promise[any] {
 					_, pq, err := api.Send[StockQuote](batch, api.RouteTo(getQuote, "trash"))
 					suite.Nil(err)
 					return pq.Catch(func(err error) error {

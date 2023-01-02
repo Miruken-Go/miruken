@@ -41,7 +41,7 @@ func (c *CancelOrderFilter) Next(
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  ([]any, *promise.Promise[[]any], error) {
-	cancel := ctx.Callback().(*miruken.Handles).Source().(*CancelOrder)
+	cancel := ctx.Callback().Source().(*CancelOrder)
 	order  := &Order{cancel.orderId, OrderCreated}
 	if err := api.StashPut(ctx.Composer(), order); err != nil {
 		return next.Fail(err)

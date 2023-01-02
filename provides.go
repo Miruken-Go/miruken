@@ -12,6 +12,7 @@ type Provides struct {
 	parent *Provides
 	handler any
 	binding Binding
+	owner   any
 }
 
 func (p *Provides) Key() any {
@@ -28,6 +29,10 @@ func (p *Provides) Parent() *Provides {
 
 func (p *Provides) Binding() Binding {
 	return p.binding
+}
+
+func (p *Provides) Owner() any {
+	return p.owner
 }
 
 func (p *Provides) CanDispatch(
@@ -101,8 +106,9 @@ func (p *Provides) acceptPromise(
 // ProvidesBuilder builds Provides callbacks.
 type ProvidesBuilder struct {
 	CallbackBuilder
-	key          any
-	parent      *Provides
+	key      any
+	parent  *Provides
+	owner    any
 }
 
 func (b *ProvidesBuilder) WithKey(
@@ -122,6 +128,13 @@ func (b *ProvidesBuilder) WithParent(
 	return b
 }
 
+func (b *ProvidesBuilder) ForOwner(
+	owner any,
+) *ProvidesBuilder {
+	b.owner = owner
+	return b
+}
+
 func (b *ProvidesBuilder) Provides() Provides {
 	provides := Provides{
 		CallbackBase: b.CallbackBase(),
@@ -136,6 +149,7 @@ func (b *ProvidesBuilder) NewProvides() *Provides {
 		CallbackBase: b.CallbackBase(),
 		key:          b.key,
 		parent:       b.parent,
+		owner:        b.owner,
 	}
 	provides.SetAcceptPromiseResult(provides.acceptPromise)
 	return provides

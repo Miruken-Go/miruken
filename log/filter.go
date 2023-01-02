@@ -2,9 +2,11 @@ package log
 
 import (
 	"fmt"
+	"github.com/go-logr/logr"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
+	"time"
 )
 
 type (
@@ -17,6 +19,7 @@ type (
 	filter struct {}
 )
 
+const durationFormat = "15:04:05.000000"  // microseconds
 
 // Provider
 
@@ -58,22 +61,54 @@ func (f filter) Next(
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  (out []any, pout *promise.Promise[[]any], err error) {
-	if _, ok := provider.(*Provider); ok {
-		// perform the next step in the pipeline
+	if lp, ok := provider.(*Provider); ok {
+		logger, _, re := miruken.Resolve[logr.Logger](ctx.Composer())
+		if re != nil {
+			return next.Pipe()
+		}
+		if logger = logger.V(lp.verbosity); !logger.Enabled() {
+			return next.Pipe()
+		}
+		callback := ctx.Callback()
+		logger.Info("handling",
+			"callback", reflect.TypeOf(callback).String(),
+			"source", callback.Source())
+		start := time.Now()
 		if out, pout, err = next.Pipe(); err != nil {
+			f.logError(err, start, logger)
 			return
 		} else if pout == nil {
+			f.logSuccess(start, logger)
 			return
 		} else {
-			// asynchronous output validation
-			return nil, promise.Then(pout, func(oo []any) []any {
-				if len(oo) > 0 && !miruken.IsNil(oo[0]) {
-				}
-				return oo
-			}), nil
+			return nil, promise.Catch(
+				promise.Then(pout, func(oo []any) []any {
+					f.logSuccess(start, logger)
+					return oo
+				}), func(ee error) error {
+					f.logError(ee, start, logger)
+					return ee
+				}), nil
 		}
 	}
 	return next.Abort()
+}
+
+func (f filter) logSuccess(
+	start  time.Time,
+	logger logr.Logger,
+) {
+	elapsed := miruken.Timespan(time.Since(start))
+	logger.Info("completed", "duration", elapsed.Format(durationFormat))
+}
+
+func (f filter) logError(
+	err    error,
+	start  time.Time,
+	logger logr.Logger,
+) {
+	elapsed := miruken.Timespan(time.Since(start))
+	logger.Error(err, "failed", "duration", elapsed.Format(durationFormat))
 }
 
 var _filters = []miruken.Filter{filter{}}

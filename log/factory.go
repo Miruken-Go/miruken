@@ -1,24 +1,30 @@
 package log
 
 import (
+	"fmt"
 	"github.com/go-logr/logr"
 	"github.com/miruken-go/miruken"
-	"reflect"
 )
 
 // factory of context specific loggers.
+// The context of the logger will be derived from
+//   parent resolution key (constructors) OR
+//   resolution owner type (method handlers)
 type factory struct {
 	root logr.Logger
 }
 
 func (f *factory) ContextLogger(
 	provides *miruken.Provides,
-	ctx miruken.HandleContext,
 ) (logr.Logger, miruken.HandleResult) {
+	var name string
 	if parent := provides.Parent(); parent != nil {
-		if pt, ok := parent.Key().(reflect.Type); ok {
-			return f.root.WithName(pt.String()), miruken.Handled
-		}
+		name = fmt.Sprintf("%v", parent.Key())
+	} else if owner := provides.Owner(); owner != nil {
+		name = fmt.Sprintf("%T", owner)
+	}
+	if len(name) > 0 {
+		return f.root.WithName(name), miruken.Handled
 	}
 	return f.root, miruken.Handled
 }

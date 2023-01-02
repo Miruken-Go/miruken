@@ -5,8 +5,10 @@ import (
 	"github.com/go-logr/logr/testr"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/log"
+	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/suite"
 	"testing"
+	"time"
 )
 
 type (
@@ -15,6 +17,7 @@ type (
 	}
 
 	Command int
+	LongCommand int64
 )
 
 func (s *Service) Constructor(
@@ -24,15 +27,26 @@ func (s *Service) Constructor(
 }
 
 func (s *Service) Run() {
-	s.logger.Info("starting service")
+	s.logger.WithName("Run").Info("starting service")
 }
 
-func (s *Service) Handle(
+func (s *Service) Command(
 	_*miruken.Handles, cmd Command,
 	logger logr.Logger,
 ) Command {
-	logger.Info("command handled", "cmd", cmd)
+	var level = int(cmd)
+	logger.V(level).Info("executed command", "level", level)
 	return cmd+1
+}
+
+func (s *Service) LongCommand(
+	_*miruken.Handles, cmd LongCommand,
+	logger logr.Logger,
+) *promise.Promise[LongCommand] {
+	duration := time.Duration(cmd) * time.Millisecond
+	logger.Info("executed long command", "duration", duration)
+	_, _ = promise.Delay(duration).Await()
+	return promise.Resolve(cmd+1)
 }
 
 type LogTestSuite struct {
@@ -72,12 +86,34 @@ func (suite *LogTestSuite) TestLogging() {
 
 	suite.Run("MethodDependency", func() {
 		handler, _ := miruken.Setup(
-			log.Feature(testr.New(suite.T())),
+			log.Feature(testr.NewWithOptions(suite.T(), testr.Options{
+				LogTimestamp: true,
+				Verbosity:    1,
+			})),
 			miruken.HandlerSpecs(&Service{}),
 		)
-		next, _, err := miruken.Execute[Command](handler, Command(2))
+		next, _, err := miruken.Execute[Command](handler, Command(1))
+		suite.Nil(err)
+		suite.Equal(Command(2), next)
+		next, _, err = miruken.Execute[Command](handler, next)
 		suite.Nil(err)
 		suite.Equal(Command(3), next)
+	})
+
+	suite.Run("MethodDependencyAsync", func() {
+		handler, _ := miruken.Setup(
+			log.Feature(testr.NewWithOptions(suite.T(), testr.Options{
+				LogTimestamp: true,
+				Verbosity:    1,
+			})),
+			miruken.HandlerSpecs(&Service{}),
+		)
+		next, np, err := miruken.Execute[LongCommand](handler, LongCommand(8))
+		suite.Nil(err)
+		suite.NotNil(np)
+		next, err = np.Await()
+		suite.Nil(err)
+		suite.Equal(LongCommand(9), next)
 	})
 }
 
