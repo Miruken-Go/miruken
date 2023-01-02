@@ -69,6 +69,7 @@ func (f filter) Next(
 		if logger = logger.V(lp.verbosity); !logger.Enabled() {
 			return next.Pipe()
 		}
+		logger = logger.WithName(fmt.Sprintf("%T", ctx.Handler()))
 		callback := ctx.Callback()
 		logger.Info("handling",
 			"callback", reflect.TypeOf(callback).String(),
