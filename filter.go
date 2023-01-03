@@ -53,6 +53,7 @@ type (
 	Filtered interface {
 		Filters() []FilterProvider
 		AddFilters(providers ... FilterProvider)
+		RequireFilters(providers ... FilterProvider)
 		RemoveFilters(providers ... FilterProvider)
 		RemoveAllFilters()
 	}
@@ -200,6 +201,25 @@ func (f *FilteredScope) AddFilters(providers ... FilterProvider) {
 		}
 		for _, sfp := range f.providers {
 			if sfp == fp {
+				continue Loop
+			}
+		}
+		f.providers = append(f.providers, fp)
+	}
+}
+
+func (f *FilteredScope) RequireFilters(providers ... FilterProvider) {
+	if len(providers) == 0 {
+		return
+	}
+	Loop:
+	for _, fp := range providers {
+		if fp == nil {
+			panic("provider cannot be nil")
+		}
+		pt := reflect.TypeOf(fp)
+		for _, sfp := range f.providers {
+			if sfp == fp || reflect.TypeOf(sfp) == pt {
 				continue Loop
 			}
 		}

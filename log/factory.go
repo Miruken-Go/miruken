@@ -7,24 +7,19 @@ import (
 )
 
 // factory of context specific loggers.
-// The context of the logger will be derived from
-//   parent resolution key (constructors) OR
-//   resolution owner type (method handlers)
 type factory struct {
 	root logr.Logger
 }
 
-func (f *factory) ContextLogger(
+// NewContextLogger return a new logger in a context.
+// The context is a name derived from the following information.
+// If the request has an owner, the owner's type is used.
+// Otherwise, the root logger is returned.
+func (f *factory) NewContextLogger(
 	provides *miruken.Provides,
-) (logr.Logger, miruken.HandleResult) {
-	var name string
-	if parent := provides.Parent(); parent != nil {
-		name = fmt.Sprintf("%v", parent.Key())
-	} else if owner := provides.Owner(); owner != nil {
-		name = fmt.Sprintf("%T", owner)
+) logr.Logger {
+	if owner := provides.Owner(); owner != nil {
+		return f.root.WithName(fmt.Sprintf("%T", owner))
 	}
-	if len(name) > 0 {
-		return f.root.WithName(name), miruken.Handled
-	}
-	return f.root, miruken.Handled
+	return f.root
 }

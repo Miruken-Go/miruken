@@ -115,6 +115,19 @@ func (suite *LogTestSuite) TestLogging() {
 		suite.Nil(err)
 		suite.Equal(LongCommand(9), next)
 	})
+
+	suite.Run("Suppressed", func() {
+		handler, _ := miruken.Setup(
+			log.Feature(testr.NewWithOptions(suite.T(), testr.Options{
+				LogTimestamp: true,
+				Verbosity:    1,
+			}), log.Verbosity(2)),
+			miruken.HandlerSpecs(&Service{}),
+		)
+		next, _, err := miruken.Execute[Command](handler, Command(2))
+		suite.Nil(err)
+		suite.Equal(Command(3), next)
+	})
 }
 
 func TestLogTestSuite(t *testing.T) {

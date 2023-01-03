@@ -45,10 +45,11 @@ func (i *initializer) Next(
 }
 
 func (i *initializer) construct(
-	ctx      HandleContext,
-	initArgs ... any,
+	ctx  HandleContext,
+	recv any,
 ) ([]any, *promise.Promise[[]any], error) {
-	return callFunc(i.constructor.Func, ctx, i.args, initArgs...)
+	ctx.handler = recv
+	return callFunc(i.constructor.Func, ctx, i.args, recv)
 }
 
 // initializerProvider is a FilterProvider for initializer.

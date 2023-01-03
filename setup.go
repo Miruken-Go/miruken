@@ -3,7 +3,6 @@ package miruken
 import (
 	"container/list"
 	"github.com/hashicorp/go-multierror"
-	"reflect"
 )
 
 type (
@@ -72,18 +71,7 @@ func (s *SetupBuilder) RequireFilters(
 	providers ... FilterProvider,
 ) *SetupBuilder {
 	var handles Handles
-	policy  := handles.Policy()
-	filters := policy.Filters()
-	Loop:
-	for _, provider := range providers {
-		pt := reflect.TypeOf(provider)
-		for _, fp := range filters {
-			if reflect.TypeOf(fp) == pt {
-				continue Loop
-			}
-		}
-		policy.AddFilters(provider)
-	}
+	handles.Policy().RequireFilters(providers...)
 	return s
 }
 
