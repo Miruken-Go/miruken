@@ -214,7 +214,7 @@ func (e TraversalCircularityError) Culprit() Traversing {
 }
 
 func (e TraversalCircularityError) Error() string {
-	return fmt.Sprintf("circularity detected for node %#v", e.culprit)
+	return fmt.Sprintf("circularity detected for node %v", e.culprit)
 }
 
 type traversalHistory map[Traversing]bool

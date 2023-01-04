@@ -96,7 +96,7 @@ func (s *dependencySpec) setResolver(
 ) error {
 	if s.resolver != nil {
 		return fmt.Errorf(
-			"only one dependency resolver allowed, found %#v", resolver)
+			"only one dependency resolver allowed, found %T", resolver)
 	}
 	s.resolver = resolver
 	return nil
@@ -440,7 +440,7 @@ func parseResolver(
 					field.Name, index, invalid)
 			} else if invalid := b.setResolver(resolver.(DependencyResolver)); invalid != nil {
 				err = fmt.Errorf(
-					"parseResolver: dependency resolver %#v at field %v (%v) failed: %w",
+					"parseResolver: dependency resolver %T at field %v (%v) failed: %w",
 					resolver, field.Name, index, invalid)
 			}
 		}

@@ -193,8 +193,7 @@ func (p *policySpecBuilder) parse(
 			policy := p.policyOf(cb)
 			if invalid := b.addPolicy(policy, field); invalid != nil {
 				err = fmt.Errorf(
-					"parse: policy %#v at index %v failed: %w",
-					policy, index, invalid)
+					"parse: %v at index %v failed: %w", typ, index, invalid)
 			}
 		}
 	}

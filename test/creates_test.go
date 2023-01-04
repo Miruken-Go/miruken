@@ -7,6 +7,17 @@ import (
 	"testing"
 )
 
+type AliasFactory struct {}
+
+func (f *AliasFactory) Create(
+	_*struct {
+		account miruken.Creates `key:"customer.Account"`
+		profile miruken.Creates `key:"customer.Profile"`
+	  },
+) any {
+	return nil
+}
+
 type CreatesTestSuite struct {
 	suite.Suite
 }
@@ -66,6 +77,14 @@ func (suite *CreatesTestSuite) TestCreates() {
 		foo, _, err := miruken.CreateKey[*Foo](handler, "Foo")
 		suite.Nil(err)
 		suite.Equal(1, foo.Count())
+	})
+
+	suite.Run("MultipleKeys", func() {
+		handler, _ := suite.SetupWith(
+			miruken.HandlerSpecs(&AliasFactory{}))
+		account, _, err := miruken.CreateKey[string](handler, "customer.Account")
+		suite.Nil(err)
+		suite.Equal("account", account)
 	})
 }
 
