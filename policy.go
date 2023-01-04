@@ -27,6 +27,12 @@ type (
 			composer Handler,
 		) HandleResult
 	}
+
+	// policyKey binds a Policy to a key for lookup.
+	policyKey struct {
+		policy Policy
+		key    any
+	}
 )
 
 func DispatchPolicy(
@@ -49,12 +55,11 @@ func DispatchPolicy(
 
 // policySpec captures Policy metadata.
 type policySpec struct {
-	policies    []Policy
+	policies    []policyKey
 	flags       bindingFlags
 	filters     []FilterProvider
 	constraints []BindingConstraint
 	metadata    []any
-	key         any
 	arg         arg
 }
 
@@ -62,16 +67,16 @@ func (s *policySpec) addPolicy(
 	policy Policy,
 	field  reflect.StructField,
 ) error {
-	s.policies = append(s.policies, policy)
+	pk := policyKey{policy: policy}
 	if key, ok := field.Tag.Lookup("key"); ok {
-		if stringKey, ok := s.key.(string); ok {
-			if stringKey != key {
-				return fmt.Errorf("can't reassign key \"%s\" to \"%s\"", stringKey, key)
+		for _, pk := range s.policies {
+			if pk.policy == policy && pk.key == key {
+				return fmt.Errorf("duplicate key \"%s\"", key)
 			}
-		} else {
-			s.key = key
 		}
+		pk.key = key
 	}
+	s.policies = append(s.policies, pk)
 	return nil
 }
 
@@ -156,7 +161,7 @@ func (p *policySpecBuilder) buildSpec(
 	// Is it a Callback arg?
 	if callbackOrSpec.Kind() != reflect.Interface && callbackOrSpec.Implements(_callbackType) {
 		return &policySpec{
-			policies: []Policy{p.policyOf(callbackOrSpec)},
+			policies: []policyKey{{policy: p.policyOf(callbackOrSpec)}},
 			arg:      CallbackArg{},
 		}, nil
 	}

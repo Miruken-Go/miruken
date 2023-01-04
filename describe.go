@@ -184,7 +184,7 @@ func (s HandlerTypeSpec) newHandlerDescriptor(
 	descriptor  = &HandlerDescriptor{spec: s}
 
 	var ctorSpec *policySpec
-	var ctorPolicies []Policy
+	var ctorPolicies []policyKey
 	var constructor *reflect.Method
 	// Add constructor implicitly
 	if ctor, ok := typ.MethodByName("Constructor"); ok {
@@ -203,26 +203,27 @@ func (s HandlerTypeSpec) newHandlerDescriptor(
 	}
 	if _, noImplicit := typ.MethodByName("NoConstructor"); !noImplicit {
 		addProvides := true
-		for _, ctorPolicy := range ctorPolicies {
-			if _, ok := ctorPolicy.(*providesPolicy); ok {
+		for _, ctorPk := range ctorPolicies {
+			if _, ok := ctorPk.policy.(*providesPolicy); ok {
 				addProvides = false
 				break
 			}
 		}
 		if addProvides {
-			ctorPolicies = append(ctorPolicies, _providesPolicy)
+			ctorPolicies = append(ctorPolicies, policyKey{policy: _providesPolicy})
 		}
 	} else if constructor != nil {
 		invalid = multierror.Append(invalid, fmt.Errorf(
 			"handler %v has both a Constructor and NoConstructor method", typ))
 	}
-	for _, ctorPolicy := range ctorPolicies {
-		if binder, ok := ctorPolicy.(ConstructorBinder); ok {
+	for _, ctorPk := range ctorPolicies {
+		policy := ctorPk.policy
+		if binder, ok := policy.(ConstructorBinder); ok {
 			if ctor, err := binder.NewConstructorBinding(typ, constructor, ctorSpec); err == nil {
 				if observer != nil {
 					observer.NotifyHandlerBinding(descriptor, ctor)
 				}
-				bindings.forPolicy(ctorPolicy).insert(ctor)
+				bindings.forPolicy(policy).insert(ctor)
 			} else {
 				invalid = multierror.Append(invalid, err)
 			}
@@ -242,9 +243,10 @@ func (s HandlerTypeSpec) newHandlerDescriptor(
 			if spec == nil { // not a handler method
 				continue
 			}
-			for _, policy := range spec.policies {
+			for _, pk := range spec.policies {
+				policy := pk.policy
 				if binder, ok := policy.(MethodBinder); ok {
-					if binding, errBind := binder.NewMethodBinding(method, spec); binding != nil {
+					if binding, errBind := binder.NewMethodBinding(method, spec, pk.key); binding != nil {
 						if observer != nil {
 							observer.NotifyHandlerBinding(descriptor, binding)
 						}
@@ -295,9 +297,10 @@ func (s HandlerFuncSpec) newHandlerDescriptor(
 		if spec == nil {
 			invalid = fmt.Errorf("first argument is not a callback spec")
 		} else {
-			for _, policy := range spec.policies {
+			for _, pk := range spec.policies {
+				policy := pk.policy
 				if binder, ok := policy.(FuncBinder); ok {
-					if binding, errBind := binder.NewFuncBinding(s.fun, spec); binding != nil {
+					if binding, errBind := binder.NewFuncBinding(s.fun, spec, pk.key); binding != nil {
 						if observer != nil {
 							observer.NotifyHandlerBinding(descriptor, binding)
 						}
@@ -307,7 +310,7 @@ func (s HandlerFuncSpec) newHandlerDescriptor(
 					}
 				} else {
 					invalid = multierror.Append(invalid, fmt.Errorf(
-						"policy %#v does not support function bindings", policy))
+						"policy %T does not support function bindings", policy))
 				}
 			}
 		}

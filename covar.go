@@ -96,17 +96,18 @@ func (p *CovariantPolicy) AcceptResults(
 func (p *CovariantPolicy) NewMethodBinding(
 	method reflect.Method,
 	spec   *policySpec,
+	key    any,
 ) (Binding, error) {
-	if args, err := validateCovariantFunc(method.Type, spec, 1); err != nil {
+	if args, key, err := validateCovariantFunc(method.Type, spec, key,1); err != nil {
 		return nil, &MethodBindingError{method, err}
 	} else {
 		return &methodBinding{
-			FilteredScope{spec.filters},
-			spec.key,
-			spec.flags,
-			method,
-			args,
-			spec.metadata,
+			FilteredScope: FilteredScope{spec.filters},
+			key:           key,
+			flags:         spec.flags,
+			method:        method,
+			args:          args,
+			metadata:      spec.metadata,
 		}, nil
 	}
 }
@@ -114,17 +115,18 @@ func (p *CovariantPolicy) NewMethodBinding(
 func (p *CovariantPolicy) NewFuncBinding(
 	fun  reflect.Value,
 	spec *policySpec,
+	key  any,
 ) (Binding, error) {
-	if args, err := validateCovariantFunc(fun.Type(), spec, 0); err != nil {
+	if args, key, err := validateCovariantFunc(fun.Type(), spec, key,0); err != nil {
 		return nil, &FuncBindingError{fun, err}
 	} else {
 		return &funcBinding{
-			FilteredScope{spec.filters},
-			spec.key,
-			spec.flags,
-			fun,
-			args,
-			spec.metadata,
+			FilteredScope: FilteredScope{spec.filters},
+			key:           key,
+			flags:         spec.flags,
+			fun:           fun,
+			args:          args,
+			metadata:      spec.metadata,
 		}, nil
 	}
 }
@@ -132,8 +134,9 @@ func (p *CovariantPolicy) NewFuncBinding(
 func validateCovariantFunc(
 	funType reflect.Type,
 	spec    *policySpec,
+	key     any,
 	skip    int,
-) (args []arg, err error) {
+) (args []arg, ck any, err error) {
 	numArgs := funType.NumIn()
 	args     = make([]arg, numArgs-skip)
 	args[0]  = spec.arg
@@ -146,12 +149,16 @@ func validateCovariantFunc(
 	case 0:
 		err = multierror.Append(err, ErrCovMissingReturn)
 	case 1:
-		if inv := validateCovariantReturn(funType.Out(0), spec); inv != nil {
+		if key, inv := validateCovariantReturn(funType.Out(0), spec, key); inv != nil {
 			err = multierror.Append(err, inv)
+		} else {
+			ck = key
 		}
 	case 2:
-		if inv := validateCovariantReturn(funType.Out(0), spec); inv != nil {
+		if key, inv := validateCovariantReturn(funType.Out(0), spec, key); inv != nil {
 			err = multierror.Append(err, inv)
+		} else {
+			ck = key
 		}
 		switch funType.Out(1) {
 		case _errorType, _handleResType: break
@@ -171,14 +178,15 @@ func validateCovariantFunc(
 func validateCovariantReturn(
 	returnType  reflect.Type,
 	spec       *policySpec,
-) error {
+	key        any,
+) (any, error) {
 	switch returnType {
 	case _errorType, _handleResType:
-		return fmt.Errorf(
+		return nil, fmt.Errorf(
 			"covariant: primary return value must not be %v or %v",
 			_errorType, _handleResType)
 	default:
-		if spec.key == nil {
+		if key == nil {
 			if lt, ok := promise.Inspect(returnType); ok {
 				spec.flags = spec.flags | bindingPromise
 				returnType = lt
@@ -189,9 +197,9 @@ func validateCovariantReturn(
 					returnType = returnType.Elem()
 				}
 			}
-			spec.key = returnType
+			key = returnType
 		}
-		return nil
+		return key, nil
 	}
 }
 

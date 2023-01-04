@@ -7,15 +7,37 @@ import (
 	"testing"
 )
 
-type AliasFactory struct {}
+// KeyFactory
 
-func (f *AliasFactory) Create(
+type KeyFactory struct {}
+
+func (f *KeyFactory) Create(
 	_*struct {
-		account miruken.Creates `key:"customer.Account"`
-		profile miruken.Creates `key:"customer.Profile"`
+	    miruken.Creates
+		foo miruken.Creates `key:"foo"`
 	  },
+) *Foo {
+	return &Foo{Counted{1}}
+}
+
+// MultiKeyFactory
+
+type MultiKeyFactory struct {}
+
+func (f *MultiKeyFactory) Create(
+	_*struct {
+		foo miruken.Creates `key:"foo"`
+		bar miruken.Creates `key:"bar"`
+	  }, create *miruken.Creates,
 ) any {
-	return nil
+	switch create.Key() {
+	case "foo":
+		return &Foo{Counted{1}}
+	case "bar":
+		return &Bar{Counted{2}}
+	default:
+		return nil
+	}
 }
 
 type CreatesTestSuite struct {
@@ -73,18 +95,31 @@ func (suite *CreatesTestSuite) TestCreates() {
 
 	suite.Run("Key", func () {
 		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&KeyProvider{}))
-		foo, _, err := miruken.CreateKey[*Foo](handler, "Foo")
+			miruken.HandlerSpecs(&KeyFactory{}))
+		foo, _, err := miruken.CreateKey[*Foo](handler, "foo")
+		suite.Nil(err)
+		suite.Equal(1, foo.Count())
+	})
+
+	suite.Run("InferKey", func () {
+		handler, _ := suite.SetupWith(
+			miruken.HandlerSpecs(&KeyFactory{}))
+		foo, _, err := miruken.Create[*Foo](handler)
 		suite.Nil(err)
 		suite.Equal(1, foo.Count())
 	})
 
 	suite.Run("MultipleKeys", func() {
 		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&AliasFactory{}))
-		account, _, err := miruken.CreateKey[string](handler, "customer.Account")
+			miruken.HandlerSpecs(&MultiKeyFactory{}))
+		foo, _, err := miruken.CreateKey[any](handler, "foo")
 		suite.Nil(err)
-		suite.Equal("account", account)
+		suite.Equal(Foo{Counted{1}}, *foo.(*Foo))
+		bar, _, err := miruken.CreateKey[any](handler, "bar")
+		suite.Nil(err)
+		suite.Equal(Bar{Counted{2}}, *bar.(*Bar))
+		_, _, err = miruken.CreateKey[any](handler, "boo")
+		suite.NotNil(err)
 	})
 }
 

@@ -233,10 +233,10 @@ func (m *ApiMapping) FromApi(
 		})), nil
 }
 
-func (m *ApiMapping) NewApiOutcome(
+func (m *ApiMapping) New(
 	_*struct{
 		miruken.Creates `key:"validate.ApiOutcome"`
-	  }, _ *miruken.Creates,
+	  },
 ) *ApiOutcome {
 	return new(ApiOutcome)
 }

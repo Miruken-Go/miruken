@@ -80,17 +80,18 @@ func (p *BivariantPolicy) AcceptResults(
 func (p *BivariantPolicy) NewMethodBinding(
 	method reflect.Method,
 	spec   *policySpec,
+	key    any,
 ) (Binding, error) {
-	if args, key, err := validateBivariantFunc(method.Type, spec, 1); err != nil {
+	if args, key, err := validateBivariantFunc(method.Type, spec, key,1); err != nil {
 		return nil, &MethodBindingError{method, err}
 	} else {
 		return &methodBinding{
-			FilteredScope{spec.filters},
-			key,
-			spec.flags,
-			method,
-			args,
-			spec.metadata,
+			FilteredScope: FilteredScope{spec.filters},
+			key:           key,
+			flags:         spec.flags,
+			method:        method,
+			args:          args,
+			metadata:      spec.metadata,
 		}, nil
 	}
 }
@@ -98,17 +99,18 @@ func (p *BivariantPolicy) NewMethodBinding(
 func (p *BivariantPolicy) NewFuncBinding(
 	fun  reflect.Value,
 	spec *policySpec,
+	key  any,
 ) (Binding, error) {
-	if args, key, err := validateBivariantFunc(fun.Type(), spec, 0); err != nil {
+	if args, key, err := validateBivariantFunc(fun.Type(), spec, key,0); err != nil {
 		return nil, &FuncBindingError{fun, err}
 	} else {
 		return &funcBinding{
-			FilteredScope{spec.filters},
-			key,
-			spec.flags,
-			fun,
-			args,
-			spec.metadata,
+			FilteredScope: FilteredScope{spec.filters},
+			key:           key,
+			flags:         spec.flags,
+			fun:           fun,
+			args:          args,
+			metadata:      spec.metadata,
 		}, nil
 	}
 }
@@ -116,12 +118,13 @@ func (p *BivariantPolicy) NewFuncBinding(
 func validateBivariantFunc(
 	funType reflect.Type,
 	spec    *policySpec,
+	key     any,
 	skip    int,
-) (args []arg, key any, err error) {
+) (args []arg, dk any, err error) {
 	numArgs := funType.NumIn()
 	args     = make([]arg, numArgs-skip)
 	args[0]  = spec.arg
-	key      = spec.key
+	dk       = key
 	in      := _anyType
 	out     := _anyType
 	index   := 1
@@ -170,13 +173,13 @@ func validateBivariantFunc(
 	}
 
 	if err != nil {
-		return nil, key, err
+		return nil, dk, err
 	}
 
-	if key == nil {
-		key = DiKey{ In: in, Out: out }
-	} else if _, ok := key.(DiKey); !ok {
-		key = DiKey{ In: key, Out: out }
+	if dk == nil {
+		dk = DiKey{ In: in, Out: out }
+	} else if _, ok := dk.(DiKey); !ok {
+		dk = DiKey{ In: dk, Out: out }
 	}
 	return
 }

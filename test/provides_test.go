@@ -94,7 +94,6 @@ type KeyProvider struct {
 func (p *KeyProvider) ProvideKey(
 	_*struct{
 		miruken.Provides `key:"Foo"`
-		miruken.Creates
 	  },
 ) *Foo {
 	p.foo.Inc()

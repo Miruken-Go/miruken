@@ -16,6 +16,7 @@ type (
 		NewFuncBinding(
 			fun  reflect.Value,
 			spec *policySpec,
+			key  any,
 		) (Binding, error)
 	}
 

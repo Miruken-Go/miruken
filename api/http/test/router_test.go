@@ -74,38 +74,26 @@ func (t *TeamApiHandler) CreateTeam(
 	return promise.Resolve(team)
 }
 
-func (t *TeamApiHandler) NewCreateTeam(
+func (t *TeamApiHandler) New(
 	_*struct{
-		miruken.Creates `key:"test.CreateTeam"`
-	  }, _ *miruken.Creates,
-) *CreateTeam {
-	return new(CreateTeam)
+		ct  miruken.Creates `key:"test.CreateTeam"`
+		tc  miruken.Creates `key:"*test.TeamCreated"`
+	    gtn miruken.Creates `key:"test.GetTeamNotifications"`
+		td  miruken.Creates `key:"*test.TeamData"`
+	  }, create *miruken.Creates,
+) any {
+	switch create.Key() {
+	case "test.CreateTeam":
+		return new(CreateTeam)
+	case "*test.TeamCreated":
+		return new(TeamCreated)
+	case "test.GetTeamNotifications":
+		return new(GetTeamNotifications)
+	case "*test.TeamData":
+		return new(TeamData)
+	}
+	return nil
 }
-
-func (t *TeamApiHandler) NewTeamCreated(
-	_*struct{
-		miruken.Creates `key:"*test.TeamCreated"`
-	  }, _ *miruken.Creates,
-) *TeamCreated {
-	return new(TeamCreated)
-}
-
-func (t *TeamApiHandler) NewGetTeamNotifications(
-	_*struct{
-		miruken.Creates `key:"test.GetTeamNotifications"`
-	}, _ *miruken.Creates,
-) *GetTeamNotifications {
-	return new(GetTeamNotifications)
-}
-
-func (t *TeamApiHandler) NewTeam(
-	_*struct{
-		miruken.Creates `key:"*test.TeamData"`
-	  }, _ *miruken.Creates,
-) *TeamData {
-	return new(TeamData)
-}
-
 
 // TeamApiConsumer
 

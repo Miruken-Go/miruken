@@ -88,17 +88,18 @@ func (p *ContravariantPolicy) AcceptResults(
 func (p *ContravariantPolicy) NewMethodBinding(
 	method reflect.Method,
 	spec   *policySpec,
+	key    any,
 ) (Binding, error) {
-	if args, key, err := validateContravariantFunc(method.Type, spec, 1); err != nil {
+	if args, key, err := validateContravariantFunc(method.Type, spec, key,1); err != nil {
 		return nil, &MethodBindingError{method, err}
 	} else {
 		return &methodBinding{
-			FilteredScope{spec.filters},
-			key,
-			spec.flags,
-			method,
-			args,
-			spec.metadata,
+			FilteredScope: FilteredScope{spec.filters},
+			key:           key,
+			flags:         spec.flags,
+			method:        method,
+			args:          args,
+			metadata:      spec.metadata,
 		}, nil
 	}
 }
@@ -106,17 +107,18 @@ func (p *ContravariantPolicy) NewMethodBinding(
 func (p *ContravariantPolicy) NewFuncBinding(
 	fun  reflect.Value,
 	spec *policySpec,
+	key  any,
 ) (Binding, error) {
-	if args, key, err := validateContravariantFunc(fun.Type(), spec, 0); err != nil {
+	if args, key, err := validateContravariantFunc(fun.Type(), spec, key,0); err != nil {
 		return nil, &FuncBindingError{fun, err}
 	} else {
 		return &funcBinding{
-			FilteredScope{spec.filters},
-			key,
-			spec.flags,
-			fun,
-			args,
-			spec.metadata,
+			FilteredScope: FilteredScope{spec.filters},
+			key:           key,
+			flags:         spec.flags,
+			fun:           fun,
+			args:          args,
+			metadata:      spec.metadata,
 		}, nil
 	}
 }
@@ -124,32 +126,33 @@ func (p *ContravariantPolicy) NewFuncBinding(
 func validateContravariantFunc(
 	funType reflect.Type,
 	spec    *policySpec,
+	key     any,
 	skip    int,
-) (args []arg, key any, err error) {
+) (args []arg, ck any, err error) {
+	ck       = key
 	numArgs := funType.NumIn()
 	args     = make([]arg, numArgs-skip)
 	args[0]  = spec.arg
-	key      = spec.key
 	index   := 1
 
 	// Source argument must be present if spec
 	if len(args) > 1 {
 		if arg := funType.In(1+skip); arg.AssignableTo(_callbackType) {
 			args[1] = CallbackArg{}
-			if key == nil {
-				key = _anyType
+			if ck == nil {
+				ck = _anyType
 			}
 		} else {
-			if key == nil {
-				key = arg
+			if ck == nil {
+				ck = arg
 			}
 			args[1] = sourceArg{}
 		}
 		index++
 	} else if _, isSpec := spec.arg.(zeroArg); isSpec {
 		err = ErrConMissingCallback
-	} else if key == nil {
-		key = _anyType
+	} else if ck == nil {
+		ck = _anyType
 	}
 
 	if inv := buildDependencies(funType, index+skip, numArgs, args, index); inv != nil {

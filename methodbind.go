@@ -12,6 +12,7 @@ type (
 		NewMethodBinding(
 			method reflect.Method,
 			spec   *policySpec,
+			key    any,
 		) (Binding, error)
 	}
 
