@@ -153,7 +153,7 @@ func (p *ComplexAsyncProvider) Constructor(
 }
 
 func (p *ComplexAsyncProvider) ProvideBar(
-	_*miruken.Provides,
+	_ *miruken.Provides,
 	foo *Foo,
 ) *Bar {
 	p.bar.Inc()
@@ -192,7 +192,7 @@ func (p *InvalidProvider) SecondReturnMustBeErrorOrHandleResult(
 }
 
 func (p *InvalidProvider) UntypedInterfaceDependency(
-	_*miruken.Provides,
+	_ *miruken.Provides,
 	any any,
 ) *Foo {
 	return &Foo{}

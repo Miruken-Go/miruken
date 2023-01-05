@@ -22,22 +22,42 @@ func (f *KeyFactory) Create(
 
 // MultiKeyFactory
 
-type MultiKeyFactory struct {}
+type MultiKeyFactory struct {
+	foo Foo
+	bar Bar
+}
 
 func (f *MultiKeyFactory) Create(
 	_*struct {
-		foo miruken.Creates `key:"foo"`
-		bar miruken.Creates `key:"bar"`
-	  }, create *miruken.Creates,
+		miruken.Singleton
+		fc miruken.Creates  `key:"foo"`
+		bc miruken.Creates  `key:"bar"`
+		fp miruken.Provides `key:"foo"`
+		bp miruken.Provides `key:"bar"`
+	  },
+	create  *miruken.Creates,
+	provide *miruken.Provides,
 ) any {
-	switch create.Key() {
-	case "foo":
-		return &Foo{Counted{1}}
-	case "bar":
-		return &Bar{Counted{2}}
-	default:
-		return nil
+	if create != nil {
+		switch create.Key() {
+		case "foo":
+			f.foo.Inc()
+			return f.foo
+		case "bar":
+			f.bar.Inc()
+			return f.bar
+		}
+	} else if provide != nil {
+		switch provide.Key() {
+		case "foo":
+			f.foo.Inc()
+			return f.foo
+		case "bar":
+			f.bar.Inc()
+			return f.bar
+		}
 	}
+	return nil
 }
 
 type CreatesTestSuite struct {
@@ -112,14 +132,37 @@ func (suite *CreatesTestSuite) TestCreates() {
 	suite.Run("MultipleKeys", func() {
 		handler, _ := suite.SetupWith(
 			miruken.HandlerSpecs(&MultiKeyFactory{}))
-		foo, _, err := miruken.CreateKey[any](handler, "foo")
+		foo, _, err := miruken.CreateKey[Foo](handler, "foo")
 		suite.Nil(err)
-		suite.Equal(Foo{Counted{1}}, *foo.(*Foo))
-		bar, _, err := miruken.CreateKey[any](handler, "bar")
+		suite.Equal(Foo{Counted{1}}, foo)
+		foo, _, err = miruken.CreateKey[Foo](handler, "foo")
 		suite.Nil(err)
-		suite.Equal(Bar{Counted{2}}, *bar.(*Bar))
+		suite.Equal(Foo{Counted{2}}, foo)
+		bar, _, err := miruken.CreateKey[Bar](handler, "bar")
+		suite.Nil(err)
+		suite.Equal(Bar{Counted{1}}, bar)
+		bar, _, err = miruken.CreateKey[Bar](handler, "bar")
+		suite.Nil(err)
+		suite.Equal(Bar{Counted{2}}, bar)
 		_, _, err = miruken.CreateKey[any](handler, "boo")
 		suite.NotNil(err)
+	})
+
+	suite.Run("MultipleKeyCallbacks", func() {
+		handler, _ := suite.SetupWith(
+			miruken.HandlerSpecs(&MultiKeyFactory{}))
+		foo, _, err := miruken.CreateKey[Foo](handler, "foo")
+		suite.Nil(err)
+		suite.Equal(Foo{Counted{1}}, foo)
+		foo, _, err = miruken.CreateKey[Foo](handler, "foo")
+		suite.Nil(err)
+		suite.Equal(Foo{Counted{2}}, foo)
+		foo, _, err = miruken.ResolveKey[Foo](handler, "foo")
+		suite.Nil(err)
+		suite.Equal(Foo{Counted{3}}, foo)
+		foo, _, err = miruken.ResolveKey[Foo](handler, "foo")
+		suite.Nil(err)
+		suite.Equal(Foo{Counted{3}}, foo)
 	})
 }
 

@@ -30,7 +30,7 @@ type (
 )
 
 func (s *StockQuoteHandler) Quote(
-	_*miruken.Handles, quote GetStockQuote,
+	_ *miruken.Handles, quote GetStockQuote,
 ) *promise.Promise[StockQuote] {
 	if symbol := quote.Symbol; symbol == "EX" {
 		return promise.Reject[StockQuote](
@@ -44,7 +44,7 @@ func (s *StockQuoteHandler) Quote(
 }
 
 func (s *StockQuoteHandler) Sell(
-	_*miruken.Handles, sell SellStock,
+	_ *miruken.Handles, sell SellStock,
 ) *promise.Promise[promise.Void] {
 	if symbol := sell.Symbol; symbol == "EX" {
 		return promise.Reject[promise.Void](

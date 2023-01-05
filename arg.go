@@ -172,6 +172,8 @@ func (d DependencyArg) resolve(
 	callback := ctx.Callback()
 	if val := reflect.ValueOf(callback); val.Type().AssignableTo(typ) {
 		return val, nil, nil
+	} else if typ.AssignableTo(_callbackType) {
+		return reflect.Zero(typ), nil, nil
 	}
 	if src := callback.Source(); src != nil {
 		if val := reflect.ValueOf(src); val.Type().AssignableTo(typ) {

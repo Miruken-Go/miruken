@@ -56,7 +56,7 @@ func (o *ContextObserver) ChildContextEnded(
 type Service struct {}
 
 func (s *Service) Count(
-	_*miruken.Handles, counter Counter,
+	_ *miruken.Handles, counter Counter,
 ) {
 	counter.Inc()
 }
@@ -501,7 +501,7 @@ func (s *ScopedService) SetContext(ctx *miruken.Context) {
 }
 
 func (s *ScopedService) Count(
-	_*miruken.Handles, counter Counter,
+	_ *miruken.Handles, counter Counter,
 ) {
 	if s.Context() == nil {
 		panic("context not assigned")
@@ -541,7 +541,7 @@ func (s *RootedService) SetContext(ctx *miruken.Context) {
 }
 
 func (s *RootedService) HandleBar(
-	_*miruken.Handles, bar *Bar,
+	_ *miruken.Handles, bar *Bar,
 ) {
 	if s.Context() == nil {
 		panic("context not assigned")

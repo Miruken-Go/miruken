@@ -150,14 +150,14 @@ func (r routesFilter) Next(
 func (b *batchRouter) NoConstructor() {}
 
 func (b *batchRouter) Route(
-	_*miruken.Handles, routed Routed,
+	_ *miruken.Handles, routed Routed,
 	ctx miruken.HandleContext,
 ) *promise.Promise[any] {
 	return b.batch(routed, ctx.Greedy())
 }
 
 func (b *batchRouter) RouteBatch(
-	_*miruken.Handles, routed miruken.Batched[Routed],
+	_ *miruken.Handles, routed miruken.Batched[Routed],
 	ctx miruken.HandleContext,
 ) *promise.Promise[any] {
 	return b.batch(routed.Source, ctx.Greedy())

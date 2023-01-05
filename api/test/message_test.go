@@ -29,7 +29,7 @@ type (
 )
 
 func (m *MissionControlHandler) Launch(
-	_*miruken.Handles, launch Launch,
+	_ *miruken.Handles, launch Launch,
 ) *promise.Promise[string] {
 	if missile := launch.Missile; missile == "Tomahawk" {
 		panic(fmt.Sprintf("launch misfire: %v", missile))
@@ -39,7 +39,7 @@ func (m *MissionControlHandler) Launch(
 }
 
 func (m *MissionControlHandler) Track(
-	_*miruken.Handles, track *MissileTracked,
+	_ *miruken.Handles, track *MissileTracked,
 ) *promise.Promise[miruken.Void] {
 	track.Count++
 	if track.Count == 2 {
@@ -49,7 +49,7 @@ func (m *MissionControlHandler) Track(
 }
 
 func (p *PresidentHandler) Track(
-	_*miruken.Handles, track *MissileTracked,
+	_ *miruken.Handles, track *MissileTracked,
 ) *promise.Promise[miruken.Void] {
 	track.Count++
 	if track.Count == 2 {

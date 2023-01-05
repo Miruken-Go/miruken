@@ -65,7 +65,7 @@ func (t *TeamApiHandler) MustHaveTeamName(
 }
 
 func (t *TeamApiHandler) CreateTeam(
-	_*miruken.Handles, create *CreateTeam,
+	_ *miruken.Handles, create *CreateTeam,
 	ctx miruken.HandleContext,
 ) *promise.Promise[*TeamData] {
 	id := atomic.AddInt32(&t.nextId,1)
@@ -98,13 +98,13 @@ func (t *TeamApiHandler) New(
 // TeamApiConsumer
 
 func (t *TeamApiConsumer) TeamCreated(
-	_*miruken.Handles, created *TeamCreated,
+	_ *miruken.Handles, created *TeamCreated,
 ) {
 	t.notifications = append(t.notifications, created)
 }
 
 func (t *TeamApiConsumer) TeamNotifications(
-	_*miruken.Handles, _ *GetTeamNotifications,
+	_ *miruken.Handles, _ *GetTeamNotifications,
 ) []any {
 	return t.notifications
 }

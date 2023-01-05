@@ -57,7 +57,7 @@ func (m *EntityMapper) MapIntoPlayerData(
 }
 
 func (m *EntityMapper) ToPlayerMap(
-	_*miruken.Maps, entity *PlayerEntity,
+	_ *miruken.Maps, entity *PlayerEntity,
 ) map[string]any {
 	return map[string]any{
 		"Id":   entity.Id,
@@ -66,7 +66,7 @@ func (m *EntityMapper) ToPlayerMap(
 }
 
 func (m *EntityMapper) FromPlayerMap(
-	_*miruken.Maps, data map[string]any,
+	_ *miruken.Maps, data map[string]any,
 ) *PlayerEntity {
 	return &PlayerEntity{
 		Entity{Id: data["Id"].(int)},
@@ -150,7 +150,7 @@ func (m *FormatMapper) Pattern(
 type InvalidMapper struct {}
 
 func (m *InvalidMapper) MissingDependency(
-	_*miruken.Handles, _ *Bar,
+	_ *miruken.Handles, _ *Bar,
 	_*struct{ },
 ) {
 }
@@ -159,19 +159,19 @@ func (m *InvalidMapper) MissingReturnValue(*miruken.Provides) {
 }
 
 func (m *InvalidMapper) TooManyReturnValues(
-	_*miruken.Handles, _ *Bar,
+	_ *miruken.Handles, _ *Bar,
 ) (int, string, Counter) {
 	return 0, "bad", nil
 }
 
 func (m *InvalidMapper) SecondReturnMustBeErrorOrHandleResult(
-	_*miruken.Handles, _ *Counter,
+	_ *miruken.Handles, _ *Counter,
 ) (Foo, string) {
 	return Foo{}, "bad"
 }
 
 func (m *InvalidMapper) UntypedInterfaceDependency(
-	_*miruken.Handles, _ *Bar,
+	_ *miruken.Handles, _ *Bar,
 	any any,
 ) miruken.HandleResult {
 	return miruken.Handled

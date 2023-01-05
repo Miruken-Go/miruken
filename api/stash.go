@@ -61,7 +61,7 @@ func (s *Stash) Provide(
 // It is considered NotHandled if an item with the key is not found and
 // this Stash is not rooted.  This allows retrieval to propagate up the chain.
 func (s *Stash) Get(
-	_*miruken.Handles, get *stashGet,
+	_ *miruken.Handles, get *stashGet,
 ) miruken.HandleResult {
 	if val, ok := s.data[get.key]; ok {
 		get.setValue(val)
@@ -73,7 +73,7 @@ func (s *Stash) Get(
 
 // Put stores an item by key.
 func (s *Stash) Put(
-	_*miruken.Handles, put *stashPut,
+	_ *miruken.Handles, put *stashPut,
 ) {
 	s.data[put.key] = put.val
 }

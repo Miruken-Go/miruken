@@ -204,7 +204,7 @@ func (f FilteringHandler) HandleBee(
 }
 
 func (f FilteringHandler) HandleStuff(
-	_*miruken.Handles, callback any,
+	_ *miruken.Handles, callback any,
 ) {
 	if bar, ok := callback.(*BarC); ok {
 		bar.IncHandled(-999)
