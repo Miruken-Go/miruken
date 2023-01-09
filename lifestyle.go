@@ -54,15 +54,26 @@ type Singleton struct {
 }
 
 func (s *Singleton) Init() error {
-	s.SetFilters(&singleton{once: new(sync.Once)})
+	s.SetFilters(&singleton{})
 	return nil
 }
+
+type (
+	// lifestyleEntry stores a lazy instance.
+	lifestyleEntry struct {
+		instance []any
+		once     *sync.Once
+	}
+
+	// lifestyleCache maintains a cache of lifestyleEntry's.
+	lifestyleCache map[any]*lifestyleEntry
+)
 
 // singleton is a Filter that caches an instance.
 type singleton struct {
 	Lifestyle
-	instance []any
-	once     *sync.Once
+	keys lifestyleCache
+	lock sync.RWMutex
 }
 
 func (s *singleton) Next(
@@ -70,7 +81,30 @@ func (s *singleton) Next(
 	ctx      HandleContext,
 	provider FilterProvider,
 )  (out []any, po *promise.Promise[[]any], err error) {
-	s.once.Do(func() {
+	key := ctx.Callback().(*Provides).Key()
+
+	var entry *lifestyleEntry
+	s.lock.RLock()
+	if keys := s.keys; keys != nil {
+		entry = keys[key]
+	}
+	s.lock.RUnlock()
+
+	if entry == nil {
+		s.lock.Lock()
+		if keys := s.keys; keys != nil {
+			if entry = keys[key]; entry == nil {
+				entry     = &lifestyleEntry{once: new(sync.Once)}
+				keys[key] = entry
+			}
+		} else {
+			entry  = &lifestyleEntry{once: new(sync.Once)}
+			s.keys = lifestyleCache{key: entry}
+		}
+		s.lock.Unlock()
+	}
+
+	entry.once.Do(func() {
 		defer func() {
 			if r := recover(); r != nil {
 				if e, ok := r.(error); ok {
@@ -78,17 +112,18 @@ func (s *singleton) Next(
 				} else {
 					err = fmt.Errorf("singleton: panic: %v", r)
 				}
-				s.once = new(sync.Once)
+				entry.once = new(sync.Once)
 			}
 		}()
 		if out, po, err = next.Pipe(); err == nil && po != nil {
 			out, err = po.Await()
 		}
 		if err != nil || len(out) == 0 {
-			s.once = new(sync.Once)
+			entry.once = new(sync.Once)
 		} else {
-			s.instance = out
+			entry.instance = out
 		}
 	})
-	return s.instance, nil, err
+
+	return entry.instance, nil, err
 }

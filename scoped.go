@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"errors"
+	"fmt"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"sync"
@@ -32,7 +33,7 @@ func (s *Scoped) Constraint() BindingConstraint {
 // scoped is a Filter that caches an instance per Context.
 type scoped struct {
 	Lifestyle
-	cache  map[*Context][]any
+	cache  map[*Context]lifestyleCache
 	lock   sync.RWMutex
 }
 
@@ -40,11 +41,18 @@ func (s *scoped) Next(
 	next     Next,
 	ctx      HandleContext,
 	provider FilterProvider,
-)  ([]any, *promise.Promise[[]any], error) {
+)  (out []any, po *promise.Promise[[]any], err error) {
+	key := ctx.Callback().(*Provides).Key()
+	if key == _contextType {
+		// can't resolve a context contextually
+		return nil, nil,nil
+	}
+
 	rooted := false
 	if scp, ok := provider.(*Scoped); ok {
 		rooted = scp.rooted
 	}
+
 	if !s.isCompatibleWithParent(ctx, rooted) {
 		return nil, nil,nil
 	}
@@ -58,56 +66,75 @@ func (s *scoped) Next(
 	} else if rooted {
 		context = context.Root()
 	}
-	var instance []any
+
+	var entry *lifestyleEntry
 	s.lock.RLock()
-	if s.cache != nil {
-		instance = s.cache[context]
-		if instance != nil {
-			defer s.lock.RUnlock()
-			return instance, nil, nil
+	if cache := s.cache; cache != nil {
+		if keys := cache[context]; keys != nil {
+			entry = keys[key]
 		}
 	}
 	s.lock.RUnlock()
-	res, pr, err := next.Pipe()
-	if err == nil && pr != nil {
-		res, err = pr.Await()
-	}
-	if err != nil || len(res) == 0 {
-		return res, nil, err
-	} else {
+
+	if entry == nil {
 		s.lock.Lock()
-		if s.cache != nil {
-			if instance = s.cache[context]; instance != nil {
-				defer s.lock.Unlock()
-				return instance, nil, nil
+		if cache := s.cache; cache != nil {
+			if keys := cache[context]; keys != nil {
+				if entry = keys[key]; entry == nil {
+					entry     = &lifestyleEntry{once: new(sync.Once)}
+					keys[key] = entry
+				}
+			} else {
+				entry = &lifestyleEntry{once: new(sync.Once)}
+				cache[context] = lifestyleCache{key: entry}
 			}
 		} else {
-			s.cache = map[*Context][]any{}
+			entry   = &lifestyleEntry{once: new(sync.Once)}
+			s.cache = map[*Context]lifestyleCache{context: {key: entry}}
 		}
-		instance         = res
-		s.cache[context] = res
 		s.lock.Unlock()
 	}
-	if contextual, ok := instance[0].(Contextual); ok {
-		contextual.SetContext(context)
-		unsubscribe := contextual.Observe(s)
-		context.Observe(ContextEndedObserverFunc(func(*Context, any) {
-			s.lock.Lock()
-			delete(s.cache, context)
-			s.lock.Unlock()
-			unsubscribe.Dispose()
-			s.tryDispose(instance[0])
-			contextual.SetContext(nil)
-		}))
-	} else {
-		context.Observe(ContextEndedObserverFunc(func(*Context, any) {
-			s.lock.Lock()
-			delete(s.cache, context)
-			s.lock.Unlock()
-			s.tryDispose(instance[0])
-		}))
-	}
-	return instance, nil, nil
+
+	entry.once.Do(func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if e, ok := r.(error); ok {
+					err = e
+				} else {
+					err = fmt.Errorf("singleton: panic: %v", r)
+				}
+				entry.once = new(sync.Once)
+			}
+		}()
+		if out, po, err = next.Pipe(); err == nil && po != nil {
+			out, err = po.Await()
+		}
+		if err != nil || len(out) == 0 {
+			entry.once = new(sync.Once)
+		} else {
+			entry.instance = out
+			if contextual, ok := out[0].(Contextual); ok {
+				contextual.SetContext(context)
+				unsubscribe := contextual.Observe(s)
+				context.Observe(ContextEndedObserverFunc(func(*Context, any) {
+					s.lock.Lock()
+					delete(s.cache, context)
+					s.lock.Unlock()
+					unsubscribe.Dispose()
+					s.tryDispose(out[0])
+					contextual.SetContext(nil)
+				}))
+			} else {
+				context.Observe(ContextEndedObserverFunc(func(*Context, any) {
+					s.lock.Lock()
+					delete(s.cache, context)
+					s.lock.Unlock()
+					s.tryDispose(out[0])
+				}))
+			}
+		}
+	})
+	return entry.instance, nil, nil
 }
 
 func (s *scoped) ContextChanging(
@@ -123,11 +150,19 @@ func (s *scoped) ContextChanging(
 	}
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	if instance, ok := s.cache[oldCtx]; !ok || contextual != instance[0] {
+	if cache := s.cache; cache == nil {
 		return
+	} else if keys := cache[oldCtx]; keys == nil {
+		return
+	} else {
+		for key, entry := range keys {
+			if entry.instance[0] == contextual {
+				delete(keys, key)
+				s.tryDispose(contextual)
+				break
+			}
+		}
 	}
-	delete(s.cache, oldCtx)
-	s.tryDispose(contextual)
 }
 
 func (s *scoped) isCompatibleWithParent(

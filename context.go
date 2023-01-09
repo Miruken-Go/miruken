@@ -567,10 +567,14 @@ func (f ContextChangedObserverFunc) ContextChanged(
 	f(contextual, oldCtx, newCtx)
 }
 
-var PublishFromRoot BuilderFunc = func (handler Handler) Handler {
-	if context, _, err := Resolve[*Context](handler); err != nil {
-		panic("the root context could not be found")
-	} else {
-		return Publish.BuildUp(context.Root())
+var (
+	FromScope = Qualifier[Scoped]{}
+	PublishFromRoot BuilderFunc = func (handler Handler) Handler {
+		if context, _, err := Resolve[*Context](handler); err != nil {
+			panic("the root context could not be found")
+		} else {
+			return Publish.BuildUp(context.Root())
+		}
 	}
-}
+	_contextType = TypeOf[*Context]()
+)
