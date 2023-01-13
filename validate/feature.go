@@ -13,8 +13,8 @@ func (v *Installer) ValidateOutput () {
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {
-		setup.RegisterHandlers(&ApiMapping{})
-		setup.RequireFilters(NewProvider(v.output))
+		setup.RegisterHandlers(&ApiMapping{}).
+			  RequireFilters(NewProvider(v.output))
 	}
 	return nil
 }
@@ -23,6 +23,7 @@ func Output(installer *Installer) {
 	installer.ValidateOutput()
 }
 
+// Feature creates and configures validation support.
 func Feature(
 	config ... func(installer *Installer),
 ) miruken.Feature {

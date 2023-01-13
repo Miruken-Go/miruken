@@ -101,7 +101,7 @@ func (s *scoped) Next(
 				if e, ok := r.(error); ok {
 					err = e
 				} else {
-					err = fmt.Errorf("singleton: panic: %v", r)
+					err = fmt.Errorf("scoped: panic: %v", r)
 				}
 				entry.once = new(sync.Once)
 			}

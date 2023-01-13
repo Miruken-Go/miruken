@@ -70,7 +70,7 @@ func (h *inferenceHandler) SuppressDispatch() {}
 
 // methodIntercept intercepts method Binding invocations.
 type methodIntercept struct {
-	*methodBinding
+	*MethodBinding
 	handlerType reflect.Type
 }
 
@@ -195,13 +195,13 @@ func linkBinding(
 	addConstructor  bool,
 ) {
 	switch b := binding.(type) {
-	case *constructorBinding:
+	case *ConstructorBinding:
 		if addConstructor {
 			bindings.insert(b)
 		}
-	case *methodBinding:
+	case *MethodBinding:
 		bindings.insert(&methodIntercept{b, handlerType})
-	case *funcBinding:
+	case *FuncBinding:
 		bindings.insert(b)
 	}
 }

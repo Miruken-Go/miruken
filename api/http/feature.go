@@ -30,8 +30,8 @@ func (i *Installer) DependsOn() []miruken.Feature {
 
 func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {
-		setup.RegisterHandlers(&Router{})
-		setup.AddBuilder(miruken.Options(i.options))
+		setup.RegisterHandlers(&Router{}).
+			  AddBuilder(miruken.Options(i.options))
 	}
 	return nil
 }

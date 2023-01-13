@@ -20,8 +20,8 @@ type (
 		) (Binding, error)
 	}
 
-	// funcBinding models a `key` Binding to a function.
-	funcBinding struct {
+	// FuncBinding models a `key` Binding to a function.
+	FuncBinding struct {
 		FilteredScope
 		key      any
 		flags    bindingFlags
@@ -37,23 +37,23 @@ type (
 	}
 )
 
-func (b *funcBinding) Key() any {
+func (b *FuncBinding) Key() any {
 	return b.key
 }
 
-func (b *funcBinding) Strict() bool {
+func (b *FuncBinding) Strict() bool {
 	return b.flags & bindingStrict == bindingStrict
 }
 
-func (b *funcBinding) SkipFilters() bool {
+func (b *FuncBinding) SkipFilters() bool {
 	return b.flags & bindingSkipFilters == bindingSkipFilters
 }
 
-func (b *funcBinding) Metadata() []any {
+func (b *FuncBinding) Metadata() []any {
 	return b.metadata
 }
 
-func (b *funcBinding) Invoke(
+func (b *FuncBinding) Invoke(
 	ctx      HandleContext,
 	initArgs ... any,
 ) ([]any, *promise.Promise[[]any], error) {

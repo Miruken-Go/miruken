@@ -16,8 +16,8 @@ type (
 		) (Binding, error)
 	}
 
-	// constructorBinding customizes the construction of `handlerType`.
-	constructorBinding struct {
+	// ConstructorBinding customizes the construction of `handlerType`.
+	ConstructorBinding struct {
 		FilteredScope
 		handlerType  reflect.Type
 		flags        bindingFlags
@@ -25,27 +25,27 @@ type (
 	}
 )
 
-func (b *constructorBinding) Key() any {
+func (b *ConstructorBinding) Key() any {
 	return b.handlerType
 }
 
-func (b *constructorBinding) Strict() bool {
+func (b *ConstructorBinding) Strict() bool {
 	return false
 }
 
-func (b *constructorBinding) SkipFilters() bool {
+func (b *ConstructorBinding) SkipFilters() bool {
 	return b.flags & bindingSkipFilters == bindingSkipFilters
 }
 
-func (b *constructorBinding) Metadata() []any {
+func (b *ConstructorBinding) Metadata() []any {
 	return b.metadata
 }
 
-func (b *constructorBinding) Invoke(
+func (b *ConstructorBinding) Invoke(
 	ctx      HandleContext,
 	initArgs ... any,
 ) ([]any, *promise.Promise[[]any], error) {
-	// constructorBinding's will be called on existing
+	// ConstructorBinding's will be called on existing
 	// handlers if present.  This would result in an
 	// additional and unexpected instance created.
 	// This situation can be detected if the handler is
@@ -70,8 +70,8 @@ func newConstructorBinding(
 	constructor  *reflect.Method,
 	spec         *policySpec,
 	explicitSpec  bool,
-) (binding *constructorBinding, err error) {
-	binding = &constructorBinding{
+) (binding *ConstructorBinding, err error) {
+	binding = &ConstructorBinding{
 		FilteredScope{spec.filters},
 		handlerType,
 		spec.flags,

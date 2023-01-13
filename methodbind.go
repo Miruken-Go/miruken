@@ -16,8 +16,8 @@ type (
 		) (Binding, error)
 	}
 
-	// methodBinding models a `key` Binding to a method.
-	methodBinding struct {
+	// MethodBinding models a `key` Binding to a method.
+	MethodBinding struct {
 		FilteredScope
 		key      any
 		flags    bindingFlags
@@ -33,23 +33,23 @@ type (
 	}
 )
 
-func (b *methodBinding) Key() any {
+func (b *MethodBinding) Key() any {
 	return b.key
 }
 
-func (b *methodBinding) Strict() bool {
+func (b *MethodBinding) Strict() bool {
 	return b.flags & bindingStrict == bindingStrict
 }
 
-func (b *methodBinding) SkipFilters() bool {
+func (b *MethodBinding) SkipFilters() bool {
 	return b.flags & bindingSkipFilters == bindingSkipFilters
 }
 
-func (b *methodBinding) Metadata() []any {
+func (b *MethodBinding) Metadata() []any {
 	return b.metadata
 }
 
-func (b *methodBinding) Invoke(
+func (b *MethodBinding) Invoke(
 	ctx      HandleContext,
 	initArgs ... any,
 ) ([]any, *promise.Promise[[]any], error) {
@@ -63,7 +63,7 @@ func (b *methodBinding) Invoke(
 	return callFunc(b.method.Func, ctx, b.args, initArgs...)
 }
 
-func (b *methodBinding) Method() reflect.Method {
+func (b *MethodBinding) Method() reflect.Method {
 	return b.method
 }
 

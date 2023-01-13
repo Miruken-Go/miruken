@@ -6,8 +6,8 @@ import (
 	"github.com/miruken-go/miruken"
 )
 
-// factory of context specific loggers.
-type factory struct {
+// Factory of context specific loggers.
+type Factory struct {
 	root logr.Logger
 }
 
@@ -15,7 +15,7 @@ type factory struct {
 // The context is a name derived from the following information.
 // If the request has an owner, the owner's type is used.
 // Otherwise, the root logger is returned.
-func (f *factory) NewContextLogger(
+func (f *Factory) NewContextLogger(
 	provides *miruken.Provides,
 ) logr.Logger {
 	if owner := provides.Owner(); owner != nil {
