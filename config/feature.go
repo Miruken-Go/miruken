@@ -6,23 +6,23 @@ import (
 
 // Installer configures configuration support.
 type Installer struct {
-	provider any
+	provider Provider
 }
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {
 		if provider := v.provider; !miruken.IsNil(provider) {
-			setup.RegisterHandlers(provider).
-				  AddHandlers(provider)
+			setup.RegisterHandlers(&Factory{}).
+				  AddHandlers(&Factory{v.provider})
 		}
 	}
 	return nil
 }
 
-// Feature creates and configures configuration support using
-// the supplied configuration provider.
+// Feature creates and configures configuration support
+// using the supplied configuration Provider.
 func Feature(
-	provider any,
+	provider Provider,
 	config ... func(installer *Installer),
 ) miruken.Feature {
 	if miruken.IsNil(provider) {

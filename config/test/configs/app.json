@@ -1,0 +1,9 @@
+{
+  "env": "develop",
+  "database": [{
+      "name": "mongo",
+      "connectionString": "mongodb://mongodb0.example.com:27017",
+      "timeout": "5h30m40s"
+    }
+  ]
+}
