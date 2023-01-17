@@ -4,10 +4,18 @@ import (
 	"github.com/miruken-go/miruken"
 )
 
-// Installer configures configuration support.
-type Installer struct {
-	provider Provider
-}
+type (
+	// Provider defines the api to allow configuration
+	// providers to expose their configuration information.
+	Provider interface {
+		Unmarshal(path string, flat bool, output any) error
+	}
+
+	// Installer enables configuration support.
+	Installer struct {
+		provider Provider
+	}
+)
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {

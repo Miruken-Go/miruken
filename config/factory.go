@@ -3,7 +3,9 @@ package config
 import (
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/slices"
 	"reflect"
+	"strings"
 )
 
 type (
@@ -12,16 +14,40 @@ type (
 		provider Provider
 	}
 
-	// Load is used to load a value from Configuration.
+	// Load asserts a configuration is loaded.
 	Load struct {
-		miruken.Qualifier[Load]
+		Path string
+		Flat bool
 	}
 )
 
-// Required is true to restrict configurations.
-func (l Load) Required() bool {
+
+// Load
+
+func (l *Load) Required() bool {
 	return true
 }
+
+func (l *Load) InitWithTag(tag reflect.StructTag) error {
+	if path, ok := tag.Lookup("path"); ok && len(strings.TrimSpace(path)) > 0 {
+		parts := strings.Split(path, ",")
+		l.Path = parts[0]
+		l.Flat = slices.Contains(parts, "flat")
+	}
+	return nil
+}
+
+func (l *Load) Require(metadata *miruken.BindingMetadata) {
+	metadata.Set(_loadType, l)
+}
+
+func (l *Load) Matches(metadata *miruken.BindingMetadata) bool {
+	_, ok := metadata.Get(_loadType)
+	return ok
+}
+
+
+// Factory
 
 // NewConfiguration return a new configuration instance
 // populated by the assigned Provider.
@@ -40,7 +66,8 @@ func (f *Factory) NewConfiguration(
 		} else {
 			out = reflect.New(typ).Interface()
 		}
-		if err := f.provider.Unmarshal("", out); err != nil {
+		load := extractLoad(provides)
+		if err := f.provider.Unmarshal(load.Path, load.Flat, out); err != nil {
 			return nil, fmt.Errorf("config: %w", err)
 		}
 		if !ptr {
@@ -50,3 +77,14 @@ func (f *Factory) NewConfiguration(
 	}
 	return nil, nil
 }
+
+func extractLoad(provides *miruken.Provides) *Load {
+	if meta := provides.Metadata(); meta != nil {
+		if l, ok := meta.Get(_loadType); ok {
+			return l.(*Load)
+		}
+	}
+	return &Load{}
+}
+
+var _loadType = miruken.TypeOf[*Load]()

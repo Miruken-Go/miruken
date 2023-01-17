@@ -11,8 +11,9 @@ type provider struct {
 	k *koanf.Koanf
 }
 
-func (f *provider) Unmarshal(path string, output any) error {
-	return f.k.Unmarshal("", output)
+func (f *provider) Unmarshal(path string, flat bool, output any) error {
+	return f.k.UnmarshalWithConf(path, output,
+		koanf.UnmarshalConf{Tag: "path", FlatPaths: flat})
 }
 
 // P returns a config.Provider using the Koanf instance.
