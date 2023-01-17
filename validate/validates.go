@@ -61,6 +61,10 @@ type Group struct {
 	groups map[any]miruken.Void
 }
 
+func (g *Group) Required() bool {
+	return true
+}
+
 func (g *Group) InitWithTag(tag reflect.StructTag) error {
 	if name, ok := tag.Lookup("name"); ok {
 		g.groups = make(map[any]miruken.Void)

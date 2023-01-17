@@ -86,6 +86,10 @@ func (m *Maps) Dispatch(
 
 // Format
 
+func (f *Format) Required() bool {
+	return true
+}
+
 func (f *Format) Direction() FormatDirection {
 	return f.direction
 }

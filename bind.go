@@ -8,7 +8,7 @@ import (
 )
 
 type (
-	// Binding abstracts a Callback handler.
+	// Binding connects a Callback to a handler.
 	Binding interface {
 		Filtered
 		Key()         any

@@ -85,6 +85,7 @@ type BindingScope interface {
 
 // BindingConstraint manages BindingMetadata assertions.
 type BindingConstraint interface {
+	Required() bool
 	Require(metadata *BindingMetadata)
 	Matches(metadata *BindingMetadata) bool
 }
@@ -94,6 +95,10 @@ type Named string
 
 func (n *Named) Name() string {
 	return string(*n)
+}
+
+func (n *Named) Required() bool {
+	return false
 }
 
 func (n *Named) InitWithTag(tag reflect.StructTag) error {
@@ -192,6 +197,10 @@ func (m *Metadata) Matches(metadata *BindingMetadata) bool {
 // Qualifier matches against a type.
 type Qualifier[T any] struct {}
 
+func (q Qualifier[T]) Required() bool {
+	return false
+}
+
 func (q Qualifier[T]) Require(metadata *BindingMetadata) {
 	metadata.Set(TypeOf[T](), nil)
 }
@@ -215,9 +224,18 @@ func (c *constraintFilter) Next(
 	if cp, ok := provider.(interface {
 		Constraints() []BindingConstraint
 	}); ok {
-		metadata := ctx.Callback().Metadata()
-		if metadata != nil {
-			for _, c := range cp.Constraints() {
+		constraints := cp.Constraints()
+		metadata    := ctx.Callback().Metadata()
+		if metadata.IsEmpty() {
+			for _, c := range constraints {
+				if c.Required() {
+					return next.Abort()
+				}
+			}
+		} else if len(constraints) == 0 {
+			return next.Abort()
+		} else {
+			for _, c := range constraints {
 				if !c.Matches(metadata) {
 					return next.Abort()
 				}

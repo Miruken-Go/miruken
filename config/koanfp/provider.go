@@ -1,7 +1,8 @@
-package koanf
+package koanfp
 
 import (
 	"github.com/knadh/koanf"
+	"github.com/miruken-go/miruken/config"
 )
 
 // provider of configurations populated by the koanf library.
@@ -14,8 +15,8 @@ func (f *provider) Unmarshal(path string, output any) error {
 	return f.k.Unmarshal("", output)
 }
 
-// Use returns a config.Provider using the Koanf instance.
-func Use(k *koanf.Koanf) any {
+// P returns a config.Provider using the Koanf instance.
+func P(k *koanf.Koanf) config.Provider {
 	if k == nil {
 		panic("k cannot be nil")
 	}

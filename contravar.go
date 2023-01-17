@@ -8,7 +8,7 @@ import (
 	"reflect"
 )
 
-// ContravariantPolicy defines related input values.
+// ContravariantPolicy matches related input values.
 type ContravariantPolicy struct {
 	FilteredScope
 }

@@ -12,11 +12,16 @@ type (
 		provider Provider
 	}
 
-	// FromConfig is used to request a Configuration value.
-	FromConfig struct {
-		miruken.Qualifier[FromConfig]
+	// Load is used to load a value from Configuration.
+	Load struct {
+		miruken.Qualifier[Load]
 	}
 )
+
+// Required is true to restrict configurations.
+func (l Load) Required() bool {
+	return true
+}
 
 // NewConfiguration return a new configuration instance
 // populated by the assigned Provider.
@@ -24,7 +29,8 @@ func (f *Factory) NewConfiguration(
 	_*struct{
 		miruken.Provides
 		miruken.Singleton
-	}, provides *miruken.Provides,
+	    Load
+	  }, provides *miruken.Provides,
 ) (any, error) {
 	if typ, ok := provides.Key().(reflect.Type); ok {
 		var out any
@@ -37,7 +43,7 @@ func (f *Factory) NewConfiguration(
 		if err := f.provider.Unmarshal("", out); err != nil {
 			return nil, fmt.Errorf("config: %w", err)
 		}
-		if ptr {
+		if !ptr {
 			out = reflect.ValueOf(out).Elem().Interface()
 		}
 		return out, nil

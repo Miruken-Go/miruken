@@ -15,7 +15,7 @@ type (
 		Out any
 	}
 
-	// BivariantPolicy defines related input and output values.
+	// BivariantPolicy matches related input and output values.
 	BivariantPolicy struct {
 		FilteredScope
 		in  ContravariantPolicy

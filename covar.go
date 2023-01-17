@@ -8,7 +8,7 @@ import (
 	"reflect"
 )
 
-// CovariantPolicy defines related output values.
+// CovariantPolicy matches related output values.
 type CovariantPolicy struct {
 	FilteredScope
 }

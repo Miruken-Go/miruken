@@ -26,8 +26,8 @@ func (s *Scoped) Init() error {
 	return nil
 }
 
-func (s *Scoped) Constraint() BindingConstraint {
-	return Qualifier[Scoped]{}
+func (s *Scoped) Constraints() []BindingConstraint {
+	return _scopedConstraint
 }
 
 // scoped is a Filter that caches an instance per Context.
@@ -186,3 +186,5 @@ func (s *scoped) tryDispose(instance any) {
 		disposable.Dispose()
 	}
 }
+
+var _scopedConstraint = []BindingConstraint{Qualifier[Scoped]{}}

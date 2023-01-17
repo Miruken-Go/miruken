@@ -34,6 +34,10 @@ func (d *Doctor) Init() error {
 	})
 }
 
+func (d *Doctor) Required() bool {
+	return false
+}
+
 type Programmer struct {
 	miruken.Qualifier[Programmer]
 }
@@ -224,11 +228,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 
 		suite.Run("ResolveAll", func() {
 			handler, _ := suite.Setup()
-			programmers, _, err := miruken.ResolveAll[Person](
-				handler,
-				func(c *miruken.ConstraintBuilder) {
-					c.WithConstraint(new(Programmer))
-				})
+			programmers, _, err := miruken.ResolveAll[Person](handler, new(Programmer))
 			suite.Nil(err)
 			suite.Len(programmers, 1)
 		})
