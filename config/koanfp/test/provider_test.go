@@ -107,7 +107,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 		suite.Run("Constructor", func() {
 			handler, _ := miruken.Setup(
 				config.Feature(koanfp.P(k)),
-				miruken.HandlerSpecs(&EventStore{}))
+				miruken.Specs(&EventStore{}))
 			es, _, err := miruken.Resolve[*EventStore](handler)
 			suite.Nil(err)
 			suite.Equal("develop", es.Env())
@@ -116,7 +116,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 		suite.Run("Method", func() {
 			handler, _ := miruken.Setup(
 				config.Feature(koanfp.P(k)),
-				miruken.HandlerSpecs(&Gateway{}, &EventStore{}))
+				miruken.Specs(&Gateway{}, &EventStore{}))
 			_, err := miruken.Command(handler, CreateCustomer{})
 			suite.Nil(err)
 		})
@@ -150,7 +150,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 		suite.Run("Method", func() {
 			handler, _ := miruken.Setup(
 				config.Feature(koanfp.P(k)),
-				miruken.HandlerSpecs(&Repository{}))
+				miruken.Specs(&Repository{}))
 			_, err := miruken.Command(handler, LoadCustomer{})
 			suite.Nil(err)
 		})

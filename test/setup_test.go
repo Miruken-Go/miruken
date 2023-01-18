@@ -54,9 +54,9 @@ type SetupTestSuite struct {
 }
 
 func (suite *SetupTestSuite) TestSetup() {
-	suite.Run("HandlerSpecs", func () {
+	suite.Run("Specs", func () {
 		handler, _ := miruken.Setup(
-			miruken.HandlerSpecs(&MultiHandler{}),
+			miruken.Specs(&MultiHandler{}),
 		)
 
 		result := handler.Handle(&Foo{}, false, nil)
@@ -68,10 +68,10 @@ func (suite *SetupTestSuite) TestSetup() {
 		suite.Equal(miruken.NotHandled, result)
 	})
 
-	suite.Run("ExcludeHandlerSpecs", func () {
+	suite.Run("ExcludeSpecs", func () {
 		handler, _ := miruken.Setup(
 			TestFeature,
-			miruken.ExcludeHandlerSpecs(
+			miruken.ExcludeSpecs(
 				func(spec miruken.HandlerSpec) bool {
 					switch ts := spec.(type) {
 					case miruken.HandlerTypeSpec:
@@ -100,7 +100,7 @@ func (suite *SetupTestSuite) TestSetup() {
 
 	suite.Run("NoInference", func () {
 		handler, _ := miruken.Setup(
-			miruken.HandlerSpecs(&MultiHandler{}),
+			miruken.Specs(&MultiHandler{}),
 			miruken.NoInference)
 
 		result := handler.Handle(&Foo{}, false, nil)

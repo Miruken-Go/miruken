@@ -77,7 +77,7 @@ func (suite *LogTestSuite) TestLogging() {
 	suite.Run("CtorDependency", func() {
 		handler, _ := miruken.Setup(
 			log.Feature(testr.New(suite.T())),
-			miruken.HandlerSpecs(&Service{}),
+			miruken.Specs(&Service{}),
 		)
 		svc, _, err := miruken.Resolve[*Service](handler)
 		suite.Nil(err)
@@ -90,7 +90,7 @@ func (suite *LogTestSuite) TestLogging() {
 				LogTimestamp: true,
 				Verbosity:    1,
 			})),
-			miruken.HandlerSpecs(&Service{}),
+			miruken.Specs(&Service{}),
 		)
 		next, _, err := miruken.Execute[Command](handler, Command(1))
 		suite.Nil(err)
@@ -106,7 +106,7 @@ func (suite *LogTestSuite) TestLogging() {
 				LogTimestamp: true,
 				Verbosity:    1,
 			})),
-			miruken.HandlerSpecs(&Service{}),
+			miruken.Specs(&Service{}),
 		)
 		next, np, err := miruken.Execute[LongCommand](handler, LongCommand(8))
 		suite.Nil(err)
@@ -122,7 +122,7 @@ func (suite *LogTestSuite) TestLogging() {
 				LogTimestamp: true,
 				Verbosity:    1,
 			}), log.Verbosity(2)),
-			miruken.HandlerSpecs(&Service{}),
+			miruken.Specs(&Service{}),
 		)
 		next, _, err := miruken.Execute[Command](handler, Command(2))
 		suite.Nil(err)

@@ -205,7 +205,7 @@ func (suite *ValidatesTestSuite) Setup() (miruken.Handler, error) {
 }
 
 func (suite *ValidatesTestSuite) SetupWith(specs ... any) (miruken.Handler, error) {
-	return miruken.Setup(miruken.HandlerSpecs(specs...))
+	return miruken.Setup(miruken.Specs(specs...))
 }
 
 func (suite *ValidatesTestSuite) TestValidation() {

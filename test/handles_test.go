@@ -559,7 +559,7 @@ type HandlesTestSuite struct {
 }
 
 func (suite *HandlesTestSuite) Setup() (miruken.Handler, error) {
-	return miruken.Setup(TestFeature, miruken.ExcludeHandlerSpecs(
+	return miruken.Setup(TestFeature, miruken.ExcludeSpecs(
 		func (spec miruken.HandlerSpec) bool {
 			switch ts := spec.(type) {
 			case miruken.HandlerTypeSpec:
@@ -579,7 +579,7 @@ func (suite *HandlesTestSuite) SetupWith(
 func (suite *HandlesTestSuite) TestHandles() {
 	suite.Run("Invariant", func () {
 		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(
+			miruken.Specs(
 				&FooHandler{},
 				&BarHandler{}),
 			miruken.Handlers(new(FooHandler), new(BarHandler)))
@@ -592,7 +592,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 	suite.Run("Contravariant", func () {
 		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&CounterHandler{}),
+			miruken.Specs(&CounterHandler{}),
 			miruken.Handlers(new(CounterHandler)))
 		foo    := new(Foo)
 		result := handler.Handle(foo, false, nil)
@@ -603,7 +603,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 	suite.Run("HandleResult", func () {
 		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&CounterHandler{}))
+			miruken.Specs(&CounterHandler{}))
 		suite.Run("Handled", func() {
 			foo := new(Foo)
 			result := handler.Handle(foo, false, nil)
@@ -633,7 +633,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 	suite.Run("Multiple", func () {
 		multi   := new(MultiHandler)
 		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&MultiHandler{}),
+			miruken.Specs(&MultiHandler{}),
 			miruken.Handlers(multi))
 
 		foo := new(Foo)
@@ -656,7 +656,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 	suite.Run("Everything", func () {
 		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&EverythingHandler{}),
+			miruken.Specs(&EverythingHandler{}),
 			miruken.Handlers(new(EverythingHandler)))
 
 		suite.Run("Invariant", func () {
@@ -679,7 +679,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 	suite.Run("EverythingImplicit", func () {
 		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&EverythingImplicitHandler{}),
+			miruken.Specs(&EverythingImplicitHandler{}),
 			miruken.Handlers(new(EverythingImplicitHandler)))
 
 		suite.Run("Invariant", func () {
@@ -702,7 +702,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 	suite.Run("EverythingSpec", func () {
 		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&EverythingSpecHandler{}),
+			miruken.Specs(&EverythingSpecHandler{}),
 			miruken.Handlers(new(EverythingSpecHandler)))
 
 		suite.Run("Invariant", func () {
@@ -725,7 +725,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 	suite.Run("Specification", func () {
 		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&SpecificationHandler{}),
+			miruken.Specs(&SpecificationHandler{}),
 			miruken.Handlers(new(SpecificationHandler)))
 		suite.Run("Strict", func() {
 			foo    := new(Foo)
@@ -738,7 +738,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 	suite.Run("Dependencies", func () {
 		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&DependencyHandler{}),
+			miruken.Specs(&DependencyHandler{}),
 			miruken.Handlers(new(DependencyHandler)))
 		suite.Run("Required", func () {
 			defer func() {
@@ -817,7 +817,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 		suite.Run("CustomResolver", func() {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(&DependencyResolverHandler{}),
+				miruken.Specs(&DependencyResolverHandler{}),
 				miruken.Handlers(new(DependencyResolverHandler)))
 			if config, _, err := miruken.Execute[*Config](handler, new(Foo)); err == nil {
 				suite.NotNil(*config)
@@ -836,7 +836,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 	suite.Run("Metadata", func () {
 		suite.Run("Simple", func() {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(&MetadataHandler{}))
+				miruken.Specs(&MetadataHandler{}))
 			bar := new(Bar)
 			if anonymous, _, err := miruken.Execute[[]Anonymous](handler, bar); err == nil {
 				suite.Len(anonymous, 1)
@@ -848,7 +848,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 		suite.Run("Pointer", func() {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(&MetadataHandler{}))
+				miruken.Specs(&MetadataHandler{}))
 			foo := new(Foo)
 			if transactional, _, err := miruken.Execute[Transactional](handler, foo); err == nil {
 				suite.NotNil(transactional)
@@ -871,7 +871,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 					suite.Fail("Expected HandlerDescriptorError")
 				}
 			}()
-			if _, err := suite.SetupWith(miruken.HandlerSpecs(&MetadataInvalidHandler{})); err != nil {
+			if _, err := suite.SetupWith(miruken.Specs(&MetadataInvalidHandler{})); err != nil {
 				suite.Fail("unexpected error", err.Error())
 			}
 		})
@@ -890,7 +890,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 		suite.Run("Broadcast", func () {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(
+				miruken.Specs(
 					&FooHandler{},
 					&BarHandler{}),
 				miruken.Handlers(new(FooHandler), new(FooHandler), new(BarHandler)))
@@ -910,7 +910,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 	suite.Run("Intercept", func () {
 		suite.Run("Default", func() {
-			handler, _ := suite.SetupWith(miruken.HandlerSpecs(&CountByTwoHandler{}))
+			handler, _ := suite.SetupWith(miruken.Specs(&CountByTwoHandler{}))
 			handler = miruken.BuildUp(
 				handler,
 				miruken.FilterFunc(func(
@@ -943,7 +943,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 		})
 
 		suite.Run("Reentrant", func() {
-			handler, _ := suite.SetupWith(miruken.HandlerSpecs(&CountByTwoHandler{}))
+			handler, _ := suite.SetupWith(miruken.Specs(&CountByTwoHandler{}))
 			handler = miruken.BuildUp(
 				handler,
 				miruken.Reentrant(func(
@@ -974,7 +974,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 	suite.Run("Command", func () {
 		handler, _ := suite.SetupWith(
-			miruken.HandlerSpecs(&CounterHandler{}, &SpecificationHandler{}))
+			miruken.Specs(&CounterHandler{}, &SpecificationHandler{}))
 
 		suite.Run("Single", func () {
 			suite.Run("Invariant", func() {
@@ -998,7 +998,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 	suite.Run("Execute", func () {
 		suite.Run("Single", func () {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(&CounterHandler{}))
+				miruken.Specs(&CounterHandler{}))
 
 			suite.Run("Invariant", func() {
 				if foo, _, err := miruken.Execute[*Foo](handler, new(Foo)); err == nil {
@@ -1030,7 +1030,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 			})
 
 			suite.Run("Mixed", func() {
-				handler, _ := suite.SetupWith(miruken.HandlerSpecs(&MixedHandler{}))
+				handler, _ := suite.SetupWith(miruken.Specs(&MixedHandler{}))
 				if ret, _, err := miruken.Execute[any](handler, new(Foo)); err == nil {
 					suite.Equal("Handles *test.Foo", ret)
 				} else {
@@ -1059,7 +1059,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 		suite.Run("All", func () {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(&CountByTwoHandler{}, &SpecificationHandler{}),
+				miruken.Specs(&CountByTwoHandler{}, &SpecificationHandler{}),
 				miruken.Handlers(&CountByTwoHandler{}, &SpecificationHandler{}))
 
 			suite.Run("Invariant", func () {
@@ -1080,7 +1080,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 			suite.Run("Invariant Error", func () {
 				handler, _ := suite.SetupWith(
-					miruken.HandlerSpecs(&CounterHandler{}))
+					miruken.Specs(&CounterHandler{}))
 				foo := new(Foo)
 				foo.Inc()
 				foo.Inc()
@@ -1112,7 +1112,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 			}
 		}()
 		_, err := suite.SetupWith(
-			miruken.HandlerSpecs(&InvalidHandler{}))
+			miruken.Specs(&InvalidHandler{}))
 		suite.Nil(err)
 		suite.Fail("should cause panic")
 	})
@@ -1120,7 +1120,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 	suite.Run("Function Binding", func () {
 		suite.Run("Invariant", func() {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(HandleFoo))
+				miruken.Specs(HandleFoo))
 			foo := new(Foo)
 			result := handler.Handle(foo, false, nil)
 			suite.False(result.IsError())
@@ -1130,7 +1130,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 		suite.Run("Contravariant", func() {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(HandleCounted))
+				miruken.Specs(HandleCounted))
 			bar := new(Bar)
 			bar.Inc()
 			result := handler.Handle(bar, false, nil)
@@ -1141,7 +1141,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 		suite.Run("Invariant Explicit", func() {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(HandleFoo),
+				miruken.Specs(HandleFoo),
 				miruken.Handlers(HandleFoo))
 			foo := new(Foo)
 			result := handler.Handle(foo, true, nil)
@@ -1154,7 +1154,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 
 		suite.Run("Contravariant Explicit", func() {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(HandleCounted),
+				miruken.Specs(HandleCounted),
 				miruken.Handlers(HandleCounted))
 			bar := new(Bar)
 			bar.Inc()
@@ -1173,7 +1173,7 @@ func (suite *HandlesTestSuite) TestHandlesAsync() {
 	suite.Run("Simple", func() {
 		suite.Run("Promise command", func() {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(&SimpleAsyncHandler{}))
+				miruken.Specs(&SimpleAsyncHandler{}))
 			bar := &Bar{Counted{2}}
 			p, err := miruken.Command(handler, bar)
 			suite.Nil(err)
@@ -1184,7 +1184,7 @@ func (suite *HandlesTestSuite) TestHandlesAsync() {
 
 		suite.Run("Promise query", func() {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(&SimpleAsyncHandler{}))
+				miruken.Specs(&SimpleAsyncHandler{}))
 			bar := &Bar{Counted{2}}
 			b, p, err := miruken.Execute[*Bar](handler, bar)
 			suite.Nil(err)
@@ -1198,7 +1198,7 @@ func (suite *HandlesTestSuite) TestHandlesAsync() {
 
 		suite.Run("Promise dependency", func() {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(&SimpleAsyncHandler{}))
+				miruken.Specs(&SimpleAsyncHandler{}))
 			boo := &Boo{Counted{4}}
 			baz, p, err := miruken.Execute[*Baz](handler, boo)
 			suite.Nil(err)
@@ -1212,7 +1212,7 @@ func (suite *HandlesTestSuite) TestHandlesAsync() {
 
 		suite.Run("Promise dependency arg", func() {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(&SimpleAsyncHandler{}))
+				miruken.Specs(&SimpleAsyncHandler{}))
 			bam := &Bam{Counted{2}}
 			baz, p, err := miruken.Execute[*Baz](handler, bam)
 			suite.Nil(err)
@@ -1224,7 +1224,7 @@ func (suite *HandlesTestSuite) TestHandlesAsync() {
 
 		suite.Run("Promise dependency arg lift", func() {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(&SimpleAsyncHandler{}))
+				miruken.Specs(&SimpleAsyncHandler{}))
 			foo := &Foo{Counted{3}}
 			boo, p, err := miruken.Execute[*Boo](handler, foo)
 			suite.Nil(err)
@@ -1238,7 +1238,7 @@ func (suite *HandlesTestSuite) TestHandlesAsync() {
 	suite.Run("Complex", func() {
 		suite.Run("Promise strict many dependency", func() {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(&ComplexAsyncHandler{}))
+				miruken.Specs(&ComplexAsyncHandler{}))
 			foo := &Foo{Counted{4}}
 			baz, p, err := miruken.Execute[[]*Baz](handler, foo)
 			suite.Nil(err)
@@ -1254,7 +1254,7 @@ func (suite *HandlesTestSuite) TestHandlesAsync() {
 	suite.Run("Errors", func() {
 		suite.Run("Reject promise", func() {
 			handler, _ := suite.SetupWith(
-				miruken.HandlerSpecs(&ErrorAsyncHandler{}))
+				miruken.Specs(&ErrorAsyncHandler{}))
 			foo := new(Foo)
 			bar, pb, err := miruken.Execute[*Bar](handler, foo)
 			suite.Nil(err)

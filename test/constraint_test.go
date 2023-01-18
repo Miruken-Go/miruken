@@ -160,7 +160,7 @@ func (suite *ConstraintTestSuite) Setup() (miruken.Handler, error) {
 }
 
 func (suite *ConstraintTestSuite) SetupWith(specs ... any) (miruken.Handler, error) {
-	return miruken.Setup(miruken.HandlerSpecs(specs...))
+	return miruken.Setup(miruken.Specs(specs...))
 }
 
 func (suite *ConstraintTestSuite) TestConstraints() {

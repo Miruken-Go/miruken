@@ -49,7 +49,7 @@ func (suite *RouteTestSuite) Setup() miruken.Handler {
 	handler, _ := miruken.Setup(
 		TestFeature,
 		api.Feature(),
-		miruken.HandlerSpecs(&Trash{}),
+		miruken.Specs(&Trash{}),
 	)
 	return handler
 }

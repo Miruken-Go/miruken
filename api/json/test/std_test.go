@@ -68,7 +68,7 @@ func (suite *JsonStdTestSuite) Setup() miruken.Handler {
 	handler, _ := miruken.Setup(
 		TestFeature,
 		json.Feature(json.UseStandard()),
-		miruken.HandlerSpecs(&json.GoTypeFieldMapper{}))
+		miruken.Specs(&json.GoTypeFieldMapper{}))
 	return handler
 }
 

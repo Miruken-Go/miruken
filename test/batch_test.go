@@ -125,7 +125,7 @@ type BatchTestSuite struct {
 
 func (suite *BatchTestSuite) Setup() (miruken.Handler, error) {
 	return miruken.Setup(
-		miruken.HandlerSpecs(&EmailHandler{}),
+		miruken.Specs(&EmailHandler{}),
 		api.Feature())
 }
 

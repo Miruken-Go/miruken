@@ -80,7 +80,7 @@ func (suite *ContextTestSuite) RootContext() *miruken.Context {
 }
 
 func (suite *ContextTestSuite) RootContextWith(specs ... any) *miruken.Context {
-	return miruken.NewContext(miruken.Setup(miruken.HandlerSpecs(specs...)))
+	return miruken.NewContext(miruken.Setup(miruken.Specs(specs...)))
 }
 
 func (suite *ContextTestSuite) TestContext() {
@@ -129,7 +129,7 @@ func (suite *ContextTestSuite) TestContext() {
 
 	suite.Run("Handlers", func () {
 		handler, _ := miruken.Setup(
-			miruken.HandlerSpecs(&Service{}),
+			miruken.Specs(&Service{}),
 			miruken.NoInference,
 		)
 		context := miruken.NewContext(handler, new(Service))

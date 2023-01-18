@@ -188,14 +188,14 @@ func Handlers(handlers ... any) InstallFeature {
 	}
 }
 
-func HandlerSpecs(specs ... any) InstallFeature {
+func Specs(specs ... any) InstallFeature {
 	return func(setup *SetupBuilder) error {
 		setup.RegisterHandlers(specs...)
 		return nil
 	}
 }
 
-func ExcludeHandlerSpecs(rules ... Predicate[HandlerSpec]) InstallFeature {
+func ExcludeSpecs(rules ... Predicate[HandlerSpec]) InstallFeature {
 	return func(setup *SetupBuilder) error {
 		setup.Exclude(rules...)
 		return nil
