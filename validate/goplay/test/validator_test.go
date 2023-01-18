@@ -3,7 +3,7 @@ package test
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/validate"
-	"github.com/miruken-go/miruken/validate/goplayvalidator"
+	"github.com/miruken-go/miruken/validate/goplay"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
