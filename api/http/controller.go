@@ -8,11 +8,9 @@ import (
 	"strings"
 )
 
-type (
-	Controller struct {
-		Context *miruken.Context
-	}
-)
+type Controller struct {
+	ctx *miruken.Context
+}
 
 func (c *Controller) ServeHTTP(
 	w http.ResponseWriter,
@@ -22,7 +20,7 @@ func (c *Controller) ServeHTTP(
 	if !valid {
 		return
 	}
-	ctx := c.Context.NewChild()
+	ctx := c.ctx.NewChild()
 	defer ctx.Dispose()
 	format := r.Header.Get("Content-Type")
 	if len(format) == 0 {
@@ -73,10 +71,10 @@ func (c *Controller) validateRequest(
 }
 
 func (c *Controller) encodeResult(
-	res      any,
-	format   string,
-	w        http.ResponseWriter,
-	ctx      *miruken.Context,
+	res    any,
+	format string,
+	w      http.ResponseWriter,
+	ctx    *miruken.Context,
 ) {
 	w.Header().Set("Content-Type", format)
 	out := io.Writer(w)
@@ -87,10 +85,10 @@ func (c *Controller) encodeResult(
 }
 
 func (c *Controller) encodeError(
-	err     error,
-	format  string,
-	w       http.ResponseWriter,
-	ctx     *miruken.Context,
+	err    error,
+	format string,
+	w      http.ResponseWriter,
+	ctx    *miruken.Context,
 ) {
 	w.Header().Set("Content-Type", format)
 	statusCode := http.StatusInternalServerError
@@ -108,6 +106,11 @@ func (c *Controller) encodeError(
 	_, _ = miruken.MapInto(ctx, msg, &out, miruken.To(format))
 }
 
-var (
-	_toStatusCode = miruken.To("http:status-code")
-)
+func NewController(ctx *miruken.Context) *Controller {
+	if ctx == nil {
+		panic("ctx cannot be nil")
+	}
+	return &Controller{ctx}
+}
+
+var _toStatusCode = miruken.To("http:status-code")

@@ -146,7 +146,7 @@ func (suite *RouterTestSuite) SetupTest() {
 		TestFeature,
 		http.ServerFeature(),
 		miruken.Specs(&json.GoTypeFieldMapper{}))
-	ctrl := &http.Controller{Context: miruken.NewContext(handler)}
+	ctrl := http.NewController(miruken.NewContext(handler))
 	suite.srv = httptest.NewServer(ctrl)
 }
 
