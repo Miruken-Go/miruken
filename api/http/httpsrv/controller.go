@@ -20,30 +20,30 @@ func (c *Controller) ServeHTTP(
 	if !valid {
 		return
 	}
-	ctx := c.ctx.NewChild()
-	defer ctx.Dispose()
-	if msg, _, err := miruken.Map[api.Message](ctx, r.Body, miruken.From(format)); err != nil {
-		c.encodeError(err, format, w, ctx)
+	child := c.ctx.NewChild()
+	defer child.Dispose()
+	if msg, _, err := miruken.Map[api.Message](child, r.Body, miruken.From(format)); err != nil {
+		c.encodeError(err, format, w, child)
 	} else if msg.Payload == nil {
 		w.WriteHeader(http.StatusBadRequest)
 	} else if publish {
-		if pv, err := api.Publish(ctx, msg.Payload); err != nil {
-			c.encodeError(err, format, w, ctx)
+		if pv, err := api.Publish(child, msg.Payload); err != nil {
+			c.encodeError(err, format, w, child)
 		} else if pv == nil {
-			c.encodeResult(nil, format, w, ctx)
+			c.encodeResult(nil, format, w, child)
 		} else if _, err = pv.Await(); err == nil {
-			c.encodeResult(nil, format, w, ctx)
+			c.encodeResult(nil, format, w, child)
 		} else {
-			c.encodeError(err, format, w, ctx)
+			c.encodeError(err, format, w, child)
 		}
-	} else if res, pr, err := api.Send[any](ctx, msg.Payload); err != nil {
-		c.encodeError(err, format, w, ctx)
+	} else if res, pr, err := api.Send[any](child, msg.Payload); err != nil {
+		c.encodeError(err, format, w, child)
 	} else if pr == nil {
-		c.encodeResult(res, format, w, ctx)
+		c.encodeResult(res, format, w, child)
 	} else if res, err = pr.Await(); err == nil {
-		c.encodeResult(res, format, w, ctx)
+		c.encodeResult(res, format, w, child)
 	} else {
-		c.encodeError(err, format, w, ctx)
+		c.encodeError(err, format, w, child)
 	}
 }
 

@@ -7,7 +7,6 @@ import (
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/http"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
-	"github.com/miruken-go/miruken/api/json"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/validate"
 	"github.com/stretchr/testify/suite"
@@ -137,7 +136,7 @@ func (suite *ControllerTestSuite) Setup(specs ... any) *miruken.Context {
 	ctx, _ := miruken.SetupContext(
 		TestFeature,
 		http.Feature(),
-		miruken.Specs(&json.GoTypeFieldMapper{}),
+		miruken.Specs(&api.GoTypeFieldMapper{}),
 		miruken.Specs(specs...))
 	return ctx
 }
@@ -146,7 +145,7 @@ func (suite *ControllerTestSuite) SetupTest() {
 	ctx, _ := miruken.SetupContext(
 		TestFeature,
 		httpsrv.Feature(),
-		miruken.Specs(&json.GoTypeFieldMapper{}))
+		miruken.Specs(&api.GoTypeFieldMapper{}))
 	suite.srv = httptest.NewServer(httpsrv.NewController(ctx))
 }
 

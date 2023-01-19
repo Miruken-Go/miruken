@@ -5,19 +5,9 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"io"
-	"reflect"
 )
 
 type (
-	// TypeFieldInfo defines the metadata for describing polymorphic messages.
-	TypeFieldInfo struct {
-		Field string
-		Value string
-	}
-
-	// GoTypeFieldMapper provides TypeFieldInfo from  fully qualified package and name.
-	GoTypeFieldMapper struct {}
-
 	// message is the internal envelope for polymorphic json payloads.
 	message struct {
 		Payload *typeContainer `json:"payload"`
@@ -28,25 +18,10 @@ type (
 )
 
 var (
-	// ToTypeInfo requests type information for a type.
-	ToTypeInfo = miruken.To("type:info")
-
 	// KnownTypeFields holds the list of json property names
 	// that can contain type discriminators.
 	KnownTypeFields = []string{"$type", "@type"}
 )
-
-// GoTypeFieldMapper
-
-func (m *GoTypeFieldMapper) GoTypeInfo(
-	_*struct{
-		miruken.Maps
-		miruken.Format `to:"type:info"`
-	  }, maps *miruken.Maps,
-) (TypeFieldInfo, error) {
-	typ := reflect.TypeOf(maps.Source())
-	return TypeFieldInfo{"@type", typ.String()}, nil
-}
 
 
 // messageMapper
@@ -57,11 +32,19 @@ func (m *messageMapper) EncodeApiMessage(
 		miruken.Format `to:"application/json"`
 	  }, msg api.Message,
 	maps *miruken.Maps,
+	_*struct{
+		miruken.Optional
+		miruken.FromOptions
+	  }, polyOptions api.PolymorphicOptions,
 	ctx  miruken.HandleContext,
 ) (io.Writer, error) {
 	if writer, ok := maps.Target().(*io.Writer); ok {
 		enc := json.NewEncoder(*writer)
-		pay := typeContainer{msg.Payload, ctx.Composer()}
+		pay := typeContainer{
+			v:        msg.Payload,
+			typInfo:  polyOptions.TypeInfoFormat,
+			composer: ctx.Composer(),
+		}
 		env := message{&pay}
 		if err := enc.Encode(env); err == nil {
 			return *writer, err
@@ -78,7 +61,7 @@ func (m *messageMapper) DecodeApiMessage(
 	ctx miruken.HandleContext,
 ) (api.Message, error) {
 	var payload any
-	pay := typeContainer{&payload,ctx.Composer()}
+	pay := typeContainer{&payload, "", ctx.Composer()}
 	msg := message{&pay}
 	dec := json.NewDecoder(stream)
 	err := dec.Decode(&msg)

@@ -5,12 +5,19 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/either"
 	"github.com/miruken-go/miruken/promise"
+	"reflect"
 )
 
 type (
-	// Message is envelop for polymorphic messages.
+	// Message is envelop for polymorphic payloads.
 	Message struct {
 		Payload any
+	}
+
+	// TypeFieldInfo defines metadata for polymorphic messages.
+	TypeFieldInfo struct {
+		Field string
+		Value string
 	}
 
 	// PolymorphicHandling is an enum that determines
@@ -21,7 +28,11 @@ type (
 	// polymorphic messaging.
 	PolymorphicOptions struct {
 		PolymorphicHandling miruken.Option[PolymorphicHandling]
+		TypeInfoFormat      string
 	}
+
+	// GoTypeFieldMapper provides TypeFieldInfo using package and name.
+	GoTypeFieldMapper struct {}
 )
 
 const (
@@ -37,6 +48,18 @@ func Failure(val error) either.Either[error, any] {
 // Success returns a new successful result.
 func Success[R any](val R) either.Either[error, R] {
 	return either.Right(val)
+}
+
+// GoTypeFieldMapper
+
+func (m *GoTypeFieldMapper) GoTypeInfo(
+	_*struct{
+		miruken.Maps
+		miruken.Format `to:"type:info"`
+	  }, maps *miruken.Maps,
+) (TypeFieldInfo, error) {
+	typ := reflect.TypeOf(maps.Source())
+	return TypeFieldInfo{"@type", typ.String()}, nil
 }
 
 // Post sends a message without an expected response.
@@ -123,3 +146,6 @@ func Publish(
 		return pv, err
 	}
 }
+
+// ToTypeInfo requests type information for a type.
+var ToTypeInfo = miruken.To("type:info")

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Rican7/conjson/transform"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/json"
 	"github.com/stretchr/testify/suite"
 	"io"
@@ -48,8 +49,8 @@ func (m *TypeIdMapper) PlayerDotNet(
 		miruken.Maps
 		miruken.Format `to:"type:info"`
 	  }, _ PlayerData,
-) json.TypeFieldInfo {
-	return json.TypeFieldInfo{Field: "$type", Value: "Player,TeamApi"}
+) api.TypeFieldInfo {
+	return api.TypeFieldInfo{Field: "$type", Value: "Player,TeamApi"}
 }
 
 func (m *TypeIdMapper) CreateTeam(
@@ -68,7 +69,7 @@ func (suite *JsonStdTestSuite) Setup() miruken.Handler {
 	handler, _ := miruken.Setup(
 		TestFeature,
 		json.Feature(json.UseStandard()),
-		miruken.Specs(&json.GoTypeFieldMapper{}))
+		miruken.Specs(&api.GoTypeFieldMapper{}))
 	return handler
 }
 
@@ -78,7 +79,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 
 		suite.Run("TypeInfo", func() {
 			suite.Run("TypeId", func() {
-				info, _, err := miruken.Map[json.TypeFieldInfo](
+				info, _, err := miruken.Map[api.TypeFieldInfo](
 					handler, PlayerData{}, miruken.To("type:info"))
 				suite.Nil(err)
 				suite.Equal("$type", info.Field)
