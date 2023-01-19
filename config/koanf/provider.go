@@ -1,4 +1,4 @@
-package koanfp
+package koanf
 
 import (
 	"github.com/knadh/koanf"

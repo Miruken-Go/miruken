@@ -16,13 +16,8 @@ func (c *Controller) ServeHTTP(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	valid, publish := c.validateRequest(w, r)
+	valid, format, publish := c.validateRequest(w, r)
 	if !valid {
-		return
-	}
-	format := r.Header.Get("Content-Type")
-	if len(format) == 0 {
-		http.Error(w, "missing 'Content-Type' header", http.StatusBadRequest)
 		return
 	}
 	ctx := c.ctx.NewChild()
@@ -55,20 +50,25 @@ func (c *Controller) ServeHTTP(
 func (c *Controller) validateRequest(
 	w http.ResponseWriter,
 	r *http.Request,
-) (valid bool, publish bool) {
+) (valid bool, format string, publish bool) {
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
 		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
-		return false, false
+		return false, "",false
+	}
+	format = r.Header.Get("Content-Type")
+	if len(format) == 0 {
+		http.Error(w, "400 missing 'Content-Type' header", http.StatusBadRequest)
+		return false, "", false
 	}
 	if path := r.RequestURI;
 		path == "/process" || strings.HasPrefix(path, "/process/") {
-		return true, false
+		return true, format,false
 	} else if path == "/publish" || strings.HasPrefix(path, "/publish/") {
-		return true, true
+		return true, format, true
 	}
 	http.Error(w, "404 not found", http.StatusNotFound)
-	return false, false
+	return false, format,false
 }
 
 func (c *Controller) encodeResult(

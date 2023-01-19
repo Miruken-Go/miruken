@@ -7,7 +7,7 @@ import (
 	"github.com/knadh/koanf/providers/file"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/config"
-	"github.com/miruken-go/miruken/config/koanfp"
+	koanfp "github.com/miruken-go/miruken/config/koanf"
 	"github.com/stretchr/testify/suite"
 	"testing"
 	"time"
