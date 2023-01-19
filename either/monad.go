@@ -18,12 +18,12 @@ type (
 )
 
 // Left returns a new Either with a left value.
-func Left[L any](val L) left[L] {
+func Left[L any](val L) Either[L, any] {
 	return left[L]{val}
 }
 
 // Right returns a new Either with a right value.
-func Right[R any](val R) right[R] {
+func Right[R any](val R) Either[any, R] {
 	return right[R]{val}
 }
 

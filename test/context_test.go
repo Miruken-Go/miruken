@@ -80,7 +80,8 @@ func (suite *ContextTestSuite) RootContext() *miruken.Context {
 }
 
 func (suite *ContextTestSuite) RootContextWith(specs ... any) *miruken.Context {
-	return miruken.NewContext(miruken.Setup(miruken.Specs(specs...)))
+	ctx, _ := miruken.SetupContext(miruken.Specs(specs...))
+	return ctx
 }
 
 func (suite *ContextTestSuite) TestContext() {

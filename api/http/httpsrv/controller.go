@@ -1,4 +1,4 @@
-package http
+package httpsrv
 
 import (
 	"github.com/miruken-go/miruken"
@@ -20,12 +20,13 @@ func (c *Controller) ServeHTTP(
 	if !valid {
 		return
 	}
-	ctx := c.ctx.NewChild()
-	defer ctx.Dispose()
 	format := r.Header.Get("Content-Type")
 	if len(format) == 0 {
-		format = defaultFormat
+		http.Error(w, "missing 'Content-Type' header", http.StatusBadRequest)
+		return
 	}
+	ctx := c.ctx.NewChild()
+	defer ctx.Dispose()
 	if msg, _, err := miruken.Map[api.Message](ctx, r.Body, miruken.From(format)); err != nil {
 		c.encodeError(err, format, w, ctx)
 	} else if msg.Payload == nil {

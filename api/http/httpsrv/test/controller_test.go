@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/http"
+	"github.com/miruken-go/miruken/api/http/httpsrv"
 	"github.com/miruken-go/miruken/api/json"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/validate"
@@ -127,35 +128,34 @@ func (f *BadFormatter) Bad(
 	return nil, nil
 }
 
-type RouterTestSuite struct {
+type ControllerTestSuite struct {
 	suite.Suite
 	srv *httptest.Server
 }
 
-func (suite *RouterTestSuite) Setup(specs ... any) *miruken.Context {
-	handler, _ := miruken.Setup(
+func (suite *ControllerTestSuite) Setup(specs ... any) *miruken.Context {
+	ctx, _ := miruken.SetupContext(
 		TestFeature,
 		http.Feature(),
 		miruken.Specs(&json.GoTypeFieldMapper{}),
 		miruken.Specs(specs...))
-	return miruken.NewContext(handler)
+	return ctx
 }
 
-func (suite *RouterTestSuite) SetupTest() {
-	handler, _ := miruken.Setup(
+func (suite *ControllerTestSuite) SetupTest() {
+	ctx, _ := miruken.SetupContext(
 		TestFeature,
-		http.ServerFeature(),
+		httpsrv.Feature(),
 		miruken.Specs(&json.GoTypeFieldMapper{}))
-	ctrl := http.NewController(miruken.NewContext(handler))
-	suite.srv = httptest.NewServer(ctrl)
+	suite.srv = httptest.NewServer(httpsrv.NewController(ctx))
 }
 
-func (suite *RouterTestSuite) TearDownTest() {
+func (suite *ControllerTestSuite) TearDownTest() {
 	suite.srv.CloseClientConnections()
 	suite.srv.Close()
 }
 
-func (suite *RouterTestSuite) TestRouter() {
+func (suite *ControllerTestSuite) TestController() {
 	suite.Run("Route", func() {
 		suite.Run("Send", func() {
 			handler := suite.Setup()
@@ -231,6 +231,6 @@ func (suite *RouterTestSuite) TestRouter() {
 	})
 }
 
-func TestRouterTestSuite(t *testing.T) {
-	suite.Run(t, new(RouterTestSuite))
+func TestControllerTestSuite(t *testing.T) {
+	suite.Run(t, new(ControllerTestSuite))
 }

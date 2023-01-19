@@ -55,7 +55,7 @@ func (f *Factory) NewConfiguration(
 	_*struct{
 		miruken.Provides
 		miruken.Singleton
-	    Load
+		Load
 	  }, provides *miruken.Provides,
 ) (any, error) {
 	if typ, ok := provides.Key().(reflect.Type); ok {

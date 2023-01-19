@@ -1,4 +1,4 @@
-package http
+package httpsrv
 
 import (
 	"github.com/miruken-go/miruken"

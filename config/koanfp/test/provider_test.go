@@ -92,7 +92,7 @@ type ProviderTestSuite struct {
 
 func (suite *ProviderTestSuite) TestProvider() {
 	var k = koanf.New(".")
-	err := k.Load(file.Provider("../../test/configs/app.json"), json.Parser())
+	err := k.Load(file.Provider("../../test/configs/appconfig.json"), json.Parser())
 	suite.Nil(err)
 
 	suite.Run("Load", func() {

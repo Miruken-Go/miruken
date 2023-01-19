@@ -20,7 +20,7 @@ func (suite *RuntimeTestSuite) TestRuntime() {
 
 			var i int
 			miruken.CopyIndirect(f, &i)
-			suite.Equal(int(22), i)
+			suite.Equal(22, i)
 		})
 	})
 

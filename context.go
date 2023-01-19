@@ -567,6 +567,15 @@ func (f ContextChangedObserverFunc) ContextChanged(
 	f(contextual, oldCtx, newCtx)
 }
 
+func SetupContext(features ...Feature) (*Context, error) {
+	setup := &SetupBuilder{features: features}
+	if handler, err := setup.Build(); err != nil {
+		return nil, err
+	} else {
+		return NewContext(handler), nil
+	}
+}
+
 var (
 	FromScope = Qualifier[Scoped]{}
 	PublishFromRoot BuilderFunc = func (handler Handler) Handler {
