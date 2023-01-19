@@ -62,17 +62,7 @@ func (s *SetupBuilder) Exclude(
 func (s *SetupBuilder) AddFilters(
 	providers ... FilterProvider,
 ) *SetupBuilder {
-	var handles Handles
-	handles.Policy().AddFilters(providers...)
-	return s
-}
-
-func (s *SetupBuilder) RequireFilters(
-	providers ... FilterProvider,
-) *SetupBuilder {
-	var handles Handles
-	handles.Policy().RequireFilters(providers...)
-	return s
+	return s.AddBuilder(ProvideFilters(providers...))
 }
 
 func (s *SetupBuilder) SetHandlerDescriptorFactory(

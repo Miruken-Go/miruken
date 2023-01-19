@@ -317,14 +317,9 @@ func (suite *ValidatesTestSuite) TestValidation() {
 	})
 
 	suite.Run("ValidateFilter", func () {
-		handler, _ := suite.Setup()
-		var handles miruken.Handles
-		validatesFilter := &validate.Provider{ValidateOutput: true}
-		handles.Policy().RequireFilters(validatesFilter)
-		defer func() {
-			handles.Policy().RemoveFilters(validatesFilter)
-		}()
-
+		handler, _ := miruken.Setup(
+			validate.Feature(validate.Output),
+			miruken.Specs(suite.specs...))
 		suite.Run("Validates Command", func() {
 			create := CreateTeam{TeamAction{ Team: Team{
 				Name: "Liverpool",

@@ -53,7 +53,6 @@ type (
 	Filtered interface {
 		Filters() []FilterProvider
 		AddFilters(providers ... FilterProvider)
-		RequireFilters(providers ... FilterProvider)
 		RemoveFilters(providers ... FilterProvider)
 		RemoveAllFilters()
 	}
@@ -208,25 +207,6 @@ func (f *FilteredScope) AddFilters(providers ... FilterProvider) {
 	}
 }
 
-func (f *FilteredScope) RequireFilters(providers ... FilterProvider) {
-	if len(providers) == 0 {
-		return
-	}
-	Loop:
-	for _, fp := range providers {
-		if fp == nil {
-			panic("provider cannot be nil")
-		}
-		pt := reflect.TypeOf(fp)
-		for _, sfp := range f.providers {
-			if sfp == fp || reflect.TypeOf(sfp) == pt {
-				continue Loop
-			}
-		}
-		f.providers = append(f.providers, fp)
-	}
-}
-
 func (f *FilteredScope) RemoveFilters(providers ... FilterProvider) {
 	if len(providers) == 0 {
 		return
@@ -278,10 +258,6 @@ func UseFilters(filters ... Filter) Builder {
 	return withFilters(false, filters...)
 }
 
-func RequireFilters(filters ... Filter) Builder {
-	return withFilters(true, filters...)
-}
-
 func withFilters(required bool, filters ... Filter) Builder {
 	return ProvideFilters(&FilterInstanceProvider{filters, required})
 }
@@ -311,12 +287,22 @@ func orderedFilters(
 	bindingSkip := binding.SkipFilters()
 	var allProviders []FilterProvider
 	var addProvider = func (p FilterProvider) {
+		if p == nil {
+			return
+		}
 		if skipFilters.Set() {
 			if skipFilters.Value() && !p.Required() {
 				return
 			}
 		} else if bindingSkip && !p.Required() {
 			return
+		}
+		if ap, ok := p.(interface {
+			AppliesTo(Callback) bool
+		}); ok {
+			if !ap.AppliesTo(callback) {
+				return
+			}
 		}
 		allProviders = append(allProviders, p)
 	}
@@ -325,21 +311,11 @@ func orderedFilters(
 			continue
 		}
 		for _, p := range ps {
-			if p == nil {
-				continue
-			}
-			if ap, ok := p.(interface {
-				AppliesTo(Callback) bool
-			}); ok {
-				if !ap.AppliesTo(callback) {
-					continue
-				}
-			}
 			addProvider(p)
 		}
 	}
-	for _, p := range options.Providers {
-		if p != nil {
+	if ps := options.Providers; ps != nil {
+		for _, p := range ps {
 			addProvider(p)
 		}
 	}

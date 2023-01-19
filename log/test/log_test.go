@@ -63,7 +63,7 @@ func (suite *LogTestSuite) TestLogging() {
 		logger.Info("Hello")
 	})
 
-	suite.Run("Verbosity", func() {
+	suite.Run("verbosity", func() {
 		handler, _ := miruken.Setup(
 			log.Feature(
 				testr.NewWithOptions(suite.T(), testr.Options{Verbosity: 1}),

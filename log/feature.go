@@ -19,7 +19,7 @@ func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {
 		setup.RegisterHandlers(&Factory{}).
 			  AddHandlers(&Factory{v.root}).
-			  RequireFilters(&Provider{v.verbosity})
+			  AddFilters(&Provider{v.verbosity})
 	}
 	return nil
 }

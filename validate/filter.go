@@ -9,7 +9,7 @@ import (
 type (
 	// Provider is a FilterProvider for validation.
 	Provider struct {
-		ValidateOutput bool
+		validateOutput bool
 	}
 
 	// filter validates the current input of the pipeline execution.
@@ -22,7 +22,7 @@ type (
 
 func (v *Provider) InitWithTag(tag reflect.StructTag) error {
 	if validate, ok := tag.Lookup("validate"); ok {
-		v.ValidateOutput = validate == "output"
+		v.validateOutput = validate == "output"
 	}
 	return nil
 }
@@ -72,7 +72,7 @@ func (f filter) Next(
 				return nil, nil, outcomeIn
 			}
 			// perform the next step in the pipeline
-			if out, pout, err = next.Pipe(); !(err == nil && vp.ValidateOutput) {
+			if out, pout, err = next.Pipe(); !(err == nil && vp.validateOutput) {
 				// if error or skip output validation, return output
 				return
 			} else if pout == nil {
@@ -133,7 +133,7 @@ func (f filter) Next(
 			}
 			oo := next.PipeAwait()
 			// validate output if requested and available
-			if vp.ValidateOutput && len(oo) > 0 && !miruken.IsNil(oo[0]) {
+			if vp.validateOutput && len(oo) > 0 && !miruken.IsNil(oo[0]) {
 				outcomeOut, poo, errOut := Validate(composer, oo[0])
 				if errOut != nil {
 					// error validating output
