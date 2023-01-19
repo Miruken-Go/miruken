@@ -31,8 +31,5 @@ func NewProvider(value any) Handler {
 	if value == nil {
 		panic("value cannot be nil")
 	}
-	return &provider{
-		value: value,
-		typ:   reflect.TypeOf(value),
-	}
+	return &provider{value: value, typ:reflect.TypeOf(value)}
 }

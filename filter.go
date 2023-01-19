@@ -283,20 +283,14 @@ func RequireFilters(filters ... Filter) Builder {
 }
 
 func withFilters(required bool, filters ... Filter) Builder {
-	provider := FilterInstanceProvider{filters, required}
-	builder  := Options(FilterOptions{
-		Providers: []FilterProvider{&provider},
-	})
+	return ProvideFilters(&FilterInstanceProvider{filters, required})
+}
+
+func ProvideFilters(providers ... FilterProvider) Builder {
+	builder := Options(FilterOptions{Providers: providers})
 	return BuilderFunc(func (handler Handler) Handler {
 		return BuildUp(handler, builder)
 	})
-}
-
-func ProvideFilters(providers ... FilterProvider) BuilderFunc {
-	builder := Options(FilterOptions{Providers: providers})
-	return func (handler Handler) Handler {
-		return BuildUp(handler, builder)
-	}
 }
 
 // providedFilter models a Filter and its FilterProvider.

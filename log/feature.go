@@ -19,12 +19,12 @@ func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {
 		setup.RegisterHandlers(&Factory{}).
 			  AddHandlers(&Factory{v.root}).
-			  RequireFilters(NewProvider(v.verbosity))
+			  RequireFilters(&Provider{v.verbosity})
 	}
 	return nil
 }
 
-// Verbosity sets the default verbosity level when logging.
+// Verbosity sets the default Verbosity level when logging.
 func Verbosity(verbosity int) func(installer *Installer) {
 	return func(installer *Installer) {
 		installer.SetVerbosity(verbosity)

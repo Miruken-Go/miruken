@@ -12,7 +12,7 @@ import (
 type (
 	// Provider is a FilterProvider for logging.
 	Provider struct {
-		verbosity int
+		Verbosity int
 	}
 
 	// filter logs basic callback execution details.
@@ -25,7 +25,7 @@ const durationFormat = "15:04:05.000000"  // microseconds
 
 func (l *Provider) InitWithTag(tag reflect.StructTag) error {
 	if log, ok := tag.Lookup("log"); ok {
-		_, err := fmt.Sscanf(log, "verbosity=%d", &l.verbosity)
+		_, err := fmt.Sscanf(log, "Verbosity=%d", &l.Verbosity)
 		return err
 	}
 	return nil
@@ -43,13 +43,6 @@ func (l *Provider) Filters(
 	return _filters, nil
 }
 
-// NewProvider builds a new Provider for logging.
-// verbosity is used to control the level of logging.
-func NewProvider(verbosity int) *Provider {
-	return &Provider{verbosity}
-}
-
-
 // filter
 
 func (f filter) Order() int {
@@ -66,7 +59,7 @@ func (f filter) Next(
 		if re != nil {
 			return next.Pipe()
 		}
-		if logger = logger.V(lp.verbosity); !logger.Enabled() {
+		if logger = logger.V(lp.Verbosity); !logger.Enabled() {
 			return next.Pipe()
 		}
 		logger = logger.WithName(fmt.Sprintf("%T", ctx.Handler()))
