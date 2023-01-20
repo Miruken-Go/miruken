@@ -47,10 +47,19 @@ func (m *PlayerMapper) ToPlayerJson(
 func (m *TypeIdMapper) PlayerDotNet(
 	_*struct{
 		miruken.Maps
-		miruken.Format `to:"type:info"`
+		miruken.Format `to:"type:info:dotnet"`
 	  }, _ PlayerData,
 ) api.TypeFieldInfo {
 	return api.TypeFieldInfo{Field: "$type", Value: "Player,TeamApi"}
+}
+
+func (m *TypeIdMapper) TeamDotNet(
+	_*struct{
+		miruken.Maps
+		miruken.Format `to:"type:info:dotnet"`
+	  }, _ TeamData,
+) api.TypeFieldInfo {
+	return api.TypeFieldInfo{Field: "$type", Value: "Team,TeamApi"}
 }
 
 func (m *TypeIdMapper) CreateTeam(
@@ -80,7 +89,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 		suite.Run("TypeInfo", func() {
 			suite.Run("TypeId", func() {
 				info, _, err := miruken.Map[api.TypeFieldInfo](
-					handler, PlayerData{}, miruken.To("type:info"))
+					handler, PlayerData{}, miruken.To("type:info:dotnet"))
 				suite.Nil(err)
 				suite.Equal("$type", info.Field)
 				suite.Equal("Player,TeamApi", info.Value)
@@ -246,7 +255,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				suite.Equal("{\nabcdef\"@type\": \"test.TeamData\",\nabcdef\"Id\": 9,\nabcdef\"Name\": \"Breakaway\",\nabcdef\"Players\": [\nabcdefdef{\nabcdefdefdef\"Id\": 1,\nabcdefdefdef\"Name\": \"Sean Rose\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 4,\nabcdefdefdef\"Name\": \"Mark Kingston\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 8,\nabcdefdefdef\"Name\": \"Michael Binder\"\nabcdefdef}\nabcdef]\nabc}", j)
 			})
 
-			suite.Run("ToJsonTyped", func() {
+			suite.Run("ToJsonTypedOverrideTypeId", func() {
 				data := TeamData{
 					Id: 9,
 					Name: "Breakaway",
@@ -257,10 +266,13 @@ func (suite *JsonStdTestSuite) TestJson() {
 					},
 				}
 				j, _, err := miruken.Map[string](
-					miruken.BuildUp(handler, json.Polymorphic),
+					miruken.BuildUp(handler,  miruken.Options(api.PolymorphicOptions{
+						PolymorphicHandling: miruken.Set(api.PolymorphicHandlingRoot),
+						TypeInfoFormat:      "type:info:dotnet",
+					})),
 					data, miruken.To("application/json"))
 				suite.Nil(err)
-				suite.Equal("{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}", j)
+				suite.Equal("{\"$type\":\"Team,TeamApi\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}", j)
 			})
 
 			suite.Run("ToJsonTypedTransformers", func() {

@@ -180,6 +180,13 @@ type typeContainer struct {
 	composer miruken.Handler
 }
 
+func (c *typeContainer) TypeInfo() *miruken.Format {
+	if typeInfo := c.typInfo; len(typeInfo) > 0 {
+		return miruken.To(typeInfo)
+	}
+	return api.ToTypeInfo
+}
+
 func (c *typeContainer) MarshalJSON() ([]byte, error) {
 	v   := c.v
 	typ := reflect.TypeOf(v)
@@ -207,7 +214,7 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 	if byt, err := json.Marshal(v); err != nil {
 		return nil, err
 	} else if len(byt) > 0 && byt[0] == '{' {
-		typeInfo, _, err := miruken.Map[api.TypeFieldInfo](c.composer, v, api.ToTypeInfo)
+		typeInfo, _, err := miruken.Map[api.TypeFieldInfo](c.composer, v, c.TypeInfo())
 		if err != nil {
 			return nil, err
 		}
