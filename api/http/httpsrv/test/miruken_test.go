@@ -4,7 +4,7 @@ package test
 
 import "github.com/miruken-go/miruken"
 
-var TestFeature = miruken.InstallFeature(func(setup *miruken.SetupBuilder) error {
+var TestFeature miruken.Feature = miruken.FeatureFunc(func(setup *miruken.SetupBuilder) error {
 	setup.RegisterHandlers(
 		&TeamApiConsumer{},
 		&TeamApiHandler{},

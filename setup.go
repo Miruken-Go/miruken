@@ -10,7 +10,7 @@ type (
 	Feature interface {
 		Install(setup *SetupBuilder) error
 	}
-	InstallFeature func(setup *SetupBuilder) error
+	FeatureFunc func(setup *SetupBuilder) error
 
 	// SetupBuilder orchestrates the setup process.
 	SetupBuilder struct {
@@ -25,7 +25,7 @@ type (
 	}
 )
 
-func (f InstallFeature) Install(
+func (f FeatureFunc) Install(
 	setup *SetupBuilder,
 ) error {
 	return f(setup)
@@ -171,41 +171,56 @@ func (s *SetupBuilder) installGraph(
 	return err
 }
 
-func Handlers(handlers ... any) InstallFeature {
-	return func(setup *SetupBuilder) error {
+func Handlers(handlers ... any) Feature {
+	return FeatureFunc(func(setup *SetupBuilder) error {
 		setup.AddHandlers(handlers...)
 		return nil
-	}
+	})
 }
 
-func Specs(specs ... any) InstallFeature {
-	return func(setup *SetupBuilder) error {
+func Specs(specs ... any) Feature {
+	return FeatureFunc(func(setup *SetupBuilder) error {
 		setup.RegisterHandlers(specs...)
 		return nil
-	}
+	})
 }
 
-func ExcludeSpecs(rules ... Predicate[HandlerSpec]) InstallFeature {
-	return func(setup *SetupBuilder) error {
+func ExcludeSpecs(rules ... Predicate[HandlerSpec]) Feature {
+	return FeatureFunc(func(setup *SetupBuilder) error {
 		setup.Exclude(rules...)
 		return nil
-	}
+	})
 }
 
-var NoInference InstallFeature = func(setup *SetupBuilder) error {
+var NoInference Feature = FeatureFunc(func(setup *SetupBuilder) error {
 	setup.DisableInference()
 	return nil
-}
+})
 
 func UseHandlerDescriptorFactory(
 	factory HandlerDescriptorFactory,
-) InstallFeature {
-	return func(setup *SetupBuilder) error {
+) Feature {
+	return FeatureFunc(func(setup *SetupBuilder) error {
 		setup.SetHandlerDescriptorFactory(factory)
 		return nil
-	}
+	})
 }
 
+// GroupFeatures combines one or more Feature's into a single Feature.
+func GroupFeatures(features ...Feature) Feature {
+	return FeatureFunc(func(setup *SetupBuilder) error {
+		for _, feature := range features {
+			if !IsNil(feature) {
+				if err := feature.Install(setup); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+}
+
+// Setup builds the root Handler after installed all features.
 func Setup(features ...Feature) (Handler, error) {
 	setup := &SetupBuilder{features: features}
 	return setup.Build()

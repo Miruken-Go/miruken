@@ -127,7 +127,7 @@ func parseDir(
         _, _ = fmt.Fprintln(&buf, "")
 
         // Feature
-        _, _ = fmt.Fprintf(&buf, "var %s = miruken.InstallFeature(func(setup *miruken.SetupBuilder) error {\n", featureName)
+        _, _ = fmt.Fprintf(&buf, "var %s miruken.Feature = miruken.FeatureFunc(func(setup *miruken.SetupBuilder) error {\n", featureName)
         _, _ = fmt.Fprintln(&buf, "\tsetup.RegisterHandlers(")
 
         // Types

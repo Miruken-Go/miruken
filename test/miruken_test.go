@@ -4,7 +4,7 @@ package test
 
 import "github.com/miruken-go/miruken"
 
-var TestFeature = miruken.InstallFeature(func(setup *miruken.SetupBuilder) error {
+var TestFeature miruken.Feature = miruken.FeatureFunc(func(setup *miruken.SetupBuilder) error {
 	setup.RegisterHandlers(
 		&AbortFilter{},
 		&BadHandler{},
@@ -30,6 +30,7 @@ var TestFeature = miruken.InstallFeature(func(setup *miruken.SetupBuilder) error
 		&InvalidHandler{},
 		&InvalidMapper{},
 		&InvalidProvider{},
+		&KeyFactory{},
 		&KeyProvider{},
 		&ListProvider{},
 		&LogFilter{},
@@ -37,6 +38,7 @@ var TestFeature = miruken.InstallFeature(func(setup *miruken.SetupBuilder) error
 		&MetadataInvalidHandler{},
 		&MixedHandler{},
 		&MultiHandler{},
+		&MultiKeyFactory{},
 		&MultiProvider{},
 		&NullFilter{},
 		&OpenMapper{},
