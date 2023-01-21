@@ -46,11 +46,11 @@ func (m *StdMapper) ToJson(
 		src = &typeContainer{
 			v:        src,
 			typInfo:  polyOptions.TypeInfoFormat,
+			trans:    options.Transformers,
 			composer: ctx.Composer(),
 		}
-	}
-	if transformers := options.Transformers; len(transformers) > 0 {
-		src = &transformer{src, transformers}
+	} else if trans := options.Transformers; len(trans) > 0 {
+		src = &transformer{src, trans}
 	}
 	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
 		data, err = json.MarshalIndent(src, prefix, indent)
@@ -88,10 +88,10 @@ func (m *StdMapper) ToJsonStream(
 			src = &typeContainer{
 				v:        src,
 				typInfo:  polyOptions.TypeInfoFormat,
+				trans:    options.Transformers,
 				composer: ctx.Composer()}
-		}
-		if transformers := options.Transformers; len(transformers) > 0 {
-			src = &transformer{src, transformers}
+		} else if trans := options.Transformers; len(trans) > 0 {
+			src = &transformer{src, trans}
 		}
 		err    = enc.Encode(src)
 		stream = *writer
@@ -116,14 +116,17 @@ func (m *StdMapper) FromJson(
 	ctx  miruken.HandleContext,
 ) (any, error) {
 	target := maps.Target()
-	if transformers := options.Transformers; len(transformers) > 0 {
-		t := transformer{target, transformers}
-		target = &t
-	}
 	if polyOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
-		tc := typeContainer{target, "",ctx.Composer()}
+		tc := typeContainer{
+			v:        target,
+			trans:    options.Transformers,
+			composer: ctx.Composer(),
+		}
 		err := json.Unmarshal([]byte(jsonString), &tc)
 		return target, err
+	} else if trans := options.Transformers; len(trans) > 0 {
+		t := transformer{target, trans}
+		target = &t
 	}
 	err := json.Unmarshal([]byte(jsonString), target)
 	return target, err
@@ -147,14 +150,17 @@ func (m *StdMapper) FromJsonStream(
 ) (any, error) {
 	target := maps.Target()
 	dec    := json.NewDecoder(stream)
-	if transformers := options.Transformers; len(transformers) > 0 {
-		t := transformer{target, transformers}
-		target = &t
-	}
 	if polyOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
-		tc := typeContainer{target, "",ctx.Composer()}
+		tc := typeContainer{
+			v:        target,
+			trans:    options.Transformers,
+			composer: ctx.Composer(),
+		}
 		err := dec.Decode(&tc)
 		return target, err
+	} else if trans := options.Transformers; len(trans) > 0 {
+		t := transformer{target, trans}
+		target = &t
 	}
 	err := dec.Decode(target)
 	return target, err
@@ -177,6 +183,7 @@ func StdTransform(transformers ...transform.Transformer) miruken.Builder {
 type typeContainer struct {
 	v        any
 	typInfo  string
+	trans    []transform.Transformer
 	composer miruken.Handler
 }
 
@@ -200,6 +207,7 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 			elem   := typeContainer{
 				v:        s.Index(i).Interface(),
 				typInfo:  c.typInfo,
+				trans:    c.trans,
 				composer: c.composer,
 			}
 			if err := enc.Encode(&elem); err != nil {
@@ -211,7 +219,11 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 		}
 		v = arr
 	}
-	if byt, err := json.Marshal(v); err != nil {
+	vm := v
+	if trans := c.trans; len(trans) > 0 {
+		vm = &transformer{v, trans}
+	}
+	if byt, err := json.Marshal(vm); err != nil {
 		return nil, err
 	} else if len(byt) > 0 && byt[0] == '{' {
 		typeInfo, _, err := miruken.Map[api.TypeFieldInfo](c.composer, v, c.TypeInfo())
@@ -252,7 +264,12 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 						var target any
 						r   := bytes.NewReader(*elem)
 						dec := json.NewDecoder(r)
-						tc  := typeContainer{&target, "",c.composer}
+						tc  := typeContainer{
+							v:       &target,
+							typInfo:  c.typInfo,
+							trans:    c.trans,
+							composer: c.composer,
+						}
 						if err := dec.Decode(&tc); err != nil {
 							return fmt.Errorf("can't unmarshal array index %d: %w", i, err)
 						} else {
@@ -298,13 +315,19 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 	} else {
 		if v, _, err := miruken.CreateKey[any](c.composer, typeId); err != nil {
 			return err
-		} else if err := json.Unmarshal(data, v); err != nil {
-			return err
 		} else {
-			if late, ok := c.v.(*miruken.Late); ok {
-				late.Value = v
+			vm := v
+			if trans := c.trans; len(trans) > 0 {
+				vm = &transformer{v, trans}
+			}
+			if err := json.Unmarshal(data, vm); err != nil {
+				return err
 			} else {
-				miruken.CopyIndirect(v, c.v)
+				if late, ok := c.v.(*miruken.Late); ok {
+					late.Value = v
+				} else {
+					miruken.CopyIndirect(v, c.v)
+				}
 			}
 		}
 	}
@@ -314,15 +337,15 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 
 // transformer applies transformations to json serialization.
 type transformer struct {
-	v            any
-	transformers []transform.Transformer
+	v     any
+	trans []transform.Transformer
 }
 
 func (t *transformer) MarshalJSON() ([]byte, error) {
-	conventions := conjson.NewMarshaler(t.v, t.transformers...)
+	conventions := conjson.NewMarshaler(t.v, t.trans...)
 	return json.Marshal(conventions)
 }
 
 func (t *transformer) UnmarshalJSON(data []byte) error {
-	return json.Unmarshal(data, conjson.NewUnmarshaler(t.v, t.transformers...))
+	return json.Unmarshal(data, conjson.NewUnmarshaler(t.v, t.trans...))
 }

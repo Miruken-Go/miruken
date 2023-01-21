@@ -58,10 +58,18 @@ func (m *messageMapper) DecodeApiMessage(
 		miruken.Maps
 		miruken.Format `from:"application/json"`
 	  }, stream io.Reader,
+	_*struct{
+		miruken.Optional
+		miruken.FromOptions
+	  }, options StdOptions,
 	ctx miruken.HandleContext,
 ) (api.Message, error) {
 	var payload any
-	pay := typeContainer{&payload, "", ctx.Composer()}
+	pay := typeContainer{
+		v:        &payload,
+		trans:    options.Transformers,
+		composer: ctx.Composer(),
+	}
 	msg := message{&pay}
 	dec := json.NewDecoder(stream)
 	err := dec.Decode(&msg)

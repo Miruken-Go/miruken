@@ -6,15 +6,11 @@ import (
 
 // Installer configure json support.
 type Installer struct {
-	options any
-	mapper  any
+	mapper any
 }
 
-func (i *Installer) UseStandard(options *StdOptions) {
+func (i *Installer) UseStandard() {
 	i.mapper = &StdMapper{}
-	if !miruken.IsNil(options) {
-		i.options = *options
-	}
 }
 
 func (i *Installer) Install(setup *miruken.SetupBuilder) error {
@@ -24,22 +20,13 @@ func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 			mapper = &StdMapper{}
 		}
 		setup.RegisterHandlers(mapper, &messageMapper{})
-		if options := i.options; !miruken.IsNil(options) {
-			setup.AddBuilder(miruken.Options(options))
-		}
 	}
 	return nil
 }
 
 func UseStandard() func(installer *Installer) {
 	return func(installer *Installer) {
-		installer.UseStandard(nil)
-	}
-}
-
-func UseStandardWithOptions(options StdOptions) func(installer *Installer) {
-	return func(installer *Installer) {
-		installer.UseStandard(&options)
+		installer.UseStandard()
 	}
 }
 

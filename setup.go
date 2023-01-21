@@ -25,9 +25,7 @@ type (
 	}
 )
 
-func (f FeatureFunc) Install(
-	setup *SetupBuilder,
-) error {
+func (f FeatureFunc) Install(setup *SetupBuilder) error {
 	return f(setup)
 }
 
@@ -45,7 +43,7 @@ func (s *SetupBuilder) RegisterHandlers(
 	return s
 }
 
-func (s *SetupBuilder) AddBuilder(
+func (s *SetupBuilder) AddBuilders(
 	builders ... Builder,
 ) *SetupBuilder {
 	s.builders = append(s.builders, builders...)
@@ -62,7 +60,7 @@ func (s *SetupBuilder) Exclude(
 func (s *SetupBuilder) AddFilters(
 	providers ... FilterProvider,
 ) *SetupBuilder {
-	return s.AddBuilder(ProvideFilters(providers...))
+	return s.AddBuilders(ProvideFilters(providers...))
 }
 
 func (s *SetupBuilder) SetHandlerDescriptorFactory(
@@ -171,44 +169,51 @@ func (s *SetupBuilder) installGraph(
 	return err
 }
 
-func Handlers(handlers ... any) Feature {
-	return FeatureFunc(func(setup *SetupBuilder) error {
+func Handlers(handlers ... any) FeatureFunc {
+	return func(setup *SetupBuilder) error {
 		setup.AddHandlers(handlers...)
 		return nil
-	})
+	}
 }
 
-func Specs(specs ... any) Feature {
-	return FeatureFunc(func(setup *SetupBuilder) error {
+func Specs(specs ... any) FeatureFunc {
+	return func(setup *SetupBuilder) error {
 		setup.RegisterHandlers(specs...)
 		return nil
-	})
+	}
 }
 
-func ExcludeSpecs(rules ... Predicate[HandlerSpec]) Feature {
-	return FeatureFunc(func(setup *SetupBuilder) error {
+func ExcludeSpecs(rules ... Predicate[HandlerSpec]) FeatureFunc {
+	return func(setup *SetupBuilder) error {
 		setup.Exclude(rules...)
 		return nil
-	})
+	}
 }
 
-var NoInference Feature = FeatureFunc(func(setup *SetupBuilder) error {
+func Builders(builders ... Builder) FeatureFunc {
+	return func(setup *SetupBuilder) error {
+		setup.AddBuilders(builders...)
+		return nil
+	}
+}
+
+var NoInference FeatureFunc = func(setup *SetupBuilder) error {
 	setup.DisableInference()
 	return nil
-})
+}
 
 func UseHandlerDescriptorFactory(
 	factory HandlerDescriptorFactory,
-) Feature {
-	return FeatureFunc(func(setup *SetupBuilder) error {
+) FeatureFunc {
+	return func(setup *SetupBuilder) error {
 		setup.SetHandlerDescriptorFactory(factory)
 		return nil
-	})
+	}
 }
 
 // GroupFeatures combines one or more Feature's into a single Feature.
-func GroupFeatures(features ...Feature) Feature {
-	return FeatureFunc(func(setup *SetupBuilder) error {
+func GroupFeatures(features ...Feature) FeatureFunc {
+	return func(setup *SetupBuilder) error {
 		for _, feature := range features {
 			if !IsNil(feature) {
 				if err := feature.Install(setup); err != nil {
@@ -217,7 +222,7 @@ func GroupFeatures(features ...Feature) Feature {
 			}
 		}
 		return nil
-	})
+	}
 }
 
 // Setup builds the root Handler after installed all features.

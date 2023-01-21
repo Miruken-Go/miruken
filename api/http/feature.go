@@ -8,9 +8,7 @@ import (
 )
 
 // Installer configure http client support.
-type Installer struct {
-	options Options
-}
+type Installer struct {}
 
 func (i *Installer) DependsOn() []miruken.Feature {
 	return []miruken.Feature{
@@ -21,16 +19,9 @@ func (i *Installer) DependsOn() []miruken.Feature {
 
 func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {
-		setup.RegisterHandlers(&Router{}).
-			  AddBuilder(miruken.Options(i.options))
+		setup.RegisterHandlers(&Router{})
 	}
 	return nil
-}
-
-func WithOptions(options Options) func(installer *Installer) {
-	return func(installer *Installer) {
-		installer.options = options
-	}
 }
 
 // Feature configures http client support
