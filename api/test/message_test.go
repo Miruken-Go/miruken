@@ -8,9 +8,9 @@ import (
 	"github.com/miruken-go/miruken/either"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/suite"
-	"os/exec"
-	"strings"
+	"strconv"
 	"testing"
+	"time"
 )
 
 type (
@@ -59,11 +59,7 @@ func (p *PresidentHandler) Track(
 }
 
 func (m *MissionControlHandler) launchCode() string {
-	if newUUID, err := exec.Command("uuidgen").Output(); err != nil {
-		panic(err)
-	} else {
-		return strings.TrimSuffix(string(newUUID), "\n")
-	}
+	return strconv.FormatInt(time.Now().UnixNano(), 10)
 }
 
 type MessageTestSuite struct {
