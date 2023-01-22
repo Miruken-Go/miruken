@@ -1,4 +1,4 @@
-package json
+package jsonstd
 
 import (
 	"bytes"
@@ -8,16 +8,17 @@ import (
 	"github.com/Rican7/conjson/transform"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	jsonapi "github.com/miruken-go/miruken/api/json"
 	"io"
 	"reflect"
 )
 
 type (
-	// StdMapper formats to and from json using encoding/json.
-	StdMapper struct{}
+	// Mapper formats to and from json using encoding/json.
+	Mapper struct{}
 
-	// StdOptions provide options for controlling json encoding.
-	StdOptions struct {
+	// Options provide options for controlling json encoding.
+	Options struct {
 		Prefix       string
 		Indent       string
 		EscapeHTML   miruken.Option[bool]
@@ -25,7 +26,7 @@ type (
 	}
 )
 
-func (m *StdMapper) ToJson(
+func (m *Mapper) ToJson(
 	_*struct{
 		miruken.Maps
 		miruken.Format `to:"application/json"`
@@ -33,7 +34,7 @@ func (m *StdMapper) ToJson(
 	_*struct{
 	    miruken.Optional
 	    miruken.FromOptions
-	  }, options StdOptions,
+	  }, options Options,
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
@@ -60,7 +61,7 @@ func (m *StdMapper) ToJson(
 	return string(data), err
 }
 
-func (m *StdMapper) ToJsonStream(
+func (m *Mapper) ToJsonStream(
 	_*struct{
 	    miruken.Maps
 		miruken.Format `to:"application/json"`
@@ -68,7 +69,7 @@ func (m *StdMapper) ToJsonStream(
 	_*struct{
 	    miruken.Optional
 	    miruken.FromOptions
-	  }, options StdOptions,
+	  }, options Options,
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
@@ -99,7 +100,7 @@ func (m *StdMapper) ToJsonStream(
 	return stream, err
 }
 
-func (m *StdMapper) FromJson(
+func (m *Mapper) FromJson(
 	_*struct{
 	    miruken.Maps
 		miruken.Format `from:"application/json"`
@@ -107,7 +108,7 @@ func (m *StdMapper) FromJson(
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
-	  }, options StdOptions,
+	  }, options Options,
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
@@ -132,7 +133,7 @@ func (m *StdMapper) FromJson(
 	return target, err
 }
 
-func (m *StdMapper) FromJsonStream(
+func (m *Mapper) FromJsonStream(
 	_*struct{
 	    miruken.Maps
 		miruken.Format `from:"application/json"`
@@ -140,7 +141,7 @@ func (m *StdMapper) FromJsonStream(
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
-	  }, options StdOptions,
+	  }, options Options,
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
@@ -280,7 +281,7 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 		field     string
 		typeIdRaw *json.RawMessage
 	)
-	for _, field = range KnownTypeFields {
+	for _, field = range jsonapi.KnownTypeFields {
 		if typeIdRaw = fields[field]; typeIdRaw != nil {
 			break
 		}

@@ -1,33 +1,17 @@
-package json
+package jsonstd
 
 import (
 	"github.com/miruken-go/miruken"
 )
 
 // Installer configure json support.
-type Installer struct {
-	mapper any
-}
-
-func (i *Installer) UseStandard() {
-	i.mapper = &StdMapper{}
-}
+type Installer struct {}
 
 func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {
-		mapper := i.mapper
-		if miruken.IsNil(mapper) {
-			mapper = &StdMapper{}
-		}
-		setup.Specs(mapper, &messageMapper{})
+		setup.Specs(&Mapper{}, &apiMessageMapper{})
 	}
 	return nil
-}
-
-func UseStandard() func(installer *Installer) {
-	return func(installer *Installer) {
-		installer.UseStandard()
-	}
 }
 
 func Feature(

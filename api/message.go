@@ -30,8 +30,8 @@ type (
 		TypeInfoFormat      string
 	}
 
-	// GoTypeFieldMapper provides TypeFieldInfo using package and name.
-	GoTypeFieldMapper struct {}
+	// GoTypeFieldInfoMapper provides TypeFieldInfo using package and name.
+	GoTypeFieldInfoMapper struct {}
 )
 
 const (
@@ -49,9 +49,9 @@ func Success[R any](val R) either.Either[error, R] {
 	return either.Right(val)
 }
 
-// GoTypeFieldMapper
+// GoTypeFieldInfoMapper
 
-func (m *GoTypeFieldMapper) GoTypeInfo(
+func (m *GoTypeFieldInfoMapper) GoTypeInfo(
 	_*struct{
 		miruken.Maps
 		miruken.Format `to:"type:info"`
@@ -146,5 +146,12 @@ func Publish(
 	}
 }
 
-// ToTypeInfo requests type information for a type.
-var ToTypeInfo = miruken.To("type:info")
+var (
+	// ToTypeInfo requests type information for a type.
+	ToTypeInfo = miruken.To("type:info")
+
+	// Polymorphic returns a miruken.Builder that enables polymorphic messaging.
+	Polymorphic miruken.Builder = miruken.Options(Options{
+		PolymorphicHandling: miruken.Set(PolymorphicHandlingRoot),
+	})
+)

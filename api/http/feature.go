@@ -3,7 +3,6 @@ package http
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
-	"github.com/miruken-go/miruken/api/json"
 	"github.com/miruken-go/miruken/validate"
 )
 
@@ -12,7 +11,6 @@ type Installer struct {}
 
 func (i *Installer) DependsOn() []miruken.Feature {
 	return []miruken.Feature{
-		json.Feature(json.UseStandard()),
 		validate.Feature(),
 		api.Feature()}
 }
