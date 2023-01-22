@@ -269,7 +269,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 					},
 				}
 				j, _, err := miruken.Map[string](
-					miruken.BuildUp(handler,  miruken.Options(api.PolymorphicOptions{
+					miruken.BuildUp(handler,  miruken.Options(api.Options{
 						PolymorphicHandling: miruken.Set(api.PolymorphicHandlingRoot),
 						TypeInfoFormat:      "type:info:dotnet",
 					})),

@@ -24,9 +24,8 @@ type (
 	// if messages are augmented with type discriminators.
 	PolymorphicHandling uint8
 
-	// PolymorphicOptions provide options for controlling
-	// polymorphic messaging.
-	PolymorphicOptions struct {
+	// Options provide options for controlling api messaging.
+	Options struct {
 		PolymorphicHandling miruken.Option[PolymorphicHandling]
 		TypeInfoFormat      string
 	}

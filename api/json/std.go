@@ -37,15 +37,15 @@ func (m *StdMapper) ToJson(
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
-	  }, polyOptions api.PolymorphicOptions,
+	  }, apiOptions api.Options,
 	ctx miruken.HandleContext,
 ) (js string, err error) {
 	var data []byte
 	src := maps.Source()
-	if polyOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
+	if apiOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
 		src = &typeContainer{
 			v:        src,
-			typInfo:  polyOptions.TypeInfoFormat,
+			typInfo:  apiOptions.TypeInfoFormat,
 			trans:    options.Transformers,
 			composer: ctx.Composer(),
 		}
@@ -72,7 +72,7 @@ func (m *StdMapper) ToJsonStream(
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
-	  }, polyOptions api.PolymorphicOptions,
+	  }, apiOptions api.Options,
 	ctx miruken.HandleContext,
 ) (stream io.Writer, err error) {
 	if writer, ok := maps.Target().(*io.Writer); ok && !miruken.IsNil(writer) {
@@ -84,10 +84,10 @@ func (m *StdMapper) ToJsonStream(
 			enc.SetEscapeHTML(escapeHTML.Value())
 		}
 		src := maps.Source()
-		if polyOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
+		if apiOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
 			src = &typeContainer{
 				v:        src,
-				typInfo:  polyOptions.TypeInfoFormat,
+				typInfo:  apiOptions.TypeInfoFormat,
 				trans:    options.Transformers,
 				composer: ctx.Composer()}
 		} else if trans := options.Transformers; len(trans) > 0 {
@@ -111,12 +111,12 @@ func (m *StdMapper) FromJson(
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
-	  }, polyOptions api.PolymorphicOptions,
+	  }, apiOptions api.Options,
 	maps *miruken.Maps,
 	ctx  miruken.HandleContext,
 ) (any, error) {
 	target := maps.Target()
-	if polyOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
+	if apiOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
 		tc := typeContainer{
 			v:        target,
 			trans:    options.Transformers,
@@ -144,13 +144,13 @@ func (m *StdMapper) FromJsonStream(
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
-	  }, polyOptions api.PolymorphicOptions,
+	  }, apiOptions api.Options,
 	maps *miruken.Maps,
 	ctx  miruken.HandleContext,
 ) (any, error) {
 	target := maps.Target()
 	dec    := json.NewDecoder(stream)
-	if polyOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
+	if apiOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
 		tc := typeContainer{
 			v:        target,
 			trans:    options.Transformers,

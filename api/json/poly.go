@@ -35,14 +35,14 @@ func (m *messageMapper) EncodeApiMessage(
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
-	  }, polyOptions api.PolymorphicOptions,
+	  }, apiOptions api.Options,
 	ctx  miruken.HandleContext,
 ) (io.Writer, error) {
 	if writer, ok := maps.Target().(*io.Writer); ok {
 		enc := json.NewEncoder(*writer)
 		pay := typeContainer{
 			v:        msg.Payload,
-			typInfo:  polyOptions.TypeInfoFormat,
+			typInfo:  apiOptions.TypeInfoFormat,
 			composer: ctx.Composer(),
 		}
 		env := message{&pay}
@@ -79,7 +79,7 @@ func (m *messageMapper) DecodeApiMessage(
 
 var (
 	// Polymorphic returns a miruken.Builder that enables polymorphic messaging.
-	Polymorphic miruken.Builder = miruken.Options(api.PolymorphicOptions{
+	Polymorphic miruken.Builder = miruken.Options(api.Options{
 		PolymorphicHandling: miruken.Set(api.PolymorphicHandlingRoot),
 	})
 )
