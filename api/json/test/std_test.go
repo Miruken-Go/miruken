@@ -77,8 +77,9 @@ type JsonStdTestSuite struct {
 func (suite *JsonStdTestSuite) Setup() miruken.Handler {
 	handler, _ := miruken.Setup(
 		TestFeature,
-		json.Feature(json.UseStandard()),
-		miruken.Specs(&api.GoTypeFieldMapper{}))
+		json.Feature(json.UseStandard())).
+		Specs(&api.GoTypeFieldMapper{}).
+		Handler()
 	return handler
 }
 
@@ -143,7 +144,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 					38,
 				}
 				j, _, err := miruken.Map[string](
-					miruken.BuildUp(handler, json.StdFormat("", "  ")),
+					miruken.BuildUp(handler, miruken.Options(json.StdOptions{Indent: "  "})),
 					data, miruken.To("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\n  \"Name\": \"Sarah Conner\",\n  \"Age\": 38\n}", j)
@@ -170,7 +171,9 @@ func (suite *JsonStdTestSuite) TestJson() {
 					},
 				}
 				j, _, err := miruken.Map[string](
-					miruken.BuildUp(handler, json.StdTransform(transform.CamelCaseKeys(false))),
+					miruken.BuildUp(handler, miruken.Options(json.StdOptions{
+						Transformers: []transform.Transformer{transform.CamelCaseKeys(false)},
+					})),
 					data, miruken.To("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\"id\":9,\"name\":\"Breakaway\",\"players\":[{\"id\":1,\"name\":\"Sean Rose\"},{\"id\":4,\"name\":\"Mark Kingston\"},{\"id\":8,\"name\":\"Michael Binder\"}]}", j)
@@ -249,7 +252,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				j, _, err := miruken.Map[string](
 					miruken.BuildUp(handler,
 						json.Polymorphic,
-						json.StdFormat("abc", "def")),
+						miruken.Options(json.StdOptions{Prefix: "abc", Indent:"def"})),
 					data, miruken.To("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\nabcdef\"@type\": \"test.TeamData\",\nabcdef\"Id\": 9,\nabcdef\"Name\": \"Breakaway\",\nabcdef\"Players\": [\nabcdefdef{\nabcdefdefdef\"Id\": 1,\nabcdefdefdef\"Name\": \"Sean Rose\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 4,\nabcdefdefdef\"Name\": \"Mark Kingston\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 8,\nabcdefdefdef\"Name\": \"Michael Binder\"\nabcdefdef}\nabcdef]\nabc}", j)
@@ -283,7 +286,9 @@ func (suite *JsonStdTestSuite) TestJson() {
 				j, _, err := miruken.Map[string](
 					miruken.BuildUp(handler,
 						json.Polymorphic,
-						json.StdTransform(transform.CamelCaseKeys(false))),
+						miruken.Options(json.StdOptions{
+							Transformers: []transform.Transformer{transform.CamelCaseKeys(false)},
+						})),
 					data, miruken.To("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\"@type\":\"test.TeamData\",\"id\":14,\"name\":\"Liverpool\",\"players\":null}", j)
@@ -315,7 +320,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				var b bytes.Buffer
 				stream := io.Writer(&b)
 				_, err := miruken.MapInto(
-					miruken.BuildUp(handler, json.StdFormat("", "  ")),
+					miruken.BuildUp(handler, miruken.Options(json.StdOptions{Indent: "  "})),
 					data, &stream, miruken.To("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\n  \"Name\": \"James Webb\",\n  \"Age\": 85\n}\n", b.String())
@@ -335,7 +340,9 @@ func (suite *JsonStdTestSuite) TestJson() {
 				stream := io.Writer(&b)
 				_, err := miruken.MapInto(
 					miruken.BuildUp(handler,
-						json.StdTransform(transform.CamelCaseKeys(false))),
+						miruken.Options(json.StdOptions{
+							Transformers: []transform.Transformer{transform.CamelCaseKeys(false)},
+						})),
 					data, &stream, miruken.To("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\"id\":15,\"name\":\"Breakaway\",\"players\":[{\"id\":1,\"name\":\"Sean Rose\"},{\"id\":4,\"name\":\"Mark Kingston\"},{\"id\":8,\"name\":\"Michael Binder\"}]}\n", b.String())
@@ -375,7 +382,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				_, err := miruken.MapInto(
 					miruken.BuildUp(handler,
 						json.Polymorphic,
-						json.StdFormat("abc", "def")),
+						miruken.Options(json.StdOptions{Prefix: "abc", Indent: "def"})),
 					data, &stream, miruken.To("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\nabcdef\"@type\": \"test.TeamData\",\nabcdef\"Id\": 15,\nabcdef\"Name\": \"Breakaway\",\nabcdef\"Players\": [\nabcdefdef{\nabcdefdefdef\"Id\": 1,\nabcdefdefdef\"Name\": \"Sean Rose\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 4,\nabcdefdefdef\"Name\": \"Mark Kingston\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 8,\nabcdefdefdef\"Name\": \"Michael Binder\"\nabcdefdef}\nabcdef]\nabc}\n", b.String())
@@ -395,7 +402,9 @@ func (suite *JsonStdTestSuite) TestJson() {
 				stream := io.Writer(&b)
 				_, err := miruken.MapInto(
 					miruken.BuildUp(handler, json.Polymorphic,
-						json.StdTransform(transform.CamelCaseKeys(false))),
+						miruken.Options(json.StdOptions{
+							Transformers: []transform.Transformer{transform.CamelCaseKeys(false)},
+						})),
 					data, &stream, miruken.To("application/json"))
 				suite.Nil(err)
 				suite.Equal("{\"@type\":\"test.TeamData\",\"id\":15,\"name\":\"Breakaway\",\"players\":[{\"id\":1,\"name\":\"Sean Rose\"},{\"id\":4,\"name\":\"Mark Kingston\"},{\"id\":8,\"name\":\"Michael Binder\"}]}\n", b.String())

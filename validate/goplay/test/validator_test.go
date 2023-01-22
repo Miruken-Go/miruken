@@ -57,7 +57,7 @@ func (suite *ValidatorTestSuite) SetupTest() {
 	suite.handler, _ = miruken.Setup(
 		TestFeature,
 		goplayvalidator.Feature(),
-	)
+	).Handler()
 }
 
 func (suite *ValidatorTestSuite) TestValidator() {

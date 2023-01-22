@@ -65,7 +65,7 @@ type CreatesTestSuite struct {
 }
 
 func (suite *CreatesTestSuite) Setup() (miruken.Handler, error) {
-	return miruken.Setup(TestFeature, miruken.ExcludeSpecs(
+	return miruken.Setup(TestFeature).ExcludeSpecs(
 		func (spec miruken.HandlerSpec) bool {
 			switch ts := spec.(type) {
 			case miruken.HandlerTypeSpec:
@@ -73,20 +73,15 @@ func (suite *CreatesTestSuite) Setup() (miruken.Handler, error) {
 			default:
 				return false
 			}
-		}))
-}
-
-func (suite *CreatesTestSuite) SetupWith(
-	features ... miruken.Feature,
-) (miruken.Handler, error) {
-	return miruken.Setup(features...)
+		}).Handler()
 }
 
 func (suite *CreatesTestSuite) TestCreates() {
 	suite.Run("Invariant", func() {
-		handler, _ := suite.SetupWith(
-			miruken.Specs(&SpecificationProvider{}),
-			miruken.Handlers(&SpecificationProvider{foo: Foo{Counted{10}}}))
+		handler, _ := miruken.Setup().
+			Specs(&SpecificationProvider{}).
+			Handlers(&SpecificationProvider{foo: Foo{Counted{10}}}).
+			Handler()
 		foo, _, err := miruken.Create[*Foo](handler)
 		suite.Nil(err)
 		suite.Equal(11, foo.Count())
@@ -100,9 +95,9 @@ func (suite *CreatesTestSuite) TestCreates() {
 	})
 
 	suite.Run("Returns Promise", func() {
-		handler, _ := suite.SetupWith(
-			miruken.Specs(&SimpleAsyncProvider{}),
-			miruken.Specs(&ComplexAsyncProvider{}))
+		handler, _ := miruken.Setup().
+			Specs(&SimpleAsyncProvider{}, &ComplexAsyncProvider{}).
+			Handler()
 		c, pc, err := miruken.Create[*ComplexAsyncProvider](handler)
 		suite.Nil(err)
 		suite.Nil(c)
@@ -114,24 +109,27 @@ func (suite *CreatesTestSuite) TestCreates() {
 	})
 
 	suite.Run("Key", func () {
-		handler, _ := suite.SetupWith(
-			miruken.Specs(&KeyFactory{}))
+		handler, _ := miruken.Setup().
+			Specs(&KeyFactory{}).
+			Handler()
 		foo, _, err := miruken.CreateKey[*Foo](handler, "foo")
 		suite.Nil(err)
 		suite.Equal(1, foo.Count())
 	})
 
 	suite.Run("InferKey", func () {
-		handler, _ := suite.SetupWith(
-			miruken.Specs(&KeyFactory{}))
+		handler, _ := miruken.Setup().
+			Specs(&KeyFactory{}).
+			Handler()
 		foo, _, err := miruken.Create[*Foo](handler)
 		suite.Nil(err)
 		suite.Equal(1, foo.Count())
 	})
 
 	suite.Run("MultipleKeys", func() {
-		handler, _ := suite.SetupWith(
-			miruken.Specs(&MultiKeyFactory{}))
+		handler, _ := miruken.Setup().
+			Specs(&MultiKeyFactory{}).
+			Handler()
 		foo, _, err := miruken.CreateKey[Foo](handler, "foo")
 		suite.Nil(err)
 		suite.Equal(Foo{Counted{1}}, foo)
@@ -149,8 +147,9 @@ func (suite *CreatesTestSuite) TestCreates() {
 	})
 
 	suite.Run("MultipleKeyCallbacks", func() {
-		handler, _ := suite.SetupWith(
-			miruken.Specs(&MultiKeyFactory{}))
+		handler, _ := miruken.Setup().
+			Specs(&MultiKeyFactory{}).
+			Handler()
 		foo, _, err := miruken.CreateKey[Foo](handler, "foo")
 		suite.Nil(err)
 		suite.Equal(Foo{Counted{1}}, foo)

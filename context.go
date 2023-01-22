@@ -567,9 +567,8 @@ func (f ContextChangedObserverFunc) ContextChanged(
 	f(contextual, oldCtx, newCtx)
 }
 
-func SetupContext(features ...Feature) (*Context, error) {
-	setup := &SetupBuilder{features: features}
-	if handler, err := setup.Build(); err != nil {
+func (s *SetupBuilder) Context() (*Context, error) {
+	if handler, err := s.Handler(); err != nil {
 		return nil, err
 	} else {
 		return NewContext(handler), nil

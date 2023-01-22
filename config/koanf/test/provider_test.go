@@ -97,7 +97,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 
 	suite.Run("Load", func() {
 		suite.Run("Resolve", func() {
-			handler, _ := miruken.Setup(config.Feature(koanfp.P(k)))
+			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
 			cfg, _, err := miruken.Resolve[AppConfig](handler, new(config.Load))
 			suite.Nil(err)
 			suite.Equal("develop", cfg.Env)
@@ -106,8 +106,9 @@ func (suite *ProviderTestSuite) TestProvider() {
 
 		suite.Run("Constructor", func() {
 			handler, _ := miruken.Setup(
-				config.Feature(koanfp.P(k)),
-				miruken.Specs(&EventStore{}))
+				config.Feature(koanfp.P(k))).
+				Specs(&EventStore{}).
+				Handler()
 			es, _, err := miruken.Resolve[*EventStore](handler)
 			suite.Nil(err)
 			suite.Equal("develop", es.Env())
@@ -115,8 +116,9 @@ func (suite *ProviderTestSuite) TestProvider() {
 
 		suite.Run("Method", func() {
 			handler, _ := miruken.Setup(
-				config.Feature(koanfp.P(k)),
-				miruken.Specs(&Gateway{}, &EventStore{}))
+				config.Feature(koanfp.P(k))).
+				Specs(&Gateway{}, &EventStore{}).
+				Handler()
 			_, err := miruken.Command(handler, CreateCustomer{})
 			suite.Nil(err)
 		})
@@ -128,7 +130,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 				EventStoreUrl string
 				CustomerUrl   string
 			}
-			handler, _ := miruken.Setup(config.Feature(koanfp.P(k)))
+			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
 			cfg, _, err := miruken.Resolve[UrlConfig](handler, &config.Load{Path: "services"})
 			suite.Nil(err)
 			suite.Equal("http://gateway/events", cfg.EventStoreUrl)
@@ -140,7 +142,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 				EventStoreUrl string `path:"services.eventStoreUrl"`
 				CustomerUrl   string `path:"services.customerUrl"`
 			}
-			handler, _ := miruken.Setup(config.Feature(koanfp.P(k)))
+			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
 			cfg, _, err := miruken.Resolve[UrlConfig](handler, &config.Load{Flat: true})
 			suite.Nil(err)
 			suite.Equal("http://gateway/events", cfg.EventStoreUrl)
@@ -149,8 +151,9 @@ func (suite *ProviderTestSuite) TestProvider() {
 
 		suite.Run("Method", func() {
 			handler, _ := miruken.Setup(
-				config.Feature(koanfp.P(k)),
-				miruken.Specs(&Repository{}))
+				config.Feature(koanfp.P(k))).
+				Specs(&Repository{}).
+				Handler()
 			_, err := miruken.Command(handler, LoadCustomer{})
 			suite.Nil(err)
 		})

@@ -334,7 +334,7 @@ func (suite *FilterTestSuite) Setup() (miruken.Handler, error) {
 }
 
 func (suite *FilterTestSuite) SetupWith(specs ... any) (miruken.Handler, error) {
-	return miruken.Setup(miruken.Specs(specs...))
+	return miruken.Setup().Specs(specs...).Handler()
 }
 
 func (suite *FilterTestSuite) TestFilters() {

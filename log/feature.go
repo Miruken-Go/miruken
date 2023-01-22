@@ -17,9 +17,9 @@ func (v *Installer) SetVerbosity (verbosity int) {
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {
-		setup.RegisterHandlers(&Factory{}).
-			  AddHandlers(&Factory{v.root}).
-			  AddFilters(&Provider{v.verbosity})
+		setup.Specs(&Factory{}).
+			  Handlers(&Factory{v.root}).
+			  Filters(&Provider{v.verbosity})
 	}
 	return nil
 }

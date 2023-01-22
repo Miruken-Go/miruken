@@ -61,7 +61,7 @@ func (suite *ScheduleTestSuite) Setup() miruken.Handler {
 	handler, _ := miruken.Setup(
 		TestFeature,
 		api.Feature(),
-	)
+	).Handler()
 	return handler
 }
 

@@ -19,7 +19,7 @@ func (i *Installer) DependsOn() []miruken.Feature {
 
 func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {
-		setup.RegisterHandlers(&Router{})
+		setup.Specs(&Router{})
 	}
 	return nil
 }

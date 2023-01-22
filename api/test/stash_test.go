@@ -68,7 +68,7 @@ func (suite *StashTestSuite) Setup() miruken.Handler {
 	handler, _ := miruken.Setup(
 		TestFeature,
 		api.Feature(),
-	)
+	).Handler()
 	return handler
 }
 

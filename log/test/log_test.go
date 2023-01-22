@@ -57,7 +57,7 @@ func (suite *LogTestSuite) TestLogging() {
 	suite.Run("Provides", func() {
 		handler, _ := miruken.Setup(
 			log.Feature(testr.New(suite.T())),
-		)
+		).Handler()
 		logger, _, err:= miruken.Resolve[logr.Logger](handler)
 		suite.Nil(err)
 		logger.Info("Hello")
@@ -68,7 +68,7 @@ func (suite *LogTestSuite) TestLogging() {
 			log.Feature(
 				testr.NewWithOptions(suite.T(), testr.Options{Verbosity: 1}),
 			),
-		)
+		).Handler()
 		logger, _, err:= miruken.Resolve[logr.Logger](handler)
 		suite.Nil(err)
 		logger.V(1).Info("World")
@@ -76,9 +76,9 @@ func (suite *LogTestSuite) TestLogging() {
 
 	suite.Run("CtorDependency", func() {
 		handler, _ := miruken.Setup(
-			log.Feature(testr.New(suite.T())),
-			miruken.Specs(&Service{}),
-		)
+			log.Feature(testr.New(suite.T()))).
+			Specs(&Service{}).
+			Handler()
 		svc, _, err := miruken.Resolve[*Service](handler)
 		suite.Nil(err)
 		svc.Run()
@@ -89,9 +89,9 @@ func (suite *LogTestSuite) TestLogging() {
 			log.Feature(testr.NewWithOptions(suite.T(), testr.Options{
 				LogTimestamp: true,
 				Verbosity:    1,
-			})),
-			miruken.Specs(&Service{}),
-		)
+			}))).
+			Specs(&Service{}).
+			Handler()
 		next, _, err := miruken.Execute[Command](handler, Command(1))
 		suite.Nil(err)
 		suite.Equal(Command(2), next)
@@ -105,9 +105,9 @@ func (suite *LogTestSuite) TestLogging() {
 			log.Feature(testr.NewWithOptions(suite.T(), testr.Options{
 				LogTimestamp: true,
 				Verbosity:    1,
-			})),
-			miruken.Specs(&Service{}),
-		)
+			}))).
+			Specs(&Service{}).
+			Handler()
 		next, np, err := miruken.Execute[LongCommand](handler, LongCommand(8))
 		suite.Nil(err)
 		suite.NotNil(np)
@@ -121,9 +121,9 @@ func (suite *LogTestSuite) TestLogging() {
 			log.Feature(testr.NewWithOptions(suite.T(), testr.Options{
 				LogTimestamp: true,
 				Verbosity:    1,
-			}), log.Verbosity(2)),
-			miruken.Specs(&Service{}),
-		)
+			}), log.Verbosity(2))).
+			Specs(&Service{}).
+			Handler()
 		next, _, err := miruken.Execute[Command](handler, Command(2))
 		suite.Nil(err)
 		suite.Equal(Command(3), next)

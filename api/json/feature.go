@@ -19,7 +19,7 @@ func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 		if miruken.IsNil(mapper) {
 			mapper = &StdMapper{}
 		}
-		setup.RegisterHandlers(mapper, &messageMapper{})
+		setup.Specs(mapper, &messageMapper{})
 	}
 	return nil
 }

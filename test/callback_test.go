@@ -13,7 +13,7 @@ type CallbackTestSuite struct {
 }
 
 func (suite *CallbackTestSuite) SetupSuite() {
-	suite.composer, _ = miruken.Setup()
+	suite.composer, _ = miruken.Setup().Handler()
 }
 
 func (suite *CallbackTestSuite) TestCallback() {

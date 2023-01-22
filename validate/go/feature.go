@@ -15,7 +15,7 @@ func (v *Installer) DependsOn() []miruken.Feature {
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {
-		setup.RegisterHandlers(&validator{})
+		setup.Specs(&validator{})
 	}
 	return nil
 }

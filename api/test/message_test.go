@@ -74,7 +74,7 @@ func (suite *MessageTestSuite) Setup() miruken.Handler {
 	handler, _ := miruken.Setup(
 		TestFeature,
 		api.Feature(),
-	)
+	).Handler()
 	return handler
 }
 

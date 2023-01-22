@@ -195,11 +195,7 @@ func (suite *MapsTestSuite) SetupTest() {
 }
 
 func (suite *MapsTestSuite) Setup() (miruken.Handler, error) {
-	return suite.SetupWith(suite.specs...)
-}
-
-func (suite *MapsTestSuite) SetupWith(specs ... any) (miruken.Handler, error){
-	return miruken.Setup(miruken.Specs(specs...))
+	return miruken.Setup().Specs(suite.specs...).Handler()
 }
 
 func (suite *MapsTestSuite) TestMap() {
@@ -243,7 +239,7 @@ func (suite *MapsTestSuite) TestMap() {
 		})
 
 		suite.Run("Open", func() {
-			handler, _ := suite.SetupWith(&OpenMapper{})
+			handler, _ := miruken.Setup().Specs(&OpenMapper{}).Handler()
 			entity := PlayerEntity{
 				Entity{ Id: 1 },
 				"Tim Howard",
@@ -279,7 +275,7 @@ func (suite *MapsTestSuite) TestMap() {
 		})
 
 		suite.Run("Format", func() {
-			handler, _ := suite.SetupWith(&FormatMapper{})
+			handler, _ := miruken.Setup().Specs(&FormatMapper{}).Handler()
 
 			data  := PlayerData{
 				Id:   1,
@@ -351,7 +347,7 @@ func (suite *MapsTestSuite) TestMap() {
 					}
 				}
 			}()
-			_, err := suite.SetupWith(&InvalidMapper{})
+			_, err := miruken.Setup().Specs(&InvalidMapper{}).Handler()
 			suite.Nil(err)
 			suite.Fail("should cause panic")
 		})
@@ -359,7 +355,7 @@ func (suite *MapsTestSuite) TestMap() {
 
 	suite.Run("Format", func () {
 		suite.Run("StartsWith", func () {
-			handler, _ := suite.SetupWith(&FormatMapper{})
+			handler, _ := miruken.Setup().Specs(&FormatMapper{}).Handler()
 			var data PlayerData
 			res, _, err := miruken.Map[string](handler, &data, miruken.To("hello"))
 			suite.Nil(err)
@@ -377,7 +373,7 @@ func (suite *MapsTestSuite) TestMap() {
 		})
 
 		suite.Run("EndsWith", func () {
-			handler, _ := suite.SetupWith(&FormatMapper{})
+			handler, _ := miruken.Setup().Specs(&FormatMapper{}).Handler()
 			var data PlayerData
 			res, _, err := miruken.Map[string](handler, &data, miruken.To("world"))
 			suite.Nil(err)
@@ -395,7 +391,7 @@ func (suite *MapsTestSuite) TestMap() {
 		})
 
 		suite.Run("Pattern", func () {
-			handler, _ := suite.SetupWith(&FormatMapper{})
+			handler, _ := miruken.Setup().Specs(&FormatMapper{}).Handler()
 			var data PlayerData
 			res, _, err := miruken.Map[string](handler, &data, miruken.To("J9!P3"))
 			suite.Nil(err)

@@ -205,7 +205,7 @@ func (suite *ValidatesTestSuite) Setup() (miruken.Handler, error) {
 }
 
 func (suite *ValidatesTestSuite) SetupWith(specs ... any) (miruken.Handler, error) {
-	return miruken.Setup(miruken.Specs(specs...))
+	return miruken.Setup().Specs(specs...).Handler()
 }
 
 func (suite *ValidatesTestSuite) TestValidation() {
@@ -318,8 +318,9 @@ func (suite *ValidatesTestSuite) TestValidation() {
 
 	suite.Run("ValidateFilter", func () {
 		handler, _ := miruken.Setup(
-			validate.Feature(validate.Output),
-			miruken.Specs(suite.specs...))
+			validate.Feature(validate.Output)).
+			Specs(suite.specs...).
+			Handler()
 		suite.Run("Validates Command", func() {
 			create := CreateTeam{TeamAction{ Team: Team{
 				Name: "Liverpool",

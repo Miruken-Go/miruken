@@ -13,8 +13,8 @@ func (v *Installer) ValidateOutput () {
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {
-		setup.RegisterHandlers(&ApiMapping{}).
-			  AddFilters(&Provider{v.output})
+		setup.Specs(&ApiMapping{}).
+			  Filters(&Provider{v.output})
 	}
 	return nil
 }

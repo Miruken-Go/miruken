@@ -20,8 +20,8 @@ type (
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {
 		if provider := v.provider; !miruken.IsNil(provider) {
-			setup.RegisterHandlers(&Factory{}).
-				  AddHandlers(&Factory{v.provider})
+			setup.Specs(&Factory{}).
+				  Handlers(&Factory{v.provider})
 		}
 	}
 	return nil

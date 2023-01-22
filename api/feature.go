@@ -7,12 +7,12 @@ type Installer struct {}
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.CanInstall(&_featureTag) {
-		setup.RegisterHandlers(
+		setup.Specs(
 			&Stash{},
 			&Scheduler{},
 			&PassThroughRouter{},
-			&batchRouter{})
-		setup.AddHandlers(NewStash(true))
+			&batchRouter{}).
+			Handlers(NewStash(true))
 	}
 	return nil
 }

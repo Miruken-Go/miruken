@@ -133,19 +133,21 @@ type ControllerTestSuite struct {
 }
 
 func (suite *ControllerTestSuite) Setup(specs ... any) *miruken.Context {
-	ctx, _ := miruken.SetupContext(
+	ctx, _ := miruken.Setup(
 		TestFeature,
-		http.Feature(),
-		miruken.Specs(&api.GoTypeFieldMapper{}),
-		miruken.Specs(specs...))
+		http.Feature()).
+		Specs(&api.GoTypeFieldMapper{}).
+		Specs(specs...).
+		Context()
 	return ctx
 }
 
 func (suite *ControllerTestSuite) SetupTest() {
-	ctx, _ := miruken.SetupContext(
+	ctx, _ := miruken.Setup(
 		TestFeature,
-		httpsrv.Feature(),
-		miruken.Specs(&api.GoTypeFieldMapper{}))
+		httpsrv.Feature()).
+		Specs(&api.GoTypeFieldMapper{}).
+		Context()
 	suite.srv = httptest.NewServer(httpsrv.NewController(ctx))
 }
 

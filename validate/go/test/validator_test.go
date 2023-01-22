@@ -54,8 +54,8 @@ type ValidatorTestSuite struct {
 func (suite *ValidatorTestSuite) SetupTest() {
 	suite.handler, _ = miruken.Setup(
 		TestFeature,
-		govalidator.Feature(),
-	)
+		govalidator.Feature()).
+		Handler()
 }
 
 func (suite *ValidatorTestSuite) TestValidator() {

@@ -18,7 +18,7 @@ func (i *MyInstaller) Install(
 ) error {
 	if setup.CanInstall(reflect.TypeOf(i)) {
 		i.count++
-		setup.RegisterHandlers(&MultiHandler{})
+		setup.Specs(&MultiHandler{})
 	}
 	return nil
 }
@@ -55,9 +55,7 @@ type SetupTestSuite struct {
 
 func (suite *SetupTestSuite) TestSetup() {
 	suite.Run("Specs", func () {
-		handler, _ := miruken.Setup(
-			miruken.Specs(&MultiHandler{}),
-		)
+		handler, _ := miruken.Setup().Specs(&MultiHandler{}).Handler();
 
 		result := handler.Handle(&Foo{}, false, nil)
 		suite.False(result.IsError())
@@ -69,9 +67,7 @@ func (suite *SetupTestSuite) TestSetup() {
 	})
 
 	suite.Run("ExcludeSpecs", func () {
-		handler, _ := miruken.Setup(
-			TestFeature,
-			miruken.ExcludeSpecs(
+		handler, _ := miruken.Setup(TestFeature).ExcludeSpecs(
 				func(spec miruken.HandlerSpec) bool {
 					switch ts := spec.(type) {
 					case miruken.HandlerTypeSpec:
@@ -86,8 +82,7 @@ func (suite *SetupTestSuite) TestSetup() {
 						return ts.Type() == miruken.TypeOf[*EverythingHandler]()
 					}
 					return false
-				}),
-		)
+				}).Handler()
 
 		m, _, err := miruken.Resolve[*MultiHandler](handler)
 		suite.Nil(err)
@@ -99,9 +94,10 @@ func (suite *SetupTestSuite) TestSetup() {
 	})
 
 	suite.Run("NoInference", func () {
-		handler, _ := miruken.Setup(
-			miruken.Specs(&MultiHandler{}),
-			miruken.NoInference)
+		handler, _ := miruken.Setup().
+			Specs(&MultiHandler{}).
+			NoInference().
+			Handler()
 
 		result := handler.Handle(&Foo{}, false, nil)
 		suite.False(result.IsError())
@@ -114,7 +110,7 @@ func (suite *SetupTestSuite) TestSetup() {
 
 	suite.Run("Installs Once", func () {
 		installer := &MyInstaller{}
-		handler, err := miruken.Setup(installer, installer)
+		handler, err := miruken.Setup(installer, installer).Handler()
 		suite.Nil(err)
 		suite.Equal(1, installer.count)
 		result := handler.Handle(&Foo{}, false, nil)
@@ -123,7 +119,7 @@ func (suite *SetupTestSuite) TestSetup() {
 	})
 
 	suite.Run("Installs Dependencies", func () {
-		handler, err := miruken.Setup(&RootInstaller{})
+		handler, err := miruken.Setup(&RootInstaller{}).Handler()
 		suite.Nil(err)
 		result := handler.Handle(&Foo{}, false, nil)
 		suite.False(result.IsError())
@@ -135,7 +131,7 @@ func (suite *SetupTestSuite) TestSetup() {
 
 	suite.Run("Overrides Dependencies", func () {
 		installer := &MyInstaller{10}
-		handler, err := miruken.Setup(&RootInstaller{}, installer)
+		handler, err := miruken.Setup(&RootInstaller{}, installer).Handler()
 		suite.Nil(err)
 		suite.NotNil(handler)
 		suite.Equal(11, installer.count)
@@ -143,7 +139,7 @@ func (suite *SetupTestSuite) TestSetup() {
 
 	suite.Run("Errors", func () {
 		installer := BadInstaller{}
-		_, err := miruken.Setup(installer)
+		_, err := miruken.Setup(installer).Handler()
 		suite.Equal("2 errors occurred:\n\t* insufficient resources\n\t* process failed to start\n\n", err.Error())
 	})
 }

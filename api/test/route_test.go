@@ -48,9 +48,9 @@ type RouteTestSuite struct {
 func (suite *RouteTestSuite) Setup() miruken.Handler {
 	handler, _ := miruken.Setup(
 		TestFeature,
-		api.Feature(),
-		miruken.Specs(&Trash{}),
-	)
+		api.Feature()).
+		Specs(&Trash{}).
+		Handler()
 	return handler
 }
 

@@ -166,18 +166,6 @@ func (m *StdMapper) FromJsonStream(
 	return target, err
 }
 
-
-// StdFormat returns a miruken.Builder for controlling indentation and formatting.
-func StdFormat(prefix, indent string) miruken.Builder {
-	return miruken.Options(StdOptions{Prefix: prefix, Indent: indent})
-}
-
-// StdTransform returns a miruken.Builder that applies all transformations.
-func StdTransform(transformers ...transform.Transformer) miruken.Builder {
-	return miruken.Options(StdOptions{Transformers: transformers})
-}
-
-
 // typeContainer is a helper type used to emit type field
 // information for polymorphic serialization/deserialization.
 type typeContainer struct {
