@@ -93,10 +93,10 @@ func (suite *SetupTestSuite) TestSetup() {
 		suite.Nil(e)
 	})
 
-	suite.Run("NoInference", func () {
+	suite.Run("WithoutInference", func () {
 		handler, _ := miruken.Setup().
+			WithoutInference().
 			Specs(&MultiHandler{}).
-			NoInference().
 			Handler()
 
 		result := handler.Handle(&Foo{}, false, nil)

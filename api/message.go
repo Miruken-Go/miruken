@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/either"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -14,20 +13,20 @@ type (
 		Payload any
 	}
 
+	// Polymorphism is an enum that defines how type
+	// discriminators are included in polymorphic messages.
+	Polymorphism uint8
+
+	// Options provide options for controlling api messaging.
+	Options struct {
+		Polymorphism   miruken.Option[Polymorphism]
+		TypeInfoFormat string
+	}
+
 	// TypeFieldInfo defines metadata for polymorphic messages.
 	TypeFieldInfo struct {
 		Field string
 		Value string
-	}
-
-	// PolymorphicHandling is an enum that determines
-	// if messages are augmented with type discriminators.
-	PolymorphicHandling uint8
-
-	// Options provide options for controlling api messaging.
-	Options struct {
-		PolymorphicHandling miruken.Option[PolymorphicHandling]
-		TypeInfoFormat      string
 	}
 
 	// GoTypeFieldInfoMapper provides TypeFieldInfo using package and name.
@@ -35,23 +34,13 @@ type (
 )
 
 const (
-	PolymorphicHandlingNone PolymorphicHandling = 0
-	PolymorphicHandlingRoot PolymorphicHandling = 1 << iota
+	PolymorphismNone Polymorphism = 0
+	PolymorphismRoot Polymorphism = 1 << iota
 )
-
-// Failure returns a new failed result.
-func Failure(val error) either.Either[error, any] {
-	return either.Left(val)
-}
-
-// Success returns a new successful result.
-func Success[R any](val R) either.Either[error, R] {
-	return either.Right(val)
-}
 
 // GoTypeFieldInfoMapper
 
-func (m *GoTypeFieldInfoMapper) GoTypeInfo(
+func (m *GoTypeFieldInfoMapper) TypeFieldInfo(
 	_*struct{
 		miruken.Maps
 		miruken.Format `to:"type:info"`
@@ -146,12 +135,6 @@ func Publish(
 	}
 }
 
-var (
-	// ToTypeInfo requests type information for a type.
-	ToTypeInfo = miruken.To("type:info")
 
-	// Polymorphic returns a miruken.Builder that enables polymorphic messaging.
-	Polymorphic miruken.Builder = miruken.Options(Options{
-		PolymorphicHandling: miruken.Set(PolymorphicHandlingRoot),
-	})
-)
+// ToTypeInfo requests type information for a type.
+var ToTypeInfo = miruken.To("type:info")

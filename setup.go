@@ -89,7 +89,7 @@ func (s *SetupBuilder) UseHandlerDescriptorFactory(
 	return s
 }
 
-func (s *SetupBuilder) NoInference() *SetupBuilder {
+func (s *SetupBuilder) WithoutInference() *SetupBuilder {
 	s.noInfer = true
 	return s
 }

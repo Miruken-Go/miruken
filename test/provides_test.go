@@ -486,8 +486,8 @@ func (suite *ProvidesTestSuite) TestProvides() {
 
 		suite.Run("Disable", func() {
 			handler, _ := miruken.Setup().
+				WithoutInference().
 				Handlers(new(FooProvider)).
-				NoInference().
 				Handler()
 			foo := new(Foo)
 			result := handler.Handle(foo, false, nil)

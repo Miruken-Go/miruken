@@ -32,8 +32,8 @@ func (m *Mapper) ToJson(
 		miruken.Format `to:"application/json"`
 	  }, maps *miruken.Maps,
 	_*struct{
-	    miruken.Optional
-	    miruken.FromOptions
+		miruken.Optional
+		miruken.FromOptions
 	  }, options Options,
 	_*struct{
 		miruken.Optional
@@ -43,7 +43,7 @@ func (m *Mapper) ToJson(
 ) (js string, err error) {
 	var data []byte
 	src := maps.Source()
-	if apiOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
+	if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
 		src = &typeContainer{
 			v:        src,
 			typInfo:  apiOptions.TypeInfoFormat,
@@ -63,12 +63,12 @@ func (m *Mapper) ToJson(
 
 func (m *Mapper) ToJsonStream(
 	_*struct{
-	    miruken.Maps
+		miruken.Maps
 		miruken.Format `to:"application/json"`
 	  }, maps *miruken.Maps,
 	_*struct{
-	    miruken.Optional
-	    miruken.FromOptions
+		miruken.Optional
+		miruken.FromOptions
 	  }, options Options,
 	_*struct{
 		miruken.Optional
@@ -85,7 +85,7 @@ func (m *Mapper) ToJsonStream(
 			enc.SetEscapeHTML(escapeHTML.Value())
 		}
 		src := maps.Source()
-		if apiOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
+		if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
 			src = &typeContainer{
 				v:        src,
 				typInfo:  apiOptions.TypeInfoFormat,
@@ -102,7 +102,7 @@ func (m *Mapper) ToJsonStream(
 
 func (m *Mapper) FromJson(
 	_*struct{
-	    miruken.Maps
+		miruken.Maps
 		miruken.Format `from:"application/json"`
 	  }, jsonString string,
 	_*struct{
@@ -117,7 +117,7 @@ func (m *Mapper) FromJson(
 	ctx  miruken.HandleContext,
 ) (any, error) {
 	target := maps.Target()
-	if apiOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
+	if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
 		tc := typeContainer{
 			v:        target,
 			trans:    options.Transformers,
@@ -135,7 +135,7 @@ func (m *Mapper) FromJson(
 
 func (m *Mapper) FromJsonStream(
 	_*struct{
-	    miruken.Maps
+		miruken.Maps
 		miruken.Format `from:"application/json"`
 	  }, stream io.Reader,
 	_*struct{
@@ -151,7 +151,7 @@ func (m *Mapper) FromJsonStream(
 ) (any, error) {
 	target := maps.Target()
 	dec    := json.NewDecoder(stream)
-	if apiOptions.PolymorphicHandling == miruken.Set(api.PolymorphicHandlingRoot) {
+	if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
 		tc := typeContainer{
 			v:        target,
 			trans:    options.Transformers,

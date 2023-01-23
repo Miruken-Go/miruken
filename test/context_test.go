@@ -130,7 +130,8 @@ func (suite *ContextTestSuite) TestContext() {
 
 	suite.Run("Handlers", func () {
 		handler, _ := miruken.Setup().
-			Specs(&Service{}).NoInference().
+			WithoutInference().
+			Specs(&Service{}).
 			Handler()
 		context := miruken.NewContext(handler, new(Service))
 		var foo Foo

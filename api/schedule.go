@@ -37,6 +37,9 @@ type (
 	Scheduler struct {}
 )
 
+
+// Scheduler
+
 func (s *Scheduler) Constructor(
 	_*struct{
 	    miruken.Provides
@@ -112,6 +115,7 @@ func process(
 	return Success(res), true
 }
 
+
 // Sequential processes a batch of requests sequentially.
 // Returns a batch of corresponding responses (or errors).
 func Sequential(
@@ -149,4 +153,15 @@ func sendBatch(
 	} else {
 		return promise.Resolve(r.Responses)
 	}
+}
+
+
+// Failure returns a new failed result.
+func Failure(val error) either.Either[error, any] {
+	return either.Left(val)
+}
+
+// Success returns a new successful result.
+func Success[R any](val R) either.Either[error, R] {
+	return either.Right(val)
 }
