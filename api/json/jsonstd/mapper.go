@@ -303,7 +303,7 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("empty type id for field \"%s\"", field)
 	} else {
 		if v, _, err := miruken.CreateKey[any](c.composer, typeId); err != nil {
-			return err
+			return &api.InvalidTypeIdError{TypeId: typeId, Reason: err}
 		} else {
 			vm := v
 			if trans := c.trans; len(trans) > 0 {

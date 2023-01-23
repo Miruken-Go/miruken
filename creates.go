@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"fmt"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -27,6 +28,10 @@ func (c *Creates) Dispatch(
 	count := c.ResultCount()
 	return DispatchPolicy(handler, c, greedy, composer).
 		OtherwiseHandledIf(c.ResultCount() > count)
+}
+
+func (c *Creates) String() string {
+	return fmt.Sprintf("Creates => %+v", c.key)
 }
 
 // CreatesBuilder builds Creates callbacks.

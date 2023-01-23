@@ -83,6 +83,10 @@ func (m *Maps) Dispatch(
 	return DispatchPolicy(handler, m, greedy, composer)
 }
 
+func (m *Maps) String() string {
+	return fmt.Sprintf("Maps => %+v", m.source)
+}
+
 
 // Format
 

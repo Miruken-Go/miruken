@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"fmt"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -62,6 +63,10 @@ func (h *Handles) Dispatch(
 	count := h.ResultCount()
 	return DispatchPolicy(handler, h, greedy, composer).
 		OtherwiseHandledIf(h.ResultCount() > count)
+}
+
+func (h *Handles) String() string {
+	return fmt.Sprintf("Handles => %v", h.callback)
 }
 
 // HandlesBuilder builds Handles callbacks.

@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"fmt"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -82,6 +83,10 @@ func (p *Provides) Dispatch(
 	}
 	return DispatchPolicy(handler, p, greedy, composer).
 		OtherwiseHandledIf(p.ResultCount() > count)
+}
+
+func (p *Provides) String() string {
+	return fmt.Sprintf("Provides => %+v", p.key)
 }
 
 func (p *Provides) Resolve(

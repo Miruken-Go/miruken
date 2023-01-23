@@ -31,6 +31,12 @@ type (
 
 	// GoTypeFieldInfoMapper provides TypeFieldInfo using package and name.
 	GoTypeFieldInfoMapper struct {}
+
+	// InvalidTypeIdError reports an invalid type discriminator.
+	InvalidTypeIdError struct {
+		TypeId string
+		Reason error
+	}
 )
 
 const (
@@ -49,6 +55,18 @@ func (m *GoTypeFieldInfoMapper) TypeFieldInfo(
 	typ := reflect.TypeOf(maps.Source())
 	return TypeFieldInfo{"@type", typ.String()}, nil
 }
+
+
+// InvalidTypeIdError
+
+func (e *InvalidTypeIdError) Error() string {
+	return fmt.Sprintf("invalid type id '%s': %s", e.TypeId, e.Reason.Error())
+}
+
+func (e *InvalidTypeIdError) Unwrap() error {
+	return e.Reason
+}
+
 
 // Post sends a message without an expected response.
 // A new Stash is created to manage any transit state.

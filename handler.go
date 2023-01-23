@@ -39,7 +39,7 @@ type NotHandledError struct {
 }
 
 func (e *NotHandledError) Error() string {
-	return fmt.Sprintf("%T %+v not handled", e.Callback, e.Callback)
+	return fmt.Sprintf("unhandled %v", e.Callback)
 }
 
 // RejectedError reports a rejected callback.
@@ -61,7 +61,7 @@ func (e *CancelledError) Error() string {
 	if IsNil(e.Reason) {
 		return e.Message
 	}
-	return fmt.Sprintf("%v: %v", e.Message, e.Reason.Error())
+	return fmt.Sprintf("%v: %s", e.Message, e.Reason.Error())
 }
 
 func (e *CancelledError) Unwrap() error {

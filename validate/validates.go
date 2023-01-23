@@ -2,6 +2,7 @@ package validate
 
 import (
 	"errors"
+	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
@@ -55,6 +56,11 @@ func (v *Validates) Dispatch(
 ) miruken.HandleResult {
 	return miruken.DispatchPolicy(handler, v, greedy, composer)
 }
+
+func (v *Validates) String() string {
+	return fmt.Sprintf("Validates => %+v", v.source)
+}
+
 
 // Group marks a set of related validations.
 type Group struct {
