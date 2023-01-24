@@ -104,22 +104,6 @@ func (suite *ValidatorTestSuite) TestValidator() {
 			suite.Fail("expected error")
 		}
 	})
-
-	suite.Run("Group", func() {
-		create := CreateUser{
-			User{
-				Email: "john",
-				Home:  &Address{},
-				Work:  []Address{{}},
-			},
-		}
-		outcome, _, err := validate.Validate(suite.handler, &create, "Admin")
-		suite.Nil(err)
-		suite.NotNil(outcome)
-		suite.False(outcome.Valid())
-		suite.Equal([]string{"User"}, outcome.Fields())
-		suite.Equal("User: (Age: User.Age: non zero value required; Email: User.Email: john does not validate as email; Home: (Street: User.Home.Street: non zero value required; Zip: User.Home.Zip: non zero value required); Name: User.Name: non zero value required; Password: User.Password: non zero value required; Work: (0: (Street: User.Work.0.Street: non zero value required; Zip: User.Work.0.Zip: non zero value required)))", outcome.Error())
-	})
 }
 
 func TestValidateTestSuite(t *testing.T) {

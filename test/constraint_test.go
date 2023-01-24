@@ -6,15 +6,49 @@ import (
 	"testing"
 )
 
-type Person interface {
-	FirstName() string
-	LastName()  string
-}
+type (
+	Person interface {
+		FirstName() string
+		LastName()  string
+	}
 
-type PersonData struct {
-	firstName string
-	lastName  string
-}
+	PersonData struct {
+		firstName string
+		lastName  string
+	}
+
+	Doctor struct {
+		miruken.Metadata
+	}
+
+	Programmer struct {
+		miruken.Qualifier[Programmer]
+	}
+
+	Hospital struct {
+		doctor     Person
+		programmer Person
+	}
+
+	PersonProvider struct{}
+
+	NoConstraintProvider struct {}
+
+	AppSettings interface {
+		ServerUrl() string
+	}
+
+	LocalSettings struct{}
+
+	RemoteSettings struct{}
+
+	Client struct {
+		local  AppSettings
+		remote AppSettings
+	}
+)
+
+// PersonData
 
 func (p *PersonData) FirstName() string {
 	return p.firstName
@@ -24,9 +58,7 @@ func (p *PersonData) LastName() string {
 	return p.lastName
 }
 
-type Doctor struct {
-	miruken.Metadata
-}
+// Doctor
 
 func (d *Doctor) Init() error {
 	return d.InitWithMetadata(miruken.KeyValues{
@@ -38,14 +70,7 @@ func (d *Doctor) Required() bool {
 	return false
 }
 
-type Programmer struct {
-	miruken.Qualifier[Programmer]
-}
-
-type Hospital struct {
-	doctor     Person
-	programmer Person
-}
+// Hospital
 
 func (h *Hospital) Constructor(
 	_*struct{ Doctor },     doctor     Person,
@@ -63,7 +88,7 @@ func (h *Hospital) Programmer() Person {
 	return h.programmer
 }
 
-type PersonProvider struct{}
+// PersonProvider
 
 func (p *PersonProvider) Doctor(
 	_*struct{
@@ -85,11 +110,15 @@ func (p *PersonProvider) Programmer(
 	return &PersonData{"Paul", "Allen"}
 }
 
-type AppSettings interface {
-	ServerUrl() string
+// NoConstraintProvider
+
+func (n *NoConstraintProvider) Person(
+	_ *miruken.Provides,
+) Person {
+	return &PersonData{"Benjamin", "Franklin"}
 }
 
-type LocalSettings struct{}
+// LocalSettings
 
 func (l *LocalSettings) Constructor(
 	_*struct{
@@ -104,7 +133,7 @@ func (l *LocalSettings) ServerUrl() string {
 	return "http://localhost/Server"
 }
 
-type RemoteSettings struct{}
+// RemoteSettings
 
 func (r *RemoteSettings) Constructor(
 	_*struct{
@@ -119,10 +148,7 @@ func (r *RemoteSettings) ServerUrl() string {
 	return "https://remote/Server"
 }
 
-type Client struct {
-	local  AppSettings
-	remote AppSettings
-}
+// Client
 
 func (c *Client) Constructor(
 	_*struct{ miruken.Named `name:"local"` },  local  AppSettings,
@@ -178,6 +204,13 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 			suite.Nil(err)
 			suite.Len(appSettings, 2)
 		})
+
+		suite.Run("Handler", func() {
+			handler, _ := suite.SetupWith(&NoConstraintProvider{})
+			person, _, err := miruken.Resolve[Person](handler, miruken.WithConstraint(&Doctor{}))
+			suite.Nil(err)
+			suite.Nil(person)
+		})
 	})
 
 	suite.Run("Named", func () {
@@ -213,7 +246,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 		suite.Run("Resolve", func() {
 			handler, _ := suite.Setup()
 			doctor, _, err := miruken.Resolve[Person](
-				handler, miruken.WithConstraintProvider(&Doctor{}))
+				handler, miruken.WithConstraint(&Doctor{}))
 			suite.Nil(err)
 			suite.NotNil(doctor)
 			suite.Equal("Jack", doctor.FirstName())

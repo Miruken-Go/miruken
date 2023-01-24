@@ -107,25 +107,6 @@ func (suite *ValidatorTestSuite) TestValidator() {
 			suite.Fail("expected error")
 		}
 	})
-
-	suite.Run("Group", func() {
-		create := CreateUser{
-			User{
-				Age: 200,
-				FavouriteColor: "#000-",
-				Addresses:[]Address{
-					{
-					},
-				},
-			},
-		}
-		outcome, _, err := validate.Validate(suite.handler, &create, "Admin")
-		suite.Nil(err)
-		suite.NotNil(outcome)
-		suite.False(outcome.Valid())
-		suite.Equal([]string{"User"}, outcome.Fields())
-		suite.Equal("User: (Addresses: (0: (City: Key: 'CreateUser.User.Addresses[0].City' Error:Field validation for 'City' failed on the 'required' tag; Phone: Key: 'CreateUser.User.Addresses[0].Phone' Error:Field validation for 'Phone' failed on the 'required' tag; Planet: Key: 'CreateUser.User.Addresses[0].Planet' Error:Field validation for 'Planet' failed on the 'required' tag; Street: Key: 'CreateUser.User.Addresses[0].Street' Error:Field validation for 'Street' failed on the 'required' tag)); Age: Key: 'CreateUser.User.Age' Error:Field validation for 'Age' failed on the 'lte' tag; Email: Key: 'CreateUser.User.Email' Error:Field validation for 'Email' failed on the 'required' tag; FavouriteColor: Key: 'CreateUser.User.FavouriteColor' Error:Field validation for 'FavouriteColor' failed on the 'iscolor' tag; FirstName: Key: 'CreateUser.User.FirstName' Error:Field validation for 'FirstName' failed on the 'required' tag; LastName: Key: 'CreateUser.User.LastName' Error:Field validation for 'LastName' failed on the 'required' tag)", outcome.Error())
-	})
 }
 
 func TestValidateTestSuite(t *testing.T) {

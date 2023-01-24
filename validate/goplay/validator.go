@@ -42,7 +42,7 @@ func (v *validator) Validate(
 			}
 			return miruken.HandledAndStop
 		default:
-			panic(fmt.Errorf("unexpected validation error %v", err))
+			panic(fmt.Errorf("unexpected validation error: %w", err))
 		}
 	}
 	return miruken.Handled

@@ -18,10 +18,8 @@ type (
 
 	// ConstructorBinding customizes the construction of `handlerType`.
 	ConstructorBinding struct {
-		FilteredScope
-		handlerType  reflect.Type
-		flags        bindingFlags
-		metadata     []any
+		BindingBase
+		handlerType reflect.Type
 	}
 )
 
@@ -31,14 +29,6 @@ func (b *ConstructorBinding) Key() any {
 
 func (b *ConstructorBinding) Strict() bool {
 	return false
-}
-
-func (b *ConstructorBinding) SkipFilters() bool {
-	return b.flags & bindingSkipFilters == bindingSkipFilters
-}
-
-func (b *ConstructorBinding) Metadata() []any {
-	return b.metadata
 }
 
 func (b *ConstructorBinding) Invoke(
@@ -72,10 +62,12 @@ func newConstructorBinding(
 	explicitSpec  bool,
 ) (binding *ConstructorBinding, err error) {
 	binding = &ConstructorBinding{
-		FilteredScope{spec.filters},
+		BindingBase{
+			FilteredScope{spec.filters},
+			spec.flags,
+			spec.metadata,
+		},
 		handlerType,
-		spec.flags,
-		spec.metadata,
 	}
 	if constructor != nil {
 		startIndex := 0

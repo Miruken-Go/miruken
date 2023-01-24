@@ -24,11 +24,11 @@ func (s *StatusCodeMapper) NotHandled(
 	return http.StatusInternalServerError
 }
 
-func (s *StatusCodeMapper) InvalidTypeId(
+func (s *StatusCodeMapper) UnknownTypeId(
 	_*struct{
 		miruken.Maps
 		miruken.Format `to:"http:status-code"`
-	}, _ *api.InvalidTypeIdError,
+	}, _ *api.UnknownTypeIdError,
 ) int {
 	return http.StatusBadRequest
 }

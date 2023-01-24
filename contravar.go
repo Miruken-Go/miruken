@@ -94,12 +94,12 @@ func (p *ContravariantPolicy) NewMethodBinding(
 		return nil, &MethodBindingError{method, err}
 	} else {
 		return &MethodBinding{
-			FilteredScope: FilteredScope{spec.filters},
-			key:           key,
-			flags:         spec.flags,
-			method:        method,
-			args:          args,
-			metadata:      spec.metadata,
+			BindingBase{
+				FilteredScope{spec.filters},
+				spec.flags,
+				spec.metadata,
+			},
+			key, method, args,
 		}, nil
 	}
 }
@@ -113,12 +113,12 @@ func (p *ContravariantPolicy) NewFuncBinding(
 		return nil, &FuncBindingError{fun, err}
 	} else {
 		return &FuncBinding{
-			FilteredScope: FilteredScope{spec.filters},
-			key:           key,
-			flags:         spec.flags,
-			fun:           fun,
-			args:          args,
-			metadata:      spec.metadata,
+			BindingBase{
+				FilteredScope{spec.filters},
+				spec.flags,
+				spec.metadata,
+			},
+			key, fun, args,
 		}, nil
 	}
 }

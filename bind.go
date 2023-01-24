@@ -21,6 +21,13 @@ type (
 		) ([]any, *promise.Promise[[]any], error)
 	}
 
+	// BindingBase implements common binding contract.
+	BindingBase struct {
+		FilteredScope
+		flags    bindingFlags
+		metadata []any
+	}
+
 	// BindingReducer aggregates Binding results.
 	BindingReducer func(
 		binding Binding,
@@ -31,7 +38,22 @@ type (
 	Late struct {
 		Value any
 	}
+
+	bindingParser interface {
+		parse(
+			index   int,
+			field   reflect.StructField,
+			binding any,
+		) (bound bool, err error)
+	}
+
+	bindingParserFunc func (
+		index   int,
+		field   reflect.StructField,
+		binding any,
+	) (bound bool, err error)
 )
+
 
 type (
 	bindingFlags uint8
@@ -50,6 +72,7 @@ type (
 	BindingGroup struct {}
 )
 
+
 const (
 	bindingNone bindingFlags = 0
 	bindingStrict bindingFlags = 1 << iota
@@ -58,23 +81,28 @@ const (
 	bindingPromise
 )
 
-func (d BindingGroup) DefinesBindingGroup() {}
 
-type (
-	bindingParser interface {
-		parse(
-			index   int,
-			field   reflect.StructField,
-			binding any,
-		) (bound bool, err error)
-	}
+// BindingGroup
 
-	bindingParserFunc func (
-		index   int,
-		field   reflect.StructField,
-		binding any,
-	) (bound bool, err error)
-)
+func (BindingGroup) DefinesBindingGroup() {}
+
+
+// BindingBase
+
+func (b *BindingBase) Strict() bool {
+	return b.flags & bindingStrict == bindingStrict
+}
+
+func (b *BindingBase) SkipFilters() bool {
+	return b.flags & bindingSkipFilters == bindingSkipFilters
+}
+
+func (b *BindingBase) Metadata() []any {
+	return b.metadata
+}
+
+
+// bindingParserFunc
 
 func (b bindingParserFunc) parse(
 	index   int,
@@ -83,6 +111,7 @@ func (b bindingParserFunc) parse(
 ) (bound bool, err error) {
 	return b(index, field, binding)
 }
+
 
 func parseBinding(
 	source  reflect.Type,

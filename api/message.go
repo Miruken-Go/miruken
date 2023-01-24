@@ -32,8 +32,8 @@ type (
 	// GoTypeFieldInfoMapper provides TypeFieldInfo using package and name.
 	GoTypeFieldInfoMapper struct {}
 
-	// InvalidTypeIdError reports an invalid type discriminator.
-	InvalidTypeIdError struct {
+	// UnknownTypeIdError reports an invalid type discriminator.
+	UnknownTypeIdError struct {
 		TypeId string
 		Reason error
 	}
@@ -57,13 +57,13 @@ func (m *GoTypeFieldInfoMapper) TypeFieldInfo(
 }
 
 
-// InvalidTypeIdError
+// UnknownTypeIdError
 
-func (e *InvalidTypeIdError) Error() string {
-	return fmt.Sprintf("invalid type id '%s': %s", e.TypeId, e.Reason.Error())
+func (e *UnknownTypeIdError) Error() string {
+	return fmt.Sprintf("unknown type id '%s': %s", e.TypeId, e.Reason.Error())
 }
 
-func (e *InvalidTypeIdError) Unwrap() error {
+func (e *UnknownTypeIdError) Unwrap() error {
 	return e.Reason
 }
 

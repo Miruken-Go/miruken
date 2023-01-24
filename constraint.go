@@ -31,7 +31,7 @@ func (b *BindingMetadata) SetName(name string) {
 	b.name = name
 }
 
-func (b *BindingMetadata) IsEmpty() bool {
+func (b *BindingMetadata) Empty() bool {
 	return b.name == "" && len(b.values) == 0
 }
 
@@ -206,7 +206,7 @@ func (q Qualifier[T]) Require(metadata *BindingMetadata) {
 }
 
 func (q Qualifier[T]) Matches(metadata *BindingMetadata) bool {
-	return metadata.IsEmpty() || metadata.Has(TypeOf[T]())
+	return metadata.Empty() || metadata.Has(TypeOf[T]())
 }
 
 // constraintFilter enforces constraints.
@@ -226,7 +226,7 @@ func (c *constraintFilter) Next(
 	}); ok {
 		constraints := cp.Constraints()
 		metadata    := ctx.Callback().Metadata()
-		if metadata.IsEmpty() {
+		if metadata.Empty() {
 			for _, c := range constraints {
 				if c.Required() {
 					return next.Abort()
@@ -316,7 +316,7 @@ type ConstraintInitialize interface {
 	Init() error
 }
 
-func WithConstraintProvider[T ConstraintInitialize](provider T) BindingConstraint {
+func WithConstraint[T ConstraintInitialize](provider T) BindingConstraint {
 	if err := provider.Init(); err != nil {
 		panic(fmt.Errorf("invalid provider: %w", err))
 	}
