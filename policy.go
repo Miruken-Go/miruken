@@ -127,10 +127,8 @@ func (s *policySpec) addMetadata(
 }
 
 func (s *policySpec) complete() error {
-	if len(s.constraints) > 0 {
-		provider := ConstraintProvider{s.constraints}
-		s.filters = append(s.filters, &provider)
-	}
+	provider := ConstraintProvider{s.constraints}
+	s.filters = append(s.filters, &provider)
 	return nil
 }
 
@@ -163,6 +161,7 @@ func (p *policySpecBuilder) buildSpec(
 		return &policySpec{
 			policies: []policyKey{{policy: p.policyOf(callbackOrSpec)}},
 			arg:      CallbackArg{},
+			filters:  []FilterProvider{&ConstraintProvider{}},
 		}, nil
 	}
 	return nil, nil

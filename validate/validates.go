@@ -94,31 +94,20 @@ func (g *Group) Merge(constraint miruken.BindingConstraint) bool {
 	return false
 }
 
-func (g *Group) Require(metadata *miruken.BindingMetadata) {
-	if groups := g.groups; len(groups) > 0 {
-		gs, i := make([]any, len(groups)), 0
-		for grp := range groups {
-			gs[i] = grp
-			i++
-		}
-		metadata.Set(_groupType, gs)
+func (g *Group) Satisfies(required miruken.BindingConstraint) bool {
+	rg, ok := required.(*Group)
+	if !ok {
+		return false
 	}
-}
-
-func (g *Group) Matches(metadata *miruken.BindingMetadata) bool {
-	if m, ok := metadata.Get(_groupType); ok {
-		if _, all := g.groups[_anyGroup]; all {
+	if _, all := g.groups[_anyGroup]; all {
+		return true
+	}
+	for group := range rg.groups {
+		if group == _anyGroup {
 			return true
 		}
-		if groups, ok := m.([]any); ok {
-			for _, group := range groups {
-				if group == _anyGroup {
-					return true
-				}
-				if _, found := g.groups[group]; found {
-					return true
-				}
-			}
+		if _, found := g.groups[group]; found {
+			return true
 		}
 	}
 	return false
@@ -203,6 +192,5 @@ func setTargetValidationOutcome(
 
 var (
 	_policy miruken.Policy = &miruken.ContravariantPolicy{}
-	_groupType             = miruken.TypeOf[*Group]()
 	_anyGroup              = "*"
 )

@@ -61,13 +61,8 @@ func (p *PersonData) LastName() string {
 // Doctor
 
 func (d *Doctor) Init() error {
-	return d.InitWithMetadata(miruken.KeyValues{
-		"Job": "Doctor",
-	})
-}
-
-func (d *Doctor) Required() bool {
-	return false
+	d.Metadata = map[any]any{"Job": "Doctor"}
+	return nil
 }
 
 // Hospital
@@ -207,7 +202,10 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 
 		suite.Run("Handler", func() {
 			handler, _ := suite.SetupWith(&NoConstraintProvider{})
-			person, _, err := miruken.Resolve[Person](handler, miruken.WithConstraint(&Doctor{}))
+			person, _, err := miruken.Resolve[Person](handler)
+			suite.Nil(err)
+			suite.NotNil(person)
+			person, _, err = miruken.Resolve[Person](handler, miruken.New[Doctor]())
 			suite.Nil(err)
 			suite.Nil(person)
 		})
@@ -245,8 +243,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 	suite.Run("Metadata", func () {
 		suite.Run("Resolve", func() {
 			handler, _ := suite.Setup()
-			doctor, _, err := miruken.Resolve[Person](
-				handler, miruken.WithConstraint(&Doctor{}))
+			doctor, _, err := miruken.Resolve[Person](handler, miruken.New[Doctor]())
 			suite.Nil(err)
 			suite.NotNil(doctor)
 			suite.Equal("Jack", doctor.FirstName())

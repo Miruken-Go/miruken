@@ -8,36 +8,53 @@ import (
 	"sync"
 )
 
-// Scoped LifestyleProvider provides instances per Context.
-type Scoped struct {
-	LifestyleProvider
-	rooted bool
-}
+type (
+	// Scoped is a BindingGroup for specifying Scoped lifestyle.
+	// It associates both the scoped lifestyle and fromScope constraint.
+	Scoped struct {
+		BindingGroup
+		scoped
+		Qualifier[fromScope]
+	}
 
-func (s *Scoped) InitWithTag(tag reflect.StructTag) error {
+	// ScopedRooted is a BindingGroup for specifying Scoped lifestyle
+	// with all resolutions assigned to the root Context.
+	ScopedRooted struct {
+		BindingGroup
+		scoped `scoped:"rooted"`
+		Qualifier[fromScope]
+	}
+
+	// scoped LifestyleProvider provides instances per Context.
+	scoped struct {
+		LifestyleProvider
+		rooted bool
+	}
+
+	// fromScope is used to constrain Provides from Context.
+	fromScope struct {}
+)
+
+func (s *scoped) InitWithTag(tag reflect.StructTag) error {
 	if scoped, ok := tag.Lookup("scoped"); ok {
 		s.rooted = scoped == "rooted"
 	}
 	return s.Init()
 }
 
-func (s *Scoped) Init() error {
-	s.SetFilters(&scoped{}, _constraintFilter[0])
+func (s *scoped) Init() error {
+	s.SetFilters(&scopedFilter{})
 	return nil
 }
 
-func (s *Scoped) Constraints() []BindingConstraint {
-	return _scopedConstraint
-}
-
-// scoped is a Filter that caches an instance per Context.
-type scoped struct {
+// scopedFilter is a Filter that caches an instance per Context.
+type scopedFilter struct {
 	Lifestyle
 	cache  map[*Context]lifestyleCache
 	lock   sync.RWMutex
 }
 
-func (s *scoped) Next(
+func (s *scopedFilter) Next(
 	next     Next,
 	ctx      HandleContext,
 	provider FilterProvider,
@@ -49,7 +66,7 @@ func (s *scoped) Next(
 	}
 
 	rooted := false
-	if scp, ok := provider.(*Scoped); ok {
+	if scp, ok := provider.(*scoped); ok {
 		rooted = scp.rooted
 	}
 
@@ -137,7 +154,7 @@ func (s *scoped) Next(
 	return entry.instance, nil, nil
 }
 
-func (s *scoped) ContextChanging(
+func (s *scopedFilter) ContextChanging(
 	contextual   Contextual,
 	oldCtx      *Context,
 	newCtx     **Context,
@@ -165,14 +182,14 @@ func (s *scoped) ContextChanging(
 	}
 }
 
-func (s *scoped) isCompatibleWithParent(
+func (s *scopedFilter) isCompatibleWithParent(
 	ctx    HandleContext,
 	rooted  bool,
 ) bool {
 	if parent := ctx.Callback().(*Provides).Parent(); parent != nil {
 		if pb := parent.Binding(); pb != nil {
 			for _, filter := range pb.Filters() {
-				if scoped, ok := filter.(*Scoped); !ok || (!rooted && scoped.rooted) {
+				if scoped, ok := filter.(*scoped); !ok || (!rooted && scoped.rooted) {
 					return false
 				}
 			}
@@ -181,10 +198,10 @@ func (s *scoped) isCompatibleWithParent(
 	return true
 }
 
-func (s *scoped) tryDispose(instance any) {
+func (s *scopedFilter) tryDispose(instance any) {
 	if disposable, ok := instance.(Disposable); ok {
 		disposable.Dispose()
 	}
 }
 
-var _scopedConstraint = []BindingConstraint{Qualifier[Scoped]{}}
+var FromScope Qualifier[fromScope]

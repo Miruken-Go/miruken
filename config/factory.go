@@ -14,7 +14,7 @@ type (
 		provider Provider
 	}
 
-	// Load asserts a configuration is loaded.
+	// Load restricts miruken.Provides to configurations.
 	Load struct {
 		Path string
 		Flat bool
@@ -37,12 +37,8 @@ func (l *Load) InitWithTag(tag reflect.StructTag) error {
 	return nil
 }
 
-func (l *Load) Require(metadata *miruken.BindingMetadata) {
-	metadata.Set(_loadType, l)
-}
-
-func (l *Load) Matches(metadata *miruken.BindingMetadata) bool {
-	_, ok := metadata.Get(_loadType)
+func (l *Load) Satisfies(required miruken.BindingConstraint) bool {
+	_, ok := required.(*Load)
 	return ok
 }
 
@@ -66,7 +62,7 @@ func (f *Factory) NewConfiguration(
 		} else {
 			out = reflect.New(typ).Interface()
 		}
-		load := extractLoad(provides)
+		load := loadPreference(provides)
 		if err := f.provider.Unmarshal(load.Path, load.Flat, out); err != nil {
 			return nil, fmt.Errorf("config: %w", err)
 		}
@@ -78,13 +74,11 @@ func (f *Factory) NewConfiguration(
 	return nil, nil
 }
 
-func extractLoad(provides *miruken.Provides) *Load {
-	if meta := provides.Metadata(); meta != nil {
-		if l, ok := meta.Get(_loadType); ok {
-			return l.(*Load)
+func loadPreference(provides *miruken.Provides) *Load {
+	for _, c := range provides.Constraints() {
+		if l, ok := c.(*Load); ok {
+			return l
 		}
 	}
 	return &Load{}
 }
-
-var _loadType = miruken.TypeOf[*Load]()

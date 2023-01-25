@@ -125,52 +125,46 @@ func (f *Format) Merge(constraint BindingConstraint) bool {
 	return false
 }
 
-func (f *Format) Require(metadata *BindingMetadata) {
-	if identifier := f.identifier; len(identifier) > 0 {
-		metadata.Set(_formatType, f)
+func (f *Format) Satisfies(required BindingConstraint) bool {
+	rf, ok := required.(*Format)
+	if !ok {
+		return false
 	}
-}
-
-func (f *Format) Matches(metadata *BindingMetadata) bool {
-	if m, ok := metadata.Get(_formatType); ok {
-		if format, ok := m.(*Format); ok {
-			if f.direction != format.direction {
-				return false
-			}
-			switch f.rule {
-			case FormatRuleEquals:
-				switch format.rule {
-				case FormatRuleEquals:
-					return f.identifier == format.identifier
-				case FormatRuleStartsWith:
-					return strings.HasPrefix(f.identifier, format.identifier)
-				case FormatRuleEndsWith:
-					return strings.HasSuffix(f.identifier, format.identifier)
-				case FormatRulePattern:
-					return format.pattern.MatchString(f.identifier)
-				}
-			case FormatRuleStartsWith:
-				switch format.rule {
-				case FormatRuleEquals, FormatRuleStartsWith:
-					return strings.HasPrefix(format.identifier, f.identifier)
-				case FormatRulePattern:
-					return format.pattern.MatchString(f.identifier)
-				}
-			case FormatRuleEndsWith:
-				switch format.rule {
-				case FormatRuleEquals:
-					return strings.HasSuffix(format.identifier, f.identifier)
-				case FormatRuleEndsWith:
-					return strings.HasSuffix(f.identifier, format.identifier)
-				case FormatRulePattern:
-					return format.pattern.MatchString(f.identifier)
-				}
-			case FormatRulePattern:
-				switch format.rule {
-				case FormatRuleEquals, FormatRuleStartsWith, FormatRuleEndsWith:
-					return f.pattern.MatchString(format.identifier)
-				}
-			}
+	if f.direction != rf.direction {
+		return false
+	}
+	switch rf.rule {
+	case FormatRuleEquals:
+		switch f.rule {
+		case FormatRuleEquals:
+			return rf.identifier == f.identifier
+		case FormatRuleStartsWith:
+			return strings.HasPrefix(rf.identifier, f.identifier)
+		case FormatRuleEndsWith:
+			return strings.HasSuffix(rf.identifier, f.identifier)
+		case FormatRulePattern:
+			return f.pattern.MatchString(rf.identifier)
+		}
+	case FormatRuleStartsWith:
+		switch f.rule {
+		case FormatRuleEquals, FormatRuleStartsWith:
+			return strings.HasPrefix(rf.identifier, f.identifier)
+		case FormatRulePattern:
+			return f.pattern.MatchString(rf.identifier)
+		}
+	case FormatRuleEndsWith:
+		switch f.rule {
+		case FormatRuleEquals:
+			return strings.HasSuffix(rf.identifier, f.identifier)
+		case FormatRuleEndsWith:
+			return strings.HasSuffix(f.identifier, rf.identifier)
+		case FormatRulePattern:
+			return f.pattern.MatchString(rf.identifier)
+		}
+	case FormatRulePattern:
+		switch f.rule {
+		case FormatRuleEquals, FormatRuleStartsWith, FormatRuleEndsWith:
+			return rf.pattern.MatchString(f.identifier)
 		}
 	}
 	return false
@@ -395,7 +389,6 @@ func MapAll[T any](
 
 var (
 	_mapsPolicy Policy       = &BivariantPolicy{}
-	_formatType              = TypeOf[*Format]()
 	ErrInvalidFormat         = errors.New("invalid format tag")
 	ErrEmptyFormatIdentifier = errors.New("empty format identifier")
 )

@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"fmt"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/slices"
 	"reflect"
@@ -9,6 +10,7 @@ import (
 type (
 	// Callback represents any intention.
 	Callback interface {
+		BindingConstraintSource
 		Key() any
 		Source() any
 		Policy() Policy
@@ -20,7 +22,6 @@ type (
 			strict   bool,
 			composer Handler,
 		) HandleResult
-		Metadata() *BindingMetadata
 	}
 
 	// CallbackGuard detects and prevents circular Callback dispatch.
@@ -49,12 +50,12 @@ type (
 		promises      []*promise.Promise[any]
 		accept        AcceptResultFunc
 		acceptPromise AcceptPromiseResultFunc
-		metadata      BindingMetadata
+		constraints   []BindingConstraint
 	}
 
 	// CallbackBuilder builds common CallbackBase.
  	CallbackBuilder struct {
-		constraints  []any
+		constraints []BindingConstraint
 	}
 
 	// customizeDispatch customizes Callback dispatch.
@@ -180,8 +181,8 @@ func (c *CallbackBase) ReceiveResult(
 	}
 }
 
-func (c *CallbackBase) Metadata() *BindingMetadata {
-	return &c.metadata
+func (c *CallbackBase) Constraints() []BindingConstraint {
+	return c.constraints
 }
 
 
@@ -190,16 +191,27 @@ func (c *CallbackBase) Metadata() *BindingMetadata {
 func (b *CallbackBuilder) WithConstraints(
 	constraints ... any,
 ) *CallbackBuilder {
-	if len(constraints) > 0 {
-		b.constraints = append(b.constraints, constraints...)
+	for _, constraint := range constraints {
+		switch c := constraint.(type) {
+		case string:
+			n := Named(c)
+			b.constraints = append(b.constraints, &n)
+		case BindingConstraint:
+			b.constraints = append(b.constraints, c)
+		case map[any]any:
+			var m Metadata = c
+			b.constraints = append(b.constraints, &m)
+		case BindingConstraintSource:
+			b.constraints = append(b.constraints, c.Constraints()...)
+		default:
+			panic(fmt.Sprintf("unrecognized constraint: %T", constraint))
+		}
 	}
 	return b
 }
 
 func (b *CallbackBuilder) CallbackBase() CallbackBase {
-	cb := CallbackBase{}
-	ApplyConstraints(&cb, b.constraints...)
-	return cb
+	return CallbackBase{constraints: b.constraints}
 }
 
 func CoerceResult[T any](

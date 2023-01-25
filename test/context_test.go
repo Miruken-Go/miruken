@@ -532,7 +532,7 @@ type RootedService struct {
 func (s *RootedService) Constructor(
 	_*struct{
 		miruken.Provides
-		miruken.Scoped `scoped:"rooted"`
+		miruken.ScopedRooted
       },
 ) {
 }

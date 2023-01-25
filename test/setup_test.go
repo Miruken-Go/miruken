@@ -55,7 +55,7 @@ type SetupTestSuite struct {
 
 func (suite *SetupTestSuite) TestSetup() {
 	suite.Run("Specs", func () {
-		handler, _ := miruken.Setup().Specs(&MultiHandler{}).Handler();
+		handler, _ := miruken.Setup().Specs(&MultiHandler{}).Handler()
 
 		result := handler.Handle(&Foo{}, false, nil)
 		suite.False(result.IsError())

@@ -71,7 +71,7 @@ func (p *Provides) Dispatch(
 ) (result HandleResult) {
 	result = NotHandled
 	count := p.ResultCount()
-	if p.metadata.Empty() {
+	if len(p.Constraints()) == 0 {
 		if typ, ok := p.key.(reflect.Type); ok {
 			if reflect.TypeOf(handler).AssignableTo(typ) {
 				result = result.Or(p.ReceiveResult(handler, false, composer))
