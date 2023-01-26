@@ -78,7 +78,7 @@ func (p *Promise[T]) Coerce(promise *Promise[any]) {
 }
 
 func Inspect(typ reflect.Type) (reflect.Type, bool) {
-	if typ != nil && typ.Implements(_reflectType) {
+	if typ != nil && typ.Implements(reflectType) {
 		promise := reflect.Zero(typ).Interface().(Reflect)
 		return promise.UnderlyingType(), true
 	}
@@ -89,7 +89,7 @@ func Lift(typ reflect.Type, result any) Reflect {
 	if typ.Kind() != reflect.Ptr {
 		panic("typ must be a promise")
 	}
-	if !typ.Implements(_reflectType) {
+	if !typ.Implements(reflectType) {
 		panic("typ must be a promise")
 	}
 	promise := reflect.New(typ.Elem()).Interface().(Reflect)
@@ -107,7 +107,7 @@ func CoerceType(typ reflect.Type, promise *Promise[any]) Reflect {
 	if typ.Kind() != reflect.Ptr {
 		panic("typ must be a promise")
 	}
-	if !typ.Implements(_reflectType) {
+	if !typ.Implements(reflectType) {
 		panic("typ must be a promise")
 	}
 	p := reflect.New(typ.Elem()).Interface().(Reflect)
@@ -139,4 +139,4 @@ func Delay(delay time.Duration) *Promise[Void] {
 	})
 }
 
-var _reflectType = reflect.TypeOf((*Reflect)(nil)).Elem()
+var reflectType = reflect.TypeOf((*Reflect)(nil)).Elem()

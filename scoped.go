@@ -60,7 +60,7 @@ func (s *scopedFilter) Next(
 	provider FilterProvider,
 )  (out []any, po *promise.Promise[[]any], err error) {
 	key := ctx.Callback().(*Provides).Key()
-	if key == _contextType {
+	if key == contextType {
 		// can't resolve a context contextually
 		return nil, nil,nil
 	}

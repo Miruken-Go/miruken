@@ -6,7 +6,7 @@ import "github.com/miruken-go/miruken"
 type Installer struct {}
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
-	if setup.CanInstall(&_featureTag) {
+	if setup.CanInstall(&featureTag) {
 		setup.Specs(
 			&Stash{},
 			&Scheduler{},
@@ -29,4 +29,4 @@ func Feature(
 	return installer
 }
 
-var _featureTag byte
+var featureTag byte

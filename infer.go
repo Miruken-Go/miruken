@@ -173,7 +173,7 @@ func newInferenceHandler(
 				// Only need one unknown binding to create link.
 				if last := bs.variant.Back(); last != nil {
 					binding := last.Value.(Binding)
-					if bt, ok := binding.Key().(reflect.Type); ok && _anyType.AssignableTo(bt) {
+					if bt, ok := binding.Key().(reflect.Type); ok && anyType.AssignableTo(bt) {
 						linkBinding(binding, pb, handlerType, false)
 					}
 				}
@@ -182,7 +182,7 @@ func newInferenceHandler(
 	}
 	return &inferenceHandler {
 		&HandlerDescriptor{
-			spec:     HandlerTypeSpec{_inferenceHandlerType},
+			spec:     HandlerTypeSpec{inferenceHandlerType},
 			bindings: bindings,
 		},
 	}
@@ -206,4 +206,4 @@ func linkBinding(
 	}
 }
 
-var _inferenceHandlerType = TypeOf[*inferenceHandler]()
+var inferenceHandlerType = TypeOf[*inferenceHandler]()

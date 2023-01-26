@@ -401,23 +401,23 @@ func DynNext(
 	provider FilterProvider,
 )  (out []any, po *promise.Promise[[]any], err error) {
 	typ := reflect.TypeOf(filter)
-	_dynNextLock.RLock()
-	binding := _dynNextBinding[typ]
-	_dynNextLock.RUnlock()
+	dynNextLock.RLock()
+	binding := dynNextBindingMap[typ]
+	dynNextLock.RUnlock()
 	if binding == nil {
-		_dynNextLock.Lock()
-		defer _dynNextLock.Unlock()
+		dynNextLock.Lock()
+		defer dynNextLock.Unlock()
 		if dynNext, ok := typ.MethodByName("DynNext"); !ok {
 			goto Invalid
 		} else if dynNextType := dynNext.Type;
 				dynNextType.NumIn() < 4 || dynNextType.NumOut() < 3 {
 			goto Invalid
 		} else if dynNextType.In(1) != reflect.TypeOf(next) ||
-			dynNextType.In(2) != _handleCtxType ||
-			dynNextType.In(3) != _filterProviderType ||
-			dynNextType.Out(0) != _anySliceType ||
-			dynNextType.Out(1) != _promiseAnySliceType ||
-			dynNextType.Out(2) != _errorType {
+			dynNextType.In(2) != handleCtxType ||
+			dynNextType.In(3) != filterProviderType ||
+			dynNextType.Out(0) != anySliceType ||
+			dynNextType.Out(1) != promiseAnySliceType ||
+			dynNextType.Out(2) != errorType {
 			goto Invalid
 		} else {
 			numArgs := dynNextType.NumIn()
@@ -429,7 +429,7 @@ func DynNext(
 				return nil, nil, &MethodBindingError{dynNext, err}
 			}
 			binding = &nextBinding{dynNext, args}
-			_dynNextBinding[typ] = binding
+			dynNextBindingMap[typ] = binding
 		}
 	}
 	if out, po, err = binding.invoke(ctx, filter, next, ctx, provider); err != nil {
@@ -470,6 +470,6 @@ func (n *nextBinding) invoke(
 }
 
 var (
-	_dynNextLock sync.RWMutex
-	_dynNextBinding = make(map[reflect.Type]*nextBinding)
+	dynNextLock  sync.RWMutex
+	dynNextBindingMap = make(map[reflect.Type]*nextBinding)
 )

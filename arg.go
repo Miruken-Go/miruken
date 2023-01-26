@@ -163,16 +163,16 @@ func (d DependencyArg) resolve(
 	ctx HandleContext,
 ) (reflect.Value, *promise.Promise[reflect.Value], error) {
 	typ = d.logicalType(typ)
-	if typ == _handlerType {
+	if typ == handlerType {
 		return reflect.ValueOf(ctx.Composer()), nil, nil
 	}
-	if typ == _handleCtxType {
+	if typ == handleCtxType {
 		return reflect.ValueOf(ctx), nil, nil
 	}
 	callback := ctx.Callback()
 	if val := reflect.ValueOf(callback); val.Type().AssignableTo(typ) {
 		return val, nil, nil
-	} else if typ.AssignableTo(_callbackType) {
+	} else if typ.AssignableTo(callbackType) {
 		return reflect.Zero(typ), nil, nil
 	}
 	if src := callback.Source(); src != nil {
@@ -180,7 +180,7 @@ func (d DependencyArg) resolve(
 			return val, nil, nil
 		}
 	}
-	var resolver DependencyResolver = &_defaultResolver
+	var resolver DependencyResolver = &defaultResolver
 	if spec := d.spec; spec != nil {
 		if spec.resolver != nil {
 			resolver = spec.resolver
@@ -350,10 +350,10 @@ var dependencyParsers = []bindingParser{
 func buildDependency(
 	argType reflect.Type,
 ) (arg DependencyArg, err error) {
-	if _anyType.AssignableTo(argType) {
+	if anyType.AssignableTo(argType) {
 		return arg, fmt.Errorf(
 			"type %v cannot be used As a dependency",
-			_anyType)
+			anyType)
 	}
 	// Is it a *struct arg binding?
 	if argType.Kind() != reflect.Ptr {
@@ -431,7 +431,7 @@ func parseResolver(
 	field   reflect.StructField,
 	binding any,
 ) (bound bool, err error) {
-	if dr := coerceToPtr(field.Type, _depResolverType); dr != nil {
+	if dr := coerceToPtr(field.Type, depResolverType); dr != nil {
 		bound = true
 		if b, ok := binding.(interface {
 			setResolver(DependencyResolver) error
@@ -451,8 +451,8 @@ func parseResolver(
 }
 
 var (
-	_handlerType     = TypeOf[Handler]()
-	_handleCtxType   = TypeOf[HandleContext]()
-	_depResolverType = TypeOf[DependencyResolver]()
-	_defaultResolver = defaultDependencyResolver{}
+	handlerType     = TypeOf[Handler]()
+	handleCtxType   = TypeOf[HandleContext]()
+	depResolverType = TypeOf[DependencyResolver]()
+	defaultResolver = defaultDependencyResolver{}
 )

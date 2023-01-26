@@ -36,9 +36,9 @@ func (v *validator) Validate(
 		case play.ValidationErrors:
 			outcome := validates.Outcome()
 			if v.translator == nil {
-				v.buildValidationOutcome(outcome, e)
+				v.addErrors(outcome, e)
 			} else {
-				v.translateValidationOutcome(outcome, e)
+				v.translateErrors(outcome, e)
 			}
 			return miruken.HandledAndStop
 		default:
@@ -48,7 +48,7 @@ func (v *validator) Validate(
 	return miruken.Handled
 }
 
-func  (v *validator) buildValidationOutcome(
+func  (v *validator) addErrors(
 	outcome     *validate.Outcome,
 	fieldErrors play.ValidationErrors,
 ) {
@@ -61,7 +61,7 @@ func  (v *validator) buildValidationOutcome(
 	}
 }
 
-func  (v *validator) translateValidationOutcome(
+func  (v *validator) translateErrors(
 	outcome     *validate.Outcome,
 	fieldErrors play.ValidationErrors,
 ) {

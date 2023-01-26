@@ -8,7 +8,7 @@ import (
 type Installer struct {}
 
 func (i *Installer) Install(setup *miruken.SetupBuilder) error {
-	if setup.CanInstall(&_featureTag) {
+	if setup.CanInstall(&featureTag) {
 		setup.Specs(&Mapper{}, &apiMessageMapper{})
 	}
 	return nil
@@ -26,4 +26,4 @@ func Feature(
 	return installer
 }
 
-var _featureTag byte
+var featureTag byte

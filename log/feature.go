@@ -16,7 +16,7 @@ func (v *Installer) SetVerbosity (verbosity int) {
 }
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
-	if setup.CanInstall(&_featureTag) {
+	if setup.CanInstall(&featureTag) {
 		setup.Specs(&Factory{}).
 			  Handlers(&Factory{v.root}).
 			  Filters(&Provider{v.verbosity})
@@ -45,5 +45,5 @@ func Feature(
 	return installer
 }
 
-var _featureTag byte
+var featureTag byte
 

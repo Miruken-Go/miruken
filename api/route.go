@@ -77,7 +77,7 @@ func (r *Routes) Filters(
 	callback any,
 	composer miruken.Handler,
 ) ([]miruken.Filter, error) {
-	return _routesFilter, nil
+	return routesFilterSlice, nil
 }
 
 func (r *Routes) Satisfies(routed Routed) bool {
@@ -245,5 +245,5 @@ func RouteTo(message any, route string) Routed {
 
 var (
 	ErrMissingResponse = errors.New("missing batch response")
-	_routesFilter      = []miruken.Filter{routesFilter{}}
+	routesFilterSlice  = []miruken.Filter{routesFilter{}}
 )

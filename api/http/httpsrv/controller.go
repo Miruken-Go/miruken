@@ -94,7 +94,7 @@ func (c *Controller) encodeError(
 	w.Header().Set("Content-Type", format)
 	statusCode := http.StatusInternalServerError
 	handler    := miruken.BuildUp(ctx, miruken.BestEffort)
-	if sc, _, sce := miruken.Map[int](handler, err, _toStatusCode); sc != 0 && sce == nil {
+	if sc, _, sce := miruken.Map[int](handler, err, toStatusCode); sc != 0 && sce == nil {
 		statusCode = sc
 	}
 	w.WriteHeader(statusCode)
@@ -114,4 +114,4 @@ func NewController(ctx *miruken.Context) *Controller {
 	return &Controller{ctx}
 }
 
-var _toStatusCode = miruken.To("http:status-code")
+var toStatusCode = miruken.To("http:status-code")

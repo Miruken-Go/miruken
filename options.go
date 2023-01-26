@@ -121,7 +121,7 @@ func (c *optionsHandler) Handle(
 func MergeOptions(from, into any) bool {
 	return mergo.Merge(into, from,
 		mergo.WithAppendSlice,
-		mergo.WithTransformers(_optionTransformer)) == nil
+		mergo.WithTransformers(optionTransformerInstance)) == nil
 }
 
 func Options(options any) BuilderFunc {
@@ -217,11 +217,11 @@ func (t optionTransformer) Transformer(
 	typ reflect.Type,
 ) func(dst, src reflect.Value) error {
 	addr := false
-	if !typ.AssignableTo(_mergeableType) && typ.Kind() != reflect.Ptr {
+	if !typ.AssignableTo(mergeableType) && typ.Kind() != reflect.Ptr {
 		typ = reflect.PtrTo(typ)
 		addr = true
 	}
-	if !addr || typ.AssignableTo(_mergeableType) {
+	if !addr || typ.AssignableTo(mergeableType) {
 		return func(dst, src reflect.Value) error {
 			if addr {
 				dst = dst.Addr()
@@ -238,6 +238,6 @@ func (t optionTransformer) Transformer(
 }
 
 var (
-	_mergeableType     = TypeOf[mergeable]()
-	_optionTransformer = &optionTransformer{}
+	mergeableType             = TypeOf[mergeable]()
+	optionTransformerInstance = &optionTransformer{}
 )

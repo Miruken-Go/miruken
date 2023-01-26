@@ -157,7 +157,7 @@ func (p *policySpecBuilder) buildSpec(
 		}
 	}
 	// Is it a Callback arg?
-	if callbackOrSpec.Kind() != reflect.Interface && callbackOrSpec.Implements(_callbackType) {
+	if callbackOrSpec.Kind() != reflect.Interface && callbackOrSpec.Implements(callbackType) {
 		return &policySpec{
 			policies: []policyKey{{policy: p.policyOf(callbackOrSpec)}},
 			arg:      CallbackArg{},
@@ -186,7 +186,7 @@ func (p *policySpecBuilder) parse(
 	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
-	if cb := coerceToPtr(typ, _callbackType); cb != nil {
+	if cb := coerceToPtr(typ, callbackType); cb != nil {
 		if typ.Kind() == reflect.Interface {
 			return false, fmt.Errorf("callback cannot be an interface: %v", typ)
 		}
@@ -210,16 +210,16 @@ func parseFilters(
 	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
-	if filter := coerceToPtr(typ, _filterType); filter != nil {
+	if filter := coerceToPtr(typ, filterType); filter != nil {
 		bound = true
 		if b, ok := binding.(interface {
 			addFilterProvider(FilterProvider) error
 		}); ok {
 			spec := filterSpec{filter, false, -1}
-			if f, ok := field.Tag.Lookup(_filterTag); ok {
+			if f, ok := field.Tag.Lookup(filterTag); ok {
 				args := strings.Split(f, ",")
 				for _, arg := range args {
-					if arg == _requiredArg {
+					if arg == requiredArg {
 						spec.required = true
 					} else {
 						if count, _ := fmt.Sscanf(arg, "order=%d", &spec.order); count > 0 {
@@ -235,7 +235,7 @@ func parseFilters(
 					provider, index, invalid)
 			}
 		}
-	} else if fp := coerceToPtr(typ, _filterProviderType); fp != nil {
+	} else if fp := coerceToPtr(typ, filterProviderType); fp != nil {
 		bound = true
 		if b, ok := binding.(interface {
 			addFilterProvider(FilterProvider) error
@@ -260,7 +260,7 @@ func parseConstraints(
 	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
-	if ct := coerceToPtr(typ, _constraintType); ct != nil {
+	if ct := coerceToPtr(typ, constraintType); ct != nil {
 		bound = true
 		if b, ok := binding.(interface {
 			addConstraint(BindingConstraint) error
@@ -277,16 +277,19 @@ func parseConstraints(
 	return bound, err
 }
 
+const (
+	filterTag   = "filter"
+	requiredArg = "required"
+)
+
 var (
-	_filterTag           = "filter"
-	_requiredArg         = "required"
-	_anyType             = TypeOf[any]()
-	_anySliceType        = TypeOf[[]any]()
-	_promiseAnySliceType = TypeOf[*promise.Promise[[]any]]()
-	_errorType           = TypeOf[error]()
-	_callbackType        = TypeOf[Callback]()
-	_filterType          = TypeOf[Filter]()
-	_filterProviderType  = TypeOf[FilterProvider]()
-	_constraintType      = TypeOf[BindingConstraint]()
-	_handleResType       = TypeOf[HandleResult]()
+	anyType             = TypeOf[any]()
+	anySliceType        = TypeOf[[]any]()
+	promiseAnySliceType = TypeOf[*promise.Promise[[]any]]()
+	errorType           = TypeOf[error]()
+	callbackType        = TypeOf[Callback]()
+	filterType          = TypeOf[Filter]()
+	filterProviderType  = TypeOf[FilterProvider]()
+	constraintType      = TypeOf[BindingConstraint]()
+	handleResType       = TypeOf[HandleResult]()
 )

@@ -142,10 +142,10 @@ func parseStructBinding(
 		bound := false
 		field := typ.Field(i)
 		fieldType := field.Type
-		if fieldType == _bindingGroupType {
+		if fieldType == bindingGroupType {
 			continue
 		}
-		if fieldType.Kind() == reflect.Struct && fieldType.Implements(_definesBindingGroup) {
+		if fieldType.Kind() == reflect.Struct && fieldType.Implements(definesBindingGroup) {
 			if invalid := parseStructBinding(fieldType, binding, parsers); invalid != nil {
 				err = multierror.Append(err, invalid)
 			}
@@ -204,7 +204,7 @@ func parseOptions(
 	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
-	if typ == _strictType {
+	if typ == strictType {
 		bound = true
 		if b, ok := binding.(interface {
 			setStrict(int, reflect.StructField, bool) error
@@ -215,7 +215,7 @@ func parseOptions(
 					field.Name, index, invalid))
 			}
 		}
-	} else if typ == _optionalType {
+	} else if typ == optionalType {
 		bound = true
 		if b, ok := binding.(interface {
 			setOptional(int, reflect.StructField, bool) error
@@ -226,7 +226,7 @@ func parseOptions(
 					field.Name, index, invalid))
 			}
 		}
-	} else if typ == _skipFiltersType {
+	} else if typ == skipFiltersType {
 		bound = true
 		if b, ok := binding.(interface {
 			setSkipFilters(int, reflect.StructField, bool) error
@@ -242,9 +242,9 @@ func parseOptions(
 }
 
 var (
-	_strictType          = TypeOf[Strict]()
-	_optionalType        = TypeOf[Optional]()
-	_skipFiltersType     = TypeOf[SkipFilters]()
-	_bindingGroupType    = TypeOf[BindingGroup]()
-	_definesBindingGroup = TypeOf[interface{ DefinesBindingGroup() }]()
+	strictType          = TypeOf[Strict]()
+	optionalType        = TypeOf[Optional]()
+	skipFiltersType     = TypeOf[SkipFilters]()
+	bindingGroupType    = TypeOf[BindingGroup]()
+	definesBindingGroup = TypeOf[interface{ DefinesBindingGroup() }]()
 )

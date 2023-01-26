@@ -27,7 +27,7 @@ func (v *Installer) DependsOn() []miruken.Feature {
 }
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
-	if setup.CanInstall(&_featureTag) {
+	if setup.CanInstall(&featureTag) {
 		setup.Specs(&validator{})
 		setup.Handlers(miruken.NewProvider(v.validate))
 		if trans := v.translator; trans != nil {
@@ -49,4 +49,4 @@ func Feature(
 	return installer
 }
 
-var _featureTag byte
+var featureTag byte

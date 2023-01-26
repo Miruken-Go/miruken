@@ -18,7 +18,7 @@ type (
 )
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
-	if setup.CanInstall(&_featureTag) {
+	if setup.CanInstall(&featureTag) {
 		if provider := v.provider; !miruken.IsNil(provider) {
 			setup.Specs(&Factory{}).
 				  Handlers(&Factory{v.provider})
@@ -45,4 +45,4 @@ func Feature(
 	return installer
 }
 
-var _featureTag byte
+var featureTag byte

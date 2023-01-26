@@ -583,5 +583,5 @@ var PublishFromRoot BuilderFunc = func (handler Handler) Handler {
 	}
 }
 
-var _contextType = TypeOf[*Context]()
+var contextType = TypeOf[*Context]()
 

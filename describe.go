@@ -93,7 +93,7 @@ func (p *policyBindings) reduce(
 		}
 	}
 	// Check unknown keys (any)
-	if unk := p.index[_anyType]; unk != nil {
+	if unk := p.index[anyType]; unk != nil {
 		for unk != nil {
 			if result, done = reducer(unk.Value.(Binding), result); done {
 				break
@@ -172,7 +172,7 @@ func (s HandlerTypeSpec) key() any {
 }
 
 func (s HandlerTypeSpec) suppress() bool {
-	return s.typ.Implements(_suppressDispatchType)
+	return s.typ.Implements(suppressDispatchType)
 }
 
 func (s HandlerTypeSpec) newHandlerDescriptor(
@@ -210,7 +210,7 @@ func (s HandlerTypeSpec) newHandlerDescriptor(
 			}
 		}
 		if addProvides {
-			ctorPolicies = append(ctorPolicies, policyKey{policy: _providesPolicy})
+			ctorPolicies = append(ctorPolicies, policyKey{policy: providesPolicyInstance})
 		}
 	} else if constructor != nil {
 		invalid = multierror.Append(invalid, fmt.Errorf(
@@ -636,4 +636,4 @@ func (g *getHandlerDescriptorFactory) CabBatch() bool {
 	return false
 }
 
-var _suppressDispatchType = TypeOf[suppressDispatch]()
+var suppressDispatchType = TypeOf[suppressDispatch]()

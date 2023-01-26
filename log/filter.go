@@ -47,7 +47,7 @@ func (l *Provider) Filters(
 	callback any,
 	composer miruken.Handler,
 ) ([]miruken.Filter, error) {
-	return _filters, nil
+	return filters, nil
 }
 
 // filter
@@ -112,4 +112,4 @@ func (f filter) logError(
 	logger.Error(err, "failed", "duration", elapsed.Format(durationFormat))
 }
 
-var _filters = []miruken.Filter{filter{}}
+var filters = []miruken.Filter{filter{}}

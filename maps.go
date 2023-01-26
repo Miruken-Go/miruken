@@ -72,7 +72,7 @@ func (m *Maps) Key() any {
 }
 
 func (m *Maps) Policy() Policy {
-	return _mapsPolicy
+	return mapsPolicy
 }
 
 func (m *Maps) Dispatch(
@@ -388,7 +388,7 @@ func MapAll[T any](
 }
 
 var (
-	_mapsPolicy Policy       = &BivariantPolicy{}
+	mapsPolicy Policy = &BivariantPolicy{}
 	ErrInvalidFormat         = errors.New("invalid format tag")
 	ErrEmptyFormatIdentifier = errors.New("empty format identifier")
 )

@@ -17,7 +17,7 @@ func (p *CovariantPolicy) IsVariantKey(
 	key any,
 ) (variant bool, unknown bool) {
 	if typ, ok := key.(reflect.Type); ok {
-		return true, _anyType.AssignableTo(typ)
+		return true, anyType.AssignableTo(typ)
 	}
 	return false, false
 }
@@ -31,7 +31,7 @@ func (p *CovariantPolicy) MatchesKey(
 	} else if invariant {
 		return false, false
 	} else if bt, isType := key.(reflect.Type); isType {
-		if _anyType.AssignableTo(bt) {
+		if anyType.AssignableTo(bt) {
 			return true, false
 		} else if kt, isType := otherKey.(reflect.Type); isType {
 			return bt.AssignableTo(kt), false
@@ -161,16 +161,16 @@ func validateCovariantFunc(
 			ck = key
 		}
 		switch funType.Out(1) {
-		case _errorType, _handleResType: break
+		case errorType, handleResType: break
 		default:
 			err = multierror.Append(err, fmt.Errorf(
 				"covariant: when two return values, second must be %v or %v",
-				_errorType, _handleResType))
+				errorType, handleResType))
 		}
 	default:
 		err = multierror.Append(err, fmt.Errorf(
 			"covariant: at most two return values allowed and second must be %v or %v",
-			_errorType, _handleResType))
+			errorType, handleResType))
 	}
 	return
 }
@@ -181,10 +181,10 @@ func validateCovariantReturn(
 	key        any,
 ) (any, error) {
 	switch returnType {
-	case _errorType, _handleResType:
+	case errorType, handleResType:
 		return nil, fmt.Errorf(
 			"covariant: primary return value must not be %v or %v",
-			_errorType, _handleResType)
+			errorType, handleResType)
 	default:
 		if key == nil {
 			if lt, ok := promise.Inspect(returnType); ok {

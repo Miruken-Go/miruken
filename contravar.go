@@ -17,7 +17,7 @@ func (p *ContravariantPolicy) IsVariantKey(
 	key any,
 ) (variant bool, unknown bool) {
 	if typ, ok := key.(reflect.Type); ok {
-		return true, _anyType.AssignableTo(typ)
+		return true, anyType.AssignableTo(typ)
 	}
 	return false, false
 }
@@ -31,7 +31,7 @@ func (p *ContravariantPolicy) MatchesKey(
 	} else if invariant {
 		return false, false
 	} else if bt, isType := key.(reflect.Type); isType {
-		if _anyType.AssignableTo(bt) {
+		if anyType.AssignableTo(bt) {
 			return true, false
 		} else if kt, isType := otherKey.(reflect.Type); isType {
 			return kt.AssignableTo(bt), false
@@ -137,10 +137,10 @@ func validateContravariantFunc(
 
 	// Source argument must be present if spec
 	if len(args) > 1 {
-		if arg := funType.In(1+skip); arg.AssignableTo(_callbackType) {
+		if arg := funType.In(1+skip); arg.AssignableTo(callbackType) {
 			args[1] = CallbackArg{}
 			if ck == nil {
-				ck = _anyType
+				ck = anyType
 			}
 		} else {
 			if ck == nil {
@@ -152,7 +152,7 @@ func validateContravariantFunc(
 	} else if _, isSpec := spec.arg.(zeroArg); isSpec {
 		err = ErrConMissingCallback
 	} else if ck == nil {
-		ck = _anyType
+		ck = anyType
 	}
 
 	if inv := buildDependencies(funType, index+skip, numArgs, args, index); inv != nil {
@@ -170,16 +170,16 @@ func validateContravariantFunc(
 			spec.flags = spec.flags | bindingPromise
 		}
 		switch funType.Out(1) {
-		case _errorType, _handleResType: break
+		case errorType, handleResType: break
 		default:
 			err = multierror.Append(err, fmt.Errorf(
 				"contravariant: when two return values, second must be %v or %v",
-				_errorType, _handleResType))
+				errorType, handleResType))
 		}
 	default:
 		err = multierror.Append(err, fmt.Errorf(
 			"contravariant: at most two return values allowed and second must be %v or %v",
-			_errorType, _handleResType))
+			errorType, handleResType))
 	}
 	return
 }

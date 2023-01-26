@@ -91,11 +91,11 @@ func (b *batchHandler) Handle(
 	switch cb := cb.(type) {
 	case *Provides:
 		if typ, ok := cb.key.(reflect.Type); ok {
-			if typ == _batchType {
+			if typ == batchType {
 				if batch := b.batch; batch != nil {
 					return cb.ReceiveResult(batch, true, composer)
 				}
-			} else if typ.Implements(_batchingType) {
+			} else if typ.Implements(batchingType) {
 				if batch := b.batch; batch != nil {
 					for _, h := range batch.Handlers() {
 						if _, ok := h.(batching); ok {
@@ -157,7 +157,7 @@ func (b *noBatchHandler) Handle(
 	if comp, ok := callback.(*Composition); ok {
 		cb = comp.Callback()
 	}
-	if p, ok := cb.(*Provides); ok &&  p.Key() == _batchType {
+	if p, ok := cb.(*Provides); ok &&  p.Key() == batchType {
 		return NotHandled
 	}
 	nb := &noBatch{}
@@ -252,6 +252,6 @@ func newBatch(tags ... any) *batch {
 }
 
 var (
-	_batchType    = TypeOf[*batch]()
-	_batchingType = TypeOf[batching]()
+	batchType    = TypeOf[*batch]()
+	batchingType = TypeOf[batching]()
 )

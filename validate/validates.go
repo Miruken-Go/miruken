@@ -46,7 +46,7 @@ func (v *Validates) Key() any {
 }
 
 func (v *Validates) Policy() miruken.Policy {
-	return _policy
+	return policy
 }
 
 func (v *Validates) Dispatch(
@@ -99,11 +99,11 @@ func (g *Group) Satisfies(required miruken.BindingConstraint) bool {
 	if !ok {
 		return false
 	}
-	if _, all := g.groups[_anyGroup]; all {
+	if _, all := g.groups[anyGroup]; all {
 		return true
 	}
 	for group := range rg.groups {
-		if group == _anyGroup {
+		if group == anyGroup {
 			return true
 		}
 		if _, found := g.groups[group]; found {
@@ -191,6 +191,6 @@ func setTargetValidationOutcome(
 }
 
 var (
-	_policy miruken.Policy = &miruken.ContravariantPolicy{}
-	_anyGroup              = "*"
+	policy miruken.Policy = &miruken.ContravariantPolicy{}
+	anyGroup              = "*"
 )

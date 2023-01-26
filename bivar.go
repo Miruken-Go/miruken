@@ -125,15 +125,15 @@ func validateBivariantFunc(
 	args     = make([]arg, numArgs-skip)
 	args[0]  = spec.arg
 	dk       = key
-	in      := _anyType
-	out     := _anyType
+	in      := anyType
+	out     := anyType
 	index   := 1
 
 	var inv error
 
 	// Callback argument must be present if spec
 	if len(args) > 1 {
-		if arg := funType.In(1+skip); arg.AssignableTo(_callbackType) {
+		if arg := funType.In(1+skip); arg.AssignableTo(callbackType) {
 			args[1] = CallbackArg{}
 		} else {
 			args[1] = sourceArg{}
@@ -160,16 +160,16 @@ func validateBivariantFunc(
 			err = multierror.Append(err, inv)
 		}
 		switch funType.Out(1) {
-		case _errorType, _handleResType: break
+		case errorType, handleResType: break
 		default:
 			err = multierror.Append(err, fmt.Errorf(
 				"bivariant: when two return values, second must be %v or %v",
-				_errorType, _handleResType))
+				errorType, handleResType))
 		}
 	default:
 		err = multierror.Append(err, fmt.Errorf(
 			"bivariant: at most two return values allowed and second must be %v or %v",
-			_errorType, _handleResType))
+			errorType, handleResType))
 	}
 
 	if err != nil {
@@ -189,10 +189,10 @@ func validateBivariantReturn(
 	spec       *policySpec,
 ) (reflect.Type, error) {
 	switch returnType {
-	case _errorType, _handleResType:
+	case errorType, handleResType:
 		return nil, fmt.Errorf(
 			"bivariant: primary return value must not be %v or %v",
-			_errorType, _handleResType)
+			errorType, handleResType)
 	default:
 		if lt, ok := promise.Inspect(returnType); ok {
 			spec.flags = spec.flags | bindingPromise
