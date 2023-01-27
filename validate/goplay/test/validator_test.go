@@ -1,6 +1,8 @@
 package test
 
 import (
+	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/validator/v10"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/validate"
 	"github.com/miruken-go/miruken/validate/goplay"
@@ -18,15 +20,34 @@ type Address struct {
 	Phone  string `validate:"required"`
 }
 
+// AddressNoTags contains user address information without tags.
+type AddressNoTags struct {
+	Street string
+	City   string
+	Planet string
+	Phone  string
+}
+
 // User contains user information.
 type User struct {
-	Id             int
+	Id             int       `validate:"eq=0"`
 	FirstName      string    `validate:"required"`
 	LastName       string    `validate:"required"`
 	Age            uint8     `validate:"gte=0,lte=130"`
 	Email          string    `validate:"required,email"`
 	FavouriteColor string    `validate:"iscolor"`
-	Addresses      []Address `validate:"required,dive,required"`
+	Addresses      []Address `validate:"required,dive"`
+}
+
+// UserNoTags contains user information without tags.
+type UserNoTags struct {
+	Id             int
+	FirstName      string
+	LastName       string
+	Age            uint8
+	Email          string
+	FavouriteColor string
+	Addresses      []AddressNoTags
 }
 
 // Command to create a User.
@@ -34,14 +55,71 @@ type CreateUser struct {
 	User User
 }
 
+// Command to create a User without tags.
+type CreateUserNoTags struct {
+	User UserNoTags
+}
+
+// CreateUserIntegrity validates CreateUser
+type CreateUserIntegrity struct {
+	goplayvalidator.Base
+}
+
 // UserHandler handles User commands.
 type UserHandler struct {
 	userId int
 }
 
+
+// CreateUserIntegrity
+
+func (v *CreateUserIntegrity) Constructor(
+	_ *struct{ miruken.Optional }, translator ut.Translator,
+) {
+	val := validator.New()
+
+	val.RegisterStructValidationMapRules(
+		map[string]string{
+			"Street": "required",
+			"City":   "required",
+			"Planet": "required",
+			"Phone":  "required",
+		}, AddressNoTags{})
+
+	val.RegisterStructValidationMapRules(
+		map[string]string{
+			"Id":             "eq=0",
+			"FirstName":      "required",
+			"LastName":       "required",
+			"Age":            "gte=0,lte=130",
+			"Email":          "required,email",
+			"FavouriteColor": "iscolor",
+			"Addresses":      "required,dive",
+		}, UserNoTags{})
+
+	v.Base.Constructor(val, nil, translator)
+}
+
+func (v *CreateUserIntegrity) Validate(
+	validates *validate.Validates, create *CreateUserNoTags,
+) miruken.HandleResult {
+	return v.Base.ValidateAndStop(create, validates.Outcome())
+}
+
+// UserHandler
+
 func (u *UserHandler) CreateUser(
 	_ *miruken.Handles, create *CreateUser,
 ) User {
+	user := create.User
+	u.userId++
+	user.Id = u.userId
+	return user
+}
+
+func (u *UserHandler) CreateUserNoTags(
+	_ *miruken.Handles, create *CreateUserNoTags,
+) UserNoTags {
 	user := create.User
 	u.userId++
 	user.Id = u.userId
@@ -62,6 +140,8 @@ func (suite *ValidatorTestSuite) SetupTest() {
 
 func (suite *ValidatorTestSuite) TestValidator() {
 	suite.Run("Tags", func() {
+
+
 		suite.Run("Valid Target", func() {
 			create := CreateUser{
 				User{
@@ -81,7 +161,7 @@ func (suite *ValidatorTestSuite) TestValidator() {
 				},
 			}
 			if user, _, err := miruken.Execute[User](suite.handler, &create); err == nil {
-				suite.Equal(1, user.Id)
+				suite.Greater(user.Id, 0)
 			} else {
 				suite.Fail("unexpected error", err.Error())
 			}
@@ -111,7 +191,49 @@ func (suite *ValidatorTestSuite) TestValidator() {
 
 	suite.Run("No Tags", func() {
 		suite.Run("Valid Target", func() {
+			create := CreateUserNoTags{
+				UserNoTags{
+					FirstName:      "Badger",
+					LastName:       "Smith",
+					Age:            52,
+					Email:          "Badger.Smith@gmail.com",
+					FavouriteColor: "#000",
+					Addresses: []AddressNoTags{
+						{
+							Street: "Eavesdown Docks",
+							City:   "Rockwall",
+							Planet: "Persphone",
+							Phone:  "none",
+						},
+					},
+				},
+			}
+			if user, _, err := miruken.Execute[UserNoTags](suite.handler, &create); err == nil {
+				suite.Greater(user.Id, 0)
+			} else {
+				suite.Fail("unexpected error", err.Error())
+			}
+		})
 
+		suite.Run("Invalid Target", func() {
+			create := CreateUserNoTags{
+				UserNoTags{
+					Age:            200,
+					FavouriteColor: "#000-",
+					Addresses: []AddressNoTags{
+						{},
+					},
+				},
+			}
+			if _, _, err := miruken.Execute[UserNoTags](suite.handler, &create); err != nil {
+				suite.IsType(&validate.Outcome{}, err)
+				outcome := err.(*validate.Outcome)
+				suite.False(outcome.Valid())
+				user := outcome.Path("User")
+				suite.Equal("Addresses: (0: (City: Key: 'CreateUserNoTags.User.Addresses[0].City' Error:Field validation for 'City' failed on the 'required' tag; Phone: Key: 'CreateUserNoTags.User.Addresses[0].Phone' Error:Field validation for 'Phone' failed on the 'required' tag; Planet: Key: 'CreateUserNoTags.User.Addresses[0].Planet' Error:Field validation for 'Planet' failed on the 'required' tag; Street: Key: 'CreateUserNoTags.User.Addresses[0].Street' Error:Field validation for 'Street' failed on the 'required' tag)); Age: Key: 'CreateUserNoTags.User.Age' Error:Field validation for 'Age' failed on the 'lte' tag; Email: Key: 'CreateUserNoTags.User.Email' Error:Field validation for 'Email' failed on the 'required' tag; FavouriteColor: Key: 'CreateUserNoTags.User.FavouriteColor' Error:Field validation for 'FavouriteColor' failed on the 'iscolor' tag; FirstName: Key: 'CreateUserNoTags.User.FirstName' Error:Field validation for 'FirstName' failed on the 'required' tag; LastName: Key: 'CreateUserNoTags.User.LastName' Error:Field validation for 'LastName' failed on the 'required' tag", user.Error())
+			} else {
+				suite.Fail("expected error")
+			}
 		})
 	})
 }

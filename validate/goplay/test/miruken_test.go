@@ -6,6 +6,7 @@ import "github.com/miruken-go/miruken"
 
 var TestFeature miruken.Feature = miruken.FeatureFunc(func(setup *miruken.SetupBuilder) error {
 	setup.Specs(
+		&CreateUserIntegrity{},
 		&UserHandler{},
 	)
 	return nil

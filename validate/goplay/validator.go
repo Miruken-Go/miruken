@@ -10,12 +10,18 @@ import (
 	"strings"
 )
 
-type validator struct {
-	validate   *play.Validate
-	translator ut.Translator
-}
+type (
+	Base struct {
+		validate   *play.Validate
+		translator ut.Translator
+	}
 
-func (v *validator) Constructor(
+	validator struct { Base }
+)
+
+// Base
+
+func (v *Base) Constructor(
 	validate *play.Validate,
 	_ *struct{ miruken.Optional }, translator ut.Translator,
 ) {
@@ -23,8 +29,9 @@ func (v *validator) Constructor(
 	v.translator = translator
 }
 
-func (v *validator) Validate(
-	validates *validate.Validates, target any,
+func (v *Base) Validate(
+	target  any,
+	outcome *validate.Outcome,
 ) miruken.HandleResult {
 	if !miruken.IsStruct(target) {
 		return miruken.NotHandled
@@ -34,7 +41,6 @@ func (v *validator) Validate(
 		case *play.InvalidValidationError:
 			return miruken.NotHandled.WithError(err)
 		case play.ValidationErrors:
-			outcome := validates.Outcome()
 			if v.translator == nil {
 				v.addErrors(outcome, e)
 			} else {
@@ -48,7 +54,14 @@ func (v *validator) Validate(
 	return miruken.Handled
 }
 
-func  (v *validator) addErrors(
+func (v *Base) ValidateAndStop(
+	target  any,
+	outcome *validate.Outcome,
+) miruken.HandleResult {
+	return v.Validate(target, outcome).Or(miruken.NotHandledAndStop)
+}
+
+func (v *Base) addErrors(
 	outcome     *validate.Outcome,
 	fieldErrors play.ValidationErrors,
 ) {
@@ -61,7 +74,7 @@ func  (v *validator) addErrors(
 	}
 }
 
-func  (v *validator) translateErrors(
+func (v *Base) translateErrors(
 	outcome     *validate.Outcome,
 	fieldErrors play.ValidationErrors,
 ) {
@@ -71,4 +84,13 @@ func  (v *validator) translateErrors(
 		if len(parts) > 1 { path = parts[1] }
 		outcome.AddError(path, errors.New(msg))
 	}
+}
+
+
+// validator
+
+func (v *validator) Validate(
+	validates *validate.Validates, target any,
+) miruken.HandleResult {
+	return v.Base.Validate(target, validates.Outcome())
 }
