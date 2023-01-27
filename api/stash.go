@@ -97,7 +97,7 @@ func StashGetKey(
 	}
 	get := &stashGet{}
 	get.key = key
-	if result := handler.Handle(get, false, nil); result.IsHandled() {
+	if result := handler.Handle(get, false, nil); result.Handled() {
 		val = get.val
 		ok  = get.found
 	}
@@ -128,7 +128,7 @@ func StashPutKey(
 	put.key = key
 	if result := handler.Handle(put, false, nil); result.IsError() {
 		return result.Error()
-	} else if !result.IsHandled() {
+	} else if !result.Handled() {
 		return &miruken.NotHandledError{Callback: put}
 	}
 	return nil
@@ -225,7 +225,7 @@ func StashDropKey(
 	drop.key = key
 	if result := handler.Handle(drop, false, nil); result.IsError() {
 		err = result.Error()
-	} else if !result.IsHandled() {
+	} else if !result.Handled() {
 		err = &miruken.NotHandledError{Callback: drop}
 	}
 	return

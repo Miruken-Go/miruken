@@ -1,4 +1,4 @@
-package goplayvalidator
+package playvalidator
 
 import (
 	"errors"
@@ -17,7 +17,7 @@ type (
 		translator ut.Translator
 	}
 
-	// Rules express the validation rules explicitly
+	// Rules express the validation behavior explicitly
 	// without depending on validation struct tags.
 	Rules []struct{ Type any; Rules map[string]string }
 
@@ -79,7 +79,12 @@ func (v *Base) ValidateAndStop(
 	target  any,
 	outcome *validate.Outcome,
 ) miruken.HandleResult {
-	return v.Validate(target, outcome).Or(miruken.NotHandledAndStop)
+	if result := v.Validate(target, outcome); result.Handled() {
+		// Stop the generic validator from validating tags
+		return result.Or(miruken.HandledAndStop)
+	} else {
+		return result
+	}
 }
 
 func (v *Base) addErrors(

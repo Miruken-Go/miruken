@@ -115,7 +115,7 @@ func (b *batchHandler) Handle(
 				CanBatch() bool
 			}); !ok || check.CanBatch() {
 				if r := batch.Handle(callback, greedy, composer);
-					r.IsHandled() && !r.ShouldStop() {
+					r.Handled() && !r.ShouldStop() {
 					return r
 				}
 			}

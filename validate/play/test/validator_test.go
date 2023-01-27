@@ -4,7 +4,7 @@ import (
 	ut "github.com/go-playground/universal-translator"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/validate"
-	"github.com/miruken-go/miruken/validate/goplay"
+	playvalidator "github.com/miruken-go/miruken/validate/play"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -61,7 +61,7 @@ type CreateUserNoTags struct {
 
 // CreateUserIntegrity validates CreateUser
 type CreateUserIntegrity struct {
-	goplayvalidator.Base
+	playvalidator.Base
 }
 
 // UserHandler handles User commands.
@@ -76,14 +76,14 @@ func (v *CreateUserIntegrity) Constructor(
 	_ *struct{ miruken.Optional }, translator ut.Translator,
 ) {
 	v.ConstructWithRules(
-		goplayvalidator.Rules{
+		playvalidator.Rules{
 			{AddressNoTags{}, map[string]string{
 				"Street": "required",
 				"City":   "required",
 				"Planet": "required",
 				"Phone":  "required",
 			}},
-			{ UserNoTags{}, map[string]string{
+			{UserNoTags{}, map[string]string{
 				"Id":             "eq=0",
 				"FirstName":      "required",
 				"LastName":       "required",
@@ -129,7 +129,7 @@ type ValidatorTestSuite struct {
 func (suite *ValidatorTestSuite) SetupTest() {
 	suite.handler, _ = miruken.Setup(
 		TestFeature,
-		goplayvalidator.Feature(),
+		playvalidator.Feature(),
 	).Handler()
 }
 

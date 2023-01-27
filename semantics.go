@@ -112,7 +112,7 @@ func GetSemantics(handler Handler) *CallbackSemantics {
 		panic("handler cannot be nil")
 	}
 	semantics := &CallbackSemantics{}
-	if result := handler.Handle(semantics, true, handler); result.IsHandled() {
+	if result := handler.Handle(semantics, true, handler); result.Handled() {
 		return semantics
 	}
 	return nil

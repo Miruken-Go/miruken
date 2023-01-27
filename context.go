@@ -137,7 +137,7 @@ func (c *Context) HandleAxis(
 			} else if ctx, ok := child.(*Context); ok {
 				result = result.Or(ctx.HandleAxis(TraverseSelf, callback, greedy, composer))
 			}
-			return result.ShouldStop() || (result.IsHandled() && !greedy), nil
+			return result.ShouldStop() || (result.Handled() && !greedy), nil
 		})); err != nil {
 		result = result.WithError(err)
 	}

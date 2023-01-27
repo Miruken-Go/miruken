@@ -1,4 +1,4 @@
-package goplayvalidator
+package playvalidator
 
 import (
 	ut "github.com/go-playground/universal-translator"

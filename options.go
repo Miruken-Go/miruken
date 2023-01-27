@@ -169,7 +169,7 @@ func GetOptions(handler Handler, target any) bool {
 		}
 	}
 
-	handled := handler.Handle(options, true, nil).IsHandled()
+	handled := handler.Handle(options, true, nil).Handled()
 	if handled && created {
 		CopyIndirect(options.options, target)
 	}

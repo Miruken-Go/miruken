@@ -21,7 +21,7 @@ type (
 	HandleResultBlock func() HandleResult
 )
 
-func (r HandleResult) IsHandled() bool {
+func (r HandleResult) Handled() bool {
 	return r.handled
 }
 
