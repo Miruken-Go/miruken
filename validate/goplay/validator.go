@@ -11,10 +11,15 @@ import (
 )
 
 type (
+	// Base provides common validation behavior.
 	Base struct {
 		validate   *play.Validate
 		translator ut.Translator
 	}
+
+	// Rules express the validation rules explicitly
+	// without depending on validation struct tags.
+	Rules []struct{ Type any; Rules map[string]string }
 
 	validator struct { Base }
 )
@@ -26,6 +31,22 @@ func (v *Base) Constructor(
 	_ *struct{ miruken.Optional }, translator ut.Translator,
 ) {
 	v.validate   = validate
+	v.translator = translator
+}
+
+func (v *Base) ConstructWithRules(
+	rules      Rules,
+	translator ut.Translator,
+) {
+	if rules == nil {
+		panic("rules cannot be nil")
+	}
+
+	val := play.New()
+	for _, rule := range rules {
+		val.RegisterStructValidationMapRules(rule.Rules, rule.Type)
+	}
+	v.validate   = val
 	v.translator = translator
 }
 

@@ -306,7 +306,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 				DOB:       time.Date(2007, time.June, 14,
 					13, 26, 00, 0, time.Local),
 			}
-			outcome, _, err := validate.Validate(handler, &player, validate.Rules("Recreational"))
+			outcome, _, err := validate.Validate(handler, &player, validate.Groups("Recreational"))
 			suite.Nil(err)
 			suite.NotNil(outcome)
 			suite.False(outcome.Valid())

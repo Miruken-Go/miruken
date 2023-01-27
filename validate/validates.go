@@ -113,8 +113,8 @@ func (g *Group) Satisfies(required miruken.BindingConstraint) bool {
 	return false
 }
 
-// Rules builds a validation Group constraint.
-func Rules(groups ... any) miruken.BindingConstraint {
+// Groups builds a validation Group constraint.
+func Groups(groups ... any) miruken.BindingConstraint {
 	if len(groups) == 0 {
 		panic("at least one group required")
 	}
