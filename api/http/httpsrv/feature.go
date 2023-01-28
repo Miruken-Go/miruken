@@ -13,7 +13,7 @@ func (i *Installer) DependsOn() []miruken.Feature {
 }
 
 func (i *Installer) Install(setup *miruken.SetupBuilder) error {
-	if setup.CanInstall(&featureTag) {
+	if setup.Tag(&featureTag) {
 		setup.Specs(&StatusCodeMapper{})
 	}
 	return nil
@@ -21,7 +21,7 @@ func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 
 // Feature configures http server support
 func Feature(
-	config ... func(installer *Installer),
+	config ...func(installer *Installer),
 ) miruken.Feature {
 	installer := &Installer{}
 	for _, configure := range config {

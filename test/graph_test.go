@@ -20,7 +20,7 @@ func (t *treeNode) Children() []miruken.Traversing {
 	return t.children
 }
 
-func (t *treeNode) addChildren(children ... *treeNode) *treeNode{
+func (t *treeNode) addChildren(children ...*treeNode) *treeNode{
 	for _, child := range children {
 		child.parent = t
 		t.children = append(t.children, child)
@@ -69,7 +69,7 @@ func (suite *TraversalTestSuite) VisitTraversal(
 	return false, nil
 }
 
-func (suite *TraversalTestSuite) Visited(expected ... *treeNode) {
+func (suite *TraversalTestSuite) Visited(expected ...*treeNode) {
 	suite.ElementsMatch(suite.visited, expected)
 }
 
@@ -133,7 +133,7 @@ func (suite *GraphTestSuite) VisitTraversal(
 	return false, nil
 }
 
-func (suite *GraphTestSuite) Visited(expected ... *treeNode) {
+func (suite *GraphTestSuite) Visited(expected ...*treeNode) {
 	suite.ElementsMatch(suite.visited, expected)
 }
 

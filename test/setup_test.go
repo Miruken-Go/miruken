@@ -16,7 +16,7 @@ type MyInstaller struct {
 func (i *MyInstaller) Install(
 	setup *miruken.SetupBuilder,
 ) error {
-	if setup.CanInstall(reflect.TypeOf(i)) {
+	if setup.Tag(reflect.TypeOf(i)) {
 		i.count++
 		setup.Specs(&MultiHandler{})
 	}

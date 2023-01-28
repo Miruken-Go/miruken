@@ -341,10 +341,10 @@ func resolveArgs(
 
 // Dependency typed
 
-var dependencyParsers = []bindingParser{
-	bindingParserFunc(parseOptions),
-	bindingParserFunc(parseResolver),
-	bindingParserFunc(parseConstraints),
+var dependencyParsers = []BindingParser{
+	BindingParserFunc(parseOptions),
+	BindingParserFunc(parseResolver),
+	BindingParserFunc(parseConstraints),
 }
 
 func buildDependency(

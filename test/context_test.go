@@ -79,7 +79,7 @@ func (suite *ContextTestSuite) RootContext() *miruken.Context {
 	return suite.RootContextWith(suite.HandleTypes...)
 }
 
-func (suite *ContextTestSuite) RootContextWith(specs ... any) *miruken.Context {
+func (suite *ContextTestSuite) RootContextWith(specs ...any) *miruken.Context {
 	ctx, _ := miruken.Setup().Specs(specs...).Context()
 	return ctx
 }

@@ -45,8 +45,8 @@ func DispatchPolicy(
 	if dp, ok := handler.(PolicyDispatch); ok {
 		return dp.DispatchPolicy(policy, callback, greedy, composer)
 	}
-	if factory := GetHandlerDescriptorFactory(composer); factory != nil {
-		if d := factory.DescriptorOf(handler); d != nil {
+	if factory := CurrentHandlerDescriptorFactory(composer); factory != nil {
+		if d := factory.Descriptor(handler); d != nil {
 			return d.Dispatch(policy, handler, callback, greedy, composer, nil)
 		}
 	}
@@ -135,7 +135,7 @@ func (s *policySpec) complete() error {
 // policySpecBuilder builds policySpec from method metadata.
 type policySpecBuilder struct {
 	cache   map[reflect.Type]Policy
-	parsers []bindingParser
+	parsers []BindingParser
 }
 
 func (p *policySpecBuilder) buildSpec(

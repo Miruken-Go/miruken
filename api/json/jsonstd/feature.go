@@ -8,14 +8,14 @@ import (
 type Installer struct {}
 
 func (i *Installer) Install(setup *miruken.SetupBuilder) error {
-	if setup.CanInstall(&featureTag) {
+	if setup.Tag(&featureTag) {
 		setup.Specs(&Mapper{}, &apiMessageMapper{})
 	}
 	return nil
 }
 
 func Feature(
-	config ... func(installer *Installer),
+	config ...func(installer *Installer),
 ) miruken.Feature {
 	installer := &Installer{}
 	for _, configure := range config {

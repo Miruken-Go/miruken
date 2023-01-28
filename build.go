@@ -28,7 +28,7 @@ func composeBuilder2(builder1, builder2 Builder) Builder {
 	})
 }
 
-func ComposeBuilders(builder Builder, builders ... Builder) Builder {
+func ComposeBuilders(builder Builder, builders ...Builder) Builder {
 	switch len(builders) {
 	case 0: return builder
 	case 1: return composeBuilder2(builder, builders[0])
@@ -40,7 +40,7 @@ func ComposeBuilders(builder Builder, builders ... Builder) Builder {
 	}
 }
 
-func PipeBuilders(builder Builder, builders ... Builder) Builder {
+func PipeBuilders(builder Builder, builders ...Builder) Builder {
 	switch len(builders) {
 	case 0: return builder
 	case 1: return composeBuilder2(builders[0], builder)
@@ -53,7 +53,7 @@ func PipeBuilders(builder Builder, builders ... Builder) Builder {
 	}
 }
 
-func BuildUp(handler Handler, builders ... Builder) Handler {
+func BuildUp(handler Handler, builders ...Builder) Handler {
 	for _, b := range builders {
 		if b != nil {
 			handler = b.BuildUp(handler)
@@ -63,8 +63,8 @@ func BuildUp(handler Handler, builders ... Builder) Handler {
 }
 
 func AddHandlers(
-	parent Handler,
-	handlers ... any,
+	parent   Handler,
+	handlers ...any,
 ) Handler {
 	if parent == nil {
 		panic("cannot add handlers to a nil parent")
@@ -82,7 +82,7 @@ func AddHandlers(
 	}
 }
 
-func With(values ... any) BuilderFunc {
+func With(values ...any) BuilderFunc {
 	return func (handler Handler) Handler {
 		var valueHandlers []any
 		for _, val := range values {
@@ -167,7 +167,7 @@ func (m *mutableHandlers) Handlers() []any {
 }
 
 func (m *mutableHandlers) AddHandlers(
-	handlers ... any,
+	handlers ...any,
 ) *mutableHandlers {
 	if len(handlers) > 0 {
 		m.lock.Lock()
@@ -179,8 +179,8 @@ func (m *mutableHandlers) AddHandlers(
 }
 
 func (m *mutableHandlers) InsertHandlers(
-	index        int,
-	handlers ... any,
+	index    int,
+	handlers ...any,
 ) *mutableHandlers {
 	if index < 0 {
 		panic("index must be >= 0")
@@ -195,7 +195,7 @@ func (m *mutableHandlers) InsertHandlers(
 }
 
 func (m *mutableHandlers) RemoveHandlers(
-	handlers ... any,
+	handlers ...any,
 ) *mutableHandlers {
 	if len(handlers) > 0 {
 		m.lock.Lock()

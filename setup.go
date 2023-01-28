@@ -33,48 +33,48 @@ func (f FeatureFunc) Install(setup *SetupBuilder) error {
 // SetupBuilder
 
 func (s *SetupBuilder) Features(
-	features ... Feature,
+	features ...Feature,
 ) *SetupBuilder {
 	s.features = append(s.features, features...)
 	return s
 }
 
 func (s *SetupBuilder) Handlers(
-	handlers ... any,
+	handlers ...any,
 ) *SetupBuilder {
 	s.handlers = append(s.handlers, handlers...)
 	return s
 }
 
 func (s *SetupBuilder) Specs(
-	specs ... any,
+	specs ...any,
 ) *SetupBuilder {
 	s.specs = append(s.specs, specs...)
 	return s
 }
 
 func (s *SetupBuilder) ExcludeSpecs(
-	excludes ... Predicate[HandlerSpec],
+	excludes ...Predicate[HandlerSpec],
 ) *SetupBuilder {
 	s.exclude = CombinePredicates(s.exclude, excludes...)
 	return s
 }
 
 func (s *SetupBuilder) Filters(
-	providers ... FilterProvider,
+	providers ...FilterProvider,
 ) *SetupBuilder {
 	return s.Builders(ProvideFilters(providers...))
 }
 
 func (s *SetupBuilder) Builders(
-	builders ... Builder,
+	builders ...Builder,
 ) *SetupBuilder {
 	s.builders = append(s.builders, builders...)
 	return s
 }
 
 func (s *SetupBuilder) Options(
-	options ... any,
+	options ...any,
 ) *SetupBuilder {
 	for _, option := range options {
 		s.builders = append(s.builders, Options(option))
@@ -94,7 +94,7 @@ func (s *SetupBuilder) WithoutInference() *SetupBuilder {
 	return s
 }
 
-func (s *SetupBuilder) CanInstall(tag any) bool {
+func (s *SetupBuilder) Tag(tag any) bool {
 	if tags := s.tags; tags == nil {
 		s.tags = map[any]Void{tag: {}}
 		return true
@@ -108,9 +108,10 @@ func (s *SetupBuilder) CanInstall(tag any) bool {
 func (s *SetupBuilder) Handler() (handler Handler, buildErrors error) {
 	factory := s.factory
 	if IsNil(factory) {
-		factory = NewMutableHandlerDescriptorFactory()
+		var builder HandlerDescriptorFactoryBuilder
+		factory = builder.Build()
 	}
-	handler = &getHandlerDescriptorFactory{factory}
+	handler = &currentHandlerDescriptorFactory{factory}
 
 	buildErrors = s.installGraph(s.features)
 
@@ -118,12 +119,12 @@ func (s *SetupBuilder) Handler() (handler Handler, buildErrors error) {
 		hs := make([]HandlerSpec, 0, len(specs))
 		exclude, noInfer := s.exclude, s.noInfer
 		for _, spec := range specs {
-			hspec := factory.MakeHandlerSpec(spec)
+			hspec := factory.NewSpec(spec)
 			if hspec == nil || (exclude != nil && exclude(hspec)) {
 				continue
 			}
 			if noInfer {
-				if _, _, err := factory.RegisterHandler(spec); err != nil {
+				if _, _, err := factory.RegisterSpec(spec); err != nil {
 					panic(err)
 				}
 			} else {

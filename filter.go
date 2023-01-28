@@ -52,8 +52,8 @@ type (
 	// Filtered is a container of Filters.
 	Filtered interface {
 		Filters() []FilterProvider
-		AddFilters(providers ... FilterProvider)
-		RemoveFilters(providers ... FilterProvider)
+		AddFilters(providers ...FilterProvider)
+		RemoveFilters(providers ...FilterProvider)
 		RemoveAllFilters()
 	}
 
@@ -179,8 +179,8 @@ func (f *FilterInstanceProvider) Filters(
 }
 
 func NewFilterInstanceProvider(
-	required    bool,
-	filters ... Filter,
+	required bool,
+	filters  ...Filter,
 ) *FilterInstanceProvider {
 	return &FilterInstanceProvider{filters, required}
 }
@@ -189,7 +189,7 @@ func (f *FilteredScope) Filters() []FilterProvider {
 	return f.providers
 }
 
-func (f *FilteredScope) AddFilters(providers ... FilterProvider) {
+func (f *FilteredScope) AddFilters(providers ...FilterProvider) {
 	if len(providers) == 0 {
 		return
 	}
@@ -207,7 +207,7 @@ func (f *FilteredScope) AddFilters(providers ... FilterProvider) {
 	}
 }
 
-func (f *FilteredScope) RemoveFilters(providers ... FilterProvider) {
+func (f *FilteredScope) RemoveFilters(providers ...FilterProvider) {
 	if len(providers) == 0 {
 		return
 	}
@@ -254,15 +254,15 @@ var (
 	}
 )
 
-func UseFilters(filters ... Filter) Builder {
+func UseFilters(filters ...Filter) Builder {
 	return withFilters(false, filters...)
 }
 
-func withFilters(required bool, filters ... Filter) Builder {
+func withFilters(required bool, filters ...Filter) Builder {
 	return ProvideFilters(&FilterInstanceProvider{filters, required})
 }
 
-func ProvideFilters(providers ... FilterProvider) Builder {
+func ProvideFilters(providers ...FilterProvider) Builder {
 	builder := Options(FilterOptions{Providers: providers})
 	return BuilderFunc(func (handler Handler) Handler {
 		return BuildUp(handler, builder)
@@ -276,10 +276,10 @@ type providedFilter struct {
 }
 
 func orderedFilters(
-	handler       Handler,
-	binding       Binding,
-	callback      Callback,
-	providers ... []FilterProvider,
+	handler   Handler,
+	binding   Binding,
+	callback  Callback,
+	providers ...[]FilterProvider,
 ) ([]providedFilter, error) {
 	var options FilterOptions
 	GetOptions(handler, &options)
@@ -464,7 +464,7 @@ type nextBinding struct {
 
 func (n *nextBinding) invoke(
 	ctx      HandleContext,
-	initArgs ... any,
+	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	return callFunc(n.method.Func, ctx, n.args, initArgs...)
 }

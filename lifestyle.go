@@ -31,7 +31,7 @@ func (l *LifestyleProvider) Filters(
 	return l.filters, nil
 }
 
-func (l *LifestyleProvider) SetFilters(filters ... Filter) {
+func (l *LifestyleProvider) SetFilters(filters ...Filter) {
 	if len(filters) == 0 {
 		panic("filters cannot be empty")
 	}

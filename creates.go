@@ -58,16 +58,16 @@ func (b *CreatesBuilder) NewCreation() *Creates {
 }
 
 func Create[T any](
-	handler         Handler,
-	constraints ... any,
+	handler     Handler,
+	constraints ...any,
 ) (T, *promise.Promise[T], error) {
 	return CreateKey[T](handler, TypeOf[T](), constraints...)
 }
 
 func CreateKey[T any](
-	handler         Handler,
-	key             any,
-	constraints ... any,
+	handler     Handler,
+	key         any,
+	constraints ...any,
 ) (t T, tp *promise.Promise[T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -87,8 +87,8 @@ func CreateKey[T any](
 }
 
 func CreateAll[T any](
-	handler         Handler,
-	constraints ... any,
+	handler     Handler,
+	constraints ...any,
 ) (t []T, tp *promise.Promise[[]T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")

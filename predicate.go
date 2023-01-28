@@ -5,7 +5,7 @@ type Predicate[T any] func(T) bool
 
 func CombinePredicates[T any](
 	predicate Predicate[T],
-	predicates ... Predicate[T],
+	predicates ...Predicate[T],
 ) Predicate[T] {
 	switch len(predicates) {
 	case 0: return predicate

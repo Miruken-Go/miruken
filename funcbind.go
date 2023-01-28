@@ -41,7 +41,7 @@ func (b *FuncBinding) Key() any {
 
 func (b *FuncBinding) Invoke(
 	ctx      HandleContext,
-	initArgs ... any,
+	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	return callFunc(b.fun, ctx, b.args, initArgs...)
 }
@@ -67,7 +67,7 @@ func callFunc(
 	fun      reflect.Value,
 	ctx      HandleContext,
 	args     []arg,
-	initArgs ... any,
+	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	fromIndex := len(initArgs)
 	if resolvedArgs, pa, err := resolveArgs(fun.Type(), fromIndex, args, ctx); err != nil {

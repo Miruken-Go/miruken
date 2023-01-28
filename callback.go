@@ -189,7 +189,7 @@ func (c *CallbackBase) Constraints() []BindingConstraint {
 // CallbackBuilder
 
 func (b *CallbackBuilder) WithConstraints(
-	constraints ... any,
+	constraints ...any,
 ) *CallbackBuilder {
 	for _, constraint := range constraints {
 		switch c := constraint.(type) {

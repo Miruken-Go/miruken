@@ -204,7 +204,7 @@ func (suite *ValidatesTestSuite) Setup() (miruken.Handler, error) {
 	return suite.SetupWith(suite.specs...)
 }
 
-func (suite *ValidatesTestSuite) SetupWith(specs ... any) (miruken.Handler, error) {
+func (suite *ValidatesTestSuite) SetupWith(specs ...any) (miruken.Handler, error) {
 	return miruken.Setup().Specs(specs...).Handler()
 }
 

@@ -18,7 +18,7 @@ type (
 )
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
-	if setup.CanInstall(&featureTag) {
+	if setup.Tag(&featureTag) {
 		if provider := v.provider; !miruken.IsNil(provider) {
 			setup.Specs(&Factory{}).
 				  Handlers(&Factory{v.provider})
@@ -31,7 +31,7 @@ func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 // using the supplied configuration Provider.
 func Feature(
 	provider Provider,
-	config ... func(installer *Installer),
+	config ...func(installer *Installer),
 ) miruken.Feature {
 	if miruken.IsNil(provider) {
 		panic("provider cannot be nil")

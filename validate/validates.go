@@ -114,7 +114,7 @@ func (g *Group) Satisfies(required miruken.BindingConstraint) bool {
 }
 
 // Groups builds a validation Group constraint.
-func Groups(groups ... any) miruken.BindingConstraint {
+func Groups(groups ...any) miruken.BindingConstraint {
 	if len(groups) == 0 {
 		panic("at least one group required")
 	}
@@ -150,9 +150,9 @@ func (b *Builder) NewValidates() *Validates {
 
 // Validate initiates validation of the `target`.
 func Validate(
-	handler         miruken.Handler,
-	target          any,
-	constraints ... any,
+	handler     miruken.Handler,
+	target      any,
+	constraints ...any,
 ) (o *Outcome, po *promise.Promise[*Outcome], err error) {
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")

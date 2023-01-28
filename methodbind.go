@@ -37,7 +37,7 @@ func (b *MethodBinding) Key() any {
 
 func (b *MethodBinding) Invoke(
 	ctx      HandleContext,
-	initArgs ... any,
+	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	if initArgs == nil {
 		initArgs = []any{ctx.handler}

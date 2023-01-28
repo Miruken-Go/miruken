@@ -10,7 +10,7 @@ import (
 
 func tryParseDate(
 	candidate string,
-	layouts   ... string,
+	layouts   ...string,
 ) either.Either[string, time.Time] {
 	for _, layout := range layouts {
 		if t, err := time.Parse(layout, candidate); err == nil {

@@ -12,7 +12,7 @@ func (v *Installer) ValidateOutput () {
 }
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
-	if setup.CanInstall(&_featureTag) {
+	if setup.Tag(&_featureTag) {
 		setup.Specs(&ApiMapping{}).
 			  Filters(&Provider{v.output})
 	}
@@ -25,7 +25,7 @@ func Output(installer *Installer) {
 
 // Feature creates and configures validation support.
 func Feature(
-	config ... func(installer *Installer),
+	config ...func(installer *Installer),
 ) miruken.Feature {
 	installer := &Installer{}
 	for _, configure := range config {

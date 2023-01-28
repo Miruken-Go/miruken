@@ -16,7 +16,7 @@ func (v *Installer) SetVerbosity (verbosity int) {
 }
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
-	if setup.CanInstall(&featureTag) {
+	if setup.Tag(&featureTag) {
 		setup.Specs(&Factory{}).
 			  Handlers(&Factory{v.root}).
 			  Filters(&Provider{v.verbosity})
@@ -34,7 +34,7 @@ func Verbosity(verbosity int) func(installer *Installer) {
 // Feature creates and configures logging support.
 func Feature(
 	rootLogger logr.Logger,
-	config ... func(installer *Installer),
+	config     ...func(installer *Installer),
 ) miruken.Feature {
 	installer := &Installer{root: rootLogger}
 	for _, configure := range config {

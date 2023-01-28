@@ -93,7 +93,7 @@ func (c *Context) NewChild() *Context {
 	return child
 }
 
-func (c *Context) Store(values ... any) *Context {
+func (c *Context) Store(values ...any) *Context {
 	for _, val := range values {
 		c.AddHandlers(NewProvider(val))
 	}
@@ -308,7 +308,7 @@ func (c *Context) ensureActive() {
 	}
 }
 
-func NewContext(handlers ... any) *Context {
+func NewContext(handlers ...any) *Context {
 	context := &Context{
 		state: ContextActive,
 	}

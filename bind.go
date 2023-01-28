@@ -17,7 +17,7 @@ type (
 		Metadata()    []any
 		Invoke(
 			ctx HandleContext,
-			initArgs ... any,
+			initArgs ...any,
 		) ([]any, *promise.Promise[[]any], error)
 	}
 
@@ -39,7 +39,7 @@ type (
 		Value any
 	}
 
-	bindingParser interface {
+	BindingParser interface {
 		parse(
 			index   int,
 			field   reflect.StructField,
@@ -47,7 +47,7 @@ type (
 		) (bound bool, err error)
 	}
 
-	bindingParserFunc func (
+	BindingParserFunc func (
 		index   int,
 		field   reflect.StructField,
 		binding any,
@@ -102,9 +102,9 @@ func (b *BindingBase) Metadata() []any {
 }
 
 
-// bindingParserFunc
+// BindingParserFunc
 
-func (b bindingParserFunc) parse(
+func (b BindingParserFunc) parse(
 	index   int,
 	field   reflect.StructField,
 	binding any,
@@ -116,7 +116,7 @@ func (b bindingParserFunc) parse(
 func parseBinding(
 	source  reflect.Type,
 	binding any,
-	parsers []bindingParser,
+	parsers []BindingParser,
 ) (err error) {
 	if err = parseStructBinding(source, binding, parsers); err == nil {
 		if b, ok := binding.(interface {
@@ -131,7 +131,7 @@ func parseBinding(
 func parseStructBinding(
 	typ     reflect.Type,
 	binding any,
-	parsers []bindingParser,
+	parsers []BindingParser,
 ) (err error) {
 	checkedMetadata := false
 	var metadataOwner interface {

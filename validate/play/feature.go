@@ -27,7 +27,7 @@ func (v *Installer) DependsOn() []miruken.Feature {
 }
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
-	if setup.CanInstall(&featureTag) {
+	if setup.Tag(&featureTag) {
 		setup.Specs(&validator{})
 		setup.Handlers(miruken.NewProvider(v.validate))
 		if trans := v.translator; trans != nil {
@@ -38,7 +38,7 @@ func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 }
 
 func Feature(
-	config ... func(installer *Installer),
+	config ...func(installer *Installer),
 ) miruken.Feature {
 	installer := &Installer{validate: play.New()}
 	for _, configure := range config {

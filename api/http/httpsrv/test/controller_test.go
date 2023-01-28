@@ -133,7 +133,7 @@ type ControllerTestSuite struct {
 	srv *httptest.Server
 }
 
-func (suite *ControllerTestSuite) Setup(specs ... any) *miruken.Context {
+func (suite *ControllerTestSuite) Setup(specs ...any) *miruken.Context {
 	ctx, _ := miruken.Setup(
 		TestFeature, http.Feature(), jsonstd.Feature()).
 		Specs(&api.GoTypeFieldInfoMapper{}).

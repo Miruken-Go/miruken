@@ -33,7 +33,7 @@ func (b *ConstructorBinding) Strict() bool {
 
 func (b *ConstructorBinding) Invoke(
 	ctx      HandleContext,
-	initArgs ... any,
+	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	// ConstructorBinding's will be called on existing
 	// handlers if present.  This would result in an

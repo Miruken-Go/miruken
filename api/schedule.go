@@ -120,7 +120,7 @@ func process(
 // Returns a batch of corresponding responses (or errors).
 func Sequential(
 	handler  miruken.Handler,
-	requests ... any,
+	requests ...any,
 ) *promise.Promise[[]either.Either[error, any]] {
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")
@@ -132,7 +132,7 @@ func Sequential(
 // Returns a batch of corresponding responses (or errors).
 func Concurrent(
 	handler  miruken.Handler,
-	requests ... any,
+	requests ...any,
 ) *promise.Promise[[]either.Either[error, any]] {
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")

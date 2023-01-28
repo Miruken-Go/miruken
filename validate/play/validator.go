@@ -36,17 +36,18 @@ func (v *Base) Constructor(
 
 func (v *Base) ConstructWithRules(
 	rules      Rules,
+	validate   *play.Validate,
 	translator ut.Translator,
 ) {
-	if rules == nil {
-		panic("rules cannot be nil")
+	if validate == nil {
+		validate = play.New()
 	}
 
-	val := play.New()
 	for _, rule := range rules {
-		val.RegisterStructValidationMapRules(rule.Rules, rule.Type)
+		validate.RegisterStructValidationMapRules(rule.Rules, rule.Type)
 	}
-	v.validate   = val
+
+	v.validate   = validate
 	v.translator = translator
 }
 

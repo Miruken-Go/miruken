@@ -270,9 +270,9 @@ func (b *MapsBuilder) NewMaps() *Maps {
 }
 
 func Map[T any](
-	handler         Handler,
-	source          any,
-	constraints ... any,
+	handler     Handler,
+	source      any,
+	constraints ...any,
 ) (t T, tp *promise.Promise[T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -293,10 +293,10 @@ func Map[T any](
 }
 
 func MapInto[T any](
-	handler         Handler,
-	source          any,
-	target          *T,
-	constraints ... any,
+	handler     Handler,
+	source      any,
+	target      *T,
+	constraints ...any,
 ) (tp *promise.Promise[T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -320,9 +320,9 @@ func MapInto[T any](
 }
 
 func MapKey[T any](
-	handler         Handler,
-	key             any,
-	constraints ... any,
+	handler     Handler,
+	key         any,
+	constraints ...any,
 ) (t T, tp *promise.Promise[T], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -343,9 +343,9 @@ func MapKey[T any](
 }
 
 func MapAll[T any](
-	handler         Handler,
-	source          any,
-	constraints ... any,
+	handler     Handler,
+	source      any,
+	constraints ...any,
 ) (t []T, _ *promise.Promise[[]T], _ error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")

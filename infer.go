@@ -84,7 +84,7 @@ func (b *methodIntercept) SkipFilters() bool {
 
 func (b *methodIntercept) Invoke(
 	ctx      HandleContext,
-	initArgs ... any,
+	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	handlerType := b.handlerType
 	callback    := ctx.Callback()
@@ -148,7 +148,7 @@ func newInferenceHandler(
 	}
 	bindings := make(policyBindingsMap)
 	for _, spec := range specs {
-		if descriptor, added, err := factory.RegisterHandler(spec); err != nil {
+		if descriptor, added, err := factory.RegisterSpec(spec); err != nil {
 			panic(err)
 		} else if added {
 			var handlerType reflect.Type

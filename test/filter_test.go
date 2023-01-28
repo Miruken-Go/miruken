@@ -333,7 +333,7 @@ func (suite *FilterTestSuite) Setup() (miruken.Handler, error) {
 	return suite.SetupWith(suite.specs...)
 }
 
-func (suite *FilterTestSuite) SetupWith(specs ... any) (miruken.Handler, error) {
+func (suite *FilterTestSuite) SetupWith(specs ...any) (miruken.Handler, error) {
 	return miruken.Setup().Specs(specs...).Handler()
 }
 

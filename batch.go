@@ -125,7 +125,7 @@ func (b *batchHandler) Handle(
 }
 
 func (b *batchHandler) Complete(
-	promises ... *promise.Promise[any],
+	promises ...*promise.Promise[any],
 ) *promise.Promise[[]any] {
 	if !atomic.CompareAndSwapInt32(&b.completed, 0, 1) {
 		panic("batch has already completed")
@@ -168,7 +168,7 @@ func (b *noBatchHandler) Handle(
 func Batch(
 	handler   Handler,
 	configure func(Handler),
-	tags       ... any,
+	tags      ...any,
 ) *promise.Promise[[]any] {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -184,7 +184,7 @@ func Batch(
 func BatchAsync[T any](
 	handler   Handler,
 	configure func(Handler) *promise.Promise[T],
-	tags      ... any,
+	tags      ...any,
 ) *promise.Promise[[]any] {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -219,7 +219,7 @@ var NoBatch BuilderFunc = func(handler Handler) Handler {
 	return &noBatchHandler{handler}
 }
 
-func GetBatch[TB batching](handler Handler, tags ... any) TB {
+func GetBatch[TB batching](handler Handler, tags ...any) TB {
 	var tb TB
 	if batch, _, err := Resolve[*batch](handler); err == nil && batch != nil {
 		for _, tag := range tags {
@@ -240,7 +240,7 @@ func GetBatch[TB batching](handler Handler, tags ... any) TB {
 	return tb
 }
 
-func newBatch(tags ... any) *batch {
+func newBatch(tags ...any) *batch {
 	if len(tags) == 0 {
 		return &batch{}
 	}
