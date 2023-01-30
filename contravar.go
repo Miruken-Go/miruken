@@ -87,7 +87,7 @@ func (p *ContravariantPolicy) AcceptResults(
 
 func (p *ContravariantPolicy) NewMethodBinding(
 	method reflect.Method,
-	spec   *policySpec,
+	spec   *bindingSpec,
 	key    any,
 ) (Binding, error) {
 	if args, key, err := validateContravariantFunc(method.Type, spec, key,1); err != nil {
@@ -106,7 +106,7 @@ func (p *ContravariantPolicy) NewMethodBinding(
 
 func (p *ContravariantPolicy) NewFuncBinding(
 	fun  reflect.Value,
-	spec *policySpec,
+	spec *bindingSpec,
 	key  any,
 ) (Binding, error) {
 	if args, key, err := validateContravariantFunc(fun.Type(), spec, key,0); err != nil {
@@ -125,7 +125,7 @@ func (p *ContravariantPolicy) NewFuncBinding(
 
 func validateContravariantFunc(
 	funType reflect.Type,
-	spec    *policySpec,
+	spec    *bindingSpec,
 	key     any,
 	skip    int,
 ) (args []arg, ck any, err error) {
@@ -163,11 +163,11 @@ func validateContravariantFunc(
 	case 0: break
 	case 1:
 		if _, ok := promise.Inspect(funType.Out(0)); ok {
-			spec.flags = spec.flags | bindingPromise
+			spec.flags = spec.flags | bindingAsync
 		}
 	case 2:
 		if _, ok := promise.Inspect(funType.Out(0)); ok {
-			spec.flags = spec.flags | bindingPromise
+			spec.flags = spec.flags | bindingAsync
 		}
 		switch funType.Out(1) {
 		case errorType, handleResType: break

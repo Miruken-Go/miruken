@@ -15,7 +15,7 @@ type (
 	FuncBinder interface {
 		NewFuncBinding(
 			fun  reflect.Value,
-			spec *policySpec,
+			spec *bindingSpec,
 			key  any,
 		) (Binding, error)
 	}

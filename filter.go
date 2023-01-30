@@ -470,6 +470,8 @@ func (n *nextBinding) invoke(
 }
 
 var (
-	dynNextLock  sync.RWMutex
-	dynNextBindingMap = make(map[reflect.Type]*nextBinding)
+	dynNextLock sync.RWMutex
+	dynNextBindingMap   = make(map[reflect.Type]*nextBinding)
+	filterProviderType  = TypeOf[FilterProvider]()
+	promiseAnySliceType = TypeOf[*promise.Promise[[]any]]()
 )

@@ -137,7 +137,7 @@ func (d DependencyArg) Strict() bool {
 }
 
 func (d DependencyArg) Promise() bool {
-	return d.spec != nil && d.spec.flags & bindingPromise == bindingPromise
+	return d.spec != nil && d.spec.flags &bindingAsync == bindingAsync
 }
 
 func (d DependencyArg) Metadata() []any {
@@ -307,13 +307,13 @@ func resolveArgs(
 		if a, pa, err := arg.resolve(typ, ctx); err != nil {
 			return nil, nil, &UnresolvedArgError{arg, err}
 		} else if pa == nil {
-			if arg.flags() & bindingPromise == bindingPromise {
+			if arg.flags() &bindingAsync == bindingAsync {
 				// Not a promise so lift
 				resolved[i] = reflect.ValueOf(promise.Lift(typ, a.Interface()))
 			} else {
 				resolved[i] = a
 			}
-		} else if arg.flags() & bindingPromise == bindingPromise {
+		} else if arg.flags() &bindingAsync == bindingAsync {
 			// Already a promise so coerce
 			resolved[i] = reflect.ValueOf(
 				promise.CoerceType(typ, pa.Then(func(v any) any {
@@ -406,9 +406,9 @@ func buildDependencies(
 				}
 				if lt, ok := promise.Inspect(argType); ok {
 					if spec := arg.spec; spec == nil {
-						arg.spec = &dependencySpec{flags: bindingPromise}
+						arg.spec = &dependencySpec{flags: bindingAsync}
 					} else {
-						spec.flags = spec.flags | bindingPromise
+						spec.flags = spec.flags | bindingAsync
 					}
 					arg.spec.logicalType = lt
 				}

@@ -12,7 +12,7 @@ type (
 		NewConstructorBinding(
 			handlerType  reflect.Type,
 			constructor *reflect.Method,
-			spec        *policySpec,
+			spec        *bindingSpec,
 		) (Binding, error)
 	}
 
@@ -58,7 +58,7 @@ func (b *ConstructorBinding) Invoke(
 func newConstructorBinding(
 	handlerType   reflect.Type,
 	constructor  *reflect.Method,
-	spec         *policySpec,
+	spec         *bindingSpec,
 	explicitSpec  bool,
 ) (binding *ConstructorBinding, err error) {
 	binding = &ConstructorBinding{

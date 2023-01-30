@@ -61,7 +61,7 @@ type CreateUserNoTags struct {
 
 // CreateUserIntegrity validates CreateUser
 type CreateUserIntegrity struct {
-	play.Base
+	play.Validator
 }
 
 // UserHandler handles User commands.
@@ -98,7 +98,7 @@ func (v *CreateUserIntegrity) Constructor(
 func (v *CreateUserIntegrity) Validate(
 	validates *validate.Validates, create *CreateUserNoTags,
 ) miruken.HandleResult {
-	return v.Base.ValidateAndStop(create, validates.Outcome())
+	return v.Validator.ValidateAndStop(create, validates.Outcome())
 }
 
 // UserHandler

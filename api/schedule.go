@@ -48,7 +48,7 @@ func (s *Scheduler) Constructor(
 ) {
 }
 
-func (s *Scheduler) HandleConcurrent(
+func (s *Scheduler) Concurrent(
 	_ *miruken.Handles, concurrent ConcurrentBatch,
 	composer miruken.Handler,
 ) *promise.Promise[ScheduledResult] {
@@ -72,7 +72,7 @@ func (s *Scheduler) HandleConcurrent(
 	})
 }
 
-func (s *Scheduler) HandleSequential(
+func (s *Scheduler) Sequential(
 	_ *miruken.Handles, sequential SequentialBatch,
 	composer miruken.Handler,
 ) *promise.Promise[ScheduledResult] {
@@ -92,7 +92,7 @@ func (s *Scheduler) HandleSequential(
 	})
 }
 
-func (s *Scheduler) HandlePublish(
+func (s *Scheduler) Publish(
 	_ *miruken.Handles, publish Published,
 	composer miruken.Handler,
 ) (p *promise.Promise[miruken.Void], err error) {

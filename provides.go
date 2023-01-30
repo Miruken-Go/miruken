@@ -215,7 +215,7 @@ type providesPolicy struct {
 func (p *providesPolicy) NewConstructorBinding(
 	handlerType reflect.Type,
 	constructor *reflect.Method,
-	spec        *policySpec,
+	spec        *bindingSpec,
 ) (binding Binding, err error) {
 	explicitSpec := spec != nil
 	if !explicitSpec {
@@ -223,7 +223,7 @@ func (p *providesPolicy) NewConstructorBinding(
 		if err = single.Init(); err != nil {
 			return nil, err
 		}
-		spec = &policySpec{
+		spec = &bindingSpec{
 			filters: []FilterProvider{single},
 		}
 	}

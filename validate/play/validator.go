@@ -11,8 +11,8 @@ import (
 )
 
 type (
-	// Base provides common validation behavior.
-	Base struct {
+	// Validator provides common validation behavior.
+	Validator struct {
 		validate   *play.Validate
 		translator ut.Translator
 	}
@@ -21,12 +21,12 @@ type (
 	// without depending on validation struct tags.
 	Rules []struct{ Type any; Rules map[string]string }
 
-	validator struct { Base }
+	validator struct { Validator }
 )
 
-// Base
+// Validator
 
-func (v *Base) Constructor(
+func (v *Validator) Constructor(
 	validate *play.Validate,
 	_ *struct{ miruken.Optional }, translator ut.Translator,
 ) {
@@ -34,7 +34,7 @@ func (v *Base) Constructor(
 	v.translator = translator
 }
 
-func (v *Base) ConstructWithRules(
+func (v *Validator) ConstructWithRules(
 	rules      Rules,
 	validate   *play.Validate,
 	translator ut.Translator,
@@ -51,7 +51,7 @@ func (v *Base) ConstructWithRules(
 	v.translator = translator
 }
 
-func (v *Base) Validate(
+func (v *Validator) Validate(
 	target  any,
 	outcome *validate.Outcome,
 ) miruken.HandleResult {
@@ -76,7 +76,7 @@ func (v *Base) Validate(
 	return miruken.Handled
 }
 
-func (v *Base) ValidateAndStop(
+func (v *Validator) ValidateAndStop(
 	target  any,
 	outcome *validate.Outcome,
 ) miruken.HandleResult {
@@ -88,7 +88,7 @@ func (v *Base) ValidateAndStop(
 	}
 }
 
-func (v *Base) addErrors(
+func (v *Validator) addErrors(
 	outcome     *validate.Outcome,
 	fieldErrors play.ValidationErrors,
 ) {
@@ -101,7 +101,7 @@ func (v *Base) addErrors(
 	}
 }
 
-func (v *Base) translateErrors(
+func (v *Validator) translateErrors(
 	outcome     *validate.Outcome,
 	fieldErrors play.ValidationErrors,
 ) {
@@ -119,5 +119,5 @@ func (v *Base) translateErrors(
 func (v *validator) Validate(
 	validates *validate.Validates, target any,
 ) miruken.HandleResult {
-	return v.Base.Validate(target, validates.Outcome())
+	return v.Validator.Validate(target, validates.Outcome())
 }

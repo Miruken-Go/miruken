@@ -14,14 +14,16 @@ type (
 
 	// SetupBuilder orchestrates the setup process.
 	SetupBuilder struct {
-		noInfer  bool
-		handlers []any
-		specs    []any
-		features []Feature
-		builders []Builder
-		exclude  Predicate[HandlerSpec]
-		factory  HandlerDescriptorFactory
-		tags     map[any]Void
+		noInfer   bool
+		handlers  []any
+		specs     []any
+		features  []Feature
+		builders  []Builder
+		exclude   Predicate[HandlerSpec]
+		factory   func([]BindingParser, []HandlerDescriptorObserver) HandlerDescriptorFactory
+		parsers   []BindingParser
+		observers []HandlerDescriptorObserver
+		tags      map[any]Void
 	}
 )
 
@@ -82,8 +84,22 @@ func (s *SetupBuilder) Options(
 	return s
 }
 
-func (s *SetupBuilder) UseHandlerDescriptorFactory(
-	factory HandlerDescriptorFactory,
+func (s *SetupBuilder) Parsers(
+	parsers ...BindingParser,
+) *SetupBuilder {
+	s.parsers = append(s.parsers, parsers...)
+	return s
+}
+
+func (s *SetupBuilder) Observers(
+	observers ...HandlerDescriptorObserver,
+) *SetupBuilder {
+	s.observers = append(s.observers, observers...)
+	return s
+}
+
+func (s *SetupBuilder) Factory(
+	factory func([]BindingParser, []HandlerDescriptorObserver) HandlerDescriptorFactory,
 ) *SetupBuilder {
 	s.factory = factory
 	return s
@@ -106,14 +122,21 @@ func (s *SetupBuilder) Tag(tag any) bool {
 }
 
 func (s *SetupBuilder) Handler() (handler Handler, buildErrors error) {
-	factory := s.factory
-	if IsNil(factory) {
-		var builder HandlerDescriptorFactoryBuilder
-		factory = builder.Build()
-	}
-	handler = &currentHandlerDescriptorFactory{factory}
-
 	buildErrors = s.installGraph(s.features)
+
+	var factory HandlerDescriptorFactory
+	if f := s.factory; f != nil {
+		factory = f(s.parsers, s.observers)
+	}
+	if factory == nil {
+		var builder HandlerDescriptorFactoryBuilder
+		factory = builder.
+			Parsers(s.parsers...).
+			Observers(s.observers...).
+			Build()
+	}
+
+	handler = &currentHandlerDescriptorFactory{factory}
 
 	if specs := s.specs; len(specs) > 0 {
 		hs := make([]HandlerSpec, 0, len(specs))

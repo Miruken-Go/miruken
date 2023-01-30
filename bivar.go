@@ -79,7 +79,7 @@ func (p *BivariantPolicy) AcceptResults(
 
 func (p *BivariantPolicy) NewMethodBinding(
 	method reflect.Method,
-	spec   *policySpec,
+	spec   *bindingSpec,
 	key    any,
 ) (Binding, error) {
 	if args, key, err := validateBivariantFunc(method.Type, spec, key,1); err != nil {
@@ -98,7 +98,7 @@ func (p *BivariantPolicy) NewMethodBinding(
 
 func (p *BivariantPolicy) NewFuncBinding(
 	fun  reflect.Value,
-	spec *policySpec,
+	spec *bindingSpec,
 	key  any,
 ) (Binding, error) {
 	if args, key, err := validateBivariantFunc(fun.Type(), spec, key,0); err != nil {
@@ -117,7 +117,7 @@ func (p *BivariantPolicy) NewFuncBinding(
 
 func validateBivariantFunc(
 	funType reflect.Type,
-	spec    *policySpec,
+	spec    *bindingSpec,
 	key     any,
 	skip    int,
 ) (args []arg, dk any, err error) {
@@ -186,7 +186,7 @@ func validateBivariantFunc(
 
 func validateBivariantReturn(
 	returnType reflect.Type,
-	spec       *policySpec,
+	spec       *bindingSpec,
 ) (reflect.Type, error) {
 	switch returnType {
 	case errorType, handleResType:
@@ -195,7 +195,7 @@ func validateBivariantReturn(
 			errorType, handleResType)
 	default:
 		if lt, ok := promise.Inspect(returnType); ok {
-			spec.flags = spec.flags | bindingPromise
+			spec.flags = spec.flags | bindingAsync
 			return lt, nil
 		}
 		return returnType, nil

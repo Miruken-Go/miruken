@@ -95,7 +95,7 @@ func (p *CovariantPolicy) AcceptResults(
 
 func (p *CovariantPolicy) NewMethodBinding(
 	method reflect.Method,
-	spec   *policySpec,
+	spec   *bindingSpec,
 	key    any,
 ) (Binding, error) {
 	if args, key, err := validateCovariantFunc(method.Type, spec, key,1); err != nil {
@@ -114,7 +114,7 @@ func (p *CovariantPolicy) NewMethodBinding(
 
 func (p *CovariantPolicy) NewFuncBinding(
 	fun  reflect.Value,
-	spec *policySpec,
+	spec *bindingSpec,
 	key  any,
 ) (Binding, error) {
 	if args, key, err := validateCovariantFunc(fun.Type(), spec, key,0); err != nil {
@@ -133,7 +133,7 @@ func (p *CovariantPolicy) NewFuncBinding(
 
 func validateCovariantFunc(
 	funType reflect.Type,
-	spec    *policySpec,
+	spec    *bindingSpec,
 	key     any,
 	skip    int,
 ) (args []arg, ck any, err error) {
@@ -177,7 +177,7 @@ func validateCovariantFunc(
 
 func validateCovariantReturn(
 	returnType  reflect.Type,
-	spec       *policySpec,
+	spec       *bindingSpec,
 	key        any,
 ) (any, error) {
 	switch returnType {
@@ -188,7 +188,7 @@ func validateCovariantReturn(
 	default:
 		if key == nil {
 			if lt, ok := promise.Inspect(returnType); ok {
-				spec.flags = spec.flags | bindingPromise
+				spec.flags = spec.flags | bindingAsync
 				returnType = lt
 			}
 			if spec.flags & bindingStrict != bindingStrict {

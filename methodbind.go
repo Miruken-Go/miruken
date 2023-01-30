@@ -11,7 +11,7 @@ type (
 	MethodBinder interface {
 		NewMethodBinding(
 			method reflect.Method,
-			spec   *policySpec,
+			spec   *bindingSpec,
 			key    any,
 		) (Binding, error)
 	}
