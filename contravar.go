@@ -99,7 +99,7 @@ func (p *ContravariantPolicy) NewMethodBinding(
 				spec.flags,
 				spec.metadata,
 			},
-			key, method, args,
+			key, method, args, spec.lt,
 		}, nil
 	}
 }
@@ -118,7 +118,7 @@ func (p *ContravariantPolicy) NewFuncBinding(
 				spec.flags,
 				spec.metadata,
 			},
-			key, fun, args,
+			key, fun, args, spec.lt,
 		}, nil
 	}
 }
@@ -162,13 +162,19 @@ func validateContravariantFunc(
 	switch funType.NumOut() {
 	case 0: break
 	case 1:
-		if _, ok := promise.Inspect(funType.Out(0)); ok {
+		rt := funType.Out(0)
+		if lt, ok := promise.Inspect(rt); ok {
 			spec.flags = spec.flags | bindingAsync
+			rt = lt
 		}
+		spec.setLogicalOutputType(rt)
 	case 2:
-		if _, ok := promise.Inspect(funType.Out(0)); ok {
+		rt := funType.Out(0)
+		if lt, ok := promise.Inspect(rt); ok {
 			spec.flags = spec.flags | bindingAsync
+			rt = lt
 		}
+		spec.setLogicalOutputType(rt)
 		switch funType.Out(1) {
 		case errorType, handleResType: break
 		default:

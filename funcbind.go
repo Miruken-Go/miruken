@@ -26,6 +26,7 @@ type (
 		key  any
 		fun  reflect.Value
 		args []arg
+		lt   reflect.Type
 	}
 
 	// FuncBindingError reports a failed function binding.
@@ -37,6 +38,10 @@ type (
 
 func (b *FuncBinding) Key() any {
 	return b.key
+}
+
+func (b *FuncBinding) LogicalOutputType() reflect.Type {
+	return b.lt
 }
 
 func (b *FuncBinding) Invoke(

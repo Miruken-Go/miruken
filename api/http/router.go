@@ -17,8 +17,10 @@ import (
 type (
 	// Options customize http operations.
 	Options struct {
-		Timeout miruken.Option[time.Duration]
-		Format  miruken.Option[string]
+		Format      string
+		ProcessPath string
+		PublishPath string
+		Timeout     miruken.Option[time.Duration]
 	}
 
 	// Router routes messages over a http transport.
@@ -41,14 +43,18 @@ func (r *Router) Route(
 	ctx miruken.HandleContext,
 ) *promise.Promise[any] {
 	return promise.New(func(resolve func(any), reject func(error)) {
-		uri, err := r.getResourceUri(routed, &ctx)
+		uri, err := r.getResourceUri(routed, &options, &ctx)
 		if err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 			return
 		}
 
 		composer := ctx.Composer()
-		format   := options.Format.ValueOrDefault(defaultFormat)
+
+		var format string
+		if format = options.Format; len(format) == 0 {
+			format = defaultFormat
+		}
 
 		var b bytes.Buffer
 		out := io.Writer(&b)
@@ -138,16 +144,22 @@ func (r *Router) decodeError(
 
 func (r *Router) getResourceUri(
 	routed  api.Routed,
+	options *Options,
 	ctx     *miruken.HandleContext,
 ) (string, error) {
+	var path string
 	if ctx.Greedy() {
-		return url.JoinPath(routed.Route, "publish")
+		if path = options.PublishPath; len(path) == 0 {
+			path = "publish"
+		}
+	} else if path = options.ProcessPath; len(path) == 0 {
+		path = "process"
 	}
-	return url.JoinPath(routed.Route, "process")
+	return url.JoinPath(routed.Route, path)
 }
 
 
 // Format returns a miruken.Builder requesting a specific format.
 func Format(format string) miruken.Builder {
-	return miruken.Options(Options{Format: miruken.Set(format)})
+	return miruken.Options(Options{Format: format})
 }

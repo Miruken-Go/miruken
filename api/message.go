@@ -154,5 +154,12 @@ func Publish(
 }
 
 
-// ToTypeInfo requests type information for a type.
-var ToTypeInfo = miruken.To("type:info")
+var (
+	// Polymorphic request encoding to include type information.
+	Polymorphic = miruken.Options(Options{
+		Polymorphism: miruken.Set(PolymorphismRoot),
+	})
+
+	// ToTypeInfo requests the type discriminator for a type.
+	ToTypeInfo = miruken.To("type:info")
+)

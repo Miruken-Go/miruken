@@ -57,7 +57,7 @@ func (suite *SwaggerTestSuite) SetupTest() {
 		TestFeature, swagger.Feature(), jsonstd.Feature()).
 		Specs(&api.GoTypeFieldInfoMapper{}).
 		Context()
-	suite.srv = httptest.NewServer(httpsrv.NewController(ctx))
+	suite.srv = httptest.NewServer(httpsrv.Api(ctx))
 }
 
 func (suite *SwaggerTestSuite) TearDownTest() {

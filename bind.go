@@ -12,11 +12,12 @@ type (
 	// Binding connects a Callback to a handler.
 	Binding interface {
 		Filtered
-		Key()         any
-		Strict()      bool
-		SkipFilters() bool
-		Async()       bool
-		Metadata()    []any
+		Key()               any
+		Strict()            bool
+		SkipFilters()       bool
+		Async()             bool
+		Metadata()          []any
+		LogicalOutputType() reflect.Type
 		Invoke(
 			ctx HandleContext,
 			initArgs ...any,
@@ -115,6 +116,7 @@ type (
 		constraints []BindingConstraint
 		metadata    []any
 		arg         arg
+		lt          reflect.Type
 	}
 
 	// bindingSpecFactory creates bindingSpec's from type metadata.
@@ -196,6 +198,14 @@ func (b *bindingSpec) addMetadata(
 ) error {
 	b.metadata = append(b.metadata, metadata)
 	return nil
+}
+
+func (b *bindingSpec) setLogicalOutputType(lt reflect.Type) {
+	switch lt {
+	case errorType, handleResType: break
+	default:
+		b.lt = lt
+	}
 }
 
 func (b *bindingSpec) complete() error {

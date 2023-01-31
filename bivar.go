@@ -91,7 +91,7 @@ func (p *BivariantPolicy) NewMethodBinding(
 				spec.flags,
 				spec.metadata,
 			},
-			key, method, args,
+			key, method, args, spec.lt,
 		}, nil
 	}
 }
@@ -110,7 +110,7 @@ func (p *BivariantPolicy) NewFuncBinding(
 				spec.flags,
 				spec.metadata,
 			},
-			key, fun, args,
+			key, fun, args, spec.lt,
 		}, nil
 	}
 }
@@ -196,8 +196,9 @@ func validateBivariantReturn(
 	default:
 		if lt, ok := promise.Inspect(returnType); ok {
 			spec.flags = spec.flags | bindingAsync
-			return lt, nil
+			returnType = lt
 		}
+		spec.setLogicalOutputType(returnType)
 		return returnType, nil
 	}
 }

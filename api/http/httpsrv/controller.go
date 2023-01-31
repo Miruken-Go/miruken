@@ -8,16 +8,17 @@ import (
 	"strings"
 )
 
-type Controller struct {
+// ApiController is an http.Handler for api messages.
+type ApiController struct {
 	ctx *miruken.Context
 }
 
-func (c *Controller) ServeHTTP(
+func (c *ApiController) ServeHTTP(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	valid, format, publish := c.validateRequest(w, r)
-	if !valid {
+	accepted, format, publish := c.acceptRequest(w, r)
+	if !accepted {
 		return
 	}
 	child := c.ctx.NewChild()
@@ -47,10 +48,10 @@ func (c *Controller) ServeHTTP(
 	}
 }
 
-func (c *Controller) validateRequest(
+func (c *ApiController) acceptRequest(
 	w http.ResponseWriter,
 	r *http.Request,
-) (valid bool, format string, publish bool) {
+) (accepted bool, format string, publish bool) {
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
 		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
@@ -71,7 +72,7 @@ func (c *Controller) validateRequest(
 	return false, format,false
 }
 
-func (c *Controller) encodeResult(
+func (c *ApiController) encodeResult(
 	res    any,
 	format string,
 	w      http.ResponseWriter,
@@ -85,7 +86,7 @@ func (c *Controller) encodeResult(
 	}
 }
 
-func (c *Controller) encodeError(
+func (c *ApiController) encodeError(
 	err    error,
 	format string,
 	w      http.ResponseWriter,
@@ -107,11 +108,12 @@ func (c *Controller) encodeError(
 	_, _ = miruken.MapInto(ctx, msg, &out, miruken.To(format))
 }
 
-func NewController(ctx *miruken.Context) *Controller {
+// Api creates a new ApiController to serve http routed messages.
+func Api(ctx *miruken.Context) *ApiController {
 	if ctx == nil {
 		panic("ctx cannot be nil")
 	}
-	return &Controller{ctx}
+	return &ApiController{ctx}
 }
 
 var toStatusCode = miruken.To("http:status-code")

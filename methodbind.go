@@ -22,6 +22,7 @@ type (
 		key    any
 		method reflect.Method
 		args   []arg
+		lt     reflect.Type
 	}
 
 	// MethodBindingError reports a failed method binding.
@@ -33,6 +34,10 @@ type (
 
 func (b *MethodBinding) Key() any {
 	return b.key
+}
+
+func (b *MethodBinding) LogicalOutputType() reflect.Type {
+	return b.lt
 }
 
 func (b *MethodBinding) Invoke(

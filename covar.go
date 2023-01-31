@@ -107,7 +107,7 @@ func (p *CovariantPolicy) NewMethodBinding(
 				spec.flags,
 				spec.metadata,
 			},
-			key, method, args,
+			key, method, args, spec.lt,
 		}, nil
 	}
 }
@@ -126,7 +126,7 @@ func (p *CovariantPolicy) NewFuncBinding(
 				spec.flags,
 				spec.metadata,
 			},
-			key, fun, args,
+			key, fun, args, spec.lt,
 		}, nil
 	}
 }
@@ -199,6 +199,7 @@ func validateCovariantReturn(
 			}
 			key = returnType
 		}
+		spec.setLogicalOutputType(returnType)
 		return key, nil
 	}
 }

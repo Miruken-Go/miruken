@@ -79,7 +79,11 @@ func (s *SetupBuilder) Options(
 	options ...any,
 ) *SetupBuilder {
 	for _, option := range options {
-		s.builders = append(s.builders, Options(option))
+		if builder, ok := option.(Builder); ok {
+			s.builders = append(s.builders, builder)
+		} else {
+			s.builders = append(s.builders, Options(option))
+		}
 	}
 	return s
 }
