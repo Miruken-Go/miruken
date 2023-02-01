@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
-	"unicode"
 )
 
 // Installer configures swagger support
@@ -43,15 +42,12 @@ func (i *Installer) BindingCreated(
 	descriptor *miruken.HandlerDescriptor,
 	binding    miruken.Binding,
 ) {
-	if policy != i.handlesPolicy {
+	if !(policy == i.handlesPolicy  && binding.Exported()) {
 		return
 	}
 	if inputType, ok := binding.Key().(reflect.Type); ok {
 		if inputType.Kind() == reflect.Ptr {
 			inputType = inputType.Elem()
-		}
-		if unicode.IsLower([]rune(inputType.Name())[0]) {
-			return
 		}
 		path := strings.Replace(inputType.String(), ".", "/", 1)
 		ep := endpoint.New("post", "/process/" + path, "",

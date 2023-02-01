@@ -2,6 +2,8 @@ package miruken
 
 import (
 	"reflect"
+	"runtime"
+	"strings"
 )
 
 // TypeOf returns reflect.Type of generic argument.
@@ -172,6 +174,26 @@ func CoerceSlice(
 		newSlice.Index(i).Set(elem)
 	}
 	return newSlice, true
+}
+
+func Exported(t any) bool {
+	if reflect.TypeOf(t).Kind() == reflect.Func {
+		path := strings.Split(runtime.FuncForPC(reflect.ValueOf(t).Pointer()).Name(), ".")
+		name := path[len(path)-1]
+		return strings.ToUpper(name[0:1]) == name[0:1]
+	}
+	switch m := t.(type) {
+	case reflect.Type:
+		if m.Kind() == reflect.Ptr {
+			m = m.Elem()
+		}
+		name := m.Name()
+		return strings.ToUpper(name[0:1]) == name[0:1]
+	case reflect.Method:
+		return strings.ToUpper(m.Name[0:1]) == m.Name[0:1] &&
+			Exported(m.Type.In(0))
+	}
+	return true
 }
 
 func coerceToPtr(

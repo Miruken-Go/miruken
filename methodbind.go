@@ -36,6 +36,10 @@ func (b *MethodBinding) Key() any {
 	return b.key
 }
 
+func (b *MethodBinding) Exported() bool {
+	return Exported(b.key) && Exported(b.method)
+}
+
 func (b *MethodBinding) LogicalOutputType() reflect.Type {
 	return b.lt
 }

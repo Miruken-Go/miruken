@@ -27,12 +27,16 @@ func (b *ConstructorBinding) Key() any {
 	return b.handlerType
 }
 
-func (b *ConstructorBinding) LogicalOutputType() reflect.Type {
-	return nil
-}
-
 func (b *ConstructorBinding) Strict() bool {
 	return false
+}
+
+func (b *ConstructorBinding) Exported() bool {
+	return false
+}
+
+func (b *ConstructorBinding) LogicalOutputType() reflect.Type {
+	return nil
 }
 
 func (b *ConstructorBinding) Invoke(

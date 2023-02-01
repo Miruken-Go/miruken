@@ -7,6 +7,9 @@ import (
 	"testing"
 )
 
+func Launch() {}
+func dismiss() {}
+
 type RuntimeTestSuite struct {
 	suite.Suite
 }
@@ -39,6 +42,14 @@ func (suite *RuntimeTestSuite) TestRuntime() {
 			suite.Equal([]float32{3.2, 19.9}, sl.Interface())
 		})
 	})
+
+	suite.Run("Exported", func () {
+		suite.Run("Func", func () {
+			suite.True(miruken.Exported(Launch))
+			suite.False(miruken.Exported(dismiss))
+		})
+	})
+
 }
 
 func TestRuntimeTestSuite(t *testing.T) {

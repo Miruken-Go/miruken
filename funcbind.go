@@ -40,6 +40,10 @@ func (b *FuncBinding) Key() any {
 	return b.key
 }
 
+func (b *FuncBinding) Exported() bool {
+	return Exported(b.key) && Exported(b.fun.Interface())
+}
+
 func (b *FuncBinding) LogicalOutputType() reflect.Type {
 	return b.lt
 }

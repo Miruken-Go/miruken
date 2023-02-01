@@ -16,6 +16,7 @@ type (
 		Strict()            bool
 		SkipFilters()       bool
 		Async()             bool
+		Exported()          bool
 		Metadata()          []any
 		LogicalOutputType() reflect.Type
 		Invoke(
