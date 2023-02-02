@@ -1,4 +1,4 @@
-package validate
+package validates
 
 import (
 	"errors"
@@ -9,23 +9,23 @@ import (
 	"strings"
 )
 
-// Validates callbacks contravariantly.
-type Validates struct {
+// It validates callbacks contravariantly.
+type It struct {
 	miruken.CallbackBase
 	source  any
 	groups  []any
 	outcome Outcome
 }
 
-func (v *Validates) Source() any {
+func (v *It) Source() any {
 	return v.source
 }
 
-func (v *Validates) Groups() []any {
+func (v *It) Groups() []any {
 	return v.groups
 }
 
-func (v *Validates) InGroup(group any) bool {
+func (v *It) InGroup(group any) bool {
 	if len(v.groups) == 0 {
 		return false
 	}
@@ -37,19 +37,19 @@ func (v *Validates) InGroup(group any) bool {
 	return false
 }
 
-func (v *Validates) Outcome() *Outcome {
+func (v *It) Outcome() *Outcome {
 	return &v.outcome
 }
 
-func (v *Validates) Key() any {
+func (v *It) Key() any {
 	return reflect.TypeOf(v.source)
 }
 
-func (v *Validates) Policy() miruken.Policy {
+func (v *It) Policy() miruken.Policy {
 	return policy
 }
 
-func (v *Validates) Dispatch(
+func (v *It) Dispatch(
 	handler  any,
 	greedy   bool,
 	composer miruken.Handler,
@@ -57,8 +57,8 @@ func (v *Validates) Dispatch(
 	return miruken.DispatchPolicy(handler, v, greedy, composer)
 }
 
-func (v *Validates) String() string {
-	return fmt.Sprintf("Validates => %+v", v.source)
+func (v *It) String() string {
+	return fmt.Sprintf("It => %+v", v.source)
 }
 
 
@@ -125,7 +125,7 @@ func Groups(groups ...any) miruken.BindingConstraint {
 	return &Group{groups: groupMap}
 }
 
-// Builder builds Validates callbacks.
+// Builder builds It callbacks.
 type Builder struct {
 	miruken.CallbackBuilder
 	target any
@@ -141,8 +141,8 @@ func (b *Builder) Target(
 	return b
 }
 
-func (b *Builder) NewValidates() *Validates {
-	return &Validates{
+func (b *Builder) NewValidates() *It {
+	return &It{
 		CallbackBase: b.CallbackBase(),
 		source:       b.target,
 	}

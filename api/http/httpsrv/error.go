@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
-	"github.com/miruken-go/miruken/validate"
+	"github.com/miruken-go/miruken/validates"
 	"net/http"
 )
 
@@ -37,7 +37,7 @@ func (s *StatusCodeMapper) Validation(
 	_*struct{
 		miruken.Maps
 		miruken.Format `to:"http:status-code"`
-	  }, _ *validate.Outcome,
+	  }, _ *validates.Outcome,
 ) int {
 	return http.StatusUnprocessableEntity
 }

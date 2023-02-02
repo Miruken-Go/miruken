@@ -9,7 +9,7 @@ import (
 	"github.com/miruken-go/miruken/api/http/httpsrv"
 	"github.com/miruken-go/miruken/api/json/jsonstd"
 	"github.com/miruken-go/miruken/promise"
-	"github.com/miruken-go/miruken/validate"
+	"github.com/miruken-go/miruken/validates"
 	"github.com/stretchr/testify/suite"
 	"io"
 	"net/http/httptest"
@@ -56,9 +56,9 @@ type (
 // TeamApiHandler
 
 func (t *TeamApiHandler) MustHaveTeamName(
-	validates *validate.Validates, create *CreateTeam,
+	v *validates.It, create *CreateTeam,
 ) {
-	outcome := validates.Outcome()
+	outcome := v.Outcome()
 
 	if len(create.Name) == 0 {
 		outcome.AddError("Name", errors.New(`"Name" is required`))
@@ -206,7 +206,7 @@ func (suite *ControllerTestSuite) TestController() {
 			suite.Nil(err)
 			suite.NotNil(pp)
 			_, err = pp.Await()
-			var outcome *validate.Outcome
+			var outcome *validates.Outcome
 			suite.ErrorAs(err, &outcome)
 			suite.Equal(`Name: "Name" is required`, outcome.Error())
 			suite.Equal([]string{"Name"}, outcome.Fields())

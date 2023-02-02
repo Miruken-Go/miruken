@@ -6,7 +6,7 @@ import (
 	ut "github.com/go-playground/universal-translator"
 	play "github.com/go-playground/validator/v10"
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/validate"
+	"github.com/miruken-go/miruken/validates"
 	"strings"
 )
 
@@ -53,7 +53,7 @@ func (v *Validator) ConstructWithRules(
 
 func (v *Validator) Validate(
 	target  any,
-	outcome *validate.Outcome,
+	outcome *validates.Outcome,
 ) miruken.HandleResult {
 	if !miruken.IsStruct(target) {
 		return miruken.NotHandled
@@ -78,7 +78,7 @@ func (v *Validator) Validate(
 
 func (v *Validator) ValidateAndStop(
 	target  any,
-	outcome *validate.Outcome,
+	outcome *validates.Outcome,
 ) miruken.HandleResult {
 	if result := v.Validate(target, outcome); result.Handled() {
 		// Stop the generic validator from validating tags
@@ -89,7 +89,7 @@ func (v *Validator) ValidateAndStop(
 }
 
 func (v *Validator) addErrors(
-	outcome     *validate.Outcome,
+	outcome     *validates.Outcome,
 	fieldErrors play.ValidationErrors,
 ) {
 	for _, err := range fieldErrors {
@@ -102,7 +102,7 @@ func (v *Validator) addErrors(
 }
 
 func (v *Validator) translateErrors(
-	outcome     *validate.Outcome,
+	outcome     *validates.Outcome,
 	fieldErrors play.ValidationErrors,
 ) {
 	for field, msg := range fieldErrors.Translate(v.translator) {
@@ -117,7 +117,7 @@ func (v *Validator) translateErrors(
 // validator
 
 func (v *validator) Validate(
-	validates *validate.Validates, target any,
+	it *validates.It, target any,
 ) miruken.HandleResult {
-	return v.Validator.Validate(target, validates.Outcome())
+	return v.Validator.Validate(target, it.Outcome())
 }

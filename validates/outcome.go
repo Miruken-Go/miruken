@@ -1,4 +1,4 @@
-package validate
+package validates
 
 import (
 	"errors"
@@ -30,19 +30,19 @@ type (
 
 // Outcome
 
-func (v *Outcome) Valid() bool {
-	return v.errors == nil
+func (o *Outcome) Valid() bool {
+	return o.errors == nil
 }
 
-func (v *Outcome) Fields() []string {
+func (o *Outcome) Fields() []string {
 	var keys []string
-	if errs := v.errors; len(errs) > 0 {
-		keys = maps.Keys(v.errors)
+	if errs := o.errors; len(errs) > 0 {
+		keys = maps.Keys(o.errors)
 	}
 	return keys
 }
 
-func (v *Outcome) AddError(
+func (o *Outcome) AddError(
 	path string,
 	err  error,
 ) {
@@ -52,56 +52,56 @@ func (v *Outcome) AddError(
 	if _, ok := err.(*Outcome); ok {
 		panic("cannot add path Outcome directly")
 	}
-	if parent, key := v.parsePath(path, true); parent == v {
-		if v.errors == nil {
-			v.errors = map[string][]error{key: {err}}
+	if parent, key := o.parsePath(path, true); parent == o {
+		if o.errors == nil {
+			o.errors = map[string][]error{key: {err}}
 		} else {
-			v.errors[key] = append(v.errors[key], err)
+			o.errors[key] = append(o.errors[key], err)
 		}
 	} else {
 		parent.AddError(key, err)
 	}
 }
 
-func (v *Outcome) FieldErrors(
+func (o *Outcome) FieldErrors(
 	path string,
 ) []error {
-	if parent, key := v.parsePath(path, true); parent == nil {
+	if parent, key := o.parsePath(path, true); parent == nil {
 		return nil
-	} else if parent != v {
+	} else if parent != o {
 		return parent.FieldErrors(key)
 	}
-	if v.errors != nil {
-		if errs, found := v.errors[path]; found {
+	if o.errors != nil {
+		if errs, found := o.errors[path]; found {
 			return errs
 		}
 	}
 	return nil
 }
 
-func (v *Outcome) Path(
+func (o *Outcome) Path(
 	path string,
 ) *Outcome {
-	if parent, key := v.parsePath(path, false); parent == v {
-		return v.childPath(key, false)
+	if parent, key := o.parsePath(path, false); parent == o {
+		return o.childPath(key, false)
 	} else if parent != nil {
 		return parent.Path(key)
 	}
 	return nil
 }
 
-func (v *Outcome) RequirePath(
+func (o *Outcome) RequirePath(
 	path string,
 ) *Outcome {
-	if parent, key := v.parsePath(path, true); parent == v {
-		return v.childPath(key, true)
+	if parent, key := o.parsePath(path, true); parent == o {
+		return o.childPath(key, true)
 	} else {
 		return parent.RequirePath(key)
 	}
 }
 
-func (v *Outcome) Error() string {
-	errs := v.errors
+func (o *Outcome) Error() string {
+	errs := o.errors
 	if len(errs) == 0 {
 		return ""
 	}
@@ -129,19 +129,19 @@ func (v *Outcome) Error() string {
 	return s.String()
 }
 
-func (v *Outcome) childPath(
+func (o *Outcome) childPath(
 	key     string,
 	require bool,
 ) *Outcome {
-	if v.errors == nil {
+	if o.errors == nil {
 		if require {
 			outcome := &Outcome{}
-			v.errors = map[string][]error{key: {outcome}}
+			o.errors = map[string][]error{key: {outcome}}
 			return outcome
 		}
 		return nil
 	}
-	keyErrors, found := v.errors[key]
+	keyErrors, found := o.errors[key]
 	if found {
 		for _, err := range keyErrors {
 			if vr, ok := err.(*Outcome); ok {
@@ -151,19 +151,19 @@ func (v *Outcome) childPath(
 	}
 	if require {
 		outcome := &Outcome{}
-		v.errors[key] = append(keyErrors, outcome)
+		o.errors[key] = append(keyErrors, outcome)
 		return outcome
 	}
 	return nil
 }
 
-func (v *Outcome) parsePath(
+func (o *Outcome) parsePath(
 	path    string,
 	require bool,
 ) (parent *Outcome, key string) {
-	parent = v
+	parent = o
 	for parent != nil {
-		if index, rest := v.parseIndexer(path); len(index) > 0 {
+		if index, rest := o.parseIndexer(path); len(index) > 0 {
 			if len(rest) == 0 {
 				return parent, index
 			}
@@ -190,7 +190,7 @@ func (v *Outcome) parsePath(
 	return nil, path
 }
 
-func (v *Outcome) parseIndexer(
+func (o *Outcome) parseIndexer(
 	path string,
 ) (index string, rest string) {
 	if start := strings.IndexRune(path, '['); start != 0 {
@@ -235,7 +235,7 @@ func (m *ApiMapping) FromApi(
 
 func (m *ApiMapping) New(
 	_*struct{
-		miruken.Creates `key:"validate.ApiOutcome"`
+		miruken.Creates `key:"validates.ApiOutcome"`
 	  },
 ) *ApiOutcome {
 	return new(ApiOutcome)

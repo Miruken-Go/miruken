@@ -4,13 +4,13 @@ import (
 	"errors"
 	"github.com/asaskevich/govalidator"
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/validate"
+	"github.com/miruken-go/miruken/validates"
 )
 
 type validator struct{}
 
 func (v *validator) Validate(
-	validates *validate.Validates, target any,
+	it *validates.It, target any,
 ) miruken.HandleResult {
 	if !miruken.IsStruct(target) {
 		return miruken.NotHandled
@@ -18,9 +18,9 @@ func (v *validator) Validate(
 	if result, err := govalidator.ValidateStruct(target); !result {
 		switch e := err.(type) {
 		case govalidator.Errors:
-			v.addErrors(validates.Outcome(), e)
+			v.addErrors(it.Outcome(), e)
 		default:
-			validates.Outcome().
+			it.Outcome().
 				AddError("", errors.New("failed validation"))
 		}
 		return miruken.HandledAndStop
@@ -29,8 +29,8 @@ func (v *validator) Validate(
 }
 
 func  (v *validator) addErrors(
-	outcome  *validate.Outcome,
-	errors   govalidator.Errors,
+	outcome *validates.Outcome,
+	errors  govalidator.Errors,
 ) {
 	for _, err := range errors {
 		switch actual := err.(type) {
@@ -45,9 +45,9 @@ func  (v *validator) addErrors(
 }
 
 func pathOutcome(
-	outcome  *validate.Outcome,
+	outcome  *validates.Outcome,
 	err      govalidator.Error,
-) *validate.Outcome {
+) *validates.Outcome {
 	if path := err.Path; len(path) > 0 {
 		for _, field := range path {
 			outcome = outcome.RequirePath(field)

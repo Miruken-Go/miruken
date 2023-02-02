@@ -1,4 +1,4 @@
-package validate
+package validates
 
 import (
 	"github.com/miruken-go/miruken"
@@ -20,30 +20,30 @@ type (
 
 // Provider
 
-func (v *Provider) InitWithTag(tag reflect.StructTag) error {
-	if validate, ok := tag.Lookup("validate"); ok {
-		v.validateOutput = validate == "output"
+func (p *Provider) InitWithTag(tag reflect.StructTag) error {
+	if v, ok := tag.Lookup("validates"); ok {
+		p.validateOutput = v == "output"
 	}
 	return nil
 }
 
-func (v *Provider) Required() bool {
+func (p *Provider) Required() bool {
 	return false
 }
 
-func (v *Provider) AppliesTo(
+func (p *Provider) AppliesTo(
 	callback miruken.Callback,
 ) bool {
 	handles, ok := callback.(*miruken.Handles)
 	return ok && !miruken.IsNil(handles.Source())
 }
 
-func (v *Provider) Filters(
+func (p *Provider) Filters(
 	binding  miruken.Binding,
 	callback any,
 	composer miruken.Handler,
 ) ([]miruken.Filter, error) {
-	return _filters, nil
+	return filters, nil
 }
 
 
@@ -76,7 +76,7 @@ func (f filter) Next(
 				// if error or skip output validation, return output
 				return
 			} else if pout == nil {
-				// validate output if available
+				// validates output if available
 				if len(out) > 0 && !miruken.IsNil(out[0]) {
 					outcomeOut, poo, errOut := Validate(composer, out[0])
 					if errOut != nil {
@@ -132,7 +132,7 @@ func (f filter) Next(
 				panic(outcome)
 			}
 			oo := next.PipeAwait()
-			// validate output if requested and available
+			// validates output if requested and available
 			if vp.validateOutput && len(oo) > 0 && !miruken.IsNil(oo[0]) {
 				outcomeOut, poo, errOut := Validate(composer, oo[0])
 				if errOut != nil {
@@ -156,4 +156,4 @@ func (f filter) Next(
 	return next.Abort()
 }
 
-var _filters = []miruken.Filter{filter{}}
+var filters = []miruken.Filter{filter{}}

@@ -20,9 +20,7 @@ func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 }
 
 // Feature configures http server support
-func Feature(
-	config ...func(installer *Installer),
-) miruken.Feature {
+func Feature(config ...func(installer *Installer)) miruken.Feature {
 	installer := &Installer{}
 	for _, configure := range config {
 		if configure != nil {

@@ -54,9 +54,7 @@ func (i *Installer) DescriptorCreated(
 
 
 // Feature configures http server support
-func Feature(
-	config ...func(installer *Installer),
-) *Installer {
+func Feature(config ...func(installer *Installer)) *Installer {
 	installer := &Installer{}
 	for _, configure := range config {
 		if configure != nil {
