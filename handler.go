@@ -86,8 +86,6 @@ func DispatchCallback(
 		return NotHandled
 	}
 	var builder HandlesBuilder
-	return builder.
-		WithCallback(callback).
-		NewHandles().
+	return builder.WithCallback(callback).New().
 		Dispatch(handler, greedy, composer)
 }

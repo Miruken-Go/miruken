@@ -4,6 +4,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/context"
+	"github.com/miruken-go/miruken/maps"
 	"io"
 	"net/http"
 	"strings"
@@ -24,7 +25,7 @@ func (c *ApiController) ServeHTTP(
 	}
 	child := c.ctx.NewChild()
 	defer child.Dispose()
-	if msg, _, err := miruken.Map[api.Message](child, r.Body, miruken.From(format)); err != nil {
+	if msg, _, err := maps.Map[api.Message](child, r.Body, maps.From(format)); err != nil {
 		c.encodeError(err, format, w, child)
 	} else if msg.Payload == nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -82,7 +83,7 @@ func (c *ApiController) encodeResult(
 	w.Header().Set("Content-Type", format)
 	out := io.Writer(w)
 	msg := api.Message{Payload: res}
-	if _, err := miruken.MapInto(ctx, msg, &out, miruken.To(format)); err != nil {
+	if _, err := maps.MapInto(ctx, msg, &out, maps.To(format)); err != nil {
 		c.encodeError(err, format, w, ctx)
 	}
 }
@@ -96,17 +97,17 @@ func (c *ApiController) encodeError(
 	w.Header().Set("Content-Type", format)
 	statusCode := http.StatusInternalServerError
 	handler    := miruken.BuildUp(ctx, miruken.BestEffort)
-	if sc, _, sce := miruken.Map[int](handler, err, toStatusCode); sc != 0 && sce == nil {
+	if sc, _, sce := maps.Map[int](handler, err, toStatusCode); sc != 0 && sce == nil {
 		statusCode = sc
 	}
 	w.WriteHeader(statusCode)
-	ap, _, ae := miruken.Map[any](handler, err, api.FromError)
+	ap, _, ae := maps.Map[any](handler, err, api.FromError)
 	if miruken.IsNil(ap) || ae != nil {
 		ap = api.ErrorData{Message: err.Error()}
 	}
 	out := io.Writer(w)
 	msg := api.Message{Payload: ap}
-	_, _ = miruken.MapInto(ctx, msg, &out, miruken.To(format))
+	_, _ = maps.MapInto(ctx, msg, &out, maps.To(format))
 }
 
 // Api creates a new ApiController to serve http routed messages.
@@ -117,4 +118,4 @@ func Api(ctx *context.Context) *ApiController {
 	return &ApiController{ctx}
 }
 
-var toStatusCode = miruken.To("http:status-code")
+var toStatusCode = maps.To("http:status-code")

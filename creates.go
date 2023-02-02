@@ -50,7 +50,7 @@ func (b *CreatesBuilder) WithKey(
 	return b
 }
 
-func (b *CreatesBuilder) NewCreation() *Creates {
+func (b *CreatesBuilder) New() *Creates {
 	return &Creates{
 		CallbackBase: b.CallbackBase(),
 		key: b.key,
@@ -75,7 +75,7 @@ func CreateKey[T any](
 	var builder CreatesBuilder
 	builder.WithKey(key).
 			WithConstraints(constraints...)
-	creates := builder.NewCreation()
+	creates := builder.New()
 	if result := handler.Handle(creates, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.handled {
@@ -96,7 +96,7 @@ func CreateAll[T any](
 	var builder CreatesBuilder
 	builder.WithKey(TypeOf[T]()).
 			WithConstraints(constraints...)
-	creates := builder.NewCreation()
+	creates := builder.New()
 	if result := handler.Handle(creates, true, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {

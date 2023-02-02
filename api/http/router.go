@@ -7,6 +7,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
 	"io"
@@ -35,7 +36,7 @@ const defaultTimeout = 30 * time.Second
 func (r *Router) Route(
 	_*struct{
 		handles.It
-	provides.Singleton
+		provides.Single
 		api.Routes `scheme:"http,https"`
 	  }, routed api.Routed,
 	_*struct{
@@ -61,7 +62,7 @@ func (r *Router) Route(
 		var b bytes.Buffer
 		out := io.Writer(&b)
 		msg := api.Message{Payload: routed.Message}
-		if _, err = miruken.MapInto(composer, msg, &out, miruken.To(format)); err != nil {
+		if _, err = maps.MapInto(composer, msg, &out, maps.To(format)); err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 		}
 
@@ -101,7 +102,7 @@ func (r *Router) Route(
 		if len(contentType) == 0 {
 			contentType = format
 		}
-		if msg, _, err := miruken.Map[api.Message](composer, res.Body, miruken.From(format)); err != nil {
+		if msg, _, err := maps.Map[api.Message](composer, res.Body, maps.From(format)); err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 		} else {
 			resolve(msg.Payload)
@@ -118,9 +119,9 @@ func (r *Router) decodeError(
 	if len(contentType) == 0 {
 		contentType = format
 	}
-	if msg, _, err := miruken.Map[api.Message](composer, res.Body, miruken.From(format)); err == nil {
+	if msg, _, err := maps.Map[api.Message](composer, res.Body, maps.From(format)); err == nil {
 		if payload := msg.Payload; payload != nil {
-			if err, _, ae := miruken.Map[error](composer, payload, api.ToError); ae == nil {
+			if err, _, ae := maps.Map[error](composer, payload, api.ToError); ae == nil {
 				return err
 			} else {
 				// If mapping failed and error payload is a slice, attempt to coerce
@@ -132,7 +133,7 @@ func (r *Router) decodeError(
 					if val := reflect.ValueOf(payload); val.Type().Kind() == reflect.Slice {
 						if sv, ok := miruken.CoerceSlice(val, nil); ok {
 							slice := sv.Interface()
-							if err, _, ae = miruken.Map[error](composer, slice, api.ToError); ae == nil {
+							if err, _, ae = maps.Map[error](composer, slice, api.ToError); ae == nil {
 								return err
 							}
 						}

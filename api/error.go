@@ -1,6 +1,8 @@
 package api
 
-import "github.com/miruken-go/miruken"
+import (
+	"github.com/miruken-go/miruken/maps"
+)
 
 type (
 	// ErrorData is the default error shape.
@@ -10,7 +12,7 @@ type (
 )
 
 var (
-	FromError = miruken.To("api:error")
-	ToError   = miruken.From("api:error")
+	FromError = maps.To("api:error")
+	ToError   = maps.From("api:error")
 )
 

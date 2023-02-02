@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
 	"reflect"
@@ -30,7 +31,7 @@ type PlayerData struct {
 type EntityMapper struct{}
 
 func (m *EntityMapper) MapPlayerData(
-	maps   *miruken.Maps,
+	maps   *maps.It,
 	entity *PlayerEntity,
 ) *PlayerData {
 	if data, ok := maps.Target().(**PlayerData); ok && *data != nil {
@@ -45,7 +46,7 @@ func (m *EntityMapper) MapPlayerData(
 }
 
 func (m *EntityMapper) MapIntoPlayerData(
-	maps *miruken.Maps, entity *PlayerEntity,
+	maps *maps.It, entity *PlayerEntity,
 ) PlayerData {
 	if data, ok := maps.Target().(*PlayerData); ok && data != nil {
 		data.Id   = entity.Id
@@ -59,7 +60,7 @@ func (m *EntityMapper) MapIntoPlayerData(
 }
 
 func (m *EntityMapper) ToPlayerMap(
-	_ *miruken.Maps, entity *PlayerEntity,
+	_ *maps.It, entity *PlayerEntity,
 ) map[string]any {
 	return map[string]any{
 		"Id":   entity.Id,
@@ -68,7 +69,7 @@ func (m *EntityMapper) ToPlayerMap(
 }
 
 func (m *EntityMapper) FromPlayerMap(
-	_ *miruken.Maps, data map[string]any,
+	_ *maps.It, data map[string]any,
 ) *PlayerEntity {
 	return &PlayerEntity{
 		Entity{Id: data["Id"].(int)},
@@ -80,7 +81,7 @@ func (m *EntityMapper) FromPlayerMap(
 type OpenMapper struct{}
 
 func (m *OpenMapper) Map(
-	maps *miruken.Maps,
+	maps *maps.It,
 ) any {
 	if entity, ok := maps.Source().(*PlayerEntity); ok {
 		if data, ok := maps.Target().(**PlayerData); ok && *data != nil {
@@ -103,8 +104,8 @@ type (
 
 func (m *FormatMapper) ToPlayerJson(
 	_*struct{
-		miruken.Maps
-		miruken.Format `to:"application/json"`
+		maps.It
+		maps.Format `to:"application/json"`
 	  }, data *PlayerData,
 ) string {
 	return fmt.Sprintf("{\"id\":%v,\"name\":\"%v\"}", data.Id, data.Name)
@@ -112,8 +113,8 @@ func (m *FormatMapper) ToPlayerJson(
 
 func (m *FormatMapper) FromPlayerJson(
 	_*struct{
-		miruken.Maps
-		miruken.Format `from:"application/json"`
+		maps.It
+		maps.Format `from:"application/json"`
 	  }, jsonString string,
 ) (PlayerData, error) {
 	data := PlayerData{}
@@ -123,8 +124,8 @@ func (m *FormatMapper) FromPlayerJson(
 
 func (m *FormatMapper) StartsWith(
 	_*struct{
-		miruken.Maps
-		miruken.Format `to:"/hello"`
+		maps.It
+		maps.Format `to:"/hello"`
 	  }, _ *PlayerData,
 ) string {
 	return "startsWith"
@@ -132,8 +133,8 @@ func (m *FormatMapper) StartsWith(
 
 func (m *FormatMapper) EndsWith(
 	_*struct{
-		miruken.Maps
-		miruken.Format `to:"world/"`
+		maps.It
+		maps.Format `to:"world/"`
 	  }, _ *PlayerData,
 ) string {
 	return "endsWith"
@@ -141,8 +142,8 @@ func (m *FormatMapper) EndsWith(
 
 func (m *FormatMapper) Pattern(
 	_*struct{
-		miruken.Maps
-		miruken.Format `to:"/J\\d+![A-Z]+\\d/"`
+		maps.It
+		maps.Format `to:"/J\\d+![A-Z]+\\d/"`
 	  }, _ *PlayerData,
 ) string {
 	return "pattern"
@@ -201,14 +202,14 @@ func (suite *MapsTestSuite) Setup() (miruken.Handler, error) {
 }
 
 func (suite *MapsTestSuite) TestMap() {
-	suite.Run("Maps", func () {
+	suite.Run("It", func () {
 		suite.Run("New", func() {
 			handler, _ := suite.Setup()
 			entity := PlayerEntity{
 				Entity{ Id: 1 },
 				"Tim Howard",
 			}
-			data, _, err := miruken.Map[*PlayerData](handler, &entity)
+			data, _, err := maps.Map[*PlayerData](handler, &entity)
 			suite.Nil(err)
 			suite.Equal(1, data.Id)
 			suite.Equal("Tim Howard", data.Name)
@@ -221,7 +222,7 @@ func (suite *MapsTestSuite) TestMap() {
 				"David Silva",
 			}
 			var data PlayerData
-			_, err := miruken.MapInto(handler, &entity, &data)
+			_, err := maps.MapInto(handler, &entity, &data)
 			suite.Nil(err)
 			suite.Equal(2, data.Id)
 			suite.Equal("David Silva", data.Name)
@@ -234,7 +235,7 @@ func (suite *MapsTestSuite) TestMap() {
 				"Franz Beckenbauer",
 			}
 			data := new(PlayerData)
-			_, err  := miruken.MapInto(handler, &entity, data)
+			_, err  := maps.MapInto(handler, &entity, data)
 			suite.Nil(err)
 			suite.Equal(3, data.Id)
 			suite.Equal("Franz Beckenbauer", data.Name)
@@ -246,7 +247,7 @@ func (suite *MapsTestSuite) TestMap() {
 				Entity{ Id: 1 },
 				"Tim Howard",
 			}
-			data, _, err := miruken.Map[*PlayerData](handler, &entity)
+			data, _, err := maps.Map[*PlayerData](handler, &entity)
 			suite.Nil(err)
 			suite.Equal(1, data.Id)
 			suite.Equal("Tim Howard", data.Name)
@@ -258,7 +259,7 @@ func (suite *MapsTestSuite) TestMap() {
 				Entity{ Id: 1 },
 				"Marco Royce",
 			}
-			data, _, err := miruken.Map[map[string]any](handler, &entity)
+			data, _, err := maps.Map[map[string]any](handler, &entity)
 			suite.Nil(err)
 			suite.Equal(1, data["Id"])
 			suite.Equal("Marco Royce", data["Name"])
@@ -270,7 +271,7 @@ func (suite *MapsTestSuite) TestMap() {
 				"Id":    2,
 				"Name": "George Best",
 			}
-			entity, _, err := miruken.Map[*PlayerEntity](handler, data)
+			entity, _, err := maps.Map[*PlayerEntity](handler, data)
 			suite.Nil(err)
 			suite.Equal(2, entity.Id)
 			suite.Equal("George Best", entity.Name)
@@ -283,15 +284,15 @@ func (suite *MapsTestSuite) TestMap() {
 				Id:   1,
 				Name: "Tim Howard",
 			}
-			jsonString, _, err := miruken.Map[string](handler, &data, miruken.To("application/json"))
+			jsonString, _, err := maps.Map[string](handler, &data, maps.To("application/json"))
 			suite.Nil(err)
 			suite.Equal("{\"id\":1,\"name\":\"Tim Howard\"}", jsonString)
 
-			_, _, err = miruken.Map[string](handler, &data, miruken.To("foo"))
+			_, _, err = maps.Map[string](handler, &data, maps.To("foo"))
 			suite.IsType(err, &miruken.NotHandledError{})
 
 			var data2 PlayerData
-			_, err = miruken.MapInto(handler, jsonString, &data2, miruken.From("application/json"))
+			_, err = maps.MapInto(handler, jsonString, &data2, maps.From("application/json"))
 			suite.Nil(err)
 			suite.Equal(1, data.Id)
 			suite.Equal("Tim Howard", data.Name)
@@ -314,7 +315,7 @@ func (suite *MapsTestSuite) TestMap() {
 				},
 			}
 
-			data, _, err := miruken.MapAll[*PlayerData](handler, entities)
+			data, _, err := maps.MapAll[*PlayerData](handler, entities)
 			suite.Nil(err)
 			suite.Len(data, len(entities))
 			suite.True(reflect.DeepEqual(data, []*PlayerData{
@@ -359,51 +360,51 @@ func (suite *MapsTestSuite) TestMap() {
 		suite.Run("StartsWith", func () {
 			handler, _ := miruken.Setup().Specs(&FormatMapper{}).Handler()
 			var data PlayerData
-			res, _, err := miruken.Map[string](handler, &data, miruken.To("hello"))
+			res, _, err := maps.Map[string](handler, &data, maps.To("hello"))
 			suite.Nil(err)
 			suite.Equal("startsWith", res)
-			res, _, err = miruken.Map[string](handler, &data, miruken.To("hellohello"))
+			res, _, err = maps.Map[string](handler, &data, maps.To("hellohello"))
 			suite.Nil(err)
 			suite.Equal("startsWith", res)
-			res, _, err = miruken.Map[string](handler, &data, miruken.To("/hello"))
+			res, _, err = maps.Map[string](handler, &data, maps.To("/hello"))
 			suite.Nil(err)
 			suite.Equal("startsWith", res)
-			res, _, err = miruken.Map[string](handler, &data, miruken.To("hel"))
+			res, _, err = maps.Map[string](handler, &data, maps.To("hel"))
 			suite.NotNil(err)
-			res, _, err = miruken.Map[string](handler, &data, miruken.To("/hel"))
+			res, _, err = maps.Map[string](handler, &data, maps.To("/hel"))
 			suite.NotNil(err)
 		})
 
 		suite.Run("EndsWith", func () {
 			handler, _ := miruken.Setup().Specs(&FormatMapper{}).Handler()
 			var data PlayerData
-			res, _, err := miruken.Map[string](handler, &data, miruken.To("world"))
+			res, _, err := maps.Map[string](handler, &data, maps.To("world"))
 			suite.Nil(err)
 			suite.Equal("endsWith", res)
-			res, _, err = miruken.Map[string](handler, &data, miruken.To("theworld"))
+			res, _, err = maps.Map[string](handler, &data, maps.To("theworld"))
 			suite.Nil(err)
 			suite.Equal("endsWith", res)
-			res, _, err = miruken.Map[string](handler, &data, miruken.To("world/"))
+			res, _, err = maps.Map[string](handler, &data, maps.To("world/"))
 			suite.Nil(err)
 			suite.Equal("endsWith", res)
-			res, _, err = miruken.Map[string](handler, &data, miruken.To("worldwide"))
+			res, _, err = maps.Map[string](handler, &data, maps.To("worldwide"))
 			suite.NotNil(err)
-			res, _, err = miruken.Map[string](handler, &data, miruken.To("wor/"))
+			res, _, err = maps.Map[string](handler, &data, maps.To("wor/"))
 			suite.NotNil(err)
 		})
 
 		suite.Run("Pattern", func () {
 			handler, _ := miruken.Setup().Specs(&FormatMapper{}).Handler()
 			var data PlayerData
-			res, _, err := miruken.Map[string](handler, &data, miruken.To("J9!P3"))
+			res, _, err := maps.Map[string](handler, &data, maps.To("J9!P3"))
 			suite.Nil(err)
 			suite.Equal("pattern", res)
-			res, _, err = miruken.Map[string](handler, &data, miruken.To("J256!ABC1"))
+			res, _, err = maps.Map[string](handler, &data, maps.To("J256!ABC1"))
 			suite.Nil(err)
 			suite.Equal("pattern", res)
-			res, _, err = miruken.Map[string](handler, &data, miruken.To("J!2"))
+			res, _, err = maps.Map[string](handler, &data, maps.To("J!2"))
 			suite.NotNil(err)
-			res, _, err = miruken.Map[string](handler, &data, miruken.To("J85!92"))
+			res, _, err = maps.Map[string](handler, &data, maps.To("J85!92"))
 			suite.NotNil(err)
 		})
 	})

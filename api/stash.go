@@ -60,7 +60,7 @@ func (s *Stash) Provide(
 }
 
 // Get retrieves an item by key.
-// Provides is considered NotHandled if an item with the key is not found and
+// Build is considered NotHandled if an item with the key is not found and
 // this Stash is not rooted.  This allows retrieval to propagate up the chain.
 func (s *Stash) Get(
 	_ *handles.It, get *stashGet,

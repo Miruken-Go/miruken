@@ -58,7 +58,7 @@ func (v *It) Dispatch(
 }
 
 func (v *It) String() string {
-	return fmt.Sprintf("Provides => %+v", v.source)
+	return fmt.Sprintf("Build => %+v", v.source)
 }
 
 
@@ -141,7 +141,7 @@ func (b *Builder) Target(
 	return b
 }
 
-func (b *Builder) NewValidates() *It {
+func (b *Builder) New() *It {
 	return &It{
 		CallbackBase: b.CallbackBase(),
 		source:       b.target,
@@ -160,7 +160,7 @@ func Validate(
 	var builder Builder
 	builder.Target(target).
 			WithConstraints(constraints...)
-	validates := builder.NewValidates()
+	validates := builder.New()
 	if result := handler.Handle(validates, true, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.Handled() {

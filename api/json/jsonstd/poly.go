@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	"github.com/miruken-go/miruken/maps"
 	"io"
 )
 
@@ -22,10 +23,10 @@ type (
 
 func (m *apiMessageMapper) Encode(
 	_*struct{
-		miruken.Maps
-		miruken.Format `to:"application/json"`
+		maps.It
+		maps.Format `to:"application/json"`
 	  }, msg api.Message,
-	maps *miruken.Maps,
+	maps *maps.It,
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
@@ -49,8 +50,8 @@ func (m *apiMessageMapper) Encode(
 
 func (m *apiMessageMapper) Decode(
 	_*struct{
-		miruken.Maps
-		miruken.Format `from:"application/json"`
+		maps.It
+		maps.Format `from:"application/json"`
 	  }, stream io.Reader,
 	_*struct{
 		miruken.Optional

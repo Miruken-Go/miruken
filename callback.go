@@ -228,7 +228,7 @@ func CoerceResult[T any](
 			// During processing of the callback, it may be
 			// promoted to asynchronous operation.
 			//   e.g.  async filter, async args
-			// Provides is necessary to unwrap the promise to obtain
+			// Build is necessary to unwrap the promise to obtain
 			// the correct result to bind to.
 			if res != nil && !reflect.TypeOf(res).AssignableTo(TypeOf[T]()) {
 				if pr, ok := res.(promise.Reflect); ok {

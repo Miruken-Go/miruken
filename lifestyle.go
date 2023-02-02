@@ -62,16 +62,16 @@ func (l *LifestyleProvider) SetFilters(filters ...Filter) {
 }
 
 
-// Singleton
+// Single
 
 type (
-	// Singleton LifestyleProvider providing same Instance.
-	Singleton struct {
+	// Single LifestyleProvider providing same Instance.
+	Single struct {
 		LifestyleProvider
 	}
 
-	// singleton is a Filter that caches an Instance.
-	singleton struct {
+	// single is a Filter that caches an Instance.
+	single struct {
 		Lifestyle
 		keys LifestyleCache
 		lock sync.RWMutex
@@ -79,12 +79,12 @@ type (
 )
 
 
-func (s *Singleton) Init() error {
-	s.SetFilters(&singleton{})
+func (s *Single) Init() error {
+	s.SetFilters(&single{})
 	return nil
 }
 
-func (s *singleton) Next(
+func (s *single) Next(
 	next     Next,
 	ctx      HandleContext,
 	provider FilterProvider,
@@ -118,7 +118,7 @@ func (s *singleton) Next(
 				if e, ok := r.(error); ok {
 					err = e
 				} else {
-					err = fmt.Errorf("singleton: panic: %v", r)
+					err = fmt.Errorf("single: panic: %v", r)
 				}
 				entry.Once = new(sync.Once)
 			}

@@ -11,6 +11,7 @@ import (
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/validates"
 	"github.com/stretchr/testify/suite"
@@ -118,12 +119,12 @@ func (t *TeamApiConsumer) TeamNotifications(
 
 func (f *BadFormatter) Bad(
 	_*struct{
-		miruken.Maps
-		miruken.Format `to:"bad"`
+		maps.It
+		maps.Format `to:"bad"`
 	  }, msg api.Message,
-	maps *miruken.Maps,
+	m *maps.It,
 ) (io.Writer, error) {
-	if writer, ok := maps.Target().(*io.Writer); ok && !miruken.IsNil(writer) {
+	if writer, ok := m.Target().(*io.Writer); ok && !miruken.IsNil(writer) {
 		enc := json2.NewEncoder(*writer)
 		err := enc.Encode(msg.Payload)
 		return *writer, err

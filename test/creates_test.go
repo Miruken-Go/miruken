@@ -31,7 +31,7 @@ type MultiKeyFactory struct {
 
 func (f *MultiKeyFactory) Create(
 	_*struct {
-		provides.Singleton
+		provides.Single
 		fc creates.It  `key:"foo"`
 		bc creates.It  `key:"bar"`
 		fp provides.It `key:"foo"`

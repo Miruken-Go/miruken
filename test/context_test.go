@@ -572,7 +572,7 @@ type LifestyleMismatch struct {}
 func (l *LifestyleMismatch) Constructor(
 	_*struct{
 		provides.It
-		provides.Singleton
+		provides.Single
 	  },
 	service *ScopedService,
 ) {
@@ -829,7 +829,7 @@ func (suite *ContextTestSuite) TestContextual() {
 			})
 		})
 
-		suite.Run("Provides", func () {
+		suite.Run("Build", func () {
 			suite.Run("Invariant", func() {
 				root := suite.RootContext()
 				foo, _, err := miruken.Resolve[*Foo](root)

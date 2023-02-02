@@ -89,7 +89,7 @@ func (h *Hospital) Programmer() Person {
 func (p *PersonProvider) Doctor(
 	_*struct{
 		provides.It
-		provides.Singleton
+		provides.Single
 		Doctor
       },
 ) Person {
@@ -99,7 +99,7 @@ func (p *PersonProvider) Doctor(
 func (p *PersonProvider) Programmer(
 	_*struct{
 		provides.It
-		provides.Singleton
+		provides.Single
 		Programmer
       },
 ) Person {
@@ -119,7 +119,7 @@ func (n *NoConstraintProvider) Person(
 func (l *LocalSettings) Constructor(
 	_*struct{
 		provides.It
-		provides.Singleton
+		provides.Single
 		miruken.Named `name:"local"`
       },
 ) {
@@ -134,7 +134,7 @@ func (l *LocalSettings) ServerUrl() string {
 func (r *RemoteSettings) Constructor(
 	_*struct{
 		provides.It
-		provides.Singleton
+		provides.Single
 		miruken.Named `name:"remote"`
       },
 ) {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/slices"
@@ -319,15 +320,15 @@ type MixedHandler struct {}
 
 func (m *MixedHandler) Mix(
 	_*struct{
-		handles.It
-		miruken.Maps
+		h handles.It
+		m maps.It
 	  }, callback miruken.Callback,
 ) string {
 	switch cb := callback.(type) {
 	case *handles.It:
 		return fmt.Sprintf("Handles %T", cb.Source())
-	case *miruken.Maps:
-		return fmt.Sprintf("Maps %T", cb.Source())
+	case *maps.It:
+		return fmt.Sprintf("It %T", cb.Source())
 	default:
 		return ""
 	}
@@ -1046,8 +1047,8 @@ func (suite *HandlesTestSuite) TestHandles() {
 				} else {
 					suite.Fail("unexpected error", err.Error())
 				}
-				if ret, _, err := miruken.Map[any](handler, new(Foo)); err == nil {
-					suite.Equal("Maps *test.Foo", ret)
+				if ret, _, err := maps.Map[any](handler, new(Foo)); err == nil {
+					suite.Equal("It *test.Foo", ret)
 				} else {
 					suite.Fail("unexpected error", err.Error())
 				}

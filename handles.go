@@ -85,7 +85,7 @@ func (b *HandlesBuilder) WithCallback(
 	return b
 }
 
-func (b *HandlesBuilder) NewHandles() *Handles {
+func (b *HandlesBuilder) New() *Handles {
 	return &Handles{
 		CallbackBase: b.CallbackBase(),
 		callback:     b.callback,
@@ -105,7 +105,7 @@ func Command(
 	var builder HandlesBuilder
 	builder.WithCallback(callback).
 			WithConstraints(constraints...)
-	handles := builder.NewHandles()
+	handles := builder.New()
 	if result := handler.Handle(handles, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.Handled() {
@@ -129,7 +129,7 @@ func Execute[T any](
 	var builder HandlesBuilder
 	builder.WithCallback(callback).
 			WithConstraints(constraints...)
-	handles := builder.NewHandles()
+	handles := builder.New()
 	if result := handler.Handle(handles, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.Handled() {
@@ -153,7 +153,7 @@ func CommandAll(
 	var builder HandlesBuilder
 	builder.WithCallback(callback).
 			WithConstraints(constraints...)
-	handles := builder.NewHandles()
+	handles := builder.New()
 	if result := handler.Handle(handles, true, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.Handled() {
@@ -177,7 +177,7 @@ func ExecuteAll[T any](
 	var builder HandlesBuilder
 	builder.WithCallback(callback).
 			WithConstraints(constraints...)
-	handles := builder.NewHandles()
+	handles := builder.New()
 	if result := handler.Handle(handles, true, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.Handled() {

@@ -45,7 +45,7 @@ type (
 func (s *Scheduler) Constructor(
 	_*struct{
 		provides.It
-		provides.Singleton
+		provides.Single
 	  },
 ) {
 }

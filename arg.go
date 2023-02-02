@@ -218,7 +218,7 @@ func (r *defaultDependencyResolver) Resolve(
 	if spec := dep.spec; spec != nil {
 		builder.WithConstraints(spec.constraints...)
 	}
-	provides := builder.NewProvides()
+	provides := builder.New()
 	if result, pr, inv := provides.Resolve(ctx.composer, many); inv != nil {
 		err = fmt.Errorf("arg: unable to resolve dependency %v: %w", typ, inv)
 	} else if pr == nil {

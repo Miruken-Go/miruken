@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -48,9 +49,9 @@ const (
 
 func (m *GoTypeFieldInfoMapper) TypeFieldInfo(
 	_*struct{
-		miruken.Maps
-		miruken.Format `to:"type:info"`
-	  }, maps *miruken.Maps,
+		maps.It
+		maps.Format `to:"type:info"`
+	  }, maps *maps.It,
 ) (TypeFieldInfo, error) {
 	typ := reflect.TypeOf(maps.Source())
 	return TypeFieldInfo{"@type", typ.String()}, nil
@@ -161,5 +162,5 @@ var (
 	})
 
 	// ToTypeInfo requests the type discriminator for a type.
-	ToTypeInfo = miruken.To("type:info")
+	ToTypeInfo = maps.To("type:info")
 )

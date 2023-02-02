@@ -55,7 +55,7 @@ type LogTestSuite struct {
 }
 
 func (suite *LogTestSuite) TestLogging() {
-	suite.Run("Provides", func() {
+	suite.Run("Build", func() {
 		handler, _ := miruken.Setup(
 			log.Feature(testr.New(suite.T())),
 		).Handler()

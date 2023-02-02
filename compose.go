@@ -24,9 +24,7 @@ func (c *Composition) Dispatch(
 		return DispatchCallback(handler, cb, greedy, composer)
 	}
 	var builder HandlesBuilder
-	return builder.
-		WithCallback(c).
-		NewHandles().
+	return builder.WithCallback(c).New().
 		Dispatch(handler, greedy, composer)
 }
 

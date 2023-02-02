@@ -21,11 +21,11 @@ type (
 	// e.g.
 	// type ListProvider struct{}
 	//
-	// func (f *ListProvider) ProvideFooSlice(*provides.Provides) []*Foo {
+	// func (f *ListProvider) ProvideFooSlice(*provides.Build) []*Foo {
 	//	  return []*Foo{{Counted{1}}, {Counted{2}}}
 	// }
 	//
-	//  func (f *ListProvider) ProvideFooArray(*provides.Provides) [2]*Bar {
+	//  func (f *ListProvider) ProvideFooArray(*provides.Build) [2]*Bar {
 	//	  return [2]*Bar{{Counted{3}}, {Counted{4}}}
 	// }
 	//
@@ -90,13 +90,13 @@ func (b *methodIntercept) Invoke(
 	callback    := ctx.Callback()
 	composer    := ctx.Composer()
 	parent, _   := callback.(*Provides)
-	var builder ResolvesBuilder
+	var builder resolvesBuilder
 	builder.
 		WithCallback(callback).
 		WithGreedy(ctx.Greedy()).
 		WithParent(parent).
 		WithKey(handlerType)
-	resolves := builder.NewResolves()
+	resolves := builder.New()
 	if result := composer.Handle(resolves, true, nil); result.IsError() {
 		return nil, nil, result.Error()
 	} else if _, p := resolves.Result(false); p != nil {

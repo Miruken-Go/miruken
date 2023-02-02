@@ -86,7 +86,7 @@ func (p *Provides) Dispatch(
 }
 
 func (p *Provides) String() string {
-	return fmt.Sprintf("Provides => %+v", p.key)
+	return fmt.Sprintf("Build => %+v", p.key)
 }
 
 func (p *Provides) Resolve(
@@ -140,7 +140,7 @@ func (b *ProvidesBuilder) ForOwner(
 	return b
 }
 
-func (b *ProvidesBuilder) Provides() Provides {
+func (b *ProvidesBuilder) Build() Provides {
 	return Provides{
 		CallbackBase: b.CallbackBase(),
 		key:          b.key,
@@ -148,7 +148,7 @@ func (b *ProvidesBuilder) Provides() Provides {
 	}
 }
 
-func (b *ProvidesBuilder) NewProvides() *Provides {
+func (b *ProvidesBuilder) New() *Provides {
 	p := &Provides{
 		CallbackBase: b.CallbackBase(),
 		key:          b.key,
@@ -177,7 +177,7 @@ func ResolveKey[T any](
 	var builder ProvidesBuilder
 	builder.WithKey(key).
 		WithConstraints(constraints...)
-	p := builder.NewProvides()
+	p := builder.New()
 	if result := handler.Handle(p, false, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {
@@ -196,7 +196,7 @@ func ResolveAll[T any](
 	var builder ProvidesBuilder
 	builder.WithKey(TypeOf[T]()).
 		    WithConstraints(constraints...)
-	p := builder.NewProvides()
+	p := builder.New()
 	if result := handler.Handle(p, true, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {
@@ -218,7 +218,7 @@ func (p *providesPolicy) NewConstructorBinding(
 ) (binding Binding, err error) {
 	explicitSpec := spec != nil
 	if !explicitSpec {
-		single := new(Singleton)
+		single := new(Single)
 		if err = single.Init(); err != nil {
 			return nil, err
 		}

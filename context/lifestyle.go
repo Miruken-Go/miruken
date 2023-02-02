@@ -12,7 +12,7 @@ import (
 
 type (
 	// Lifestyle is a BindingGroup for requesting a scoped lifestyle.
-	// Provides associates both the scoped lifestyle and fromScope constraint.
+	// Build associates both the scoped lifestyle and fromScope constraint.
 	Lifestyle struct {
 		miruken.BindingGroup
 		scoped
@@ -33,7 +33,7 @@ type (
 		rooted bool
 	}
 
-	// fromScope is used to constrain Provides from Context.
+	// fromScope is used to constrain Build from Context.
 	fromScope struct {}
 )
 

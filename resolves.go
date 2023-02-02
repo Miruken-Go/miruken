@@ -1,21 +1,21 @@
 package miruken
 
-type Resolves struct {
+type resolves struct {
 	Provides
 	callback  Callback
 	greedy    bool
 	succeeded bool
 }
 
-func (r *Resolves) Callback() Callback {
+func (r *resolves) Callback() Callback {
 	return r.callback
 }
 
-func (r *Resolves) Succeeded() bool {
+func (r *resolves) Succeeded() bool {
 	return r.succeeded
 }
 
-func (r *Resolves) CanDispatch(
+func (r *resolves) CanDispatch(
 	handler any,
 	binding Binding,
 ) (reset func (), approved bool) {
@@ -34,7 +34,7 @@ func (r *Resolves) CanDispatch(
 	}
 }
 
-func (r *Resolves) accept(
+func (r *resolves) accept(
 	result   any,
 	composer Handler,
 ) HandleResult {
@@ -47,29 +47,29 @@ func (r *Resolves) accept(
 	}
 }
 
-type ResolvesBuilder struct {
+type resolvesBuilder struct {
 	ProvidesBuilder
 	callback Callback
 	greedy   bool
 }
 
-func (b *ResolvesBuilder) WithCallback(
+func (b *resolvesBuilder) WithCallback(
 	callback Callback,
-) *ResolvesBuilder {
+) *resolvesBuilder {
 	b.callback = callback
 	return b
 }
 
-func (b *ResolvesBuilder) WithGreedy(
+func (b *resolvesBuilder) WithGreedy(
 	greedy bool,
-) *ResolvesBuilder {
+) *resolvesBuilder {
 	b.greedy = greedy
 	return b
 }
 
-func (b *ResolvesBuilder) NewResolves() *Resolves {
-	resolves := &Resolves{
-		Provides: b.Provides(),
+func (b *resolvesBuilder) New() *resolves {
+	resolves := &resolves{
+		Provides: b.Build(),
 		callback: b.callback,
 		greedy:   b.greedy,
 	}

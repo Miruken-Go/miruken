@@ -15,7 +15,7 @@ type (
 		provider Provider
 	}
 
-	// Load restricts provides.Provides to configurations.
+	// Load restricts provides.Build to configurations.
 	Load struct {
 		Path string
 		Flat bool
@@ -51,7 +51,7 @@ func (l *Load) Satisfies(required miruken.BindingConstraint) bool {
 func (f *Factory) NewConfiguration(
 	_*struct{
 		provides.It
-		provides.Singleton
+		provides.Single
 		Load
 	  }, p *provides.It,
 ) (any, error) {

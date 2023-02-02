@@ -3,7 +3,6 @@ package validates
 import (
 	"errors"
 	"fmt"
-	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/slices"
@@ -212,8 +211,8 @@ func (o *Outcome) parseIndexer(
 
 func (m *ApiMapping) ForApi(
 	_*struct{
-		miruken.Maps
-		miruken.Format `to:"api:error"`
+		maps.It
+		maps.Format `to:"api:error"`
 	  }, outcome *Outcome,
 ) (ao []ApiOutcome) {
 	if ao = buildApiOutcome(outcome); ao == nil {
@@ -224,8 +223,8 @@ func (m *ApiMapping) ForApi(
 
 func (m *ApiMapping) FromApi(
 	_*struct{
-		miruken.Maps
-		miruken.Format `from:"api:error"`
+		maps.It
+		maps.Format `from:"api:error"`
 	}, apiOutcome []*ApiOutcome,
 ) (*Outcome, error) {
 	return buildOutcome(slices.Map[*ApiOutcome, ApiOutcome](apiOutcome,

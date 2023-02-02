@@ -255,7 +255,7 @@ type SingletonHandler struct{}
 func (s *SingletonHandler) Constructor(
 	_*struct{
 		provides.It
-		provides.Singleton
+		provides.Single
 	  },
 ) {
 }
@@ -281,7 +281,7 @@ type SingletonErrorHandler struct {
 func (s *SingletonErrorHandler) Constructor(
 	_*struct{
 		provides.It
-		provides.Singleton
+		provides.Single
 	  },
 ) error {
 	errorCount++
@@ -411,7 +411,7 @@ func (suite *FilterTestSuite) TestFilters() {
 		})
 	})
 
-	suite.Run("Singleton", func () {
+	suite.Run("Single", func () {
 		suite.Run("Implicit", func() {
 			handler, _ := suite.Setup()
 			singletonHandler, _, err := miruken.Resolve[*SingletonHandler](handler)
@@ -462,7 +462,7 @@ func (suite *FilterTestSuite) TestFilters() {
 			suite.Equal(miruken.NotHandledAndStop, result.WithoutError())
 			result = handler.Handle(bee, false, nil)
 			suite.True(result.IsError())
-			suite.Equal("singleton: panic: something bad", result.Error().Error())
+			suite.Equal("single: panic: something bad", result.Error().Error())
 			suite.Equal(miruken.NotHandledAndStop, result.WithoutError())
 			result = handler.Handle(bee, false, nil)
 			suite.False(result.IsError())

@@ -9,6 +9,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	jsonapi "github.com/miruken-go/miruken/api/json"
+	"github.com/miruken-go/miruken/maps"
 	"io"
 	"reflect"
 )
@@ -28,9 +29,9 @@ type (
 
 func (m *Mapper) ToJson(
 	_*struct{
-		miruken.Maps
-		miruken.Format `to:"application/json"`
-	  }, maps *miruken.Maps,
+		maps.It
+		maps.Format `to:"application/json"`
+	  }, maps *maps.It,
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
@@ -63,9 +64,9 @@ func (m *Mapper) ToJson(
 
 func (m *Mapper) ToJsonStream(
 	_*struct{
-		miruken.Maps
-		miruken.Format `to:"application/json"`
-	  }, maps *miruken.Maps,
+		maps.It
+		maps.Format `to:"application/json"`
+	  }, maps *maps.It,
 	_*struct{
 		miruken.Optional
 		miruken.FromOptions
@@ -102,8 +103,8 @@ func (m *Mapper) ToJsonStream(
 
 func (m *Mapper) FromJson(
 	_*struct{
-		miruken.Maps
-		miruken.Format `from:"application/json"`
+		maps.It
+		maps.Format `from:"application/json"`
 	  }, jsonString string,
 	_*struct{
 		miruken.Optional
@@ -113,7 +114,7 @@ func (m *Mapper) FromJson(
 		miruken.Optional
 		miruken.FromOptions
 	  }, apiOptions api.Options,
-	maps *miruken.Maps,
+	maps *maps.It,
 	ctx  miruken.HandleContext,
 ) (any, error) {
 	target := maps.Target()
@@ -135,8 +136,8 @@ func (m *Mapper) FromJson(
 
 func (m *Mapper) FromJsonStream(
 	_*struct{
-		miruken.Maps
-		miruken.Format `from:"application/json"`
+		maps.It
+		maps.Format `from:"application/json"`
 	  }, stream io.Reader,
 	_*struct{
 		miruken.Optional
@@ -146,7 +147,7 @@ func (m *Mapper) FromJsonStream(
 		miruken.Optional
 		miruken.FromOptions
 	  }, apiOptions api.Options,
-	maps *miruken.Maps,
+	maps *maps.It,
 	ctx  miruken.HandleContext,
 ) (any, error) {
 	target := maps.Target()
@@ -176,9 +177,9 @@ type typeContainer struct {
 	composer miruken.Handler
 }
 
-func (c *typeContainer) TypeInfo() *miruken.Format {
+func (c *typeContainer) TypeInfo() *maps.Format {
 	if typeInfo := c.typInfo; len(typeInfo) > 0 {
-		return miruken.To(typeInfo)
+		return maps.To(typeInfo)
 	}
 	return api.ToTypeInfo
 }
@@ -215,7 +216,7 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 	if byt, err := json.Marshal(vm); err != nil {
 		return nil, err
 	} else if len(byt) > 0 && byt[0] == '{' {
-		typeInfo, _, err := miruken.Map[api.TypeFieldInfo](c.composer, v, c.TypeInfo())
+		typeInfo, _, err := maps.Map[api.TypeFieldInfo](c.composer, v, c.TypeInfo())
 		if err != nil {
 			return nil, err
 		}

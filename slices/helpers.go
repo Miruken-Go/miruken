@@ -83,7 +83,7 @@ type FilterFunc[IN any] interface {
 }
 
 // Filter filters values from a slice using a filter function.
-// Provides returns a new slice with only the elements of s
+// Build returns a new slice with only the elements of s
 // for which f returned true.
 func Filter[IN any, F FilterFunc[IN]](in []IN, fun F) []IN {
 	var out []IN

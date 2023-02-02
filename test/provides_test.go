@@ -45,7 +45,7 @@ func (p *MultiProvider) Constructor(
 	_*struct{
 	    c creates.It
 		p provides.It
-		provides.Singleton
+		provides.Single
 	  },
 ) {
 	p.foo.Inc()
@@ -122,7 +122,7 @@ type OpenProvider struct {
 func (p *OpenProvider) ProvideSingletons(
 	_*struct{
 		provides.It
-		provides.Singleton
+		provides.Single
 	  }, it *provides.It,
 ) any {
 	if key := it.Key(); key == miruken.TypeOf[*Foo]() {
@@ -484,7 +484,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 			// 1 from FooProvider.ProvideFoo
 			// 2 from ListProvider.ProvideFooSlice
 			// 1 from MultiProvider.ProvideFoo
-			// 1 from OpenProvider.Provides
+			// 1 from OpenProvider.Build
 			// 1 from SimpleAsyncProvider.ProvideFoo
 			// None from SpecificationProvider.ProvideFoo since it
 			//   depends on an unsatisfied Baz

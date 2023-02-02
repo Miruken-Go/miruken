@@ -93,9 +93,7 @@ func (n Next) Handle(
 		cb = c
 	} else {
 		var builder HandlesBuilder
-		cb = builder.
-			WithCallback(callback).
-			NewHandles()
+		cb = builder.WithCallback(callback).New()
 	}
 	if result := composer.Handle(cb, greedy, nil); result.IsError() {
 		return nil, nil, result.Error()
@@ -145,7 +143,7 @@ func (f *filterSpecProvider) Filters(
 ) ([]Filter, error) {
 	spec := f.spec
 	var builder ProvidesBuilder
-	p := builder.WithKey(spec.typ).NewProvides()
+	p := builder.WithKey(spec.typ).New()
 	resolve, pr, err := p.Resolve(composer, false)
 	if err != nil {
 		return nil, err
@@ -237,20 +235,12 @@ type FilterOptions struct {
 }
 
 var (
-	disableFilters = Options(FilterOptions{
-		SkipFilters: Set(true),
-	})
-
-	enableFilters = Options(FilterOptions{
-		SkipFilters: Set(false),
-	})
-
 	DisableFilters BuilderFunc = func (handler Handler) Handler {
-		return BuildUp(handler, disableFilters)
+		return BuildUp(handler, Options(FilterOptions{SkipFilters: Set(true)}))
 	}
 
 	EnableFilters BuilderFunc = func (handler Handler) Handler {
-		return BuildUp(handler, enableFilters)
+		return BuildUp(handler, Options(FilterOptions{SkipFilters: Set(false)}))
 	}
 )
 
