@@ -1,20 +1,13 @@
-package swagger
+package openapi
 
 import (
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
-	"github.com/myml/swag/endpoint"
-	"github.com/myml/swag/swagger"
-	"net/http"
-	"reflect"
-	"strings"
 )
 
-// Installer configures swagger support
+// Installer configures openapi support
 type Installer struct {
 	handlesPolicy miruken.Policy
-	endpoints     []*swagger.Endpoint
 }
 
 func (i *Installer) DependsOn() []miruken.Feature {
@@ -30,13 +23,6 @@ func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	return nil
 }
 
-func (i *Installer) Endpoints(handler http.Handler) []*swagger.Endpoint {
-	for _, ep := range i.endpoints {
-		ep.Handler = handler
-	}
-	return i.endpoints
-}
-
 func (i *Installer) BindingCreated(
 	policy     miruken.Policy,
 	descriptor *miruken.HandlerDescriptor,
@@ -45,6 +31,7 @@ func (i *Installer) BindingCreated(
 	if !(policy == i.handlesPolicy  && binding.Exported()) {
 		return
 	}
+	/*
 	if inputType, ok := binding.Key().(reflect.Type); ok {
 		if inputType.Kind() == reflect.Ptr {
 			inputType = inputType.Elem()
@@ -56,29 +43,13 @@ func (i *Installer) BindingCreated(
 			endpoint.Response(http.StatusInternalServerError, api.ErrorData{}, "Oops ... something went wrong"),
 			endpoint.Tags(inputType.PkgPath()),
 		)
-		i.endpoints = append(i.endpoints, ep)
 	}
+	 */
 }
 
 func (i *Installer) DescriptorCreated(
 	_ *miruken.HandlerDescriptor,
 ) {
-}
-
-func (i *Installer) schema(typ reflect.Type) reflect.Type {
-	if typ == nil {
-		return emptySchema
-	}
-	if anyType.AssignableTo(typ) {
-		return emptySchema
-	}
-	return reflect.StructOf([]reflect.StructField{
-		{
-			Name: "Payload",
-			Type: typ,
-			Tag:  `json:"payload"`,
-		},
-	})
 }
 
 
