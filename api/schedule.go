@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/either"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"sync"
 )
@@ -49,7 +50,7 @@ func (s *Scheduler) Constructor(
 }
 
 func (s *Scheduler) Concurrent(
-	_ *miruken.Handles, concurrent ConcurrentBatch,
+	_ *handles.It, concurrent ConcurrentBatch,
 	composer miruken.Handler,
 ) *promise.Promise[ScheduledResult] {
 	return promise.New(func(resolve func(ScheduledResult), reject func(error)) {
@@ -73,7 +74,7 @@ func (s *Scheduler) Concurrent(
 }
 
 func (s *Scheduler) Sequential(
-	_ *miruken.Handles, sequential SequentialBatch,
+	_ *handles.It, sequential SequentialBatch,
 	composer miruken.Handler,
 ) *promise.Promise[ScheduledResult] {
 	return promise.New(func(resolve func(ScheduledResult), reject func(error)) {
@@ -93,7 +94,7 @@ func (s *Scheduler) Sequential(
 }
 
 func (s *Scheduler) Publish(
-	_ *miruken.Handles, publish Published,
+	_ *handles.It, publish Published,
 	composer miruken.Handler,
 ) (p *promise.Promise[miruken.Void], err error) {
 	return Publish(composer, publish.Message)

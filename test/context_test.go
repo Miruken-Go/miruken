@@ -2,6 +2,7 @@ package test
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -56,7 +57,7 @@ func (o *ContextObserver) ChildContextEnded(
 type Service struct {}
 
 func (s *Service) Count(
-	_ *miruken.Handles, counter Counter,
+	_ *handles.It, counter Counter,
 ) {
 	counter.Inc()
 }
@@ -502,7 +503,7 @@ func (s *ScopedService) SetContext(ctx *miruken.Context) {
 }
 
 func (s *ScopedService) Count(
-	_ *miruken.Handles, counter Counter,
+	_ *handles.It, counter Counter,
 ) {
 	if s.Context() == nil {
 		panic("context not assigned")
@@ -542,7 +543,7 @@ func (s *RootedService) SetContext(ctx *miruken.Context) {
 }
 
 func (s *RootedService) HandleBar(
-	_ *miruken.Handles, bar *Bar,
+	_ *handles.It, bar *Bar,
 ) {
 	if s.Context() == nil {
 		panic("context not assigned")

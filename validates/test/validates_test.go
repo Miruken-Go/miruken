@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/bearbin/go-age"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/validates"
 	"github.com/stretchr/testify/suite"
 	"reflect"
@@ -167,7 +168,7 @@ type TeamHandler struct {
 }
 
 func (h *TeamHandler) CreateTeam(
-	_ *miruken.Handles, create *CreateTeam,
+	_ *handles.It, create *CreateTeam,
 ) Team {
 	team := create.Team
 	h.teamId++
@@ -177,7 +178,7 @@ func (h *TeamHandler) CreateTeam(
 }
 
 func (h *TeamHandler) RemoveTeam(
-	_ *miruken.Handles, remove *RemoveTeam,
+	_ *handles.It, remove *RemoveTeam,
 ) Team {
 	team := remove.Team
 	team.Active = false

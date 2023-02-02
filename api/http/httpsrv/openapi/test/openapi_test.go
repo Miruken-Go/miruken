@@ -11,6 +11,7 @@ import (
 	"github.com/miruken-go/miruken/api/http/httpsrv"
 	"github.com/miruken-go/miruken/api/http/httpsrv/openapi"
 	"github.com/miruken-go/miruken/api/json/jsonstd"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/suite"
 	"net/http/httptest"
@@ -38,7 +39,7 @@ type (
 )
 
 func (p *PlayerHandler) CreatePlayer(
-	_ *miruken.Handles, create *CreatePlayer,
+	_ *handles.It, create *CreatePlayer,
 	ctx miruken.HandleContext,
 ) *promise.Promise[PlayerResult] {
 	id := atomic.AddInt32(&p.nextId,1)

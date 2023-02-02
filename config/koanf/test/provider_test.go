@@ -8,6 +8,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/config"
 	koanfp "github.com/miruken-go/miruken/config/koanf"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/stretchr/testify/suite"
 	"testing"
 	"time"
@@ -57,7 +58,7 @@ func (e *EventStore) Env() string {
 }
 
 func (e *EventStore) Publish(
-	_*struct{miruken.Handles}, _ CustomerCreated,
+	_*struct{ handles.It }, _ CustomerCreated,
 	_*struct{config.Load}, cfg map[string]any,
 ) {
 	fmt.Println(cfg["services"].(map[string]any)["eventStoreUrl"])
@@ -66,8 +67,8 @@ func (e *EventStore) Publish(
 // Gateway
 
 func (g *Gateway) CreateCustomer(
-	_*struct{miruken.Handles}, _ CreateCustomer,
-	_*struct{config.Load}, cfg AppConfig,
+	_*struct{ handles.It }, _ CreateCustomer,
+	_*struct{ config.Load }, cfg AppConfig,
 	ctx miruken.HandleContext,
 ) error {
 	fmt.Println(cfg.Services.CustomerUrl)
@@ -78,8 +79,8 @@ func (g *Gateway) CreateCustomer(
 // Repository
 
 func (r *Repository) LoadCustomer(
-	_*struct{miruken.Handles}, _ LoadCustomer,
-	_*struct{config.Load `path:",flat"`}, cfg struct {
+	_*struct{ handles.It }, _ LoadCustomer,
+	_*struct{ config.Load `path:",flat"` }, cfg struct {
 		Databases []DatabaseConfig `path:"databases"`
 	},
 ) {

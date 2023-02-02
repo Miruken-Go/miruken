@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/stretchr/testify/suite"
 	"reflect"
 	"testing"
@@ -150,7 +151,7 @@ func (m *FormatMapper) Pattern(
 type InvalidMapper struct {}
 
 func (m *InvalidMapper) MissingDependency(
-	_ *miruken.Handles, _ *Bar,
+	_ *handles.It, _ *Bar,
 	_*struct{ },
 ) {
 }
@@ -159,26 +160,26 @@ func (m *InvalidMapper) MissingReturnValue(*miruken.Provides) {
 }
 
 func (m *InvalidMapper) TooManyReturnValues(
-	_ *miruken.Handles, _ *Bar,
+	_ *handles.It, _ *Bar,
 ) (int, string, Counter) {
 	return 0, "bad", nil
 }
 
 func (m *InvalidMapper) SecondReturnMustBeErrorOrHandleResult(
-	_ *miruken.Handles, _ *Counter,
+	_ *handles.It, _ *Counter,
 ) (Foo, string) {
 	return Foo{}, "bad"
 }
 
 func (m *InvalidMapper) UntypedInterfaceDependency(
-	_ *miruken.Handles, _ *Bar,
+	_ *handles.It, _ *Bar,
 	any any,
 ) miruken.HandleResult {
 	return miruken.Handled
 }
 
 func (m *InvalidMapper) MissingCallbackArgument(
-	_*struct{ miruken.Handles },
+	_*struct{ handles.It },
 ) miruken.HandleResult {
 	return miruken.Handled
 }

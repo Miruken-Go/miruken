@@ -2,6 +2,7 @@ package test
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/validates"
 	"github.com/miruken-go/miruken/validates/go"
 	"github.com/stretchr/testify/suite"
@@ -38,7 +39,7 @@ type UserHandler struct {
 }
 
 func (u *UserHandler) CreateUser(
-	_ *miruken.Handles, create *CreateUser,
+	_ *handles.It, create *CreateUser,
 ) User {
 	user := create.User
 	u.userId++

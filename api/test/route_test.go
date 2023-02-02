@@ -3,6 +3,7 @@ package test
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/slices"
 	"github.com/stretchr/testify/suite"
@@ -32,7 +33,7 @@ func (t *Trash) Empty() {
 
 func (t *TrashHandler) Trash(
 	_*struct{
-		miruken.Handles
+		handles.It
 		api.Routes `scheme:"trash"`
 	  }, routed api.Routed,
 	trash *Trash,

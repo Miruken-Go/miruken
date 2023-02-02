@@ -4,6 +4,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/go-logr/logr/testr"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/log"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/suite"
@@ -31,7 +32,7 @@ func (s *Service) Run() {
 }
 
 func (s *Service) Command(
-	_*miruken.Handles, cmd Command,
+	_ *handles.It, cmd Command,
 	logger logr.Logger,
 ) Command {
 	var level = int(cmd)
@@ -40,7 +41,7 @@ func (s *Service) Command(
 }
 
 func (s *Service) LongCommand(
-	_*miruken.Handles, cmd LongCommand,
+	_ *handles.It, cmd LongCommand,
 	logger logr.Logger,
 ) *promise.Promise[LongCommand] {
 	duration := time.Duration(cmd) * time.Millisecond

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/slices"
 	"github.com/stretchr/testify/suite"
@@ -62,7 +63,7 @@ func (h *FooHandler) Handle(
 type BarHandler struct {}
 
 func (h *BarHandler) HandleBar(
-	_ *miruken.Handles, _ Bar,
+	_ *handles.It, _ Bar,
 ) {
 }
 
@@ -70,7 +71,7 @@ func (h *BarHandler) HandleBar(
 type CounterHandler struct {}
 
 func (h *CounterHandler) HandleCounted(
-	_ *miruken.Handles, counter Counter,
+	_ *handles.It, counter Counter,
 ) (Counter, miruken.HandleResult) {
 	switch c := counter.Inc(); {
 	case c > 0 && c % 3 == 0:
@@ -86,7 +87,7 @@ func (h *CounterHandler) HandleCounted(
 type CountByTwoHandler struct {}
 
 func (h *CountByTwoHandler) HandleCounted(
-	_ *miruken.Handles, counter Counter,
+	_ *handles.It, counter Counter,
 ) (Counter, miruken.HandleResult) {
 	counter.Inc()
 	counter.Inc()
@@ -100,7 +101,7 @@ type MultiHandler struct {
 }
 
 func (h *MultiHandler) HandleFoo(
-	_ *miruken.Handles, foo *Foo,
+	_ *handles.It, foo *Foo,
 	composer miruken.Handler,
 ) error {
 	h.foo.Inc()
@@ -112,7 +113,7 @@ func (h *MultiHandler) HandleFoo(
 }
 
 func (h *MultiHandler) HandleBar(
-	_ *miruken.Handles, bar *Bar,
+	_ *handles.It, bar *Bar,
 ) miruken.HandleResult {
 	h.bar.Inc()
 	if bar.Inc() % 2 == 0 {
@@ -125,7 +126,7 @@ func (h *MultiHandler) HandleBar(
 type EverythingHandler struct{}
 
 func (h *EverythingHandler) HandleEverything(
-	_ *miruken.Handles, callback any,
+	_ *handles.It, callback any,
 ) miruken.HandleResult {
 	switch cb := callback.(type) {
 	case *Foo:
@@ -144,7 +145,7 @@ func (h *EverythingHandler) HandleEverything(
 type EverythingImplicitHandler struct{}
 
 func (h *EverythingImplicitHandler) HandleEverything(
-	handles *miruken.Handles,
+	handles *handles.It,
 ) miruken.HandleResult {
 	switch cb := handles.Source().(type) {
 	case *Bar:
@@ -165,7 +166,7 @@ func (h *EverythingImplicitHandler) HandleEverything(
 type EverythingSpecHandler struct{}
 
 func (h *EverythingSpecHandler) HandleEverything(
-	_*struct { miruken.Handles }, callback any,
+	_*struct { handles.It }, callback any,
 ) miruken.HandleResult {
 	switch cb := callback.(type) {
 	case *Baz:
@@ -184,7 +185,7 @@ func (h *EverythingSpecHandler) HandleEverything(
 type SpecificationHandler struct{}
 
 func (h *SpecificationHandler) HandleFoo(
-	_*struct{ miruken.Handles; miruken.Strict }, foo *Foo,
+	_*struct{ handles.It; miruken.Strict }, foo *Foo,
 ) miruken.HandleResult {
 	foo.Inc()
 	return miruken.Handled
@@ -194,7 +195,7 @@ func (h *SpecificationHandler) HandleFoo(
 type DependencyHandler struct{}
 
 func (h *DependencyHandler) RequiredDependency(
-	_ *miruken.Handles, foo *Foo,
+	_ *handles.It, foo *Foo,
 	bar *Bar,
 ) {
 	if bar == nil {
@@ -204,7 +205,7 @@ func (h *DependencyHandler) RequiredDependency(
 }
 
 func (h *DependencyHandler) RequiredSliceDependency(
-	_ *miruken.Handles, boo *Boo,
+	_ *handles.It, boo *Boo,
 	bars []*Bar,
 ) {
 	boo.Inc()
@@ -214,7 +215,7 @@ func (h *DependencyHandler) RequiredSliceDependency(
 }
 
 func (h *DependencyHandler) OptionalDependency(
-	_ *miruken.Handles, bar *Bar,
+	_ *handles.It, bar *Bar,
 	_*struct{ miruken.Optional }, foo *Foo,
 ) {
 	bar.Inc()
@@ -224,7 +225,7 @@ func (h *DependencyHandler) OptionalDependency(
 }
 
 func (h *DependencyHandler) OptionalSliceDependency(
-	_ *miruken.Handles, baz *Baz,
+	_ *handles.It, baz *Baz,
 	_*struct{ miruken.Optional }, bars []*Bar,
 ) {
 	baz.Inc()
@@ -234,7 +235,7 @@ func (h *DependencyHandler) OptionalSliceDependency(
 }
 
 func (h *DependencyHandler) StrictDependency(
-	_ *miruken.Handles, bam *Bam,
+	_ *handles.It, bam *Bam,
 	_*struct{ miruken.Strict }, bars []*Bar,
 ) {
 	bam.Inc()
@@ -305,7 +306,7 @@ func (c *Configuration) Resolve(
 type DependencyResolverHandler struct{}
 
 func (h *DependencyResolverHandler) UseDependencyResolver(
-	_ *miruken.Handles, foo *Foo,
+	_ *handles.It, foo *Foo,
 	_*struct{ DefaultConfiguration }, config *Config,
 ) *Config {
 	foo.Inc()
@@ -317,12 +318,12 @@ type MixedHandler struct {}
 
 func (m *MixedHandler) Mix(
 	_*struct{
-		miruken.Handles
+		handles.It
 		miruken.Maps
 	  }, callback miruken.Callback,
 ) string {
 	switch cb := callback.(type) {
-	case *miruken.Handles:
+	case *handles.It:
 		return fmt.Sprintf("Handles %T", cb.Source())
 	case *miruken.Maps:
 		return fmt.Sprintf("Maps %T", cb.Source())
@@ -335,7 +336,7 @@ func (m *MixedHandler) Mix(
 type SimpleAsyncHandler struct {}
 
 func (h *SimpleAsyncHandler) HandleBar(
-	_ *miruken.Handles, bar *Bar,
+	_ *handles.It, bar *Bar,
 ) *promise.Promise[*Bar] {
 	bar.Inc()
 	return promise.Then(
@@ -344,7 +345,7 @@ func (h *SimpleAsyncHandler) HandleBar(
 }
 
 func (h *SimpleAsyncHandler) HandleBoo(
-	_ *miruken.Handles, boo *Boo,
+	_ *handles.It, boo *Boo,
 	baz *Baz,
 ) *promise.Promise[*Baz] {
 	boo.Inc()
@@ -353,7 +354,7 @@ func (h *SimpleAsyncHandler) HandleBoo(
 }
 
 func (h *SimpleAsyncHandler) HandleBamPromiseArg(
-	_ *miruken.Handles, bam *Bam,
+	_ *handles.It, bam *Bam,
 	baz *promise.Promise[*Baz],
 ) *Baz {
 	bam.Inc()
@@ -364,7 +365,7 @@ func (h *SimpleAsyncHandler) HandleBamPromiseArg(
 }
 
 func (h *SimpleAsyncHandler) HandleFooPromiseArgLift(
-	_ *miruken.Handles, foo *Foo,
+	_ *handles.It, foo *Foo,
 	boo *promise.Promise[*Boo],
 ) *Boo {
 	foo.Inc()
@@ -390,7 +391,10 @@ func (h *SimpleAsyncHandler) ProvidesBoo(
 type ComplexAsyncHandler struct {}
 
 func (h *ComplexAsyncHandler) HandleFoo(
-	_*struct{ miruken.Handles; miruken.Strict }, foo *Foo,
+	_*struct{
+		handles.It
+		miruken.Strict
+	  }, foo *Foo,
 	baz []*Baz,
 ) []*Baz {
 	foo.Inc()
@@ -413,7 +417,7 @@ func (h *ComplexAsyncHandler) ProvidesBazAsync(
 type ErrorAsyncHandler struct {}
 
 func (h *ErrorAsyncHandler) HandleFoo(
-	_ *miruken.Handles, foo *Foo,
+	_ *handles.It, foo *Foo,
 ) *promise.Promise[*Bar] {
 	return promise.Reject[*Bar](fmt.Errorf("bad Foo %p", foo))
 }
@@ -426,25 +430,25 @@ func (h *InvalidHandler) Constructor() {}
 func (h *InvalidHandler) NoConstructor() {}
 
 func (h *InvalidHandler) MissingDependency(
-	_ *miruken.Handles, _ *Bar,
+	_ *handles.It, _ *Bar,
 	_*struct{ },
 ) {
 }
 
 func (h *InvalidHandler) TooManyReturnValues(
-	_ *miruken.Handles, _ *Bar,
+	_ *handles.It, _ *Bar,
 ) (int, string, Counter) {
 	return 0, "bad", nil
 }
 
 func (h *InvalidHandler) SecondReturnMustBeErrorOrHandleResult(
-	_ *miruken.Handles, _ *Counter,
+	_ *handles.It, _ *Counter,
 ) (Foo, string) {
 	return Foo{}, "bad"
 }
 
 func (h *InvalidHandler) UntypedInterfaceDependency(
-	_ *miruken.Handles, _ *Bar,
+	_ *handles.It, _ *Bar,
 	any any,
 ) miruken.HandleResult {
 	return miruken.Handled
@@ -457,7 +461,7 @@ func (h *InvalidHandler) CallbackInterfaceSpec(
 }
 
 func (h *InvalidHandler) MissingCallbackArgument(
-	*struct{ miruken.Handles },
+	*struct{ handles.It },
 ) miruken.HandleResult {
 	return miruken.Handled
 }
@@ -503,9 +507,9 @@ type MetadataHandler struct{}
 
 func (m *MetadataHandler) HandleFoo(
 	_*struct {
-	    miruken.Handles
-		Transactional   `mode:"requiresNew"`
-	 }, foo *Foo,
+		handles.It
+		Transactional `mode:"requiresNew"`
+	  }, foo *Foo,
 	 ctx miruken.HandleContext,
 ) Transactional {
 	foo.Inc()
@@ -519,10 +523,10 @@ func (m *MetadataHandler) HandleFoo(
 
 func (m *MetadataHandler) HandleBar(
 	_*struct {
-	    miruken.Handles
+		handles.It
 		miruken.Strict
 	    Anonymous
-     }, bar *Bar,
+      }, bar *Bar,
 	ctx miruken.HandleContext,
 ) []Anonymous {
 	bar.Inc()
@@ -535,20 +539,20 @@ type MetadataInvalidHandler struct{}
 
 func (m *MetadataInvalidHandler) HandleFoo(
 	_*struct {
-		miruken.Handles
+		handles.It
 		Transactional `mode:"suppress"`
-	 }) {
+	  }) {
 }
 
 func HandleFoo(
-	_*miruken.Handles, foo *Foo,
+	_ *handles.It, foo *Foo,
 ) miruken.HandleResult {
 	foo.Inc()
 	return miruken.Handled
 }
 
 func HandleCounted(
-	_*struct{ miruken.Handles }, counter Counter,
+	_*struct{ handles.It }, counter Counter,
 ) {
 	counter.Inc()
 	counter.Inc()

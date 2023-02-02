@@ -2,6 +2,7 @@ package validates
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -34,7 +35,7 @@ func (p *Provider) Required() bool {
 func (p *Provider) AppliesTo(
 	callback miruken.Callback,
 ) bool {
-	handles, ok := callback.(*miruken.Handles)
+	handles, ok := callback.(*handles.It)
 	return ok && !miruken.IsNil(handles.Source())
 }
 

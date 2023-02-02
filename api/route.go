@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/either"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/slices"
 	"net/url"
@@ -65,7 +66,7 @@ func (r *Routes) Required() bool {
 func (r *Routes) AppliesTo(
 	callback miruken.Callback,
 ) bool {
-	if handles, ok := callback.(*miruken.Handles); ok {
+	if handles, ok := callback.(*handles.It); ok {
 		_, ok = handles.Source().(Routed)
 		return ok
 	}
@@ -100,7 +101,7 @@ func (r *Routes) Satisfies(routed Routed) bool {
 
 func (p *PassThroughRouter) Pass(
 	_*struct{
-		miruken.Handles
+		handles.It
 		miruken.SkipFilters
 		Routes `scheme:"pass-through"`
 	  }, routed Routed,
@@ -150,14 +151,14 @@ func (r routesFilter) Next(
 func (b *batchRouter) NoConstructor() {}
 
 func (b *batchRouter) Route(
-	_ *miruken.Handles, routed Routed,
+	_ *handles.It, routed Routed,
 	ctx miruken.HandleContext,
 ) *promise.Promise[any] {
 	return b.batch(routed, ctx.Greedy())
 }
 
 func (b *batchRouter) RouteBatch(
-	_ *miruken.Handles, routed miruken.Batched[Routed],
+	_ *handles.It, routed miruken.Batched[Routed],
 	ctx miruken.HandleContext,
 ) *promise.Promise[any] {
 	return b.batch(routed.Source, ctx.Greedy())

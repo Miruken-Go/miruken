@@ -1,6 +1,8 @@
 package miruken
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Handler is the uniform metaphor for processing.
 type Handler interface {

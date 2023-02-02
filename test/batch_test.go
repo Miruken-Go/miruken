@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -24,7 +25,7 @@ type (
 )
 
 func (e *EmailHandler) Send(
-	_ *miruken.Handles, send SendEmail,
+	_ *handles.It, send SendEmail,
 	composer miruken.Handler,
 ) any {
 	if batch := miruken.GetBatch[*EmailBatcher](composer); batch != nil {
@@ -34,7 +35,7 @@ func (e *EmailHandler) Send(
 }
 
 func (e *EmailHandler) ConfirmSend(
-	_ *miruken.Handles, confirm ConfirmSend,
+	_ *handles.It, confirm ConfirmSend,
 	composer miruken.Handler,
 ) *promise.Promise[any] {
 	if batch := miruken.GetBatch[*EmailBatcher](composer); batch != nil {
@@ -44,13 +45,13 @@ func (e *EmailHandler) ConfirmSend(
 }
 
 func (e *EmailHandler) FailSend(
-	_ *miruken.Handles, fail FailSend,
+	_ *handles.It, fail FailSend,
 ) any {
 	panic("can't send message")
 }
 
 func (e *EmailHandler) FailConfirm(
-	_ *miruken.Handles, fail FailConfirm,
+	_ *handles.It, fail FailConfirm,
 	composer miruken.Handler,
 ) any {
 	if batch := miruken.GetBatch[*EmailBatcher](composer); batch != nil {
@@ -60,7 +61,7 @@ func (e *EmailHandler) FailConfirm(
 }
 
 func (e *EmailBatcher) Send(
-	_ *miruken.Handles, send SendEmail,
+	_ *handles.It, send SendEmail,
 ) any {
 	message := fmt.Sprintf("%v batch", send)
 	e.messages = append(e.messages, message)
@@ -68,7 +69,7 @@ func (e *EmailBatcher) Send(
 }
 
 func (e *EmailBatcher) ConfirmSend(
-	_ *miruken.Handles, confirm ConfirmSend,
+	_ *handles.It, confirm ConfirmSend,
 ) *promise.Promise[any]  {
 	e.messages = append(e.messages, string(confirm))
 	d := promise.Defer[any]()
@@ -81,7 +82,7 @@ func (e *EmailBatcher) ConfirmSend(
 }
 
 func (e *EmailBatcher) FailConfirm(
-	_*miruken.Handles, fail FailConfirm,
+	_*handles.It, fail FailConfirm,
 ) *promise.Promise[any] {
 	d := promise.Defer[any]()
 	e.resolves = append(e.resolves, func() {

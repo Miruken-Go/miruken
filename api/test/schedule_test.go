@@ -5,6 +5,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/either"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/suite"
 	"math/rand"
@@ -30,7 +31,7 @@ type (
 )
 
 func (s *StockQuoteHandler) Quote(
-	_ *miruken.Handles, quote GetStockQuote,
+	_ *handles.It, quote GetStockQuote,
 ) *promise.Promise[StockQuote] {
 	if symbol := quote.Symbol; symbol == "EX" {
 		return promise.Reject[StockQuote](
@@ -44,7 +45,7 @@ func (s *StockQuoteHandler) Quote(
 }
 
 func (s *StockQuoteHandler) Sell(
-	_ *miruken.Handles, sell SellStock,
+	_ *handles.It, sell SellStock,
 ) *promise.Promise[promise.Void] {
 	if symbol := sell.Symbol; symbol == "EX" {
 		return promise.Reject[promise.Void](

@@ -1,6 +1,8 @@
 package miruken
 
-import "github.com/miruken-go/miruken/promise"
+import (
+	"github.com/miruken-go/miruken/promise"
+)
 
 type Trampoline struct {
 	callback any

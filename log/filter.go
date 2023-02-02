@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/go-logr/logr"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"time"
@@ -38,7 +39,7 @@ func (l *Provider) Required() bool {
 func (l *Provider) AppliesTo(
 	callback miruken.Callback,
 ) bool {
-	_, ok := callback.(*miruken.Handles)
+	_, ok := callback.(*handles.It)
 	return ok
 }
 

@@ -3,6 +3,7 @@ package test
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -51,7 +52,7 @@ func (c *CancelOrderFilter) Next(
 
 func (o *OrderHandler) Cancel(
 	_*struct{
-		miruken.Handles
+		handles.It
 		CancelOrderFilter
       }, cancel *CancelOrder,
 	order  *Order,

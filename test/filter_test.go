@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/suite"
 	"math"
@@ -165,7 +166,7 @@ func extractCaptured(callback miruken.Callback) Captured {
 	switch cb := callback.Source().(type) {
 	case Captured:
 		return cb
-	case *miruken.Handles:
+	case *handles.It:
 		if captured, ok := cb.Source().(Captured); ok {
 			return captured
 		}
@@ -182,7 +183,7 @@ func (f FilteringHandler) Order() int {
 
 func (f FilteringHandler) HandleBar(
 	_*struct{
-		miruken.Handles
+		handles.It
 		NullFilter
 		LogFilter
 		ExceptionFilter `filter:"required"`
@@ -194,7 +195,7 @@ func (f FilteringHandler) HandleBar(
 
 func (f FilteringHandler) HandleBee(
 	_*struct{
-		miruken.Handles
+		handles.It
 		miruken.SkipFilters
 		LogFilter
 	  },
@@ -204,7 +205,7 @@ func (f FilteringHandler) HandleBee(
 }
 
 func (f FilteringHandler) HandleStuff(
-	_ *miruken.Handles, callback any,
+	_ *handles.It, callback any,
 ) {
 	if bar, ok := callback.(*BarC); ok {
 		bar.IncHandled(-999)
@@ -228,7 +229,7 @@ type SpecialFilteringHandler struct {}
 
 func (s SpecialFilteringHandler) HandleFoo(
 	_*struct{
-		miruken.Handles
+		handles.It
 		LogFilter
 		ExceptionFilter
 	  },
@@ -239,7 +240,7 @@ func (s SpecialFilteringHandler) HandleFoo(
 
 func (s SpecialFilteringHandler) RemoveBoo(
 	_*struct{
-		miruken.Handles
+		handles.It
 		ExceptionFilter
 	  },
 	boo *BooC,
@@ -260,7 +261,7 @@ func (s *SingletonHandler) Constructor(
 
 func (s *SingletonHandler) HandleBar(
 	_*struct{
-		miruken.Handles
+		handles.It
 		LogFilter
 	  },
 	bar *BarC,
@@ -293,7 +294,7 @@ func (s *SingletonErrorHandler) Constructor(
 }
 
 func (s *SingletonErrorHandler) HandleBee(
-	_*miruken.Handles, bee *BeeC,
+	_ *handles.It, bee *BeeC,
 ) {
 	bee.IncHandled(3)
 }
@@ -304,7 +305,7 @@ type BadHandler struct{}
 
 func (b BadHandler) HandleBar(
 	_*struct{
-		miruken.Handles
+		handles.It
 		LogFilter
       },
 	bar *BarC,

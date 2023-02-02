@@ -8,6 +8,7 @@ import (
 	"github.com/miruken-go/miruken/api/http"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
 	"github.com/miruken-go/miruken/api/json/jsonstd"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/validates"
 	"github.com/stretchr/testify/suite"
@@ -66,7 +67,7 @@ func (t *TeamApiHandler) MustHaveTeamName(
 }
 
 func (t *TeamApiHandler) CreateTeam(
-	_ *miruken.Handles, create *CreateTeam,
+	_ *handles.It, create *CreateTeam,
 	ctx miruken.HandleContext,
 ) *promise.Promise[*TeamData] {
 	id := atomic.AddInt32(&t.nextId,1)
@@ -99,13 +100,13 @@ func (t *TeamApiHandler) New(
 // TeamApiConsumer
 
 func (t *TeamApiConsumer) TeamCreated(
-	_ *miruken.Handles, created *TeamCreated,
+	_ *handles.It, created *TeamCreated,
 ) {
 	t.notifications = append(t.notifications, created)
 }
 
 func (t *TeamApiConsumer) TeamNotifications(
-	_ *miruken.Handles, _ *GetTeamNotifications,
+	_ *handles.It, _ *GetTeamNotifications,
 ) []any {
 	return t.notifications
 }

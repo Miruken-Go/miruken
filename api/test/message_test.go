@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/either"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/suite"
 	"strconv"
@@ -29,7 +30,7 @@ type (
 )
 
 func (m *MissionControlHandler) Launch(
-	_ *miruken.Handles, launch Launch,
+	_ *handles.It, launch Launch,
 ) *promise.Promise[string] {
 	if missile := launch.Missile; missile == "Tomahawk" {
 		panic(fmt.Sprintf("launch misfire: %v", missile))
@@ -39,7 +40,7 @@ func (m *MissionControlHandler) Launch(
 }
 
 func (m *MissionControlHandler) Track(
-	_ *miruken.Handles, track *MissileTracked,
+	_ *handles.It, track *MissileTracked,
 ) *promise.Promise[miruken.Void] {
 	track.Count++
 	if track.Count == 2 {
@@ -49,7 +50,7 @@ func (m *MissionControlHandler) Track(
 }
 
 func (p *PresidentHandler) Track(
-	_ *miruken.Handles, track *MissileTracked,
+	_ *handles.It, track *MissileTracked,
 ) *promise.Promise[miruken.Void] {
 	track.Count++
 	if track.Count == 2 {

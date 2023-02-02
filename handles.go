@@ -26,7 +26,7 @@ func (h *Handles) Policy() Policy {
 
 func (h *Handles) CanDispatch(
 	handler     any,
-	binding     Binding,
+	binding Binding,
 ) (reset func (), approved bool) {
 	if guard, ok := h.callback.(CallbackGuard); ok {
 		return guard.CanDispatch(handler, binding)
@@ -95,7 +95,7 @@ func (b *HandlesBuilder) NewHandles() *Handles {
 // Command invokes a callback with no results.
 // returns an empty promise if execution is asynchronous.
 func Command(
-	handler  Handler,
+	handler Handler,
 	callback any,
 	constraints ...any,
 ) (pv *promise.Promise[Void], err error) {
@@ -108,7 +108,7 @@ func Command(
 	handles := builder.NewHandles()
 	if result := handler.Handle(handles, false, nil); result.IsError() {
 		err = result.Error()
-	} else if !result.handled {
+	} else if !result.Handled() {
 		err = &NotHandledError{callback}
 	} else {
 		pv, err = CompleteResult(handles)
@@ -119,7 +119,7 @@ func Command(
 // Execute executes a callback with results.
 // returns the results or promise if execution is asynchronous.
 func Execute[T any](
-	handler     Handler,
+	handler Handler,
 	callback    any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], err error) {
@@ -132,7 +132,7 @@ func Execute[T any](
 	handles := builder.NewHandles()
 	if result := handler.Handle(handles, false, nil); result.IsError() {
 		err = result.Error()
-	} else if !result.handled {
+	} else if !result.Handled() {
 		err = &NotHandledError{callback}
 	} else {
 		_, tp, err = CoerceResult[T](handles, &t)
@@ -143,7 +143,7 @@ func Execute[T any](
 // CommandAll invokes a callback on all with no results.
 // returns an empty promise if execution is asynchronous.
 func CommandAll(
-	handler     Handler,
+	handler Handler,
 	callback    any,
 	constraints ...any,
 ) (pv *promise.Promise[Void], err error) {
@@ -156,8 +156,8 @@ func CommandAll(
 	handles := builder.NewHandles()
 	if result := handler.Handle(handles, true, nil); result.IsError() {
 		err = result.Error()
-	} else if !result.handled {
-		err = &NotHandledError{callback}
+	} else if !result.Handled() {
+		err = &NotHandledError{Callback: callback}
 	} else {
 		pv, err = CompleteResults(handles)
 	}
@@ -167,7 +167,7 @@ func CommandAll(
 // ExecuteAll executes a callback on all and collects the results.
 // returns the results or promise if execution is asynchronous.
 func ExecuteAll[T any](
-	handler     Handler,
+	handler Handler,
 	callback    any,
 	constraints ...any,
 ) (t []T, tp *promise.Promise[[]T], err error) {
@@ -180,8 +180,8 @@ func ExecuteAll[T any](
 	handles := builder.NewHandles()
 	if result := handler.Handle(handles, true, nil); result.IsError() {
 		err = result.Error()
-	} else if !result.handled {
-		err = &NotHandledError{callback}
+	} else if !result.Handled() {
+		err = &NotHandledError{Callback: callback}
 	} else {
 		_, tp, err = CoerceResults[T](handles, &t)
 	}

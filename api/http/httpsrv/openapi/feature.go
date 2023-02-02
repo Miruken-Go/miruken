@@ -3,6 +3,7 @@ package openapi
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
+	"github.com/miruken-go/miruken/handles"
 )
 
 // Installer configures openapi support
@@ -16,8 +17,8 @@ func (i *Installer) DependsOn() []miruken.Feature {
 
 func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
-		var handles miruken.Handles
-		i.handlesPolicy = handles.Policy()
+		var h handles.It
+		i.handlesPolicy = h.Policy()
 		setup.Observers(i)
 	}
 	return nil

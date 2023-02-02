@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 )
 
@@ -61,7 +62,7 @@ func (s *Stash) Provide(
 // It is considered NotHandled if an item with the key is not found and
 // this Stash is not rooted.  This allows retrieval to propagate up the chain.
 func (s *Stash) Get(
-	_ *miruken.Handles, get *stashGet,
+	_ *handles.It, get *stashGet,
 ) miruken.HandleResult {
 	if val, ok := s.data[get.key]; ok {
 		get.setValue(val)
@@ -73,14 +74,14 @@ func (s *Stash) Get(
 
 // Put stores an item by key.
 func (s *Stash) Put(
-	_ *miruken.Handles, put *stashPut,
+	_ *handles.It, put *stashPut,
 ) {
 	s.data[put.key] = put.val
 }
 
 // Drop removes an item by key.
 func (s *Stash) Drop(
-	_*miruken.Handles, drop *stashDrop,
+	_ *handles.It, drop *stashDrop,
 ) {
 	delete(s.data, drop.key)
 }

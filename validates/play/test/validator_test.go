@@ -3,6 +3,7 @@ package test
 import (
 	ut "github.com/go-playground/universal-translator"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/validates"
 	play "github.com/miruken-go/miruken/validates/play"
 	"github.com/stretchr/testify/suite"
@@ -104,7 +105,7 @@ func (v *CreateUserIntegrity) Validate(
 // UserHandler
 
 func (u *UserHandler) CreateUser(
-	_ *miruken.Handles, create *CreateUser,
+	_ *handles.It, create *CreateUser,
 ) User {
 	user := create.User
 	u.userId++
@@ -113,7 +114,7 @@ func (u *UserHandler) CreateUser(
 }
 
 func (u *UserHandler) CreateUserNoTags(
-	_ *miruken.Handles, create *CreateUserNoTags,
+	_ *handles.It, create *CreateUserNoTags,
 ) UserNoTags {
 	user := create.User
 	u.userId++
