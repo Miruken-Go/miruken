@@ -58,7 +58,7 @@ func (v *It) Dispatch(
 }
 
 func (v *It) String() string {
-	return fmt.Sprintf("It => %+v", v.source)
+	return fmt.Sprintf("Provides => %+v", v.source)
 }
 
 

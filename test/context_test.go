@@ -2,7 +2,9 @@ package test
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -13,15 +15,15 @@ type ContextObserver struct {
 	contextEnded bool
 	contextEndedReason any
 	childContextEnding bool
-	childContextEndingContext *miruken.Context
+	childContextEndingContext *context.Context
 	childContextEndingReason any
 	childContextEnded bool
-	childContextEndedContext *miruken.Context
+	childContextEndedContext *context.Context
 	childContextEndedReason any
 }
 
 func (o *ContextObserver) ContextEnding(
-	ctx    *miruken.Context,
+	ctx    *context.Context,
 	reason  any,
 ) {
 	o.contextEnding       = true
@@ -29,7 +31,7 @@ func (o *ContextObserver) ContextEnding(
 }
 
 func (o *ContextObserver) ContextEnded(
-	ctx    *miruken.Context,
+	ctx    *context.Context,
 	reason  any,
 ) {
 	o.contextEnded       = true
@@ -37,7 +39,7 @@ func (o *ContextObserver) ContextEnded(
 }
 
 func (o *ContextObserver) ChildContextEnding(
-	childCtx *miruken.Context,
+	childCtx *context.Context,
 	reason    any,
 ) {
 	o.childContextEnding        = true
@@ -46,7 +48,7 @@ func (o *ContextObserver) ChildContextEnding(
 }
 
 func (o *ContextObserver) ChildContextEnded(
-	childCtx *miruken.Context,
+	childCtx *context.Context,
 	reason    any,
 ) {
 	o.childContextEnded        = true
@@ -76,57 +78,57 @@ func (suite *ContextTestSuite) SetupTest() {
 	suite.HandleTypes = handleTypes
 }
 
-func (suite *ContextTestSuite) RootContext() *miruken.Context {
+func (suite *ContextTestSuite) RootContext() *context.Context {
 	return suite.RootContextWith(suite.HandleTypes...)
 }
 
-func (suite *ContextTestSuite) RootContextWith(specs ...any) *miruken.Context {
-	ctx, _ := miruken.Setup().Specs(specs...).Context()
-	return ctx
+func (suite *ContextTestSuite) RootContextWith(specs ...any) *context.Context {
+	handler, _ := miruken.Setup().Specs(specs...).Handler()
+	return context.New(handler)
 }
 
 func (suite *ContextTestSuite) TestContext() {
 	suite.Run("InitiallyActive", func () {
-		context := miruken.NewContext()
-		suite.Equal(miruken.ContextActive, context.State())
+		ctx := context.New()
+		suite.Equal(context.StateActive, ctx.State())
 	})
 
 	suite.Run("GetSelf", func () {
-		context := miruken.NewContext()
-		self, _, err := miruken.Resolve[*miruken.Context](context)
+		ctx := context.New()
+		self, _, err := miruken.Resolve[*context.Context](ctx)
 		suite.Nil(err)
-		suite.Same(context, self)
+		suite.Same(ctx, self)
 	})
 
 	suite.Run("RootNoParent", func () {
-		context := miruken.NewContext()
-		suite.Nil(context.Parent())
+		ctx := context.New()
+		suite.Nil(ctx.Parent())
 	})
 
 	suite.Run("GetRootContext", func () {
-		context := miruken.NewContext()
-		child   := context.NewChild()
-		suite.Same(context, context.Root())
-		suite.Same(context, child.Root())
+		ctx   := context.New()
+		child := ctx.NewChild()
+		suite.Same(ctx, ctx.Root())
+		suite.Same(ctx, child.Root())
 	})
 
 	suite.Run("GetParenContext", func () {
-		context := miruken.NewContext()
-		child   := context.NewChild()
-		suite.Same(context, child.Parent())
+		ctx   := context.New()
+		child := ctx.NewChild()
+		suite.Same(ctx, child.Parent())
 	})
 
 	suite.Run("NoChildrenByDefault", func () {
-		context := miruken.NewContext()
-		suite.Nil(context.Children())
+		ctx := context.New()
+		suite.Nil(ctx.Children())
 	})
 
 	suite.Run("ChildrenAvailable", func () {
-		context := miruken.NewContext()
-		child1  := context.NewChild()
-		child2  := context.NewChild()
-		suite.True(context.HasChildren())
-		suite.ElementsMatch(context.Children(), []*miruken.Context{child1, child2})
+		ctx    := context.New()
+		child1 := ctx.NewChild()
+		child2 := ctx.NewChild()
+		suite.True(ctx.HasChildren())
+		suite.ElementsMatch(ctx.Children(), []*context.Context{child1, child2})
 	})
 
 	suite.Run("Handlers", func () {
@@ -134,60 +136,60 @@ func (suite *ContextTestSuite) TestContext() {
 			WithoutInference().
 			Specs(&Service{}).
 			Handler()
-		context := miruken.NewContext(handler, new(Service))
+		ctx := context.New(handler, new(Service))
 		var foo Foo
-		result := context.Handle(&foo, false, nil)
+		result := ctx.Handle(&foo, false, nil)
 		suite.False(result.IsError())
 		suite.Equal(miruken.Handled, result)
 		suite.Equal(1, foo.Count())
 	})
 
 	suite.Run("End", func () {
-		context := miruken.NewContext()
-		context.End(nil)
-		suite.Equal(miruken.ContextEnded, context.State())
+		ctx := context.New()
+		ctx.End(nil)
+		suite.Equal(context.StateEnded, ctx.State())
 	})
 
 	suite.Run("EndChild", func () {
-		context := miruken.NewContext()
-		child   := context.NewChild()
-		context.End(nil)
-		suite.Equal(miruken.ContextEnded, child.State())
+		ctx   := context.New()
+		child := ctx.NewChild()
+		ctx.End(nil)
+		suite.Equal(context.StateEnded, child.State())
 	})
 
 	suite.Run("EndWhenDisposed", func () {
-		context := miruken.NewContext()
-		context.Dispose()
-		suite.Equal(miruken.ContextEnded, context.State())
+		ctx := context.New()
+		ctx.Dispose()
+		suite.Equal(context.StateEnded, ctx.State())
 	})
 
 	suite.Run("Unwind", func () {
-		context := miruken.NewContext()
-		child1  := context.NewChild()
-		child2  := context.NewChild()
-		context.Unwind(nil)
-		suite.Equal(miruken.ContextEnded, child1.State())
-		suite.Equal(miruken.ContextEnded, child2.State())
+		ctx    := context.New()
+		child1 := ctx.NewChild()
+		child2 := ctx.NewChild()
+		ctx.Unwind(nil)
+		suite.Equal(context.StateEnded, child1.State())
+		suite.Equal(context.StateEnded, child2.State())
 	})
 
 	suite.Run("UnwindRoot", func () {
-		context    := miruken.NewContext()
-		child1     := context.NewChild()
-		child2     := context.NewChild()
+		ctx        := context.New()
+		child1     := ctx.NewChild()
+		child2     := ctx.NewChild()
 		grandChild := child1.NewChild()
 		root       := child2.UnwindToRoot(nil)
-		suite.Same(context, root)
-		suite.Equal(miruken.ContextActive, context.State())
-		suite.Equal(miruken.ContextEnded, child1.State())
-		suite.Equal(miruken.ContextEnded, child2.State())
-		suite.Equal(miruken.ContextEnded, grandChild.State())
+		suite.Same(ctx, root)
+		suite.Equal(context.StateActive, ctx.State())
+		suite.Equal(context.StateEnded, child1.State())
+		suite.Equal(context.StateEnded, child2.State())
+		suite.Equal(context.StateEnded, grandChild.State())
 	})
 
 	suite.Run("Store", func () {
-		data    := &ContextObserver{}
-		context := miruken.NewContext()
-		context.Store(data)
-		resolve, _, err := miruken.Resolve[*ContextObserver](context)
+		data := &ContextObserver{}
+		ctx  := context.New()
+		ctx.Store(data)
+		resolve, _, err := miruken.Resolve[*ContextObserver](ctx)
 		suite.Nil(err)
 		suite.Same(data, resolve)
 	})
@@ -195,7 +197,7 @@ func (suite *ContextTestSuite) TestContext() {
 	suite.Run("Traverse", func () {
 		suite.Run("AncestorsByDefault", func() {
 			data  := &ContextObserver{}
-			root  := miruken.NewContext()
+			root  := context.New()
 			child := root.NewChild()
 			grandChild := child.NewChild()
 			root.Store(data)
@@ -206,7 +208,7 @@ func (suite *ContextTestSuite) TestContext() {
 
 		suite.Run("Self", func() {
 			data  := &ContextObserver{}
-			root  := miruken.NewContext()
+			root  := context.New()
 			child := root.NewChild()
 			root.Store(data)
 			resolve, _, err := miruken.Resolve[*ContextObserver](miruken.BuildUp(child, miruken.SelfAxis))
@@ -219,7 +221,7 @@ func (suite *ContextTestSuite) TestContext() {
 
 		suite.Run("Root", func() {
 			data  := &ContextObserver{}
-			root  := miruken.NewContext()
+			root  := context.New()
 			child := root.NewChild()
 			child.Store(data)
 			resolve, _, err := miruken.Resolve[*ContextObserver](miruken.BuildUp(child, miruken.RootAxis))
@@ -233,7 +235,7 @@ func (suite *ContextTestSuite) TestContext() {
 
 		suite.Run("Children", func() {
 			data := &ContextObserver{}
-			root := miruken.NewContext()
+			root := context.New()
 			root.NewChild()
 			child2 := root.NewChild()
 			child3 := root.NewChild()
@@ -252,7 +254,7 @@ func (suite *ContextTestSuite) TestContext() {
 
 		suite.Run("Siblings", func() {
 			data := &ContextObserver{}
-			root := miruken.NewContext()
+			root := context.New()
 			root.NewChild()
 			child2 := root.NewChild()
 			child3 := root.NewChild()
@@ -274,7 +276,7 @@ func (suite *ContextTestSuite) TestContext() {
 
 		suite.Run("ChildrenOrSelf", func() {
 			data   := &ContextObserver{}
-			root   := miruken.NewContext()
+			root   := context.New()
 			child1 := root.NewChild()
 			root.NewChild()
 			child3 := root.NewChild()
@@ -296,7 +298,7 @@ func (suite *ContextTestSuite) TestContext() {
 
 		suite.Run("SiblingsOrSelf", func() {
 			data := &ContextObserver{}
-			root := miruken.NewContext()
+			root := context.New()
 			root.NewChild()
 			child2 := root.NewChild()
 			child3 := root.NewChild()
@@ -318,7 +320,7 @@ func (suite *ContextTestSuite) TestContext() {
 
 		suite.Run("Ancestors", func() {
 			data  := &ContextObserver{}
-			root  := miruken.NewContext()
+			root  := context.New()
 			child := root.NewChild()
 			grandChild := child.NewChild()
 			root.Store(data)
@@ -332,7 +334,7 @@ func (suite *ContextTestSuite) TestContext() {
 
 		suite.Run("AncestorsOrSelf", func() {
 			data  := &ContextObserver{}
-			root  := miruken.NewContext()
+			root  := context.New()
 			child := root.NewChild()
 			grandChild := child.NewChild()
 			root.Store(data)
@@ -346,7 +348,7 @@ func (suite *ContextTestSuite) TestContext() {
 
 		suite.Run("Descendants", func() {
 			data := &ContextObserver{}
-			root := miruken.NewContext()
+			root := context.New()
 			root.NewChild()
 			child2 := root.NewChild()
 			child3 := root.NewChild()
@@ -368,7 +370,7 @@ func (suite *ContextTestSuite) TestContext() {
 
 		suite.Run("DescendantsOrSelf", func() {
 			data := &ContextObserver{}
-			root := miruken.NewContext()
+			root := context.New()
 			root.NewChild()
 			child2 := root.NewChild()
 			child3 := root.NewChild()
@@ -390,7 +392,7 @@ func (suite *ContextTestSuite) TestContext() {
 
 		suite.Run("DescendantsOrSELF", func() {
 			data := &ContextObserver{}
-			root := miruken.NewContext()
+			root := context.New()
 			root.NewChild()
 			child2 := root.NewChild()
 			child3 := root.NewChild()
@@ -406,7 +408,7 @@ func (suite *ContextTestSuite) TestContext() {
 
 		suite.Run("AncestorsSIBLINGSorSelf", func() {
 			data := &ContextObserver{}
-			root := miruken.NewContext()
+			root := context.New()
 			root.NewChild()
 			child2 := root.NewChild()
 			child3 := root.NewChild()
@@ -422,7 +424,7 @@ func (suite *ContextTestSuite) TestContext() {
 
 		suite.Run("ANCESTORSSiblingsOrSelf", func() {
 			data := &ContextObserver{}
-			root := miruken.NewContext()
+			root := context.New()
 			root.NewChild()
 			root.NewChild()
 			child3 := root.NewChild()
@@ -435,32 +437,32 @@ func (suite *ContextTestSuite) TestContext() {
 	})
 
 	suite.Run("Observe", func () {
-		suite.Run("ContextEnding", func() {
-			reason := "ending"
+		suite.Run("StateEnding", func() {
+			reason   := "ending"
 			observer := ContextObserver{}
-			context := miruken.NewContext()
-			context.Observe(&observer)
-			context.End(reason)
+			ctx      := context.New()
+			ctx.Observe(&observer)
+			ctx.End(reason)
 			suite.True(observer.contextEnding)
 			suite.Equal(reason, observer.contextEndingReason)
 		})
 
-		suite.Run("ContextEnded", func() {
-			reason := "ended"
+		suite.Run("StateEnded", func() {
+			reason   := "ended"
 			observer := ContextObserver{}
-			context := miruken.NewContext()
-			context.Observe(&observer)
-			context.End(reason)
+			ctx      := context.New()
+			ctx.Observe(&observer)
+			ctx.End(reason)
 			suite.True(observer.contextEnded)
 			suite.Equal(reason, observer.contextEndedReason)
 		})
 
 		suite.Run("ChildContextEnding", func() {
-			reason := "childEnding"
+			reason   := "childEnding"
 			observer := ContextObserver{}
-			context := miruken.NewContext()
-			context.Observe(&observer)
-			child := context.NewChild()
+			ctx      := context.New()
+			ctx.Observe(&observer)
+			child := ctx.NewChild()
 			child.End(reason)
 			suite.False(observer.contextEnding)
 			suite.True(observer.childContextEnding)
@@ -469,11 +471,11 @@ func (suite *ContextTestSuite) TestContext() {
 		})
 
 		suite.Run("ChildContextEnded", func() {
-			reason := "childEnded"
+			reason   := "childEnded"
 			observer := ContextObserver{}
-			context := miruken.NewContext()
-			context.Observe(&observer)
-			child := context.NewChild()
+			ctx      := context.New()
+			ctx.Observe(&observer)
+			child := ctx.NewChild()
 			child.End(reason)
 			suite.False(observer.contextEnded)
 			suite.True(observer.childContextEnded)
@@ -485,20 +487,20 @@ func (suite *ContextTestSuite) TestContext() {
 
 // ScopedService demonstrates a scoped service.
 type ScopedService struct {
-	miruken.ContextualBase
+	context.ContextualBase
 	disposed bool
 	foo Foo
 }
 
 func (s *ScopedService) Constructor(
 	_*struct{
-		miruken.Provides
-		miruken.Scoped
+		provides.It
+		context.Lifestyle
 	  },
 ) {
 }
 
-func (s *ScopedService) SetContext(ctx *miruken.Context) {
+func (s *ScopedService) SetContext(ctx *context.Context) {
 	s.ChangeContext(s, ctx)
 }
 
@@ -511,7 +513,7 @@ func (s *ScopedService) Count(
 	counter.Inc()
 }
 
-func (s *ScopedService) ProvideFoo(*miruken.Provides) *Foo {
+func (s *ScopedService) ProvideFoo(*provides.It) *Foo {
 	if s.Context() == nil {
 		panic("context not assigned")
 	}
@@ -525,20 +527,20 @@ func (s *ScopedService) Dispose() {
 
 // RootedService demonstrates a root scoped service.
 type RootedService struct {
-	miruken.ContextualBase
+	context.ContextualBase
 	disposed bool
 	bar Bar
 }
 
 func (s *RootedService) Constructor(
 	_*struct{
-		miruken.Provides
-		miruken.ScopedRooted
+		provides.It
+		context.Rooted
       },
 ) {
 }
 
-func (s *RootedService) SetContext(ctx *miruken.Context) {
+func (s *RootedService) SetContext(ctx *context.Context) {
 	s.ChangeContext(s, ctx)
 }
 
@@ -552,7 +554,7 @@ func (s *RootedService) HandleBar(
 	bar.Inc()
 }
 
-func (s *RootedService) ProvideCounter(*miruken.Provides) Counter {
+func (s *RootedService) ProvideCounter(*provides.It) Counter {
 	if s.Context() == nil {
 		panic("context not assigned")
 	}
@@ -569,8 +571,8 @@ type LifestyleMismatch struct {}
 
 func (l *LifestyleMismatch) Constructor(
 	_*struct{
-		miruken.Provides
-		miruken.Singleton
+		provides.It
+		provides.Singleton
 	  },
 	service *ScopedService,
 ) {
@@ -578,16 +580,16 @@ func (l *LifestyleMismatch) Constructor(
 
 // ContextualObserver collects Contextual changes.
 type ContextualObserver struct {
-	contextual [2]miruken.Contextual
-	oldCtx     [2]*miruken.Context
-	newCtx     [2]*miruken.Context
-	useCtx     *miruken.Context
+	contextual [2]context.Contextual
+	oldCtx     [2]*context.Context
+	newCtx     [2]*context.Context
+	useCtx     *context.Context
 }
 
 func (o *ContextualObserver) ContextChanging(
-	contextual   miruken.Contextual,
-	oldCtx      *miruken.Context,
-	newCtx     **miruken.Context,
+	contextual context.Contextual,
+	oldCtx      *context.Context,
+	newCtx     **context.Context,
 ) {
 	o.contextual[0] = contextual
 	o.oldCtx[0]     = oldCtx
@@ -598,9 +600,9 @@ func (o *ContextualObserver) ContextChanging(
 }
 
 func (o *ContextualObserver) ContextChanged(
-	contextual  miruken.Contextual,
-	oldCtx     *miruken.Context,
-	newCtx     *miruken.Context,
+	contextual context.Contextual,
+	oldCtx     *context.Context,
+	newCtx     *context.Context,
 ) {
 	o.contextual[1] = contextual
 	o.oldCtx[1]     = oldCtx
@@ -615,14 +617,14 @@ func (suite *ContextTestSuite) TestContextual() {
 
 	suite.Run("SetContext", func () {
 		service := ScopedService{}
-		root    := miruken.NewContext()
+		root    := context.New()
 		service.SetContext(root)
 		suite.Same(root, service.Context())
 	})
 
 	suite.Run("AddsContextualToContext", func () {
 		service := ScopedService{}
-		root    := miruken.NewContext()
+		root    := context.New()
 		service.SetContext(root)
 		if services, _, err := miruken.ResolveAll[*ScopedService](root); err == nil {
 			suite.NotNil(services)
@@ -635,7 +637,7 @@ func (suite *ContextTestSuite) TestContextual() {
 
 	suite.Run("RemovesContextualFromContext", func () {
 		service := ScopedService{}
-		root    := miruken.NewContext()
+		root    := context.New()
 		service.SetContext(root)
 		if services, _, err := miruken.ResolveAll[*ScopedService](root); err == nil {
 			suite.NotNil(services)
@@ -658,7 +660,7 @@ func (suite *ContextTestSuite) TestContextual() {
 			service  := ScopedService{}
 			observer := ContextualObserver{}
 			service.Observe(&observer)
-			root := miruken.NewContext()
+			root := context.New()
 			service.SetContext(root)
 			suite.Same(root, service.Context())
 			suite.Same(&service, observer.contextual[0])
@@ -671,7 +673,7 @@ func (suite *ContextTestSuite) TestContextual() {
 
 		suite.Run("ClearContext", func() {
 			service := ScopedService{}
-			root    := miruken.NewContext()
+			root    := context.New()
 			service.SetContext(root)
 			observer := ContextualObserver{}
 			service.Observe(&observer)
@@ -687,7 +689,7 @@ func (suite *ContextTestSuite) TestContextual() {
 
 		suite.Run("ReplaceContext", func () {
 			service  := ScopedService{}
-			root     := miruken.NewContext()
+			root     := context.New()
 			child    := root.NewChild()
 			observer := ContextualObserver{useCtx: child}
 			service.Observe(&observer)
@@ -732,7 +734,7 @@ func (suite *ContextTestSuite) TestContextual() {
 			service, _, err := miruken.Resolve[*ScopedService](root)
 			suite.Nil(err)
 			suite.NotNil(service)
-			childService, _, err := miruken.Resolve[*ScopedService](child, miruken.FromScope)
+			childService, _, err := miruken.Resolve[*ScopedService](child, context.FromScope)
 			suite.Nil(err)
 			suite.Same(child, childService.Context())
 			suite.NotSame(service, childService)

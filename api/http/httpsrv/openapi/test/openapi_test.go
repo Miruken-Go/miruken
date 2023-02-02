@@ -11,6 +11,7 @@ import (
 	"github.com/miruken-go/miruken/api/http/httpsrv"
 	"github.com/miruken-go/miruken/api/http/httpsrv/openapi"
 	"github.com/miruken-go/miruken/api/json/jsonstd"
+	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/suite"
@@ -51,21 +52,21 @@ type OpenApiTestSuite struct {
 	srv *httptest.Server
 }
 
-func (suite *OpenApiTestSuite) Setup(specs ...any) *miruken.Context {
-	ctx, _ := miruken.Setup(
+func (suite *OpenApiTestSuite) Setup(specs ...any) *context.Context {
+	handler, _ := miruken.Setup(
 		TestFeature, http.Feature(), jsonstd.Feature()).
 		Specs(&api.GoTypeFieldInfoMapper{}).
 		Specs(specs...).
-		Context()
-	return ctx
+		Handler()
+	return context.New(handler)
 }
 
 func (suite *OpenApiTestSuite) SetupTest() {
-	ctx, _ := miruken.Setup(
+	handler, _ := miruken.Setup(
 		TestFeature, openapi.Feature(), jsonstd.Feature()).
 		Specs(&api.GoTypeFieldInfoMapper{}).
-		Context()
-	suite.srv = httptest.NewServer(httpsrv.Api(ctx))
+		Handler()
+	suite.srv = httptest.NewServer(httpsrv.Api(context.New(handler)))
 }
 
 func (suite *OpenApiTestSuite) TearDownTest() {

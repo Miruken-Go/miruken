@@ -145,8 +145,8 @@ func (f *filterSpecProvider) Filters(
 ) ([]Filter, error) {
 	spec := f.spec
 	var builder ProvidesBuilder
-	provides := builder.WithKey(spec.typ).NewProvides()
-	resolve, pr, err := provides.Resolve(composer, false)
+	p := builder.WithKey(spec.typ).NewProvides()
+	resolve, pr, err := p.Resolve(composer, false)
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
 	"math"
 	"testing"
@@ -253,8 +254,8 @@ type SingletonHandler struct{}
 
 func (s *SingletonHandler) Constructor(
 	_*struct{
-		miruken.Provides
-		miruken.Singleton
+		provides.It
+		provides.Singleton
 	  },
 ) {
 }
@@ -279,8 +280,8 @@ type SingletonErrorHandler struct {
 
 func (s *SingletonErrorHandler) Constructor(
 	_*struct{
-		miruken.Provides
-		miruken.Singleton
+		provides.It
+		provides.Singleton
 	  },
 ) error {
 	errorCount++

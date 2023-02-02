@@ -10,7 +10,7 @@ import (
 type Provides struct {
 	CallbackBase
 	key     any
-	parent *Provides
+	parent  *Provides
 	handler any
 	binding Binding
 	owner   any
@@ -141,34 +141,33 @@ func (b *ProvidesBuilder) ForOwner(
 }
 
 func (b *ProvidesBuilder) Provides() Provides {
-	provides := Provides{
+	return Provides{
 		CallbackBase: b.CallbackBase(),
 		key:          b.key,
 		parent:       b.parent,
 	}
-	return provides
 }
 
 func (b *ProvidesBuilder) NewProvides() *Provides {
-	provides := &Provides{
+	p := &Provides{
 		CallbackBase: b.CallbackBase(),
 		key:          b.key,
 		parent:       b.parent,
 		owner:        b.owner,
 	}
-	provides.SetAcceptPromiseResult(provides.acceptPromise)
-	return provides
+	p.SetAcceptPromiseResult(p.acceptPromise)
+	return p
 }
 
 func Resolve[T any](
-	handler     Handler,
+	handler Handler,
 	constraints ...any,
 ) (T, *promise.Promise[T], error) {
 	return ResolveKey[T](handler, TypeOf[T](), constraints...)
 }
 
 func ResolveKey[T any](
-	handler     Handler,
+	handler Handler,
 	key         any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], err error) {
@@ -178,17 +177,17 @@ func ResolveKey[T any](
 	var builder ProvidesBuilder
 	builder.WithKey(key).
 		WithConstraints(constraints...)
-	provides := builder.NewProvides()
-	if result := handler.Handle(provides, false, nil); result.IsError() {
+	p := builder.NewProvides()
+	if result := handler.Handle(p, false, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {
-		_, tp, err = CoerceResult[T](provides, &t)
+		_, tp, err = CoerceResult[T](p, &t)
 	}
 	return
 }
 
 func ResolveAll[T any](
-	handler     Handler,
+	handler Handler,
 	constraints ...any,
 ) (t []T, tp *promise.Promise[[]T], err error) {
 	if IsNil(handler) {
@@ -197,11 +196,11 @@ func ResolveAll[T any](
 	var builder ProvidesBuilder
 	builder.WithKey(TypeOf[T]()).
 		    WithConstraints(constraints...)
-	provides := builder.NewProvides()
-	if result := handler.Handle(provides, true, nil); result.IsError() {
+	p := builder.NewProvides()
+	if result := handler.Handle(p, true, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {
-		_, tp, err = CoerceResults[T](provides, &t)
+		_, tp, err = CoerceResults[T](p, &t)
 	}
 	return
 }

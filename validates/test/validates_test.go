@@ -283,7 +283,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 		})
 	})
 
-	suite.Run("It", func () {
+	suite.Run("Provides", func () {
 		suite.Run("Default", func() {
 			handler, _ := suite.Setup()
 			player := Player{DOB:  time.Date(2007, time.June,
@@ -320,7 +320,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 			validates.Feature(validates.Output)).
 			Specs(suite.specs...).
 			Handler()
-		suite.Run("It Command", func() {
+		suite.Run("Provides Command", func() {
 			create := CreateTeam{TeamAction{ Team: Team{
 				Name: "Liverpool",
 				Coach: Coach{
@@ -367,7 +367,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 				suite.Fail("unexpected error: %v", err.Error())
 			}
 
-			suite.Run("It Open", func() {
+			suite.Run("Provides Open", func() {
 				create := CreateTeam{TeamAction{ Team: Team{
 					Name: "Breakaway",
 					Coach: Coach{

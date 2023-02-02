@@ -1,33 +1,35 @@
-package miruken
+package context
 
 import (
 	"errors"
 	"fmt"
+	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/provides"
 	"reflect"
 	"sync"
 )
 
 type (
-	// Scoped is a BindingGroup for specifying Scoped lifestyle.
-	// It associates both the scoped lifestyle and fromScope constraint.
-	Scoped struct {
-		BindingGroup
+	// Lifestyle is a BindingGroup for requesting a scoped lifestyle.
+	// Provides associates both the scoped lifestyle and fromScope constraint.
+	Lifestyle struct {
+		miruken.BindingGroup
 		scoped
-		Qualifier[fromScope]
+		miruken.Qualifier[fromScope]
 	}
 
-	// ScopedRooted is a BindingGroup for specifying Scoped lifestyle
+	// Rooted is a BindingGroup for requesting a rooted scoped lifestyle
 	// with all resolutions assigned to the root Context.
-	ScopedRooted struct {
-		BindingGroup
+	Rooted struct {
+		miruken.BindingGroup
 		scoped `scoped:"rooted"`
-		Qualifier[fromScope]
+		miruken.Qualifier[fromScope]
 	}
 
 	// scoped LifestyleProvider provides instances per Context.
 	scoped struct {
-		LifestyleProvider
+		miruken.LifestyleProvider
 		rooted bool
 	}
 
@@ -49,17 +51,17 @@ func (s *scoped) Init() error {
 
 // scopedFilter is a Filter that caches an instance per Context.
 type scopedFilter struct {
-	Lifestyle
-	cache  map[*Context]lifestyleCache
+	miruken.Lifestyle
+	cache  map[*Context]miruken.LifestyleCache
 	lock   sync.RWMutex
 }
 
 func (s *scopedFilter) Next(
-	next     Next,
-	ctx      HandleContext,
-	provider FilterProvider,
+	next miruken.Next,
+	ctx miruken.HandleContext,
+	provider miruken.FilterProvider,
 )  (out []any, po *promise.Promise[[]any], err error) {
-	key := ctx.Callback().(*Provides).Key()
+	key := ctx.Callback().(*provides.It).Key()
 	if key == contextType {
 		// can't resolve a context contextually
 		return nil, nil,nil
@@ -73,18 +75,18 @@ func (s *scopedFilter) Next(
 	if !s.isCompatibleWithParent(ctx, rooted) {
 		return nil, nil,nil
 	}
-	context, _, err := Resolve[*Context](ctx.Composer())
+	context, _, err := miruken.Resolve[*Context](ctx.Composer())
 	if err != nil {
 		return nil, nil, err
 	} else if context == nil {
 		return next.Abort()
-	} else if context.State() != ContextActive {
+	} else if context.State() != StateActive {
 		return nil, nil, errors.New("scoped: cannot scope instances to an inactive context")
 	} else if rooted {
 		context = context.Root()
 	}
 
-	var entry *lifestyleEntry
+	var entry *miruken.LifestyleEntry
 	s.lock.RLock()
 	if cache := s.cache; cache != nil {
 		if keys := cache[context]; keys != nil {
@@ -98,21 +100,21 @@ func (s *scopedFilter) Next(
 		if cache := s.cache; cache != nil {
 			if keys := cache[context]; keys != nil {
 				if entry = keys[key]; entry == nil {
-					entry     = &lifestyleEntry{once: new(sync.Once)}
+					entry     = &miruken.LifestyleEntry{Once: new(sync.Once)}
 					keys[key] = entry
 				}
 			} else {
-				entry = &lifestyleEntry{once: new(sync.Once)}
-				cache[context] = lifestyleCache{key: entry}
+				entry = &miruken.LifestyleEntry{Once: new(sync.Once)}
+				cache[context] = miruken.LifestyleCache{key: entry}
 			}
 		} else {
-			entry   = &lifestyleEntry{once: new(sync.Once)}
-			s.cache = map[*Context]lifestyleCache{context: {key: entry}}
+			entry   = &miruken.LifestyleEntry{Once: new(sync.Once)}
+			s.cache = map[*Context]miruken.LifestyleCache{context: {key: entry}}
 		}
 		s.lock.Unlock()
 	}
 
-	entry.once.Do(func() {
+	entry.Once.Do(func() {
 		defer func() {
 			if r := recover(); r != nil {
 				if e, ok := r.(error); ok {
@@ -120,20 +122,20 @@ func (s *scopedFilter) Next(
 				} else {
 					err = fmt.Errorf("scoped: panic: %v", r)
 				}
-				entry.once = new(sync.Once)
+				entry.Once = new(sync.Once)
 			}
 		}()
 		if out, po, err = next.Pipe(); err == nil && po != nil {
 			out, err = po.Await()
 		}
 		if err != nil || len(out) == 0 {
-			entry.once = new(sync.Once)
+			entry.Once = new(sync.Once)
 		} else {
-			entry.instance = out
+			entry.Instance = out
 			if contextual, ok := out[0].(Contextual); ok {
 				contextual.SetContext(context)
 				unsubscribe := contextual.Observe(s)
-				context.Observe(ContextEndedObserverFunc(func(*Context, any) {
+				context.Observe(EndedObserverFunc(func(*Context, any) {
 					s.lock.Lock()
 					delete(s.cache, context)
 					s.lock.Unlock()
@@ -142,7 +144,7 @@ func (s *scopedFilter) Next(
 					contextual.SetContext(nil)
 				}))
 			} else {
-				context.Observe(ContextEndedObserverFunc(func(*Context, any) {
+				context.Observe(EndedObserverFunc(func(*Context, any) {
 					s.lock.Lock()
 					delete(s.cache, context)
 					s.lock.Unlock()
@@ -151,11 +153,11 @@ func (s *scopedFilter) Next(
 			}
 		}
 	})
-	return entry.instance, nil, nil
+	return entry.Instance, nil, nil
 }
 
 func (s *scopedFilter) ContextChanging(
-	contextual   Contextual,
+	contextual Contextual,
 	oldCtx      *Context,
 	newCtx     **Context,
 ) {
@@ -173,7 +175,7 @@ func (s *scopedFilter) ContextChanging(
 		return
 	} else {
 		for key, entry := range keys {
-			if entry.instance[0] == contextual {
+			if entry.Instance[0] == contextual {
 				delete(keys, key)
 				s.tryDispose(contextual)
 				break
@@ -183,10 +185,10 @@ func (s *scopedFilter) ContextChanging(
 }
 
 func (s *scopedFilter) isCompatibleWithParent(
-	ctx    HandleContext,
+	ctx miruken.HandleContext,
 	rooted  bool,
 ) bool {
-	if parent := ctx.Callback().(*Provides).Parent(); parent != nil {
+	if parent := ctx.Callback().(*provides.It).Parent(); parent != nil {
 		if pb := parent.Binding(); pb != nil {
 			for _, filter := range pb.Filters() {
 				if scoped, ok := filter.(*scoped); !ok || (!rooted && scoped.rooted) {
@@ -199,9 +201,12 @@ func (s *scopedFilter) isCompatibleWithParent(
 }
 
 func (s *scopedFilter) tryDispose(instance any) {
-	if disposable, ok := instance.(Disposable); ok {
+	if disposable, ok := instance.(miruken.Disposable); ok {
 		disposable.Dispose()
 	}
 }
 
-var FromScope Qualifier[fromScope]
+var (
+	FromScope miruken.Qualifier[fromScope]
+	contextType = miruken.TypeOf[*Context]()
+)

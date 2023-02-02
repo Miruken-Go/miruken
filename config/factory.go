@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/slices"
 	"reflect"
 	"strings"
@@ -14,7 +15,7 @@ type (
 		provider Provider
 	}
 
-	// Load restricts miruken.Provides to configurations.
+	// Load restricts provides.Provides to configurations.
 	Load struct {
 		Path string
 		Flat bool
@@ -49,12 +50,12 @@ func (l *Load) Satisfies(required miruken.BindingConstraint) bool {
 // populated by the assigned Provider.
 func (f *Factory) NewConfiguration(
 	_*struct{
-		miruken.Provides
-		miruken.Singleton
+		provides.It
+		provides.Singleton
 		Load
-	  }, provides *miruken.Provides,
+	  }, p *provides.It,
 ) (any, error) {
-	if typ, ok := provides.Key().(reflect.Type); ok {
+	if typ, ok := p.Key().(reflect.Type); ok {
 		var out any
 		ptr := typ.Kind() == reflect.Ptr
 		if ptr {
@@ -62,7 +63,7 @@ func (f *Factory) NewConfiguration(
 		} else {
 			out = reflect.New(typ).Interface()
 		}
-		load := loadPreference(provides)
+		load := loadPreference(p)
 		if err := f.provider.Unmarshal(load.Path, load.Flat, out); err != nil {
 			return nil, fmt.Errorf("config: %w", err)
 		}
@@ -74,8 +75,8 @@ func (f *Factory) NewConfiguration(
 	return nil, nil
 }
 
-func loadPreference(provides *miruken.Provides) *Load {
-	for _, c := range provides.Constraints() {
+func loadPreference(p *provides.It) *Load {
+	for _, c := range p.Constraints() {
 		if l, ok := c.(*Load); ok {
 			return l
 		}

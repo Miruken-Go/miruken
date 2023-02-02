@@ -82,21 +82,6 @@ func AddHandlers(
 	}
 }
 
-func With(values ...any) BuilderFunc {
-	return func (handler Handler) Handler {
-		var valueHandlers []any
-		for _, val := range values {
-			if val != nil {
-				valueHandlers = append(valueHandlers, NewProvider(val))
-			}
-		}
-		if len(valueHandlers) > 0 {
-			return AddHandlers(handler, valueHandlers...)
-		}
-		return handler
-	}
-}
-
 // withHandler composes two Handlers.
 type withHandler struct {
 	Handler
@@ -151,13 +136,13 @@ func (w *withHandlers) Handle(
 
 func (w *withHandlers) SuppressDispatch() {}
 
-// mutableHandlers manages any number of Handlers.
-type mutableHandlers struct {
+// MutableHandlers manages any number of Handlers.
+type MutableHandlers struct {
 	handlers []Handler
 	lock     sync.RWMutex
 }
 
-func (m *mutableHandlers) Handlers() []any {
+func (m *MutableHandlers) Handlers() []any {
 	return slices.Map[Handler, any](m.handlers, func(handler Handler) any {
 		if a, ok := handler.(handlerAdapter); ok {
 			return a.handler
@@ -166,9 +151,9 @@ func (m *mutableHandlers) Handlers() []any {
 	})
 }
 
-func (m *mutableHandlers) AddHandlers(
+func (m *MutableHandlers) AddHandlers(
 	handlers ...any,
-) *mutableHandlers {
+) *MutableHandlers {
 	if len(handlers) > 0 {
 		m.lock.Lock()
 		defer m.lock.Unlock()
@@ -178,10 +163,10 @@ func (m *mutableHandlers) AddHandlers(
 	return m
 }
 
-func (m *mutableHandlers) InsertHandlers(
+func (m *MutableHandlers) InsertHandlers(
 	index    int,
 	handlers ...any,
-) *mutableHandlers {
+) *MutableHandlers {
 	if index < 0 {
 		panic("index must be >= 0")
 	}
@@ -194,9 +179,9 @@ func (m *mutableHandlers) InsertHandlers(
 	return m
 }
 
-func (m *mutableHandlers) RemoveHandlers(
+func (m *MutableHandlers) RemoveHandlers(
 	handlers ...any,
-) *mutableHandlers {
+) *MutableHandlers {
 	if len(handlers) > 0 {
 		m.lock.Lock()
 		defer m.lock.Unlock()
@@ -218,7 +203,7 @@ func (m *mutableHandlers) RemoveHandlers(
 	return m
 }
 
-func (m *mutableHandlers) Handle(
+func (m *MutableHandlers) Handle(
 	callback any,
 	greedy   bool,
 	composer Handler,
@@ -242,7 +227,7 @@ func (m *mutableHandlers) Handle(
 	return result
 }
 
-func (m *mutableHandlers) SuppressDispatch() {}
+func (m *MutableHandlers) SuppressDispatch() {}
 
 type (
 	// ProceedFunc calls the next filter in the pipeline.
@@ -303,7 +288,7 @@ func tryInitializeComposer(
 	receiver  Handler,
 ) {
 	if *incoming == nil {
-		*incoming = &compositionScope{receiver}
+		*incoming = &CompositionScope{receiver}
 	}
 }
 

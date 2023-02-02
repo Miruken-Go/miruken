@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
 	"strings"
 	"testing"
@@ -16,7 +18,7 @@ type FooProvider struct {
 	foo Foo
 }
 
-func (f *FooProvider) ProvideFoo(*miruken.Provides) *Foo {
+func (f *FooProvider) ProvideFoo(*provides.It) *Foo {
 	f.foo.Inc()
 	return &f.foo
 }
@@ -24,11 +26,11 @@ func (f *FooProvider) ProvideFoo(*miruken.Provides) *Foo {
 // ListProvider
 type ListProvider struct{}
 
-func (f *ListProvider) ProvideFooSlice(*miruken.Provides) []*Foo {
+func (f *ListProvider) ProvideFooSlice(*provides.It) []*Foo {
 	return []*Foo{{Counted{1}}, {Counted{2}}}
 }
 
-func (f *ListProvider) ProvideFooArray(*miruken.Provides) [2]*Bar {
+func (f *ListProvider) ProvideFooArray(*provides.It) [2]*Bar {
 	return [2]*Bar{{Counted{3}}, {Counted{4}}}
 }
 
@@ -41,19 +43,19 @@ type MultiProvider struct {
 func (p *MultiProvider) Constructor(
 	_*struct{
 	    miruken.Creates
-		miruken.Provides
-	    miruken.Singleton
+		provides.It
+		provides.Singleton
 	  },
 ) {
 	p.foo.Inc()
 }
 
-func (p *MultiProvider) ProvideFoo(*miruken.Provides) *Foo {
+func (p *MultiProvider) ProvideFoo(*provides.It) *Foo {
 	p.foo.Inc()
 	return &p.foo
 }
 
-func (p *MultiProvider) ProvideBar(*miruken.Provides) (*Bar, miruken.HandleResult) {
+func (p *MultiProvider) ProvideBar(*provides.It) (*Bar, miruken.HandleResult) {
 	count := p.bar.Inc()
 	if count % 3 == 0 {
 		return nil, miruken.NotHandled.WithError(
@@ -77,7 +79,7 @@ func (p *SpecificationProvider) Constructor(baz Baz) {
 
 func (p *SpecificationProvider) ProvideFoo(
 	_*struct{
-		miruken.Provides
+		provides.It
 		miruken.Creates
 	  },
 ) *Foo {
@@ -86,7 +88,9 @@ func (p *SpecificationProvider) ProvideFoo(
 }
 
 func (p *SpecificationProvider) ProvideBar(
-	_*struct{ miruken.Provides; miruken.Strict },
+	_*struct{
+		provides.It; miruken.Strict
+	  },
 ) []*Bar {
 	p.bar.Inc()
 	return []*Bar{&p.bar, {}}
@@ -99,7 +103,7 @@ type KeyProvider struct {
 
 func (p *KeyProvider) ProvideKey(
 	_*struct{
-		miruken.Provides `key:"Foo"`
+		provides.It `key:"Foo"`
 	  },
 ) *Foo {
 	p.foo.Inc()
@@ -116,11 +120,11 @@ type OpenProvider struct {
 
 func (p *OpenProvider) ProvideSingletons(
 	_*struct{
-		miruken.Provides
-		miruken.Singleton
-	  }, provides *miruken.Provides,
+		provides.It
+		provides.Singleton
+	  }, it *provides.It,
 ) any {
-	if key := provides.Key(); key == miruken.TypeOf[*Foo]() {
+	if key := it.Key(); key == miruken.TypeOf[*Foo]() {
 		p.foo.Inc()
 		return &p.foo
 	} else if key == miruken.TypeOf[*Bar]() {
@@ -136,11 +140,11 @@ func (p *OpenProvider) ProvideSingletons(
 
 func (p *OpenProvider) ProvideScoped(
 	_*struct{
-		miruken.Provides
-		miruken.Scoped
-	}, provides *miruken.Provides,
+		provides.It
+		context.Lifestyle
+	  }, it *provides.It,
 ) any {
-	if key := provides.Key(); key == miruken.TypeOf[*Baz]() {
+	if key := it.Key(); key == miruken.TypeOf[*Baz]() {
 		p.baz.Inc()
 		return &p.baz
 	} else if key == miruken.TypeOf[*Bam]() {
@@ -165,7 +169,7 @@ type SimpleAsyncProvider struct {
 }
 
 func (p *SimpleAsyncProvider) ProvideFoo(
-	*miruken.Provides,
+	*provides.It,
 ) *promise.Promise[*Foo] {
 	p.foo.Inc()
 	return promise.Then(promise.Delay(5 * time.Millisecond),
@@ -180,7 +184,10 @@ type ComplexAsyncProvider struct {
 }
 
 func (p *ComplexAsyncProvider) Constructor(
-	_*struct{ miruken.Provides; miruken.Creates },
+	_*struct{
+		provides.It
+		miruken.Creates
+	  },
 ) *promise.Promise[miruken.Void] {
 	return promise.Then(
 		promise.Delay(2 * time.Millisecond),
@@ -191,7 +198,7 @@ func (p *ComplexAsyncProvider) Constructor(
 }
 
 func (p *ComplexAsyncProvider) ProvideBar(
-	_ *miruken.Provides,
+	_ *provides.It,
 	foo *Foo,
 ) *Bar {
 	p.bar.Inc()
@@ -202,41 +209,41 @@ func (p *ComplexAsyncProvider) ProvideBar(
 // InvalidProvider
 type InvalidProvider struct {}
 
-func (p *InvalidProvider) MissingReturnValue(*miruken.Provides) {
+func (p *InvalidProvider) MissingReturnValue(*provides.It) {
 }
 
 func (p *InvalidProvider) TooManyReturnValues(
-	*miruken.Provides,
+	*provides.It,
 ) (*Foo, string, Counter) {
 	return nil, "bad", nil
 }
 
 func (p *InvalidProvider) InvalidHandleResultReturnValue(
-	*miruken.Provides,
+	*provides.It,
 ) miruken.HandleResult {
 	return miruken.Handled
 }
 
 func (p *InvalidProvider) InvalidErrorReturnValue(
-	*miruken.Provides,
+	*provides.It,
 ) error {
 	return errors.New("not good")
 }
 
 func (p *InvalidProvider) SecondReturnMustBeErrorOrHandleResult(
-	*miruken.Provides,
+	*provides.It,
 ) (*Foo, string) {
 	return &Foo{}, "bad"
 }
 
 func (p *InvalidProvider) UntypedInterfaceDependency(
-	_ *miruken.Provides,
+	_ *provides.It,
 	any any,
 ) *Foo {
 	return &Foo{}
 }
 
-func ProvideBar(*miruken.Provides) (*Bar, miruken.HandleResult) {
+func ProvideBar(*provides.It) (*Bar, miruken.HandleResult) {
 	bar := &Bar{}
 	bar.Inc()
 	bar.Inc()
@@ -325,7 +332,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 
 	suite.Run("OpenScoped", func () {
 		handler, _ := miruken.Setup().Specs(&OpenProvider{}).Handler()
-		ctx := miruken.NewContext(handler)
+		ctx := context.New(handler)
 		baz, _, err := miruken.Resolve[*Baz](ctx)
 		suite.Nil(err)
 		suite.Equal(1, baz.Count())
@@ -349,22 +356,22 @@ func (suite *ProvidesTestSuite) TestProvides() {
 		suite.Equal(2, baz.Count())
 
 		child := ctx.NewChild()
-		baz, _, err = miruken.Resolve[*Baz](child, miruken.FromScope)
+		baz, _, err = miruken.Resolve[*Baz](child, context.FromScope)
 		suite.Nil(err)
 		suite.Equal(3, baz.Count())
-		baz, _, err = miruken.Resolve[*Baz](child, miruken.FromScope)
+		baz, _, err = miruken.Resolve[*Baz](child, context.FromScope)
 		suite.Nil(err)
 		suite.Equal(3, baz.Count())
-		bam, _, err = miruken.Resolve[*Bam](child, miruken.FromScope)
+		bam, _, err = miruken.Resolve[*Bam](child, context.FromScope)
 		suite.Nil(err)
 		suite.Equal(4, bam.Count())
-		bam, _, err = miruken.Resolve[*Bam](child, miruken.FromScope)
+		bam, _, err = miruken.Resolve[*Bam](child, context.FromScope)
 		suite.Nil(err)
 		suite.Equal(4, bam.Count())
-		baz, _, err = miruken.ResolveKey[*Baz](child, "Baz", miruken.FromScope)
+		baz, _, err = miruken.ResolveKey[*Baz](child, "Baz", context.FromScope)
 		suite.Nil(err)
 		suite.Equal(4, baz.Count())
-		baz, _, err = miruken.Resolve[*Baz](child, miruken.FromScope)
+		baz, _, err = miruken.Resolve[*Baz](child, context.FromScope)
 		suite.Nil(err)
 		suite.Equal(4, baz.Count())
 	})
@@ -386,7 +393,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 
 	suite.Run("Specification", func () {
 		handler, _ := miruken.Setup().Specs(&SpecificationProvider{}).Handler()
-		handler = miruken.BuildUp(handler, miruken.With(Baz{Counted{2}}))
+		handler = miruken.BuildUp(handler, provides.With(Baz{Counted{2}}))
 
 		suite.Run("Invariant", func () {
 			foo, _, err := miruken.Resolve[*Foo](handler)
@@ -441,7 +448,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 		suite.Run("ConstructorDependencies", func () {
 			handler, _ := miruken.Setup().Specs(&SpecificationProvider{}).Handler()
 			specProvider, _, err := miruken.Resolve[*SpecificationProvider](
-				miruken.BuildUp(handler, miruken.With(Baz{Counted{2}})))
+				miruken.BuildUp(handler, provides.With(Baz{Counted{2}})))
 			suite.NotNil(specProvider)
 			suite.Equal(2, specProvider.foo.Count())
 			suite.Equal(0, specProvider.bar.Count())
@@ -552,7 +559,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 		suite.Nil(err)
 		suite.Nil(fooProvider)
 		fooProvider, _, err = miruken.Resolve[*FooProvider](
-			miruken.BuildUp(handler, miruken.With(new(FooProvider))))
+			miruken.BuildUp(handler, provides.With(new(FooProvider))))
 		suite.Nil(err)
 		suite.NotNil(fooProvider)
 	})

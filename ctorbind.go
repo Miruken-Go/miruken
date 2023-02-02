@@ -45,7 +45,7 @@ func (b *ConstructorBinding) Invoke(
 ) ([]any, *promise.Promise[[]any], error) {
 	// ConstructorBinding's will be called on existing
 	// handlers if present.  This would result in an
-	// additional and unexpected instance created.
+	// additional and unexpected Instance created.
 	// This situation can be detected if the handler is
 	// the same type created by this binding.  If it is,
 	// the creation will be skipped.  Otherwise, a true

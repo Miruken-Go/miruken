@@ -3,6 +3,7 @@ package httpsrv
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	"github.com/miruken-go/miruken/context"
 	"io"
 	"net/http"
 	"strings"
@@ -10,7 +11,7 @@ import (
 
 // ApiController is an http.Handler for api messages.
 type ApiController struct {
-	ctx *miruken.Context
+	ctx *context.Context
 }
 
 func (c *ApiController) ServeHTTP(
@@ -76,7 +77,7 @@ func (c *ApiController) encodeResult(
 	res    any,
 	format string,
 	w      http.ResponseWriter,
-	ctx    *miruken.Context,
+	ctx    *context.Context,
 ) {
 	w.Header().Set("Content-Type", format)
 	out := io.Writer(w)
@@ -90,7 +91,7 @@ func (c *ApiController) encodeError(
 	err    error,
 	format string,
 	w      http.ResponseWriter,
-	ctx    *miruken.Context,
+	ctx    *context.Context,
 ) {
 	w.Header().Set("Content-Type", format)
 	statusCode := http.StatusInternalServerError
@@ -109,7 +110,7 @@ func (c *ApiController) encodeError(
 }
 
 // Api creates a new ApiController to serve http routed messages.
-func Api(ctx *miruken.Context) *ApiController {
+func Api(ctx *context.Context) *ApiController {
 	if ctx == nil {
 		panic("ctx cannot be nil")
 	}

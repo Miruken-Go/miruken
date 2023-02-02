@@ -68,9 +68,9 @@ func (e *FuncBindingError) Unwrap() error {
 }
 
 // callFunc calls the function stored in the fun argument.
-// It resolves the args input and appends them to the initArgs
+// Provides resolves the args input and appends them to the initArgs
 // to supply the input arguments to the function.
-// It returns the output results slice and/or and error if not
+// Provides returns the output results slice and/or and error if not
 // asynchronous or a promise to the output results.
 func callFunc(
 	fun      reflect.Value,
@@ -91,9 +91,9 @@ func callFunc(
 }
 
 // callFuncWithArgs calls the function stored in the fun argument.
-// It combines the initArgs and resolvedArgs to supply the input
+// Provides combines the initArgs and resolvedArgs to supply the input
 // arguments to the function.
-// It returns the output results slice.
+// Provides returns the output results slice.
 func callFuncWithArgs(
 	fun          reflect.Value,
 	initArgs     []any,
@@ -120,7 +120,7 @@ func callFuncWithArgs(
 //     first output element
 // Otherwise, if asynchronous (2nd  output is promise), resolve
 // and repeat steps above.
-// It returns the normalized output.
+// Provides returns the normalized output.
 func mergeOutput(
 	out  []any,
 	pout *promise.Promise[[]any],
@@ -172,7 +172,7 @@ func mergeOutput(
 // from any call to a promise (New, Then, Catch, ...).
 // Since this call is already in a goroutine, it will not block the
 // initial operation and can use Await to obtain the intermediate
-// results.  It can be used in Filter's that perform asynchronous
+// results.  Provides can be used in Filter's that perform asynchronous
 // operations and want to normalize outputs.
 func mergeOutputAwait(
 	out  []any,

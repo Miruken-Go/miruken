@@ -1,10 +1,19 @@
 package miruken
 
-// Composition
+type (
+	// Composition wraps a callback for composition.
+	Composition struct {
+		Trampoline
+	}
 
-type Composition struct {
-	Trampoline
-}
+	// CompositionScope decorates a Handler for composition.
+	CompositionScope struct {
+		Handler
+	}
+)
+
+
+// Composition
 
 func (c *Composition) Dispatch(
 	handler  any,
@@ -21,13 +30,9 @@ func (c *Composition) Dispatch(
 		Dispatch(handler, greedy, composer)
 }
 
-// compositionScope
+// CompositionScope
 
-type compositionScope struct {
-	Handler
-}
-
-func (c *compositionScope) Handle(
+func (c *CompositionScope) Handle(
 	callback any,
 	greedy   bool,
 	composer Handler,

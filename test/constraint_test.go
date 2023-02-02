@@ -2,6 +2,7 @@ package test
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -87,8 +88,8 @@ func (h *Hospital) Programmer() Person {
 
 func (p *PersonProvider) Doctor(
 	_*struct{
-		miruken.Provides
-		miruken.Singleton
+		provides.It
+		provides.Singleton
 		Doctor
       },
 ) Person {
@@ -97,8 +98,8 @@ func (p *PersonProvider) Doctor(
 
 func (p *PersonProvider) Programmer(
 	_*struct{
-		miruken.Provides
-		miruken.Singleton
+		provides.It
+		provides.Singleton
 		Programmer
       },
 ) Person {
@@ -108,7 +109,7 @@ func (p *PersonProvider) Programmer(
 // NoConstraintProvider
 
 func (n *NoConstraintProvider) Person(
-	_ *miruken.Provides,
+	_ *provides.It,
 ) Person {
 	return &PersonData{"Benjamin", "Franklin"}
 }
@@ -117,8 +118,8 @@ func (n *NoConstraintProvider) Person(
 
 func (l *LocalSettings) Constructor(
 	_*struct{
-		miruken.Provides
-		miruken.Singleton
+		provides.It
+		provides.Singleton
 		miruken.Named `name:"local"`
       },
 ) {
@@ -132,8 +133,8 @@ func (l *LocalSettings) ServerUrl() string {
 
 func (r *RemoteSettings) Constructor(
 	_*struct{
-		miruken.Provides
-		miruken.Singleton
+		provides.It
+		provides.Singleton
 		miruken.Named `name:"remote"`
       },
 ) {

@@ -12,7 +12,7 @@ func TypeOf[T any]() reflect.Type {
 }
 
 // ValueAs returns the value of v As the type T.
-// It panics if the value isn't assignable to T.
+// Provides panics if the value isn't assignable to T.
 func ValueAs[T any](v reflect.Value) (r T) {
 	reflect.ValueOf(&r).Elem().Set(v)
 	return

@@ -25,7 +25,7 @@ func (r HandleResult) Handled() bool {
 	return r.handled
 }
 
-func (r HandleResult) ShouldStop() bool {
+func (r HandleResult) Stop() bool {
 	return r.stop
 }
 

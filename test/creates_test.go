@@ -2,6 +2,7 @@ package test
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
 	"strings"
 	"testing"
@@ -29,14 +30,14 @@ type MultiKeyFactory struct {
 
 func (f *MultiKeyFactory) Create(
 	_*struct {
-		miruken.Singleton
-		fc miruken.Creates  `key:"foo"`
-		bc miruken.Creates  `key:"bar"`
-		fp miruken.Provides `key:"foo"`
-		bp miruken.Provides `key:"bar"`
+	provides.Singleton
+		fc miruken.Creates `key:"foo"`
+		bc miruken.Creates `key:"bar"`
+		fp provides.It     `key:"foo"`
+		bp provides.It     `key:"bar"`
 	  },
-	create  *miruken.Creates,
-	provide *miruken.Provides,
+	create *miruken.Creates,
+	p *provides.It,
 ) any {
 	if create != nil {
 		switch create.Key() {
@@ -47,8 +48,8 @@ func (f *MultiKeyFactory) Create(
 			f.bar.Inc()
 			return f.bar
 		}
-	} else if provide != nil {
-		switch provide.Key() {
+	} else if p != nil {
+		switch p.Key() {
 		case "foo":
 			f.foo.Inc()
 			return f.foo

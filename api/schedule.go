@@ -5,6 +5,7 @@ import (
 	"github.com/miruken-go/miruken/either"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/provides"
 	"sync"
 )
 
@@ -43,8 +44,8 @@ type (
 
 func (s *Scheduler) Constructor(
 	_*struct{
-	    miruken.Provides
-	    miruken.Singleton
+		provides.It
+		provides.Singleton
 	  },
 ) {
 }

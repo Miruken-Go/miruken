@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
 	"reflect"
 	"testing"
@@ -156,7 +157,7 @@ func (m *InvalidMapper) MissingDependency(
 ) {
 }
 
-func (m *InvalidMapper) MissingReturnValue(*miruken.Provides) {
+func (m *InvalidMapper) MissingReturnValue(*provides.It) {
 }
 
 func (m *InvalidMapper) TooManyReturnValues(

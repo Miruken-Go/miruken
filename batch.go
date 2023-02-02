@@ -14,7 +14,7 @@ type (
 	}
 
 	batch struct {
-		mutableHandlers
+		MutableHandlers
 		tags map[any]struct{}
 	}
 
@@ -115,7 +115,7 @@ func (b *batchHandler) Handle(
 				CanBatch() bool
 			}); !ok || check.CanBatch() {
 				if r := batch.Handle(callback, greedy, composer);
-					r.Handled() && !r.ShouldStop() {
+					r.Handled() && !r.Stop() {
 					return r
 				}
 			}

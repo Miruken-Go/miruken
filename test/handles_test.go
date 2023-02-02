@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/slices"
 	"github.com/stretchr/testify/suite"
 	"reflect"
@@ -145,9 +146,9 @@ func (h *EverythingHandler) HandleEverything(
 type EverythingImplicitHandler struct{}
 
 func (h *EverythingImplicitHandler) HandleEverything(
-	handles *handles.It,
+	it *handles.It,
 ) miruken.HandleResult {
-	switch cb := handles.Source().(type) {
+	switch cb := it.Source().(type) {
 	case *Bar:
 		cb.Inc()
 		cb.Inc()
@@ -376,13 +377,13 @@ func (h *SimpleAsyncHandler) HandleFooPromiseArgLift(
 }
 
 func (h *SimpleAsyncHandler) ProvidesBaz(
-	_ *miruken.Provides,
+	_ *provides.It,
 ) *promise.Promise[*Baz] {
 	return promise.Resolve(new(Baz))
 }
 
 func (h *SimpleAsyncHandler) ProvidesBoo(
-	_ *miruken.Provides,
+	_ *provides.It,
 ) *Boo {
 	return &Boo{Counted{5}}
 }
@@ -402,13 +403,13 @@ func (h *ComplexAsyncHandler) HandleFoo(
 }
 
 func (h *ComplexAsyncHandler) ProvidesBaz(
-	_ *miruken.Provides,
+	_ *provides.It,
 ) *Baz {
 	return new(Baz)
 }
 
 func (h *ComplexAsyncHandler) ProvidesBazAsync(
-	_ *miruken.Provides,
+	_ *provides.It,
 ) *promise.Promise[*Baz] {
 	return promise.Resolve(new(Baz))
 }
@@ -761,7 +762,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 		suite.Run("RequiredSlice", func () {
 			boo    := new(Boo)
 			bars := []any{new(Bar), new(Bar)}
-			result := miruken.BuildUp(handler, miruken.With(bars...)).Handle(boo, false, nil)
+			result := miruken.BuildUp(handler, provides.With(bars...)).Handle(boo, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, boo.Count())
@@ -781,7 +782,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 		suite.Run("OptionalWithValue", func () {
 			bar    := new(Bar)
 			foo    := new(Foo)
-			result := miruken.BuildUp(handler, miruken.With(foo)).Handle(bar, false, nil)
+			result := miruken.BuildUp(handler, provides.With(foo)).Handle(bar, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, bar.Count())
@@ -795,7 +796,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 			suite.False(result.IsError())
 			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, baz.Count())
-			result = miruken.BuildUp(handler, miruken.With(bars...)).Handle(baz, false, nil)
+			result = miruken.BuildUp(handler, provides.With(bars...)).Handle(baz, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(miruken.Handled, result)
 			suite.Equal(2, baz.Count())
@@ -807,11 +808,11 @@ func (suite *HandlesTestSuite) TestHandles() {
 		suite.Run("StrictSlice", func () {
 			bam    := new(Bam)
 			bars1  := []any{new(Bar), new(Bar)}
-			result := miruken.BuildUp(handler, miruken.With(bars1...)).Handle(bam, false, nil)
+			result := miruken.BuildUp(handler, provides.With(bars1...)).Handle(bam, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(miruken.NotHandled, result)
 			bars2  := []*Bar{new(Bar), new(Bar)}
-			result  = miruken.BuildUp(handler, miruken.With(bars2)).Handle(bam, false, nil)
+			result  = miruken.BuildUp(handler, provides.With(bars2)).Handle(bam, false, nil)
 			suite.False(result.IsError())
 			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, bam.Count())

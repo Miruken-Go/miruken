@@ -21,11 +21,11 @@ type (
 	// e.g.
 	// type ListProvider struct{}
 	//
-	// func (f *ListProvider) ProvideFooSlice(*miruken.Provides) []*Foo {
+	// func (f *ListProvider) ProvideFooSlice(*provides.Provides) []*Foo {
 	//	  return []*Foo{{Counted{1}}, {Counted{2}}}
 	// }
 	//
-	//  func (f *ListProvider) ProvideFooArray(*miruken.Provides) [2]*Bar {
+	//  func (f *ListProvider) ProvideFooArray(*provides.Provides) [2]*Bar {
 	//	  return [2]*Bar{{Counted{3}}, {Counted{4}}}
 	// }
 	//

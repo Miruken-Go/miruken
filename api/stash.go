@@ -4,6 +4,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/provides"
 )
 
 type (
@@ -52,14 +53,14 @@ func (s *Stash) NoConstructor() {}
 // Provide retrieves an item by key.
 func (s *Stash) Provide(
 	_*struct{
-		miruken.Provides; miruken.Strict
-	  }, provides *miruken.Provides,
+		provides.It; miruken.Strict
+	  }, p *provides.It,
 ) any {
-	return s.data[provides.Key()]
+	return s.data[p.Key()]
 }
 
 // Get retrieves an item by key.
-// It is considered NotHandled if an item with the key is not found and
+// Provides is considered NotHandled if an item with the key is not found and
 // this Stash is not rooted.  This allows retrieval to propagate up the chain.
 func (s *Stash) Get(
 	_ *handles.It, get *stashGet,
