@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/json/jsonstd"
+	"github.com/miruken-go/miruken/creates"
 	"github.com/stretchr/testify/suite"
 	"io"
 	"reflect"
@@ -63,7 +64,7 @@ func (m *TypeIdMapper) TeamDotNet(
 
 func (m *TypeIdMapper) CreateTeam(
 	_*struct{
-		miruken.Creates `key:"test.TeamData"`
+		creates.It `key:"test.TeamData"`
 	  },
 ) *TeamData {
 	return new(TeamData)

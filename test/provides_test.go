@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/context"
+	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
@@ -42,8 +43,8 @@ type MultiProvider struct {
 
 func (p *MultiProvider) Constructor(
 	_*struct{
-	    miruken.Creates
-		provides.It
+	    c creates.It
+		p provides.It
 		provides.Singleton
 	  },
 ) {
@@ -79,8 +80,8 @@ func (p *SpecificationProvider) Constructor(baz Baz) {
 
 func (p *SpecificationProvider) ProvideFoo(
 	_*struct{
-		provides.It
-		miruken.Creates
+		p provides.It
+		c creates.It
 	  },
 ) *Foo {
 	p.foo.Inc()
@@ -185,8 +186,8 @@ type ComplexAsyncProvider struct {
 
 func (p *ComplexAsyncProvider) Constructor(
 	_*struct{
-		provides.It
-		miruken.Creates
+		p provides.It
+		c creates.It
 	  },
 ) *promise.Promise[miruken.Void] {
 	return promise.Then(

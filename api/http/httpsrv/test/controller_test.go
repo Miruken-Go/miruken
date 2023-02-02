@@ -9,6 +9,7 @@ import (
 	"github.com/miruken-go/miruken/api/http/httpsrv"
 	"github.com/miruken-go/miruken/api/json/jsonstd"
 	"github.com/miruken-go/miruken/context"
+	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/validates"
@@ -79,11 +80,11 @@ func (t *TeamApiHandler) CreateTeam(
 
 func (t *TeamApiHandler) New(
 	_*struct{
-		ct  miruken.Creates `key:"test.CreateTeam"`
-		tc  miruken.Creates `key:"*test.TeamCreated"`
-	    gtn miruken.Creates `key:"test.GetTeamNotifications"`
-		td  miruken.Creates `key:"*test.TeamData"`
-	  }, create *miruken.Creates,
+		ct  creates.It `key:"test.CreateTeam"`
+		tc  creates.It `key:"*test.TeamCreated"`
+	    gtn creates.It `key:"test.GetTeamNotifications"`
+		td  creates.It `key:"*test.TeamData"`
+	  }, create *creates.It,
 ) any {
 	switch create.Key() {
 	case "test.CreateTeam":

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/slices"
 	"sort"
@@ -235,7 +236,7 @@ func (m *ApiMapping) FromApi(
 
 func (m *ApiMapping) New(
 	_*struct{
-		miruken.Creates `key:"validates.ApiOutcome"`
+		creates.It `key:"validates.ApiOutcome"`
 	  },
 ) *ApiOutcome {
 	return new(ApiOutcome)

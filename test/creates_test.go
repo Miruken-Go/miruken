@@ -2,6 +2,7 @@ package test
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
 	"strings"
@@ -14,8 +15,8 @@ type KeyFactory struct {}
 
 func (f *KeyFactory) Create(
 	_*struct {
-	    miruken.Creates
-		foo miruken.Creates `key:"foo"`
+	    creates.It
+		foo creates.It `key:"foo"`
 	  },
 ) *Foo {
 	return &Foo{Counted{1}}
@@ -30,17 +31,17 @@ type MultiKeyFactory struct {
 
 func (f *MultiKeyFactory) Create(
 	_*struct {
-	provides.Singleton
-		fc miruken.Creates `key:"foo"`
-		bc miruken.Creates `key:"bar"`
-		fp provides.It     `key:"foo"`
-		bp provides.It     `key:"bar"`
+		provides.Singleton
+		fc creates.It  `key:"foo"`
+		bc creates.It  `key:"bar"`
+		fp provides.It `key:"foo"`
+		bp provides.It `key:"bar"`
 	  },
-	create *miruken.Creates,
+	c *creates.It,
 	p *provides.It,
 ) any {
-	if create != nil {
-		switch create.Key() {
+	if c != nil {
+		switch c.Key() {
 		case "foo":
 			f.foo.Inc()
 			return f.foo
