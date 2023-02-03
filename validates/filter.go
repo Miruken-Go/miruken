@@ -35,8 +35,8 @@ func (p *Provider) Required() bool {
 func (p *Provider) AppliesTo(
 	callback miruken.Callback,
 ) bool {
-	handles, ok := callback.(*handles.It)
-	return ok && !miruken.IsNil(handles.Source())
+	h, ok := callback.(*handles.It)
+	return ok && !miruken.IsNil(h.Source())
 }
 
 func (p *Provider) Filters(

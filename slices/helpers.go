@@ -126,7 +126,7 @@ func OfType[IN, T any](in []IN) []T {
 type AccumulatorFunc[IN, OUT any] func(out OUT, i int, item IN) OUT
 
 // Reduce reduces a []IN to a single value using an accumulator function.
-func Reduce[IN, OUT any, F AccumulatorFunc[IN, OUT]](
+func Reduce[IN, OUT any](
 	in  []IN, initializer OUT,
 	fun AccumulatorFunc[IN, OUT],
 ) OUT {

@@ -15,15 +15,6 @@ type (
 
 	// Lifestyle provides common lifestyle functionality.
 	Lifestyle struct{}
-
-	// LifestyleEntry stores a lazy Instance.
-	LifestyleEntry struct {
-		Instance []any
-		Once     *sync.Once
-	}
-
-	// LifestyleCache maintains a cache of LifestyleEntry's.
-	LifestyleCache map[any]*LifestyleEntry
 )
 
 
@@ -56,7 +47,7 @@ func (l *LifestyleProvider) SetFilters(filters ...Filter) {
 		panic("filters cannot be empty")
 	}
 	if l.filters != nil {
-		panic("lifestyle can only be set Once")
+		panic("lifestyle can only be set once")
 	}
 	l.filters = filters
 }
@@ -65,17 +56,26 @@ func (l *LifestyleProvider) SetFilters(filters ...Filter) {
 // Single
 
 type (
-	// Single LifestyleProvider providing same Instance.
+	// Single LifestyleProvider providing same instance.
 	Single struct {
 		LifestyleProvider
 	}
 
-	// single is a Filter that caches an Instance.
+	// single is a Filter that caches an instance.
 	single struct {
 		Lifestyle
-		keys LifestyleCache
+		keys singleCache
 		lock sync.RWMutex
 	}
+
+	// singleEntry stores a lazy instance.
+	singleEntry struct {
+		instance []any
+		once     *sync.Once
+	}
+
+	// singleCache maintains a cache of singleEntry's.
+	singleCache map[any]*singleEntry
 )
 
 
@@ -91,7 +91,7 @@ func (s *single) Next(
 )  (out []any, po *promise.Promise[[]any], err error) {
 	key := ctx.Callback().(*Provides).Key()
 
-	var entry *LifestyleEntry
+	var entry *singleEntry
 	s.lock.RLock()
 	if keys := s.keys; keys != nil {
 		entry = keys[key]
@@ -102,17 +102,17 @@ func (s *single) Next(
 		s.lock.Lock()
 		if keys := s.keys; keys != nil {
 			if entry = keys[key]; entry == nil {
-				entry     = &LifestyleEntry{Once: new(sync.Once)}
+				entry     = &singleEntry{once: new(sync.Once)}
 				keys[key] = entry
 			}
 		} else {
-			entry  = &LifestyleEntry{Once: new(sync.Once)}
-			s.keys = LifestyleCache{key: entry}
+			entry  = &singleEntry{once: new(sync.Once)}
+			s.keys = singleCache{key: entry}
 		}
 		s.lock.Unlock()
 	}
 
-	entry.Once.Do(func() {
+	entry.once.Do(func() {
 		defer func() {
 			if r := recover(); r != nil {
 				if e, ok := r.(error); ok {
@@ -120,19 +120,19 @@ func (s *single) Next(
 				} else {
 					err = fmt.Errorf("single: panic: %v", r)
 				}
-				entry.Once = new(sync.Once)
+				entry.once = new(sync.Once)
 			}
 		}()
 		if out, po, err = next.Pipe(); err == nil && po != nil {
 			out, err = po.Await()
 		}
 		if err != nil || len(out) == 0 {
-			entry.Once = new(sync.Once)
+			entry.once = new(sync.Once)
 		} else {
-			entry.Instance = out
+			entry.instance = out
 		}
 	})
 
-	return entry.Instance, nil, err
+	return entry.instance, nil, err
 }
 

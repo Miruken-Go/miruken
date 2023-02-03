@@ -33,7 +33,16 @@ type (
 		rooted bool
 	}
 
-	// fromScope is used to constrain Build from Context.
+	// scopedEntry stores a lazy instance.
+	scopedEntry struct {
+		instance []any
+		once     *sync.Once
+	}
+
+	// scopedCache maintains a cache of scopedEntry's.
+	scopedCache map[any]*scopedEntry
+
+	// fromScope is a constraint for the context Lifestyle.
 	fromScope struct {}
 )
 
@@ -52,7 +61,7 @@ func (s *scoped) Init() error {
 // scopedFilter is a Filter that caches an instance per Context.
 type scopedFilter struct {
 	miruken.Lifestyle
-	cache  map[*Context]miruken.LifestyleCache
+	cache  map[*Context]scopedCache
 	lock   sync.RWMutex
 }
 
@@ -86,7 +95,7 @@ func (s *scopedFilter) Next(
 		context = context.Root()
 	}
 
-	var entry *miruken.LifestyleEntry
+	var entry *scopedEntry
 	s.lock.RLock()
 	if cache := s.cache; cache != nil {
 		if keys := cache[context]; keys != nil {
@@ -100,21 +109,21 @@ func (s *scopedFilter) Next(
 		if cache := s.cache; cache != nil {
 			if keys := cache[context]; keys != nil {
 				if entry = keys[key]; entry == nil {
-					entry     = &miruken.LifestyleEntry{Once: new(sync.Once)}
+					entry     = &scopedEntry{once: new(sync.Once)}
 					keys[key] = entry
 				}
 			} else {
-				entry = &miruken.LifestyleEntry{Once: new(sync.Once)}
-				cache[context] = miruken.LifestyleCache{key: entry}
+				entry = &scopedEntry{once: new(sync.Once)}
+				cache[context] = scopedCache{key: entry}
 			}
 		} else {
-			entry   = &miruken.LifestyleEntry{Once: new(sync.Once)}
-			s.cache = map[*Context]miruken.LifestyleCache{context: {key: entry}}
+			entry   = &scopedEntry{once: new(sync.Once)}
+			s.cache = map[*Context]scopedCache{context: {key: entry}}
 		}
 		s.lock.Unlock()
 	}
 
-	entry.Once.Do(func() {
+	entry.once.Do(func() {
 		defer func() {
 			if r := recover(); r != nil {
 				if e, ok := r.(error); ok {
@@ -122,16 +131,16 @@ func (s *scopedFilter) Next(
 				} else {
 					err = fmt.Errorf("scoped: panic: %v", r)
 				}
-				entry.Once = new(sync.Once)
+				entry.once = new(sync.Once)
 			}
 		}()
 		if out, po, err = next.Pipe(); err == nil && po != nil {
 			out, err = po.Await()
 		}
 		if err != nil || len(out) == 0 {
-			entry.Once = new(sync.Once)
+			entry.once = new(sync.Once)
 		} else {
-			entry.Instance = out
+			entry.instance = out
 			if contextual, ok := out[0].(Contextual); ok {
 				contextual.SetContext(context)
 				unsubscribe := contextual.Observe(s)
@@ -153,7 +162,7 @@ func (s *scopedFilter) Next(
 			}
 		}
 	})
-	return entry.Instance, nil, nil
+	return entry.instance, nil, nil
 }
 
 func (s *scopedFilter) ContextChanging(
@@ -175,7 +184,7 @@ func (s *scopedFilter) ContextChanging(
 		return
 	} else {
 		for key, entry := range keys {
-			if entry.Instance[0] == contextual {
+			if entry.instance[0] == contextual {
 				delete(keys, key)
 				s.tryDispose(contextual)
 				break
@@ -207,6 +216,6 @@ func (s *scopedFilter) tryDispose(instance any) {
 }
 
 var (
-	FromScope miruken.Qualifier[fromScope]
+	From        miruken.Qualifier[fromScope]
 	contextType = miruken.TypeOf[*Context]()
 )

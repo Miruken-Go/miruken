@@ -66,8 +66,8 @@ func (r *Routes) Required() bool {
 func (r *Routes) AppliesTo(
 	callback miruken.Callback,
 ) bool {
-	if handles, ok := callback.(*handles.It); ok {
-		_, ok = handles.Source().(Routed)
+	if h, ok := callback.(*handles.It); ok {
+		_, ok = h.Source().(Routed)
 		return ok
 	}
 	return false

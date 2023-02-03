@@ -108,7 +108,7 @@ func (suite *SetupTestSuite) TestSetup() {
 		suite.Nil(m)
 	})
 
-	suite.Run("Installs Once", func () {
+	suite.Run("Installs once", func () {
 		installer := &MyInstaller{}
 		handler, err := miruken.Setup(installer, installer).Handler()
 		suite.Nil(err)

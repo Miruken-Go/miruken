@@ -99,7 +99,7 @@ func (v *CreateUserIntegrity) Constructor(
 func (v *CreateUserIntegrity) Validate(
 	it *validates.It, create *CreateUserNoTags,
 ) miruken.HandleResult {
-	return v.Validator.ValidateAndStop(create, it.Outcome())
+	return v.ValidateAndStop(create, it.Outcome())
 }
 
 // UserHandler

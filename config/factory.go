@@ -15,7 +15,7 @@ type (
 		provider Provider
 	}
 
-	// Load restricts provides.Build to configurations.
+	// Load restricts resolutions to configurations only.
 	Load struct {
 		Path string
 		Flat bool
