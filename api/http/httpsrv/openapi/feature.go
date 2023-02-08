@@ -4,10 +4,9 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3gen"
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
+	"github.com/miruken-go/miruken/api/json/jsonstd"
 	"github.com/miruken-go/miruken/handles"
-	"github.com/miruken-go/miruken/validates"
 	"reflect"
 	"time"
 )
@@ -161,7 +160,7 @@ func (i *Installer) BindingCreated(
 					WithDescription("Request to process.").
 					WithRequired(true).
 					WithJSONSchemaRef(openapi3.NewSchemaRef(
-						"#/schemas/schemas/" + reqSchema.Ref, nil)),
+						"#/components/schemas/" + reqSchema.Ref, nil)),
 				}
 			requestName := reqSchema.Ref + "Request"
 			i.requestBodies[requestName] = requestBody
@@ -180,7 +179,7 @@ func (i *Installer) BindingCreated(
 							Value: openapi3.NewResponse().
 								WithDescription("Successfully handled.").
 								WithContent(openapi3.NewContentWithJSONSchemaRef(
-									openapi3.NewSchemaRef("#/schemas/schemas/"+respSchema.Ref, nil))),
+									openapi3.NewSchemaRef("#/components/schemas/"+respSchema.Ref, nil))),
 						}
 						responseName = respSchema.Ref + "Response"
 						i.responses[responseName] = response
@@ -191,11 +190,11 @@ func (i *Installer) BindingCreated(
 				Post: &openapi3.Operation{
 					OperationID: reqSchema.Ref,
 					RequestBody: &openapi3.RequestBodyRef{
-						Ref: "#/schemas/requestBodies/" + requestName,
+						Ref: "#/components/requestBodies/" + requestName,
 					},
 					Responses: openapi3.Responses{
 						"200": &openapi3.ResponseRef{
-							Ref: "#/schemas/responses/" + responseName,
+							Ref: "#/components/responses/" + responseName,
 						},
 					},
 					Tags: []string{inputType.PkgPath()},
@@ -218,11 +217,16 @@ func (i *Installer) customize(
 	schema *openapi3.Schema,
 ) error {
 	if props := schema.Properties; props != nil {
-		for i, prop := range props {
-			if prop.Value.Type == "object" {
-				props[i] = &openapi3.SchemaRef{
-					Ref: "#/schemas/schemas/" + prop.Ref,
+		for idx, prop := range props {
+			switch prop.Value.Type {
+			case "object":
+				props[idx] = &openapi3.SchemaRef{
+					Ref: "#/components/schemas/" + prop.Ref,
 				}
+			case "array":
+				return nil
+			default:
+				props[idx].Ref = ""
 			}
 		}
 	}
@@ -251,7 +255,7 @@ var (
 	featureTag byte
 	skipTypes  = []reflect.Type{miruken.TypeOf[time.Time]()}
 	extraTypes = []reflect.Type{
-		miruken.TypeOf[validates.ApiOutcome](),
-		miruken.TypeOf[api.ErrorData](),
+		miruken.TypeOf[jsonstd.OutcomeSurrogate](),
+		miruken.TypeOf[jsonstd.ErrorSurrogate](),
 	}
 )

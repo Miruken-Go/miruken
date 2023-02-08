@@ -8,11 +8,11 @@ import (
 	"testing"
 )
 
-type SlicesTestSuite struct {
+type HelperTestSuite struct {
 	suite.Suite
 }
 
-func (suite *SlicesTestSuite) TestSlices() {
+func (suite *HelperTestSuite) TestHelper() {
 	suite.Run("Map", func() {
 		s := []string{"a", "b", "c"}
 		result := slices.Map[string, string](s, func(i int, s string) string {
@@ -85,6 +85,6 @@ func (suite *SlicesTestSuite) TestSlices() {
 	})
 }
 
-func TestSlicesTestSuite(t *testing.T) {
-	suite.Run(t, new(SlicesTestSuite))
+func TestHelperTestSuite(t *testing.T) {
+	suite.Run(t, new(HelperTestSuite))
 }

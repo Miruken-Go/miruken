@@ -203,6 +203,20 @@ func (suite *ControllerTestSuite) TestController() {
 			suite.Contains(events, ev)
 		})
 
+		/*
+		suite.Run("Concurrent", func() {
+			handler := suite.Setup()
+			create  := CreateTeam{Name: "Tottenham"}
+			batch   := api.RouteTo(api.ConcurrentBatch{
+				Requests: []any{create},
+			}, suite.srv.URL)
+			r, pr, err := api.Send[api.ScheduledResult](handler, batch)
+			suite.NotNil(pr)
+			r, err = pr.Await()
+			suite.Nil(err)
+			suite.Len(r.Responses, 1)
+		})
+*/
 		suite.Run("ValidationError", func() {
 			handler := suite.Setup()
 			create  := api.RouteTo(CreateTeam{}, suite.srv.URL)

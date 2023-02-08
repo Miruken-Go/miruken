@@ -1,6 +1,8 @@
 package api
 
-import "github.com/miruken-go/miruken"
+import (
+	"github.com/miruken-go/miruken"
+)
 
 // Installer enables api support.
 type Installer struct {}

@@ -9,6 +9,29 @@ import (
 	"testing"
 )
 
+type (
+	Counter interface {
+		Count() int
+		Inc() int
+	}
+
+	Counted struct {
+		count int
+	}
+
+	Foo struct { Counted }
+	Bar struct { Counted }
+)
+
+func (c *Counted) Count() int {
+	return c.count
+}
+
+func (c *Counted) Inc() int {
+	c.count++
+	return c.count
+}
+
 type ContextObserver struct {
 	contextEnding bool
 	contextEndingReason any
@@ -489,7 +512,7 @@ func (suite *ContextTestSuite) TestContext() {
 type ScopedService struct {
 	context.ContextualBase
 	disposed bool
-	foo Foo
+	foo      Foo
 }
 
 func (s *ScopedService) Constructor(
@@ -529,7 +552,7 @@ func (s *ScopedService) Dispose() {
 type RootedService struct {
 	context.ContextualBase
 	disposed bool
-	bar Bar
+	bar      Bar
 }
 
 func (s *RootedService) Constructor(

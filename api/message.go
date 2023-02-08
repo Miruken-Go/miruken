@@ -22,6 +22,7 @@ type (
 	Options struct {
 		Polymorphism   miruken.Option[Polymorphism]
 		TypeInfoFormat string
+		TypeFieldValue string
 	}
 
 	// TypeFieldInfo defines metadata for polymorphic messages.
@@ -37,6 +38,16 @@ type (
 	UnknownTypeIdError struct {
 		TypeId string
 		Reason error
+	}
+
+	// ErrorSurrogate exposes an error from an alternate representation.
+	ErrorSurrogate interface {
+		Error() error
+	}
+
+	// MalformedError reports an invalid error payload.
+	MalformedError struct {
+		Culprit any
 	}
 )
 
@@ -66,6 +77,13 @@ func (e *UnknownTypeIdError) Error() string {
 
 func (e *UnknownTypeIdError) Unwrap() error {
 	return e.Reason
+}
+
+
+// MalformedError
+
+func (e *MalformedError) Error() string {
+	return fmt.Sprintf("malformed error: %T", e.Culprit)
 }
 
 

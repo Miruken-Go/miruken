@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/either"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
@@ -72,6 +73,27 @@ func (s *Scheduler) Concurrent(
 		waitGroup.Wait()
 		resolve(ScheduledResult{responses})
 	})
+}
+
+func (s *Scheduler) New(
+	_*struct{
+		cb creates.It `key:"api.ConcurrentBatch"`
+		sb creates.It `key:"api.SequentialBatch"`
+		sr creates.It `key:"api.ScheduledResult"`
+		p  creates.It `key:"api.Published"`
+	}, create *creates.It,
+) any {
+	switch create.Key() {
+	case "api.ConcurrentBatch":
+		return new(ConcurrentBatch)
+	case "api.SequentialBatch":
+		return new(SequentialBatch)
+	case "api.ScheduledResult":
+		return new(ScheduledResult)
+	case "api.Published":
+		return new(Published)
+	}
+	return nil
 }
 
 func (s *Scheduler) Sequential(
@@ -155,15 +177,4 @@ func sendBatch(
 	} else {
 		return promise.Resolve(r.Responses)
 	}
-}
-
-
-// Failure returns a new failed result.
-func Failure(val error) either.Either[error, any] {
-	return either.Left(val)
-}
-
-// Success returns a new successful result.
-func Success[R any](val R) either.Either[error, R] {
-	return either.Right(val)
 }

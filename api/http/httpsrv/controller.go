@@ -25,28 +25,29 @@ func (c *ApiController) ServeHTTP(
 	}
 	child := c.ctx.NewChild()
 	defer child.Dispose()
-	if msg, _, err := maps.Map[api.Message](child, r.Body, maps.From(format)); err != nil {
-		c.encodeError(err, format, w, child)
+	handler := miruken.BuildUp(child, api.Polymorphic)
+	if msg, _, err := maps.Map[api.Message](handler, r.Body, maps.From(format)); err != nil {
+		c.encodeError(err, format, w, handler)
 	} else if msg.Payload == nil {
 		w.WriteHeader(http.StatusBadRequest)
 	} else if publish {
-		if pv, err := api.Publish(child, msg.Payload); err != nil {
-			c.encodeError(err, format, w, child)
+		if pv, err := api.Publish(handler, msg.Payload); err != nil {
+			c.encodeError(err, format, w, handler)
 		} else if pv == nil {
-			c.encodeResult(nil, format, w, child)
+			c.encodeResult(nil, format, w, handler)
 		} else if _, err = pv.Await(); err == nil {
-			c.encodeResult(nil, format, w, child)
+			c.encodeResult(nil, format, w, handler)
 		} else {
-			c.encodeError(err, format, w, child)
+			c.encodeError(err, format, w, handler)
 		}
-	} else if res, pr, err := api.Send[any](child, msg.Payload); err != nil {
-		c.encodeError(err, format, w, child)
+	} else if res, pr, err := api.Send[any](handler, msg.Payload); err != nil {
+		c.encodeError(err, format, w, handler)
 	} else if pr == nil {
-		c.encodeResult(res, format, w, child)
+		c.encodeResult(res, format, w, handler)
 	} else if res, err = pr.Await(); err == nil {
-		c.encodeResult(res, format, w, child)
+		c.encodeResult(res, format, w, handler)
 	} else {
-		c.encodeError(err, format, w, child)
+		c.encodeError(err, format, w, handler)
 	}
 }
 
@@ -75,39 +76,35 @@ func (c *ApiController) acceptRequest(
 }
 
 func (c *ApiController) encodeResult(
-	res    any,
-	format string,
-	w      http.ResponseWriter,
-	ctx    *context.Context,
+	res     any,
+	format  string,
+	w       http.ResponseWriter,
+	handler miruken.Handler,
 ) {
 	w.Header().Set("Content-Type", format)
 	out := io.Writer(w)
 	msg := api.Message{Payload: res}
-	if _, err := maps.MapInto(ctx, msg, &out, maps.To(format)); err != nil {
-		c.encodeError(err, format, w, ctx)
+	if _, err := maps.MapInto(handler, msg, &out, maps.To(format)); err != nil {
+		c.encodeError(err, format, w, handler)
 	}
 }
 
 func (c *ApiController) encodeError(
-	err    error,
-	format string,
-	w      http.ResponseWriter,
-	ctx    *context.Context,
+	err     error,
+	format  string,
+	w       http.ResponseWriter,
+	handler miruken.Handler,
 ) {
 	w.Header().Set("Content-Type", format)
 	statusCode := http.StatusInternalServerError
-	handler    := miruken.BuildUp(ctx, miruken.BestEffort)
+	handler     = miruken.BuildUp(handler, miruken.BestEffort)
 	if sc, _, sce := maps.Map[int](handler, err, toStatusCode); sc != 0 && sce == nil {
 		statusCode = sc
 	}
 	w.WriteHeader(statusCode)
-	ap, _, ae := maps.Map[any](handler, err, api.FromError)
-	if miruken.IsNil(ap) || ae != nil {
-		ap = api.ErrorData{Message: err.Error()}
-	}
 	out := io.Writer(w)
-	msg := api.Message{Payload: ap}
-	_, _ = maps.MapInto(ctx, msg, &out, maps.To(format))
+	msg := api.Message{Payload: err}
+	_, _ = maps.MapInto(handler, msg, &out, maps.To(format))
 }
 
 // Api creates a new ApiController to serve http routed messages.

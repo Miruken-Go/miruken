@@ -149,13 +149,13 @@ func validateCovariantFunc(
 	case 0:
 		err = multierror.Append(err, ErrCovMissingReturn)
 	case 1:
-		if key, inv := validateCovariantReturn(funType.Out(0), spec, key); inv != nil {
+		if key, inv := validateCovariantReturn(funType.Out(0), spec, key, false); inv != nil {
 			err = multierror.Append(err, inv)
 		} else {
 			ck = key
 		}
 	case 2:
-		if key, inv := validateCovariantReturn(funType.Out(0), spec, key); inv != nil {
+		if key, inv := validateCovariantReturn(funType.Out(0), spec, key, true); inv != nil {
 			err = multierror.Append(err, inv)
 		} else {
 			ck = key
@@ -176,32 +176,36 @@ func validateCovariantFunc(
 }
 
 func validateCovariantReturn(
-	returnType  reflect.Type,
+	returnType reflect.Type,
 	spec       *bindingSpec,
 	key        any,
+	allowErr   bool,
 ) (any, error) {
 	switch returnType {
-	case errorType, handleResType:
-		return nil, fmt.Errorf(
-			"covariant: primary return value must not be %v or %v",
-			errorType, handleResType)
-	default:
-		if key == nil {
-			if lt, ok := promise.Inspect(returnType); ok {
-				spec.flags = spec.flags | bindingAsync
-				returnType = lt
-			}
-			if spec.flags & bindingStrict != bindingStrict {
-				switch returnType.Kind() {
-				case reflect.Slice, reflect.Array:
-					returnType = returnType.Elem()
-				}
-			}
-			key = returnType
+	case errorType:
+		if !allowErr {
+			return nil, fmt.Errorf(
+				"covariant: primary return value must not be %v", errorType)
 		}
-		spec.setLogicalOutputType(returnType)
-		return key, nil
+	case handleResType:
+		return nil, fmt.Errorf(
+			"covariant: primary return value must not be %v", handleResType)
 	}
+	if key == nil {
+		if lt, ok := promise.Inspect(returnType); ok {
+			spec.flags = spec.flags | bindingAsync
+			returnType = lt
+		}
+		if spec.flags & bindingStrict != bindingStrict {
+			switch returnType.Kind() {
+			case reflect.Slice, reflect.Array:
+				returnType = returnType.Elem()
+			}
+		}
+		key = returnType
+	}
+	spec.setLogicalOutputType(returnType)
+	return key, nil
 }
 
 var (

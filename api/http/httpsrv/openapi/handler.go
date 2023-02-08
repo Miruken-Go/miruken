@@ -1,15 +1,16 @@
 package openapi
 
 import (
+	"encoding/json"
+	"github.com/getkin/kin-openapi/openapi3"
 	"net/http"
+	"net/url"
+	"sync"
 )
 
-// Handler is a factory method that generates an api http.HandlerFunc.
-// if enableCors is true, then the handler will generate cors headers.
-func (i *Installer) Handler(enableCors bool) http.HandlerFunc {
-	/*
+func Handler(api *openapi3.T, enableCors bool) http.HandlerFunc {
 	mux := &sync.Mutex{}
-	byHostAndScheme := map[string]*API{}
+	byHostAndScheme := map[string]openapi3.T{}
 
 	return func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -23,7 +24,6 @@ func (i *Installer) Handler(enableCors bool) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 
 		// customize the swagger header based on host
-		//
 		scheme := ""
 		if req.TLS != nil {
 			scheme = "https"
@@ -42,15 +42,22 @@ func (i *Installer) Handler(enableCors bool) http.HandlerFunc {
 		mux.Lock()
 		v, ok := byHostAndScheme[hostAndScheme]
 		if !ok {
-			v = i.clone()
-			v.Host = req.Host
-			v.Schemes = []string{scheme}
+			v = *api
+			uri := url.URL{
+				Scheme: scheme,
+				Host:   req.Host,
+			}
+			v.Servers = openapi3.Servers{
+				&openapi3.Server{
+					URL: uri.String(),
+				},
+			}
 			byHostAndScheme[hostAndScheme] = v
 		}
 		mux.Unlock()
 
-		json.NewEncoder(w).Encode(v)
+		enc :=json.NewEncoder(w)
+		enc.SetIndent("", "    ")
+		_ = enc.Encode(v)
 	}
-	 */
-	return nil
 }

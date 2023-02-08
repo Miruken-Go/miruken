@@ -141,7 +141,7 @@ func validateBivariantFunc(
 		}
 		index++
 	} else if _, isSpec := spec.arg.(zeroArg); isSpec {
-		err = ErrBiMissingCallback
+		err = ErrBivMissingCallback
 	}
 
 	if inv := buildDependencies(funType, index+skip, numArgs, args, index); inv != nil {
@@ -150,13 +150,13 @@ func validateBivariantFunc(
 
 	switch funType.NumOut() {
 	case 0:
-		err = multierror.Append(err, ErrBiMissingReturn)
+		err = multierror.Append(err, ErrBivMissingReturn)
 	case 1:
-		if out, inv = validateBivariantReturn(funType.Out(0), spec); inv != nil {
+		if out, inv = validateBivariantReturn(funType.Out(0), spec, false); inv != nil {
 			err = multierror.Append(err, inv)
 		}
 	case 2:
-		if out, inv = validateBivariantReturn(funType.Out(0), spec); inv != nil {
+		if out, inv = validateBivariantReturn(funType.Out(0), spec, true); inv != nil {
 			err = multierror.Append(err, inv)
 		}
 		switch funType.Out(1) {
@@ -187,23 +187,27 @@ func validateBivariantFunc(
 func validateBivariantReturn(
 	returnType reflect.Type,
 	spec       *bindingSpec,
+	allowErr   bool,
 ) (reflect.Type, error) {
 	switch returnType {
-	case errorType, handleResType:
-		return nil, fmt.Errorf(
-			"bivariant: primary return value must not be %v or %v",
-			errorType, handleResType)
-	default:
-		if lt, ok := promise.Inspect(returnType); ok {
-			spec.flags = spec.flags | bindingAsync
-			returnType = lt
+	case errorType:
+		if !allowErr {
+			return nil, fmt.Errorf(
+				"bivariant: primary return value must not be %v", errorType)
 		}
-		spec.setLogicalOutputType(returnType)
-		return returnType, nil
+	case handleResType:
+		return nil, fmt.Errorf(
+			"bivariant: primary return value must not be %v", handleResType)
 	}
+	if lt, ok := promise.Inspect(returnType); ok {
+		spec.flags = spec.flags | bindingAsync
+		returnType = lt
+	}
+	spec.setLogicalOutputType(returnType)
+	return returnType, nil
 }
 
 var (
-	ErrBiMissingCallback = errors.New("bivariant: missing callback argument")
-	ErrBiMissingReturn   = errors.New("bivariant: must have a return value")
+	ErrBivMissingCallback = errors.New("bivariant: missing callback argument")
+	ErrBivMissingReturn   = errors.New("bivariant: must have a return value")
 )
