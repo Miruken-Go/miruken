@@ -57,7 +57,7 @@ func TargetValue(target any) reflect.Value {
 	val := reflect.ValueOf(target)
 	typ := val.Type()
 	if typ.Kind() != reflect.Ptr || val.IsNil() {
-		panic("source must be a non-nil pointer")
+		panic("target must be a non-nil pointer")
 	}
 	return val
 }
@@ -68,16 +68,19 @@ func TargetSliceValue(target any) reflect.Value {
 	val := TargetValue(target)
 	typ := val.Type()
 	if typ.Elem().Kind() != reflect.Slice {
-		panic("source must be a non-nil slice pointer")
+		panic("target must be a non-nil slice pointer")
 	}
 	return val
 }
 
-// CopyIndirect copies the contents of src into the
-// source pointer or reflect.Value.
+// CopyIndirect copies the contents of src into the target
+// pointer or reflect.Value.
 func CopyIndirect(src any, target any) {
 	var val reflect.Value
 	if v, ok := target.(reflect.Value); ok {
+		if v.Kind() != reflect.Ptr || val.IsNil() {
+			panic("target must be a non-nil pointer")
+		}
 		val = v
 	} else {
 		val = TargetValue(target)
@@ -88,26 +91,30 @@ func CopyIndirect(src any, target any) {
 	}
 	val = reflect.Indirect(val)
 	typ := val.Type()
-	if typ.Kind() == reflect.Slice {
-		if sv, ok := CoerceSlice(srcVal, typ.Elem()); ok {
-			srcVal = sv
-		}
-	}
 	if src == nil {
 		val.Set(reflect.Zero(typ))
 	} else {
-		if st := srcVal.Type(); !st.AssignableTo(typ) && st.ConvertibleTo(typ) {
+		if st := srcVal.Type(); st.Kind() == reflect.Ptr && st.Elem() == typ {
+			srcVal = reflect.Indirect(srcVal)
+		} else if !st.AssignableTo(typ) && st.ConvertibleTo(typ) {
 			srcVal = srcVal.Convert(typ)
+		} else if typ.Kind() == reflect.Slice {
+			if sv, ok := CoerceSlice(srcVal, typ.Elem()); ok {
+				srcVal = sv
+			}
 		}
 		val.Set(srcVal)
 	}
 }
 
-// CopySliceIndirect copies the contents of src slice into
-// the source pointer or reflect.Value.
+// CopySliceIndirect copies the contents of src slice into the
+// target pointer or reflect.Value.
 func CopySliceIndirect(src []any, target any) {
 	var val reflect.Value
 	if v, ok := target.(reflect.Value); ok {
+		if v.Kind() != reflect.Slice {
+			panic("target must be a non-nil slice pointer")
+		}
 		val = v
 	} else {
 		val = TargetSliceValue(target)

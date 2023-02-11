@@ -5,7 +5,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3gen"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
-	"github.com/miruken-go/miruken/api/json/jsonstd"
+	"github.com/miruken-go/miruken/api/json"
 	"github.com/miruken-go/miruken/handles"
 	"reflect"
 	"time"
@@ -23,7 +23,7 @@ type Installer struct {
 	typeInfoFormat string
 }
 
-func (i *Installer) Describe(api *openapi3.T)  {
+func (i *Installer) Export(api *openapi3.T)  {
 	if api == nil {
 		panic("api cannot be nil")
 	}
@@ -255,7 +255,7 @@ var (
 	featureTag byte
 	skipTypes  = []reflect.Type{miruken.TypeOf[time.Time]()}
 	extraTypes = []reflect.Type{
-		miruken.TypeOf[jsonstd.OutcomeSurrogate](),
-		miruken.TypeOf[jsonstd.ErrorSurrogate](),
+		miruken.TypeOf[json.OutcomeSurrogate](),
+		miruken.TypeOf[json.ErrorSurrogate](),
 	}
 )

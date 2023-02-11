@@ -51,7 +51,7 @@ func (m *TypeIdMapper) PlayerDotNet(
 		maps.Format `to:"type:info:dotnet"`
 	  }, _ PlayerData,
 ) api.TypeFieldInfo {
-	return api.TypeFieldInfo{Field: "$type", Value: "Player,TeamApi"}
+	return api.TypeFieldInfo{TypeField: "$type", TypeValue: "Player,TeamApi"}
 }
 
 func (m *TypeIdMapper) TeamDotNet(
@@ -60,7 +60,7 @@ func (m *TypeIdMapper) TeamDotNet(
 		maps.Format `to:"type:info:dotnet"`
 	  }, _ TeamData,
 ) api.TypeFieldInfo {
-	return api.TypeFieldInfo{Field: "$type", Value: "Team,TeamApi"}
+	return api.TypeFieldInfo{TypeField: "$type", TypeValue: "Team,TeamApi"}
 }
 
 func (m *TypeIdMapper) CreateTeam(
@@ -79,7 +79,7 @@ func (suite *JsonStdTestSuite) Setup() miruken.Handler {
 	handler, _ := miruken.Setup(
 		TestFeature,
 		jsonstd.Feature()).
-		Specs(&api.GoTypeFieldInfoMapper{}).
+		Specs(&api.GoPolymorphismMapper{}).
 		Handler()
 	return handler
 }
@@ -93,8 +93,8 @@ func (suite *JsonStdTestSuite) TestJson() {
 				info, _, err := maps.Map[api.TypeFieldInfo](
 					handler, PlayerData{}, maps.To("type:info:dotnet"))
 				suite.Nil(err)
-				suite.Equal("$type", info.Field)
-				suite.Equal("Player,TeamApi", info.Value)
+				suite.Equal("$type", info.TypeField)
+				suite.Equal("Player,TeamApi", info.TypeValue)
 			})
 		})
 
@@ -214,12 +214,12 @@ func (suite *JsonStdTestSuite) TestJson() {
 					miruken.BuildUp(handler, api.Polymorphic),
 					[]int{2,4,6}, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("[2,4,6]", j)
+				suite.Equal("{\"@type\":\"[]int\",\"@values\":[2,4,6]}", j)
 
 				j, _, err = maps.Map[string](
 					miruken.BuildUp(handler, api.Polymorphic),
 					[]string{"X","Y","Z"}, api.ToJson)
-				suite.Equal("[\"X\",\"Y\",\"Z\"]", j)
+				suite.Equal("{\"@type\":\"[]string\",\"@values\":[\"X\",\"Y\",\"Z\"]}", j)
 
 				j, _, err = maps.Map[string](
 					miruken.BuildUp(handler, api.Polymorphic),
@@ -235,7 +235,26 @@ func (suite *JsonStdTestSuite) TestJson() {
 						{8, "Michael Binder"},
 					},
 					}}, api.ToJson)
+				suite.Equal("{\"@type\":\"[]test.TeamData\",\"@values\":[{\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}]}", j)
+
+				j, _, err = maps.Map[string](
+					miruken.BuildUp(handler, api.Polymorphic),
+					[]any{TeamData{Id: 9, Name: "Breakaway", Players: []PlayerData{
+						{1, "Sean Rose"},
+						{4, "Mark Kingston"},
+						{8, "Michael Binder"},
+					},
+					}}, api.ToJson)
 				suite.Equal("[{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}]", j)
+
+				x := []int{1,2}
+				y := []TeamData{{
+					Id:      1,
+					Name:    "Craig",
+					Players: nil,
+				}}
+				fmt.Printf("%T - %v\n", x, reflect.TypeOf(x).String())
+				fmt.Printf("%T - %v\n", y, reflect.TypeOf(y).String())
 			})
 
 			suite.Run("ToJsonTypedIndent", func() {
@@ -493,6 +512,28 @@ func (suite *JsonStdTestSuite) TestJson() {
 				sa, _, err := maps.Map[[]string](handler, "[\"E\",\"F\",\"G\"]", api.FromJson)
 				suite.Nil(err)
 				suite.Equal([]string{"E","F","G"}, sa)
+
+				i8a, _, err := maps.Map[[]int8](
+					miruken.BuildUp(handler, api.Polymorphic),
+					"{\"@type\":\"[]int8\",\"@values\":[2,4,6]}", api.FromJson)
+				suite.Nil(err)
+				suite.Equal([]int8{2,4,6}, i8a)
+
+				sa, _, err = maps.Map[[]string](
+					miruken.BuildUp(handler, api.Polymorphic),
+					"{\"@type\":\"[]string\",\"@values\":[\"Craig\",\"Brenda\",\"Lauren\"]}", api.FromJson)
+				suite.Nil(err)
+				suite.Equal([]string{"Craig","Brenda","Lauren"}, sa)
+
+				ta, _, err := maps.Map[[]*TeamData](
+					miruken.BuildUp(handler, api.Polymorphic),
+					"{\"@type\":\"[]test.TeamData\",\"@values\":[{\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}]}", api.FromJson)
+				suite.Nil(err)
+				suite.Equal([]*TeamData{{Id: 9, Name: "Breakaway", Players: []PlayerData{
+					{1, "Sean Rose"},
+					{4, "Mark Kingston"},
+					{8, "Michael Binder"},
+				}}}, ta)
 			})
 
 			suite.Run("FromJsonStreamTyped", func() {

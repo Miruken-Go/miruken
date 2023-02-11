@@ -22,7 +22,7 @@ func (s *StatusCodeMapper) NotHandled(
 	if _, ok := nhe.Callback.(*maps.It); ok {
 		return http.StatusUnsupportedMediaType
 	}
-	return http.StatusInternalServerError
+	return http.StatusNotFound
 }
 
 func (s *StatusCodeMapper) UnknownTypeId(

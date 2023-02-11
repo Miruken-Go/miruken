@@ -2,6 +2,7 @@ package jsonstd
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/api/json"
 )
 
 // Installer configure json support.
@@ -9,7 +10,7 @@ type Installer struct {}
 
 func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
-		setup.Specs(&Mapper{}, &SurrogateMapper{}, &apiMessageMapper{})
+		setup.Specs(&Mapper{}, &json.SurrogateMapper{}, &apiMessageMapper{})
 	}
 	return nil
 }

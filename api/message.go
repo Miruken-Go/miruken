@@ -3,15 +3,23 @@ package api
 import (
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
+	"strings"
+	"sync"
 )
 
 type (
 	// Message is envelop for polymorphic payloads.
 	Message struct {
 		Payload any
+	}
+
+	// Surrogate replaces a value with another for api transmission.
+	Surrogate interface {
+		Original() any
 	}
 
 	// Polymorphism is an enum that defines how type
@@ -25,30 +33,15 @@ type (
 		TypeFieldValue string
 	}
 
-	// TypeFieldInfo defines metadata for polymorphic messages.
+	// TypeFieldInfo defines metadata for polymorphic serialization.
 	TypeFieldInfo struct {
-		Field string
-		Value string
+		TypeField   string
+		TypeValue   string
+		ValuesField string
 	}
 
-	// GoTypeFieldInfoMapper provides TypeFieldInfo using package and name.
-	GoTypeFieldInfoMapper struct {}
-
-	// UnknownTypeIdError reports an invalid type discriminator.
-	UnknownTypeIdError struct {
-		TypeId string
-		Reason error
-	}
-
-	// ErrorSurrogate exposes an error from an alternate representation.
-	ErrorSurrogate interface {
-		Error() error
-	}
-
-	// MalformedError reports an invalid error payload.
-	MalformedError struct {
-		Culprit any
-	}
+	// GoPolymorphismMapper provides polymorphic support for GO types.
+	GoPolymorphismMapper struct {}
 )
 
 const (
@@ -56,20 +49,97 @@ const (
 	PolymorphismRoot Polymorphism = 1 << iota
 )
 
-// GoTypeFieldInfoMapper
+// GoPolymorphismMapper
 
-func (m *GoTypeFieldInfoMapper) TypeFieldInfo(
+// TypeInfo uses package and name to generate type metadata.
+func (m *GoPolymorphismMapper) TypeInfo(
 	_*struct{
 		maps.It
 		maps.Format `to:"type:info"`
 	  }, maps *maps.It,
 ) (TypeFieldInfo, error) {
-	typ := reflect.TypeOf(maps.Source())
-	return TypeFieldInfo{"@type", typ.String()}, nil
+	return TypeFieldInfo{
+		TypeField:   "@type",
+		TypeValue:   reflect.TypeOf(maps.Source()).String(),
+		ValuesField: "@values",
+	}, nil
+}
+
+func (m *GoPolymorphismMapper) Static(
+	_*struct{
+		miruken.Strict
+		b     creates.It `key:"bool"`
+		i     creates.It `key:"int"`
+		i8    creates.It `key:"int8"`
+		i16   creates.It `key:"int16"`
+		i32   creates.It `key:"int32"`
+		i64   creates.It `key:"int64"`
+		ui    creates.It `key:"uint"`
+		ui8   creates.It `key:"uint8"`
+		ui16  creates.It `key:"uint16"`
+		ui32  creates.It `key:"uint32"`
+		ui64  creates.It `key:"uint64"`
+		f32   creates.It `key:"float32"`
+		f64   creates.It `key:"float64"`
+		st    creates.It `key:"string"`
+		bs    creates.It `key:"[]bool"`
+		is    creates.It `key:"[]int"`
+		i8s   creates.It `key:"[]int8"`
+		i16s  creates.It `key:"[]int16"`
+		i32s  creates.It `key:"[]int32"`
+		i64s  creates.It `key:"[]int64"`
+		uis   creates.It `key:"[]uint"`
+		ui8s  creates.It `key:"[]uint8"`
+		ui16s creates.It `key:"[]uint16"`
+		ui32s creates.It `key:"[]uint32"`
+		ui64s creates.It `key:"[]uint64"`
+		f32s  creates.It `key:"[]float32"`
+		f64s  creates.It `key:"[]float64"`
+		sts   creates.It `key:"[]string"`
+	  }, create *creates.It,
+) any {
+	if key, ok := create.Key().(string); ok {
+		if proto, ok := staticTypeMap[key]; ok {
+			return proto
+		}
+	}
+	return nil
+}
+
+func (m *GoPolymorphismMapper) Dynamic(
+	_*struct{
+		miruken.Strict
+		creates.It
+	  }, create *creates.It,
+	ctx miruken.HandleContext,
+) any {
+	if key, ok := create.Key().(string); ok {
+		dynamicLock.RLock()
+		proto := dynamicTypeMap[key]
+		dynamicLock.RUnlock()
+		if proto == nil {
+			dynamicLock.Lock()
+			defer dynamicLock.Unlock()
+			if proto = dynamicTypeMap[key]; proto == nil {
+				if strings.HasPrefix(key, "[]") {
+					if el, _, err := miruken.CreateKey[any](ctx.Composer(), key[2:]); err == nil {
+						proto = reflect.New(reflect.SliceOf(reflect.TypeOf(el))).Interface()
+						dynamicTypeMap[key] = proto
+					}
+				}
+			}
+		}
+		return proto
+	}
+	return nil
 }
 
 
-// UnknownTypeIdError
+// UnknownTypeIdError reports an invalid type discriminator.
+type UnknownTypeIdError struct {
+	TypeId string
+	Reason error
+	}
 
 func (e *UnknownTypeIdError) Error() string {
 	return fmt.Sprintf("unknown type id '%s': %s", e.TypeId, e.Reason.Error())
@@ -80,9 +150,12 @@ func (e *UnknownTypeIdError) Unwrap() error {
 }
 
 
-// MalformedError
+// MalformedErrorError reports an invalid error payload.
+type MalformedErrorError struct {
+	Culprit any
+	}
 
-func (e *MalformedError) Error() string {
+func (e *MalformedErrorError) Error() string {
 	return fmt.Sprintf("malformed error: %T", e.Culprit)
 }
 
@@ -181,4 +254,38 @@ var (
 
 	// ToTypeInfo requests the type discriminator for a type.
 	ToTypeInfo = maps.To("type:info")
+
+	staticTypeMap = map[string]any {
+		"bool":      new(bool),
+		"int":       new(int),
+		"int8":      new(int8),
+		"int16":     new(int16),
+		"int32":     new(int32),
+		"int64":     new(int64),
+		"uint":      new(uint),
+		"uint8":     new(uint8),
+		"uint16":    new(uint16),
+		"uint32":    new(uint32),
+		"uint64":    new(uint64),
+		"float32":   new(float32),
+		"float64":   new(float64),
+		"string":    new(string),
+		"[]bool":    new([]bool),
+		"[]int":     new([]int),
+		"[]int8":    new([]int8),
+		"[]int16":   new([]int16),
+		"[]int32":   new([]int32),
+		"[]int64":   new([]int64),
+		"[]uint":    new([]uint),
+		"[]uint8":   new([]uint8),
+		"[]uint16":  new([]uint16),
+		"[]uint32":  new([]uint32),
+		"[]uint64":  new([]uint64),
+		"[]float32": new([]float32),
+		"[]float64": new([]float64),
+		"[]string":  new([]string),
+	}
+
+	dynamicLock sync.RWMutex
+	dynamicTypeMap = make(map[string]any)
 )

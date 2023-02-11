@@ -10,6 +10,7 @@ import (
 	"github.com/miruken-go/miruken/maps"
 	"io"
 	"reflect"
+	"strings"
 )
 
 type (
@@ -32,9 +33,15 @@ type (
 	}
 )
 
-// KnownTypeFields holds the list of json property names
-// that can contain type discriminators.
-var KnownTypeFields = []string{"$type", "@type"}
+var (
+	// KnownTypeFields holds the list of json property names
+	// that can contain type discriminators.
+	KnownTypeFields = []string{"$type", "@type"}
+
+	// KnownValuesFields holds the list of json property names
+	// that can contain values for discriminated arrays.
+	KnownValuesFields = []string{"$values", "@values"}
+)
 
 
 // apiMessageMapper
@@ -77,6 +84,9 @@ func (m *apiMessageMapper) Decode(
 		return api.Message{}, err
 	}
 	payload, _, err := maps.Map[any](ctx.Composer(), string(sur.Payload), api.FromJson)
+	if sur, ok := payload.(api.Surrogate); ok {
+		payload = sur.Original()
+	}
 	return api.Message{Payload: payload}, err
 }
 
@@ -93,20 +103,25 @@ func (c *typeContainer) TypeInfo() *maps.Format {
 func (c *typeContainer) MarshalJSON() ([]byte, error) {
 	v   := c.v
 	typ := reflect.TypeOf(v)
+	var elemTyp reflect.Type
 	if typ != nil && typ.Kind() == reflect.Slice {
+		elemTyp = typ.Elem()
 		s   := reflect.ValueOf(v)
 		arr := make([]*json.RawMessage, 0, s.Len())
 		for i := 0; i < s.Len(); i++ {
 			var b bytes.Buffer
 			writer := io.Writer(&b)
 			enc    := json.NewEncoder(writer)
-			elem   := typeContainer{
-				v:        s.Index(i).Interface(),
-				typInfo:  c.typInfo,
-				trans:    c.trans,
-				composer: c.composer,
+			elem   := s.Index(i).Interface()
+			if reflect.TypeOf(elem) != elemTyp {
+				elem = &typeContainer{
+					v:        elem,
+					typInfo:  c.typInfo,
+					trans:    c.trans,
+					composer: c.composer,
+				}
 			}
-			if err := enc.Encode(&elem); err != nil {
+			if err := enc.Encode(elem); err != nil {
 				return nil, fmt.Errorf("can't marshal array index %d: %w", i, err)
 			} else {
 				raw := json.RawMessage(b.Bytes())
@@ -119,9 +134,11 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 	if trans := c.trans; len(trans) > 0 {
 		vm = &transformer{v, trans}
 	}
-	if byt, err := json.Marshal(vm); err != nil {
-		return nil, err
-	} else if len(byt) > 0 && byt[0] == '{' {
+	byt, err := json.Marshal(vm)
+	if err != nil || len(byt) == 0 {
+		return byt, err
+	}
+	if byt[0] == '{' {
 		typeInfo, _, err := maps.Map[api.TypeFieldInfo](c.composer, v, c.TypeInfo())
 		if err != nil {
 			return nil, err
@@ -130,14 +147,29 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 		if len(byt) > 1 && byt[1] != '}' {
 			comma = ","
 		}
-		typeProperty := []byte(fmt.Sprintf("\"%v\":\"%v\"%s", typeInfo.Field, typeInfo.Value, comma))
+		typeProperty := []byte(fmt.Sprintf("\"%v\":\"%v\"%s",
+			typeInfo.TypeField, typeInfo.TypeValue, comma))
 		byt = append(byt, typeProperty...)
 		copy(byt[len(typeProperty)+1:], byt[1:])
 		copy(byt[1:], typeProperty)
-		return byt, nil
-	} else {
-		return byt, nil
+	} else if byt[0] == '[' && elemTyp != nil && !anyType.AssignableTo(elemTyp) {
+		typeInfo, _, err := maps.Map[api.TypeFieldInfo](c.composer, c.v, c.TypeInfo())
+		if err != nil {
+			return nil, err
+		}
+		var sb strings.Builder
+		sb.WriteString("{\"")
+		sb.WriteString(typeInfo.TypeField)
+		sb.WriteString("\":\"")
+		sb.WriteString(typeInfo.TypeValue)
+		sb.WriteString("\",\"")
+		sb.WriteString(typeInfo.ValuesField)
+		sb.WriteString("\":")
+		sb.Write(byt)
+		sb.WriteString("}")
+		byt = []byte(sb.String())
 	}
+	return byt, nil
 }
 
 func (c *typeContainer) UnmarshalJSON(data []byte) error {
@@ -216,6 +248,11 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 			if trans := c.trans; len(trans) > 0 {
 				vm = &transformer{v, trans}
 			}
+			for _, field = range KnownValuesFields {
+				if values := fields[field]; values != nil {
+					data = *values
+				}
+			}
 			if err := json.Unmarshal(data, vm); err != nil {
 				return err
 			} else {
@@ -229,3 +266,5 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 	}
 	return nil
 }
+
+var anyType = miruken.TypeOf[any]()

@@ -78,8 +78,8 @@ func (r *Router) Route(
 			reject(fmt.Errorf("http router: %w", err))
 			return
 		}
-		defer func(Body io.ReadCloser) {
-			_ = Body.Close()
+		defer func(body io.ReadCloser) {
+			_ = body.Close()
 		}(res.Body)
 
 		if code := res.StatusCode; code < 200 || code >= 300 {
@@ -122,13 +122,10 @@ func (r *Router) decodeError(
 
 	if msg, _, err := maps.Map[api.Message](composer, res.Body, from); err == nil {
 		if payload := msg.Payload; payload != nil {
-			switch e := payload.(type) {
-			case error:
-				return e
-			case api.ErrorSurrogate:
-				return e.Error()
-			default:
-				return &api.MalformedError{Culprit: payload}
+			if err, ok := payload.(error); ok {
+				return err
+			} else {
+				return &api.MalformedErrorError{Culprit: payload}
 			}
 		}
 	}

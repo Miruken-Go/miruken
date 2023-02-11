@@ -397,29 +397,31 @@ func DynNext(
 	if binding == nil {
 		dynNextLock.Lock()
 		defer dynNextLock.Unlock()
-		if dynNext, ok := typ.MethodByName("DynNext"); !ok {
-			goto Invalid
-		} else if dynNextType := dynNext.Type;
+		if binding = dynNextBindingMap[typ]; binding == nil {
+			if dynNext, ok := typ.MethodByName("DynNext"); !ok {
+				goto Invalid
+			} else if dynNextType := dynNext.Type;
 				dynNextType.NumIn() < 4 || dynNextType.NumOut() < 3 {
-			goto Invalid
-		} else if dynNextType.In(1) != reflect.TypeOf(next) ||
-			dynNextType.In(2) != handleCtxType ||
-			dynNextType.In(3) != filterProviderType ||
-			dynNextType.Out(0) != anySliceType ||
-			dynNextType.Out(1) != promiseAnySliceType ||
-			dynNextType.Out(2) != errorType {
-			goto Invalid
-		} else {
-			numArgs := dynNextType.NumIn()
-			args    := make([]arg, numArgs-4)  // skip receiver
-			if inv := buildDependencies(dynNextType, 4, numArgs, args, 0); inv != nil {
-				err = fmt.Errorf("DynNext: %w", inv)
+				goto Invalid
+			} else if dynNextType.In(1) != reflect.TypeOf(next) ||
+				dynNextType.In(2) != handleCtxType ||
+				dynNextType.In(3) != filterProviderType ||
+				dynNextType.Out(0) != anySliceType ||
+				dynNextType.Out(1) != promiseAnySliceType ||
+				dynNextType.Out(2) != errorType {
+				goto Invalid
+			} else {
+				numArgs := dynNextType.NumIn()
+				args := make([]arg, numArgs-4) // skip receiver
+				if inv := buildDependencies(dynNextType, 4, numArgs, args, 0); inv != nil {
+					err = fmt.Errorf("DynNext: %w", inv)
+				}
+				if err != nil {
+					return nil, nil, &MethodBindingError{dynNext, err}
+				}
+				binding = &nextBinding{dynNext, args}
+				dynNextBindingMap[typ] = binding
 			}
-			if err != nil {
-				return nil, nil, &MethodBindingError{dynNext, err}
-			}
-			binding = &nextBinding{dynNext, args}
-			dynNextBindingMap[typ] = binding
 		}
 	}
 	if out, po, err = binding.invoke(ctx, filter, next, ctx, provider); err != nil {
