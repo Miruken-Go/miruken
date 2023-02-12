@@ -121,11 +121,17 @@ func (m *GoPolymorphismMapper) Dynamic(
 			dynamicLock.Lock()
 			defer dynamicLock.Unlock()
 			if proto = dynamicTypeMap[key]; proto == nil {
-				if strings.HasPrefix(key, "[]") {
+				if strings.HasPrefix(key, "*") {
+					if id, _, err := miruken.CreateKey[any](ctx.Composer(), key[1:]); err == nil {
+						proto = id
+					}
+				} else if strings.HasPrefix(key, "[]") {
 					if el, _, err := miruken.CreateKey[any](ctx.Composer(), key[2:]); err == nil {
 						proto = reflect.New(reflect.SliceOf(reflect.TypeOf(el))).Interface()
-						dynamicTypeMap[key] = proto
 					}
+				}
+				if proto != nil {
+					dynamicTypeMap[key] = proto
 				}
 			}
 		}

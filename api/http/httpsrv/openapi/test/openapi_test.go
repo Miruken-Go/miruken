@@ -144,7 +144,7 @@ func (suite *OpenApiTestSuite) TestOpenApi() {
 				},
 			},
 		}
-		suite.openapi.Export(&api)
+		suite.openapi.Merge(&api)
 	})
 }
 

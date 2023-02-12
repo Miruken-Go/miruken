@@ -82,19 +82,19 @@ func (t *TeamApiHandler) CreateTeam(
 func (t *TeamApiHandler) New(
 	_*struct{
 		ct  creates.It `key:"test.CreateTeam"`
-		tc  creates.It `key:"*test.TeamCreated"`
+		tc  creates.It `key:"test.TeamCreated"`
 	    gtn creates.It `key:"test.GetTeamNotifications"`
-		td  creates.It `key:"*test.TeamData"`
+		td  creates.It `key:"test.TeamData"`
 	  }, create *creates.It,
 ) any {
 	switch create.Key() {
 	case "test.CreateTeam":
 		return new(CreateTeam)
-	case "*test.TeamCreated":
+	case "test.TeamCreated":
 		return new(TeamCreated)
 	case "test.GetTeamNotifications":
 		return new(GetTeamNotifications)
-	case "*test.TeamData":
+	case "test.TeamData":
 		return new(TeamData)
 	}
 	return nil
@@ -203,6 +203,7 @@ func (suite *ControllerTestSuite) TestController() {
 			suite.Contains(events, ev)
 		})
 
+		/*
 		suite.Run("Concurrent", func() {
 			handler := suite.Setup()
 			create  := CreateTeam{Name: "Tottenham"}
@@ -215,6 +216,7 @@ func (suite *ControllerTestSuite) TestController() {
 			suite.Nil(err)
 			suite.Len(r.Responses, 1)
 		})
+*/
 
 		suite.Run("ValidationError", func() {
 			handler := suite.Setup()

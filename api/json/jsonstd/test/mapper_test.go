@@ -88,7 +88,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 	suite.Run("It", func () {
 		handler := suite.Setup()
 
-		suite.Run("TypeInfo", func() {
+		suite.Run("typeInfo", func() {
 			suite.Run("TypeId", func() {
 				info, _, err := maps.Map[api.TypeFieldInfo](
 					handler, PlayerData{}, maps.To("type:info:dotnet"))

@@ -23,7 +23,7 @@ type Installer struct {
 	typeInfoFormat string
 }
 
-func (i *Installer) Export(api *openapi3.T)  {
+func (i *Installer) Merge(api *openapi3.T)  {
 	if api == nil {
 		panic("api cannot be nil")
 	}

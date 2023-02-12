@@ -14,16 +14,16 @@ import (
 )
 
 type (
-	// apiMessage is the json specific stub for the generic api.Message.
-	apiMessage struct {
+	// MessageSurrogate is the json specific surrogate for api.Message.
+	MessageSurrogate struct {
 		Payload json.RawMessage `json:"payload"`
 	}
 
-	// apiMessageMapper maps between the generic api.Message and the json
-	// specific apiMessage stub.
-	apiMessageMapper struct {}
+	// SurrogateMapper maps concepts to values that are more suitable
+	// for transmission over a polymorphic json api.
+	SurrogateMapper struct {}
 
-	// typeContainer intercepts json serialization to emit type field
+	// typeContainer customizes json serialization to emit type field
 	// information needed to support polymorphism.
 	typeContainer struct {
 		v        any
@@ -44,9 +44,9 @@ var (
 )
 
 
-// apiMessageMapper
+// SurrogateMapper
 
-func (m *apiMessageMapper) Encode(
+func (m *SurrogateMapper) EncodeMessage(
 	_*struct{
 		maps.It
 		maps.Format `to:"application/json"`
@@ -55,7 +55,7 @@ func (m *apiMessageMapper) Encode(
 	ctx miruken.HandleContext,
 ) (io.Writer, error) {
 	if writer, ok := it.Target().(*io.Writer); ok {
-		var sur apiMessage
+		var sur MessageSurrogate
 		if payload := msg.Payload; payload != nil {
 			pj, _, err := maps.Map[string](ctx.Composer(), msg.Payload, api.ToJson)
 			if err != nil {
@@ -71,14 +71,14 @@ func (m *apiMessageMapper) Encode(
 	return nil, nil
 }
 
-func (m *apiMessageMapper) Decode(
+func (m *SurrogateMapper) DecodeMessage(
 	_*struct{
 		maps.It
 		maps.Format `from:"application/json"`
 	  }, stream io.Reader,
 	ctx miruken.HandleContext,
 ) (api.Message, error) {
-	var sur apiMessage
+	var sur MessageSurrogate
 	dec := json.NewDecoder(stream)
 	if err := dec.Decode(&sur); err != nil {
 		return api.Message{}, err
@@ -93,7 +93,7 @@ func (m *apiMessageMapper) Decode(
 
 // typeContainer
 
-func (c *typeContainer) TypeInfo() *maps.Format {
+func (c *typeContainer) typeInfo() *maps.Format {
 	if typeInfo := c.typInfo; len(typeInfo) > 0 {
 		return maps.To(typeInfo)
 	}
@@ -139,7 +139,7 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 		return byt, err
 	}
 	if byt[0] == '{' {
-		typeInfo, _, err := maps.Map[api.TypeFieldInfo](c.composer, v, c.TypeInfo())
+		typeInfo, _, err := maps.Map[api.TypeFieldInfo](c.composer, v, c.typeInfo())
 		if err != nil {
 			return nil, err
 		}
@@ -153,7 +153,7 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 		copy(byt[len(typeProperty)+1:], byt[1:])
 		copy(byt[1:], typeProperty)
 	} else if byt[0] == '[' && elemTyp != nil && !anyType.AssignableTo(elemTyp) {
-		typeInfo, _, err := maps.Map[api.TypeFieldInfo](c.composer, c.v, c.TypeInfo())
+		typeInfo, _, err := maps.Map[api.TypeFieldInfo](c.composer, c.v, c.typeInfo())
 		if err != nil {
 			return nil, err
 		}

@@ -10,7 +10,7 @@ type Installer struct {}
 
 func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
-		setup.Specs(&Mapper{}, &json.SurrogateMapper{}, &apiMessageMapper{})
+		setup.Specs(&Mapper{}, &json.SurrogateMapper{}, &SurrogateMapper{})
 	}
 	return nil
 }

@@ -100,12 +100,12 @@ func (m *SurrogateMapper) New(
 		o creates.It `key:"json.OutcomeSurrogate"`
 		e creates.It `key:"json.ErrorSurrogate"`
 	  }, create *creates.It,
-) (any, error) {
+) any {
 	switch create.Key() {
 	case "json.OutcomeSurrogate":
-		return new(OutcomeSurrogate), nil
+		return new(OutcomeSurrogate)
 	case "json.ErrorSurrogate":
-		return new(ErrorSurrogate), nil
+		return new(ErrorSurrogate)
 	}
-	return nil, nil
+	return nil
 }
