@@ -103,9 +103,8 @@ func (c *typeContainer) typeInfo() *maps.Format {
 func (c *typeContainer) MarshalJSON() ([]byte, error) {
 	v   := c.v
 	typ := reflect.TypeOf(v)
-	var elemTyp reflect.Type
 	if typ != nil && typ.Kind() == reflect.Slice {
-		elemTyp = typ.Elem()
+		et  := typ.Elem()
 		s   := reflect.ValueOf(v)
 		arr := make([]*json.RawMessage, 0, s.Len())
 		for i := 0; i < s.Len(); i++ {
@@ -113,7 +112,7 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 			writer := io.Writer(&b)
 			enc    := json.NewEncoder(writer)
 			elem   := s.Index(i).Interface()
-			if reflect.TypeOf(elem) != elemTyp {
+			if anyType.AssignableTo(et) || reflect.TypeOf(elem) != et {
 				elem = &typeContainer{
 					v:        elem,
 					typInfo:  c.typInfo,
@@ -152,7 +151,7 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 		byt = append(byt, typeProperty...)
 		copy(byt[len(typeProperty)+1:], byt[1:])
 		copy(byt[1:], typeProperty)
-	} else if byt[0] == '[' && elemTyp != nil && !anyType.AssignableTo(elemTyp) {
+	} else if byt[0] == '[' {
 		typeInfo, _, err := maps.Map[api.TypeFieldInfo](c.composer, c.v, c.typeInfo())
 		if err != nil {
 			return nil, err
@@ -180,32 +179,23 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 				var raw []*json.RawMessage
 				if err = json.Unmarshal(data, &raw); err == nil {
 					var arr reflect.Value
-					var elemTyp reflect.Type
 					typ := reflect.Indirect(reflect.ValueOf(c.v)).Type()
 					if typ.Kind() == reflect.Slice {
-						arr = reflect.MakeSlice(typ, 0, len(raw))
-						elemTyp = arr.Type().Elem()
+						arr = reflect.MakeSlice(typ, len(raw), len(raw))
 					} else {
-						arr = reflect.ValueOf(make([]any, 0, len(raw)))
+						arr = reflect.ValueOf(make([]any, len(raw), len(raw)))
 					}
 					for i, elem := range raw {
-						var target any
 						r   := bytes.NewReader(*elem)
 						dec := json.NewDecoder(r)
 						tc  := typeContainer{
-							v:        &target,
+							v:        arr.Index(i).Addr().Interface(),  // &arr[0]
 							typInfo:  c.typInfo,
 							trans:    c.trans,
 							composer: c.composer,
 						}
 						if err := dec.Decode(&tc); err != nil {
 							return fmt.Errorf("can't unmarshal array index %d: %w", i, err)
-						} else {
-							v := reflect.ValueOf(target)
-							if elemTyp != nil {
-								v = v.Convert(elemTyp)
-							}
-							arr = reflect.Append(arr, v)
 						}
 					}
 					miruken.CopyIndirect(arr.Interface(), c.v)
@@ -251,6 +241,12 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 			for _, field = range KnownValuesFields {
 				if values := fields[field]; values != nil {
 					data = *values
+					vm   = &typeContainer{
+						v:        vm,
+						typInfo:  c.typInfo,
+						trans:    c.trans,
+						composer: c.composer,
+					}
 				}
 			}
 			if err := json.Unmarshal(data, vm); err != nil {

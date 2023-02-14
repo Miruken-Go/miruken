@@ -17,7 +17,7 @@ func (m *SurrogateMapper) ReplaceConcurrent(
 	_*struct{
 		maps.It
 		maps.Format `to:"application/json"`
-	  }, batch *api.ConcurrentBatch,
+	  }, batch api.ConcurrentBatch,
 	ctx miruken.HandleContext,
 ) (string, error) {
 	sur := ConcurrentSurrogate(batch.Requests)

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
-	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/validates"
 )
@@ -93,19 +92,4 @@ func (m *SurrogateMapper) ReplaceError(
 	sur := ErrorSurrogate{err.Error()}
 	js, _, err := maps.Map[string](ctx.Composer(), sur, api.ToJson)
 	return js, err
-}
-
-func (m *SurrogateMapper) New(
-	_*struct{
-		o creates.It `key:"json.OutcomeSurrogate"`
-		e creates.It `key:"json.ErrorSurrogate"`
-	  }, create *creates.It,
-) any {
-	switch create.Key() {
-	case "json.OutcomeSurrogate":
-		return new(OutcomeSurrogate)
-	case "json.ErrorSurrogate":
-		return new(ErrorSurrogate)
-	}
-	return nil
 }

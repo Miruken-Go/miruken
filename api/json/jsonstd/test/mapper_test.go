@@ -225,7 +225,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 					miruken.BuildUp(handler, api.Polymorphic),
 					[]any{nil}, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("[null]", j)
+				suite.Equal("{\"@type\":\"[]interface {}\",\"@values\":[null]}", j)
 
 				j, _, err = maps.Map[string](
 					miruken.BuildUp(handler, api.Polymorphic),
@@ -245,7 +245,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 						{8, "Michael Binder"},
 					},
 					}}, api.ToJson)
-				suite.Equal("[{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}]", j)
+				suite.Equal("{\"@type\":\"[]interface {}\",\"@values\":[{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}]}", j)
 
 				x := []int{1,2}
 				y := []TeamData{{
@@ -534,6 +534,26 @@ func (suite *JsonStdTestSuite) TestJson() {
 					{4, "Mark Kingston"},
 					{8, "Michael Binder"},
 				}}}, ta)
+
+				ta, _, err = maps.Map[[]*TeamData](
+					miruken.BuildUp(handler, api.Polymorphic),
+					"[{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Luca Schalk\"},{\"Id\":4,\"Name\":\"Brad Bullock\"},{\"Id\":8,\"Name\":\"William Tippet\"}]}]", api.FromJson)
+				suite.Nil(err)
+				suite.Equal([]*TeamData{{Id: 9, Name: "Breakaway", Players: []PlayerData{
+					{1, "Luca Schalk"},
+					{4, "Brad Bullock"},
+					{8, "William Tippet"},
+				}}}, ta)
+
+				tp, _, err := maps.Map[[]any](
+					miruken.BuildUp(handler, api.Polymorphic),
+					"[{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Luca Schalk\"},{\"Id\":4,\"Name\":\"Brad Bullock\"},{\"Id\":8,\"Name\":\"William Tippet\"}]}]", api.FromJson)
+				suite.Nil(err)
+				suite.Equal([]any{&TeamData{Id: 9, Name: "Breakaway", Players: []PlayerData{
+					{1, "Luca Schalk"},
+					{4, "Brad Bullock"},
+					{8, "William Tippet"},
+				}}}, tp)
 			})
 
 			suite.Run("FromJsonStreamTyped", func() {

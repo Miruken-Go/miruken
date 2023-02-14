@@ -82,6 +82,7 @@ func (m *GoPolymorphismMapper) Static(
 		f32   creates.It `key:"float32"`
 		f64   creates.It `key:"float64"`
 		st    creates.It `key:"string"`
+		a     creates.It `key:"interface {}"`
 		bs    creates.It `key:"[]bool"`
 		is    creates.It `key:"[]int"`
 		i8s   creates.It `key:"[]int8"`
@@ -96,6 +97,7 @@ func (m *GoPolymorphismMapper) Static(
 		f32s  creates.It `key:"[]float32"`
 		f64s  creates.It `key:"[]float64"`
 		sts   creates.It `key:"[]string"`
+		as    creates.It `key:"[]interface {}"`
 	  }, create *creates.It,
 ) any {
 	if key, ok := create.Key().(string); ok {
@@ -118,21 +120,21 @@ func (m *GoPolymorphismMapper) Dynamic(
 		proto := dynamicTypeMap[key]
 		dynamicLock.RUnlock()
 		if proto == nil {
+			if strings.HasPrefix(key, "*") {
+				if id, _, err := miruken.CreateKey[any](ctx.Composer(), key[1:]); err == nil {
+					proto = id
+				}
+			} else if strings.HasPrefix(key, "[]") {
+				if el, _, err := miruken.CreateKey[any](ctx.Composer(), key[2:]); err == nil {
+					proto = reflect.New(reflect.SliceOf(reflect.TypeOf(el))).Interface()
+				}
+			}
+		}
+		if proto != nil {
 			dynamicLock.Lock()
 			defer dynamicLock.Unlock()
-			if proto = dynamicTypeMap[key]; proto == nil {
-				if strings.HasPrefix(key, "*") {
-					if id, _, err := miruken.CreateKey[any](ctx.Composer(), key[1:]); err == nil {
-						proto = id
-					}
-				} else if strings.HasPrefix(key, "[]") {
-					if el, _, err := miruken.CreateKey[any](ctx.Composer(), key[2:]); err == nil {
-						proto = reflect.New(reflect.SliceOf(reflect.TypeOf(el))).Interface()
-					}
-				}
-				if proto != nil {
-					dynamicTypeMap[key] = proto
-				}
+			if p := dynamicTypeMap[key]; p == nil {
+				dynamicTypeMap[key] = proto
 			}
 		}
 		return proto
@@ -262,34 +264,36 @@ var (
 	ToTypeInfo = maps.To("type:info")
 
 	staticTypeMap = map[string]any {
-		"bool":      new(bool),
-		"int":       new(int),
-		"int8":      new(int8),
-		"int16":     new(int16),
-		"int32":     new(int32),
-		"int64":     new(int64),
-		"uint":      new(uint),
-		"uint8":     new(uint8),
-		"uint16":    new(uint16),
-		"uint32":    new(uint32),
-		"uint64":    new(uint64),
-		"float32":   new(float32),
-		"float64":   new(float64),
-		"string":    new(string),
-		"[]bool":    new([]bool),
-		"[]int":     new([]int),
-		"[]int8":    new([]int8),
-		"[]int16":   new([]int16),
-		"[]int32":   new([]int32),
-		"[]int64":   new([]int64),
-		"[]uint":    new([]uint),
-		"[]uint8":   new([]uint8),
-		"[]uint16":  new([]uint16),
-		"[]uint32":  new([]uint32),
-		"[]uint64":  new([]uint64),
-		"[]float32": new([]float32),
-		"[]float64": new([]float64),
-		"[]string":  new([]string),
+		"bool":            new(bool),
+		"int":             new(int),
+		"int8":            new(int8),
+		"int16":           new(int16),
+		"int32":           new(int32),
+		"int64":           new(int64),
+		"uint":            new(uint),
+		"uint8":           new(uint8),
+		"uint16":          new(uint16),
+		"uint32":          new(uint32),
+		"uint64":          new(uint64),
+		"float32":         new(float32),
+		"float64":         new(float64),
+		"string":          new(string),
+		"interface {}":    new(any),
+		"[]bool":          new([]bool),
+		"[]int":           new([]int),
+		"[]int8":          new([]int8),
+		"[]int16":         new([]int16),
+		"[]int32":         new([]int32),
+		"[]int64":         new([]int64),
+		"[]uint":          new([]uint),
+		"[]uint8":         new([]uint8),
+		"[]uint16":        new([]uint16),
+		"[]uint32":        new([]uint32),
+		"[]uint64":        new([]uint64),
+		"[]float32":       new([]float32),
+		"[]float64":       new([]float64),
+		"[]string":        new([]string),
+		"[]interface {}":  new([]any),
 	}
 
 	dynamicLock sync.RWMutex

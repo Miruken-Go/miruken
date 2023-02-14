@@ -75,27 +75,6 @@ func (s *Scheduler) Concurrent(
 	})
 }
 
-func (s *Scheduler) New(
-	_*struct{
-		cb creates.It `key:"api.ConcurrentBatch"`
-		sb creates.It `key:"api.SequentialBatch"`
-		sr creates.It `key:"api.ScheduledResult"`
-		p  creates.It `key:"api.Published"`
-	}, create *creates.It,
-) any {
-	switch create.Key() {
-	case "api.ConcurrentBatch":
-		return new(ConcurrentBatch)
-	case "api.SequentialBatch":
-		return new(SequentialBatch)
-	case "api.ScheduledResult":
-		return new(ScheduledResult)
-	case "api.Published":
-		return new(Published)
-	}
-	return nil
-}
-
 func (s *Scheduler) Sequential(
 	_ *handles.It, sequential SequentialBatch,
 	composer miruken.Handler,
@@ -123,20 +102,25 @@ func (s *Scheduler) Publish(
 	return Publish(composer, publish.Message)
 }
 
-func process(
-	request any,
-	handler miruken.Handler,
-) (either.Either[error, any], bool) {
-	res, pr, err := Send[any](handler, request)
-	if err != nil {
-		return Failure(err), false
+func (s *Scheduler) New(
+	_*struct{
+		cb creates.It `key:"api.ConcurrentBatch"`
+		sb creates.It `key:"api.SequentialBatch"`
+		sr creates.It `key:"api.ScheduledResult"`
+		p  creates.It `key:"api.Published"`
+	  }, create *creates.It,
+) any {
+	switch create.Key() {
+	case "api.ConcurrentBatch":
+		return new(ConcurrentBatch)
+	case "api.SequentialBatch":
+		return new(SequentialBatch)
+	case "api.ScheduledResult":
+		return new(ScheduledResult)
+	case "api.Published":
+		return new(Published)
 	}
-	if pr != nil {
-		if res, err = pr.Await(); err != nil {
-			return Failure(err), false
-		}
-	}
-	return Success(res), true
+	return nil
 }
 
 
@@ -162,6 +146,22 @@ func Concurrent(
 		panic("handler cannot be nil")
 	}
 	return sendBatch(handler, ConcurrentBatch{requests})
+}
+
+func process(
+	request any,
+	handler miruken.Handler,
+) (either.Either[error, any], bool) {
+	res, pr, err := Send[any](handler, request)
+	if err != nil {
+		return Failure(err), false
+	}
+	if pr != nil {
+		if res, err = pr.Await(); err != nil {
+			return Failure(err), false
+		}
+	}
+	return Success(res), true
 }
 
 func sendBatch(
