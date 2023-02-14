@@ -6,7 +6,7 @@ type (
 		Filtered
 		Strict() bool
 		Less(binding, otherBinding Binding) bool
-		IsVariantKey(key any) (bool, bool)
+		VariantKey(key any) (bool, bool)
 		MatchesKey(key, otherKey any, invariant bool) (bool, bool)
 		AcceptResults(results []any) (any, HandleResult)
 	}

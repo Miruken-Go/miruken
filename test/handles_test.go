@@ -601,6 +601,20 @@ func (suite *HandlesTestSuite) TestHandles() {
 		suite.Equal(1, foo.Count())
 	})
 
+	suite.Run("PointerIndirect", func () {
+		handler, _ := miruken.Setup().
+			Specs(&BarHandler{}).
+			Handlers( new(BarHandler)).
+			Handler()
+		var bar Bar
+		result := handler.Handle(bar, false, nil)
+		suite.False(result.IsError())
+		suite.Equal(miruken.Handled, result)
+		result = handler.Handle(&bar, false, nil)
+		suite.False(result.IsError())
+		suite.Equal(miruken.Handled, result)
+	})
+
 	suite.Run("HandleResult", func () {
 		handler, _ := miruken.Setup().
 			Specs(&CounterHandler{}).

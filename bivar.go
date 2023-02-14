@@ -23,7 +23,7 @@ type (
 	}
 )
 
-func (p *BivariantPolicy) IsVariantKey(
+func (p *BivariantPolicy) VariantKey(
 	key any,
 ) (variant bool, unknown bool) {
 	_, ok := key.(DiKey)

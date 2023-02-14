@@ -24,7 +24,7 @@ type (
 
 func (p *policyBindings) insert(binding Binding) {
 	key := binding.Key()
-	if variant, unknown := p.policy.IsVariantKey(key); variant {
+	if variant, unknown := p.policy.VariantKey(key); variant {
 		indexedElem := p.index[key]
 		if unknown {
 			elem := p.variant.PushBack(binding)
@@ -70,7 +70,7 @@ func (p *policyBindings) reduce(
 	done := false
 	result = NotHandled
 	// Check variant keys (reflect.Type)
-	if variant, _ := p.policy.IsVariantKey(key); variant {
+	if variant, _ := p.policy.VariantKey(key); variant {
 		elem := p.index[key]
 		if elem == nil {
 			elem = p.variant.Front()

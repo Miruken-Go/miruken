@@ -13,7 +13,7 @@ type ContravariantPolicy struct {
 	FilteredScope
 }
 
-func (p *ContravariantPolicy) IsVariantKey(
+func (p *ContravariantPolicy) VariantKey(
 	key any,
 ) (variant bool, unknown bool) {
 	if typ, ok := key.(reflect.Type); ok {
@@ -34,7 +34,12 @@ func (p *ContravariantPolicy) MatchesKey(
 		if anyType.AssignableTo(bt) {
 			return true, false
 		} else if kt, isType := otherKey.(reflect.Type); isType {
-			return kt.AssignableTo(bt), false
+			if kt.AssignableTo(bt) {
+				return true, false
+			}
+			if kt.Kind() == reflect.Ptr && kt.Elem().AssignableTo(bt) {
+				return true, false
+			}
 		}
 	}
 	return false, false

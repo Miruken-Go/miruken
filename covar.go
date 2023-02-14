@@ -13,7 +13,7 @@ type CovariantPolicy struct {
 	FilteredScope
 }
 
-func (p *CovariantPolicy) IsVariantKey(
+func (p *CovariantPolicy) VariantKey(
 	key any,
 ) (variant bool, unknown bool) {
 	if typ, ok := key.(reflect.Type); ok {

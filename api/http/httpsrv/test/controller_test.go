@@ -3,7 +3,6 @@ package test
 import (
 	json2 "encoding/json"
 	"errors"
-	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/http"
@@ -18,7 +17,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"io"
 	"net/http/httptest"
-	"reflect"
 	"sync/atomic"
 	"testing"
 )
@@ -206,13 +204,6 @@ func (suite *ControllerTestSuite) TestController() {
 		})
 
 		suite.Run("Concurrent", func() {
-			var i any = 1
-			var ii int = 2
-			val := reflect.ValueOf(i)
-			val2 := reflect.ValueOf(&ii)
-			fmt.Println(val.CanAddr())
-			fmt.Println(val2.Elem())
-
 			handler := suite.Setup()
 			create  := CreateTeam{Name: "Tottenham"}
 			batch   := api.RouteTo(api.ConcurrentBatch{

@@ -56,8 +56,11 @@ func (s sourceArg) resolve(
 	ctx HandleContext,
 ) (reflect.Value, *promise.Promise[reflect.Value], error) {
 	if src := ctx.Callback().Source(); src != nil {
-		if v := reflect.ValueOf(src); v.Type().AssignableTo(typ) {
+		v := reflect.ValueOf(src)
+		if t := v.Type(); t.AssignableTo(typ) {
 			return v, nil, nil
+		} else if t.Kind() == reflect.Ptr && t.Elem().AssignableTo(typ) {
+			return v.Elem(), nil, nil
 		}
 	}
 	var v reflect.Value
