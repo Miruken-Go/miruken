@@ -6,12 +6,6 @@ type (
 	// Either represents one of two values (left or right).
 	Either[L, R any] interface{}
 
-	// Inspect allows runtime inspection of an Either.
-	Inspect interface {
-		Left() bool
-		Value() any
-	}
-
 	// right represents the right side of an Either.
 	right[R any] struct {
 		val R
@@ -22,22 +16,6 @@ type (
 		val L
 	}
 )
-
-func (l left[L]) Left() bool {
-	return true
-}
-
-func (l left[L]) Value() any {
-	return l.val
-}
-
-func (r right[L]) Left() bool {
-	return false
-}
-
-func (r right[L]) Value() any {
-	return r.val
-}
 
 // Left returns a new Either with a left value.
 func Left[L any](val L) Either[L, any] {

@@ -109,7 +109,7 @@ func (b *batchHandler) Handle(
 				}
 			}
 		}
-	case *Handles:
+	default:
 		if batch := b.batch; batch != nil {
 			if check, ok := callback.(interface{
 				CanBatch() bool

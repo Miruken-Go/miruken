@@ -98,8 +98,9 @@ func TestAll_Happy(t *testing.T) {
 
 func TestAll_Empty(t *testing.T) {
 	var empty []*promise.Promise[any]
-	p := promise.All(empty...)
-	require.Nil(t, p)
+	p, _ := promise.All(empty...).Await()
+	var a []any
+	require.Equal(t, a, p)
 }
 
 func TestAll_ContainsRejected(t *testing.T) {

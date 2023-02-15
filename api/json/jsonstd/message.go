@@ -8,7 +8,7 @@ import (
 	"io"
 )
 
-// MessageSurrogate is a json specific surrogate for api.Message.
+// MessageSurrogate is a json standard surrogate for api.Message.
 type MessageSurrogate struct {
 	Payload json.RawMessage `json:"payload"`
 }
@@ -16,9 +16,9 @@ type MessageSurrogate struct {
 
 func (m *SurrogateMapper) EncodeMessage(
 	_*struct{
-	maps.It
-	maps.Format `to:"application/json"`
-}, msg api.Message,
+		maps.It
+		maps.Format `to:"application/json"`
+	  }, msg api.Message,
 	it *maps.It,
 	ctx miruken.HandleContext,
 ) (io.Writer, error) {
@@ -41,9 +41,9 @@ func (m *SurrogateMapper) EncodeMessage(
 
 func (m *SurrogateMapper) DecodeMessage(
 	_*struct{
-	maps.It
-	maps.Format `from:"application/json"`
-}, stream io.Reader,
+		maps.It
+		maps.Format `from:"application/json"`
+	  }, stream io.Reader,
 	ctx miruken.HandleContext,
 ) (api.Message, error) {
 	var sur MessageSurrogate
@@ -51,9 +51,10 @@ func (m *SurrogateMapper) DecodeMessage(
 	if err := dec.Decode(&sur); err != nil {
 		return api.Message{}, err
 	}
-	payload, _, err := maps.Map[any](ctx.Composer(), string(sur.Payload), api.FromJson)
+	composer := ctx.Composer()
+	payload, _, err := maps.Map[any](composer, string(sur.Payload), api.FromJson)
 	if sur, ok := payload.(api.Surrogate); ok {
-		payload = sur.Original()
+		payload, err = sur.Original(composer)
 	}
 	return api.Message{Payload: payload}, err
 }

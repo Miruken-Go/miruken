@@ -12,14 +12,14 @@ import (
 )
 
 type (
-	// Message is envelop for polymorphic payloads.
+	// Message is an envelope for polymorphic payloads.
 	Message struct {
 		Payload any
 	}
 
 	// Surrogate replaces a value with another for api transmission.
 	Surrogate interface {
-		Original() any
+		Original(composer miruken.Handler) (any, error)
 	}
 
 	// Polymorphism is an enum that defines how type
@@ -41,7 +41,7 @@ type (
 	}
 
 	// GoPolymorphismMapper provides polymorphic support for GO types.
-	GoPolymorphismMapper struct {}
+	GoPolymorphismMapper struct{}
 )
 
 const (
@@ -53,20 +53,27 @@ const (
 
 // TypeInfo uses package and name to generate type metadata.
 func (m *GoPolymorphismMapper) TypeInfo(
-	_*struct{
+	_ *struct {
 		maps.It
 		maps.Format `to:"type:info"`
-	  }, maps *maps.It,
+	}, maps *maps.It,
 ) (TypeFieldInfo, error) {
+	val := reflect.TypeOf(maps.Source()).String()
+	if strings.HasPrefix(val, "*") {
+		val = val[1:]
+	}
+	if strings.HasPrefix(val, "[]*") {
+		val = "[]" + val[3:]
+	}
 	return TypeFieldInfo{
 		TypeField:   "@type",
-		TypeValue:   reflect.TypeOf(maps.Source()).String(),
+		TypeValue:   val,
 		ValuesField: "@values",
 	}, nil
 }
 
 func (m *GoPolymorphismMapper) Static(
-	_*struct{
+	_ *struct {
 		miruken.Strict
 		b     creates.It `key:"bool"`
 		i     creates.It `key:"int"`
@@ -98,7 +105,7 @@ func (m *GoPolymorphismMapper) Static(
 		f64s  creates.It `key:"[]float64"`
 		sts   creates.It `key:"[]string"`
 		as    creates.It `key:"[]interface {}"`
-	  }, create *creates.It,
+	}, create *creates.It,
 ) any {
 	if key, ok := create.Key().(string); ok {
 		if proto, ok := staticTypeMap[key]; ok {
@@ -109,10 +116,10 @@ func (m *GoPolymorphismMapper) Static(
 }
 
 func (m *GoPolymorphismMapper) Dynamic(
-	_*struct{
+	_ *struct {
 		miruken.Strict
 		creates.It
-	  }, create *creates.It,
+	}, create *creates.It,
 	ctx miruken.HandleContext,
 ) any {
 	if key, ok := create.Key().(string); ok {
@@ -142,12 +149,11 @@ func (m *GoPolymorphismMapper) Dynamic(
 	return nil
 }
 
-
 // UnknownTypeIdError reports an invalid type discriminator.
 type UnknownTypeIdError struct {
 	TypeId string
 	Reason error
-	}
+}
 
 func (e *UnknownTypeIdError) Error() string {
 	return fmt.Sprintf("unknown type id '%s': %s", e.TypeId, e.Reason.Error())
@@ -157,16 +163,14 @@ func (e *UnknownTypeIdError) Unwrap() error {
 	return e.Reason
 }
 
-
 // MalformedErrorError reports an invalid error payload.
 type MalformedErrorError struct {
 	Culprit any
-	}
+}
 
 func (e *MalformedErrorError) Error() string {
 	return fmt.Sprintf("malformed error: %T", e.Culprit)
 }
-
 
 // Post sends a message without an expected response.
 // A new Stash is created to manage any transit state.
@@ -253,7 +257,6 @@ func Publish(
 	}
 }
 
-
 var (
 	// Polymorphic request encoding to include type information.
 	Polymorphic = miruken.Options(Options{
@@ -263,39 +266,39 @@ var (
 	// ToTypeInfo requests the type discriminator for a type.
 	ToTypeInfo = maps.To("type:info")
 
-	staticTypeMap = map[string]any {
-		"bool":            new(bool),
-		"int":             new(int),
-		"int8":            new(int8),
-		"int16":           new(int16),
-		"int32":           new(int32),
-		"int64":           new(int64),
-		"uint":            new(uint),
-		"uint8":           new(uint8),
-		"uint16":          new(uint16),
-		"uint32":          new(uint32),
-		"uint64":          new(uint64),
-		"float32":         new(float32),
-		"float64":         new(float64),
-		"string":          new(string),
-		"interface {}":    new(any),
-		"[]bool":          new([]bool),
-		"[]int":           new([]int),
-		"[]int8":          new([]int8),
-		"[]int16":         new([]int16),
-		"[]int32":         new([]int32),
-		"[]int64":         new([]int64),
-		"[]uint":          new([]uint),
-		"[]uint8":         new([]uint8),
-		"[]uint16":        new([]uint16),
-		"[]uint32":        new([]uint32),
-		"[]uint64":        new([]uint64),
-		"[]float32":       new([]float32),
-		"[]float64":       new([]float64),
-		"[]string":        new([]string),
-		"[]interface {}":  new([]any),
+	staticTypeMap = map[string]any{
+		"bool":           new(bool),
+		"int":            new(int),
+		"int8":           new(int8),
+		"int16":          new(int16),
+		"int32":          new(int32),
+		"int64":          new(int64),
+		"uint":           new(uint),
+		"uint8":          new(uint8),
+		"uint16":         new(uint16),
+		"uint32":         new(uint32),
+		"uint64":         new(uint64),
+		"float32":        new(float32),
+		"float64":        new(float64),
+		"string":         new(string),
+		"interface {}":   new(any),
+		"[]bool":         new([]bool),
+		"[]int":          new([]int),
+		"[]int8":         new([]int8),
+		"[]int16":        new([]int16),
+		"[]int32":        new([]int32),
+		"[]int64":        new([]int64),
+		"[]uint":         new([]uint),
+		"[]uint8":        new([]uint8),
+		"[]uint16":       new([]uint16),
+		"[]uint32":       new([]uint32),
+		"[]uint64":       new([]uint64),
+		"[]float32":      new([]float32),
+		"[]float64":      new([]float64),
+		"[]string":       new([]string),
+		"[]interface {}": new([]any),
 	}
 
-	dynamicLock sync.RWMutex
+	dynamicLock    sync.RWMutex
 	dynamicTypeMap = make(map[string]any)
 )

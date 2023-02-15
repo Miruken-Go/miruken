@@ -155,10 +155,11 @@ func Reject[T any](err error) *Promise[T] {
 
 // All resolves when all the input's promises have resolved.
 // All rejects immediately upon any of the input promises rejecting.
-// All returns nil if the input is empty.
+// All returns empty slice if the input is empty.
 func All[T any](promises ...*Promise[T]) *Promise[[]T] {
 	if len(promises) == 0 {
-		return nil
+		var e []T
+		return Resolve(e)
 	}
 
 	return New(func(resolve func([]T), reject func(error)) {

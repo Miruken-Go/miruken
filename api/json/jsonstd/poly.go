@@ -14,7 +14,7 @@ import (
 )
 
 type (
-	// typeContainer customizes standard json serialization to
+	// typeContainer customizes json standard serialization to
 	// emit type field information needed to support polymorphism.
 	typeContainer struct {
 		v        any

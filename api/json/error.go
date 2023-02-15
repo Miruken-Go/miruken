@@ -15,8 +15,8 @@ type OutcomeSurrogate []struct {
 	Nested       OutcomeSurrogate
 }
 
-func (s OutcomeSurrogate) Original() any {
-	return surrogateToOutcome(s)
+func (s OutcomeSurrogate) Original(miruken.Handler) (any, error) {
+	return surrogateToOutcome(s), nil
 }
 
 func (m *SurrogateMapper) ReplaceOutcome(
@@ -78,8 +78,8 @@ type ErrorSurrogate struct {
 	Message string
 }
 
-func (s *ErrorSurrogate) Original() any {
-	return errors.New(s.Message)
+func (s *ErrorSurrogate) Original(miruken.Handler) (any, error) {
+	return errors.New(s.Message), nil
 }
 
 func (m *SurrogateMapper) ReplaceError(

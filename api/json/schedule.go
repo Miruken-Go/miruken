@@ -9,8 +9,8 @@ import (
 // ConcurrentSurrogate is a surrogate for api.ConcurrentBatch over json.
 type ConcurrentSurrogate []any
 
-func (s ConcurrentSurrogate) Original() any {
-	return &api.ConcurrentBatch{Requests: s}
+func (s ConcurrentSurrogate) Original(miruken.Handler) (any, error) {
+	return &api.ConcurrentBatch{Requests: s}, nil
 }
 
 func (m *SurrogateMapper) ReplaceConcurrent(

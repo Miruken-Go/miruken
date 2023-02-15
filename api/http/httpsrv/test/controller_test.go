@@ -10,6 +10,7 @@ import (
 	"github.com/miruken-go/miruken/api/json/jsonstd"
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/creates"
+	"github.com/miruken-go/miruken/either"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/promise"
@@ -203,17 +204,116 @@ func (suite *ControllerTestSuite) TestController() {
 			suite.Contains(events, ev)
 		})
 
-		suite.Run("Concurrent", func() {
+		suite.Run("ConcurrentSingle", func() {
 			handler := suite.Setup()
-			create  := CreateTeam{Name: "Tottenham"}
 			batch   := api.RouteTo(api.ConcurrentBatch{
-				Requests: []any{create},
+				Requests: []any{&CreateTeam{Name: "Tottenham"}},
 			}, suite.srv.URL)
 			r, pr, err := api.Send[api.ScheduledResult](handler, batch)
 			suite.NotNil(pr)
 			r, err = pr.Await()
 			suite.Nil(err)
 			suite.Len(r.Responses, 1)
+			either.Match(r.Responses[0], func(err error) {
+				suite.Fail("unexpected error", err)
+			}, func(res any) {
+				team := res.(*TeamData)
+				suite.True(team.Id > 0)
+				suite.Equal("Tottenham", team.Name)
+			})
+		})
+
+		suite.Run("ConcurrentBatchSingle", func() {
+			handler := suite.Setup()
+			var team *TeamData
+			results, err := miruken.BatchAsync(handler, func(batch miruken.Handler) *promise.Promise[*TeamData]{
+				r, pr, err := api.Send[*TeamData](batch,
+					api.RouteTo(&CreateTeam{Name: "Chelsea"}, suite.srv.URL))
+				suite.Nil(err)
+				suite.Zero(r)
+				suite.NotNil(pr)
+				return promise.Then(pr, func(t *TeamData) *TeamData {
+					team = t
+					return t
+				})
+			}).Await()
+			suite.Nil(err)
+			suite.Len(results, 1)
+			suite.Equal([]any{
+				api.RouteReply{Uri: suite.srv.URL, Responses: []any {team}},
+			}, results[0])
+		})
+
+		suite.Run("ConcurrentSingleError", func() {
+			handler := suite.Setup()
+			batch   := api.RouteTo(api.ConcurrentBatch{
+				Requests: []any{&CreateTeam{Name: ""}},
+			}, suite.srv.URL)
+			r, pr, err := api.Send[api.ScheduledResult](handler, batch)
+			suite.NotNil(pr)
+			r, err = pr.Await()
+			suite.Nil(err)
+			suite.Len(r.Responses, 1)
+			either.Match(r.Responses[0], func(err error) {
+				suite.IsType(&validates.Outcome{}, err)
+				outcome := err.(*validates.Outcome)
+				suite.False(outcome.Valid())
+				suite.Equal("Name: \"Name\" is required", outcome.Error())
+			}, func(res any) {
+				suite.Fail("expected validation error")
+			})
+		})
+
+		suite.Run("ConcurrentBatchSingleError", func() {
+			handler := suite.Setup()
+			var ex error
+			results, err := miruken.BatchAsync(handler, func(batch miruken.Handler) *promise.Promise[*TeamData]{
+				r, pr, err := api.Send[*TeamData](batch,
+					api.RouteTo(&CreateTeam{Name: ""}, suite.srv.URL))
+				suite.Nil(err)
+				suite.Zero(r)
+				suite.NotNil(pr)
+				return promise.Catch(pr, func(e error) error {
+					ex = e
+					return nil
+				})
+			}).Await()
+			suite.Nil(err)
+			suite.Len(results, 1)
+			suite.Equal([]any{
+				api.RouteReply{Uri: suite.srv.URL, Responses: []any {ex}},
+			}, results[0])
+		})
+
+		suite.Run("ConcurrentMixed", func() {
+			handler := suite.Setup()
+			batch   := api.RouteTo(api.ConcurrentBatch{
+				Requests: []any{
+					&CreateTeam{Name: "Liverpool"},
+					&CreateTeam{Name: ""},
+				},
+			}, suite.srv.URL)
+			r, pr, err := api.Send[api.ScheduledResult](handler, batch)
+			suite.NotNil(pr)
+			r, err = pr.Await()
+			suite.Nil(err)
+			suite.Len(r.Responses, 2)
+			count := 0
+			for _, resp := range r.Responses {
+				either.Match(resp, func(err error) {
+					suite.IsType(&validates.Outcome{}, err)
+					outcome := err.(*validates.Outcome)
+					suite.False(outcome.Valid())
+					suite.Equal("Name: \"Name\" is required", outcome.Error())
+					count += 1
+				}, func(res any) {
+					team := res.(*TeamData)
+					suite.True(team.Id > 0)
+					suite.Equal("Liverpool", team.Name)
+					count += 2
+				})
+			}
+			suite.Equal(3, count)
 		})
 
 		suite.Run("ValidationError", func() {
