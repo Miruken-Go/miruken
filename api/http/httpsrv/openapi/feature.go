@@ -1,27 +1,44 @@
 package openapi
 
 import (
+	"encoding/json"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3gen"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
-	"github.com/miruken-go/miruken/api/json"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/maps"
 	"reflect"
-	"time"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
-// Installer configures openapi support
-type Installer struct {
-	policy         miruken.Policy
-	schemas        openapi3.Schemas
-	requestBodies  openapi3.RequestBodies
-	responses      openapi3.Responses
-	paths          openapi3.Paths
-	generator      *openapi3gen.Generator
-	requests       map[reflect.Type]struct{}
-	typeInfoFormat string
-}
+type (
+	// Installer configures openapi support
+	Installer struct {
+		policy         miruken.Policy
+		schemas        openapi3.Schemas
+		requestBodies  openapi3.RequestBodies
+		responses      openapi3.Responses
+		paths          openapi3.Paths
+		generator      *openapi3gen.Generator
+		components     map[reflect.Type]*openapi3.SchemaRef
+		typeInfoFormat string
+	}
+
+	validationFailure struct {
+		PropertyName string
+		Errors       []string
+		Nested       []validationFailure
+	}
+
+	unknownError struct {
+		Message string
+	}
+)
+
 
 func (i *Installer) Merge(api *openapi3.T)  {
 	if api == nil {
@@ -90,46 +107,34 @@ func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
 		var h handles.It
 		i.policy        = h.Policy()
-		i.schemas = make(openapi3.Schemas)
+		i.schemas       = make(openapi3.Schemas)
 		i.requestBodies = make(openapi3.RequestBodies)
 		i.responses     = make(openapi3.Responses)
 		i.paths         = make(openapi3.Paths)
-		i.requests      = make(map[reflect.Type]struct{})
+		i.components = make(map[reflect.Type]*openapi3.SchemaRef)
 		i.generator     = openapi3gen.NewGenerator(
-			openapi3gen.UseAllExportedFields(),
-			openapi3gen.SchemaCustomizer(i.customize))
+			openapi3gen.SchemaCustomizer(i.customize),
+			openapi3gen.UseAllExportedFields())
 		setup.Observers(i)
+		i.addInitialComponents()
 	}
 	return nil
 }
 
 func (i *Installer) AfterInstall(
-	*miruken.SetupBuilder, miruken.Handler,
+	setup   *miruken.SetupBuilder,
+	handler miruken.Handler,
 ) error {
-	for _, extra := range extraTypes {
-		_, _ = i.generator.GenerateSchemaRef(extra)
-	}
-	Loop:
 	for typ, schema := range i.generator.Types {
-		if typ.Kind() == reflect.Ptr {
-			typ = typ.Elem()
-		}
 		if typ.Kind() == reflect.Struct {
-			for _, ex := range skipTypes {
-				if ex == typ {
-					continue Loop
-				}
+			if _, ok := i.schemas[typ.Name()]; !ok {
+				i.schemas[typ.Name()] = schema
 			}
-			i.schemas[schema.Ref] = schema
-			schema.Ref = ""
 		}
 	}
-	i.responses["NoResponse"] = &openapi3.ResponseRef{
-		Value: openapi3.NewResponse().
-			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema())),
-	}
+	i.generateExampleJson(miruken.BuildUp(handler, api.Polymorphic))
 	i.generator = nil
-	i.requests  = nil
+	i.components = nil
 	return nil
 }
 
@@ -148,21 +153,24 @@ func (i *Installer) BindingCreated(
 		if inputType.Kind() != reflect.Struct {
 			return
 		}
-		if _, ok := i.requests[inputType]; ok {
+		if _, ok := i.components[inputType]; ok {
 			return
 		}
-		if _, err := i.generator.GenerateSchemaRef(inputType); err != nil {
+		if schema := i.generateSchemaRef(inputType); schema == nil {
 			return
 		} else {
-			reqSchema   := i.generator.Types[inputType]
+			inputName := inputType.Name()
+			i.components[inputType] = schema
 			requestBody := &openapi3.RequestBodyRef{
 				Value: openapi3.NewRequestBody().
-					WithDescription("Request to process.").
+					WithDescription("Request to process").
 					WithRequired(true).
-					WithJSONSchemaRef(openapi3.NewSchemaRef(
-						"#/components/schemas/" + reqSchema.Ref, nil)),
+					WithJSONSchema(openapi3.NewSchema().
+						WithPropertyRef("payload", &openapi3.SchemaRef{
+						Ref: "#/components/schemas/"+inputName,
+					})),
 				}
-			requestName := reqSchema.Ref + "Request"
+			requestName := inputName+"Request"
 			i.requestBodies[requestName] = requestBody
 
 			responseName := "NoResponse"
@@ -170,37 +178,48 @@ func (i *Installer) BindingCreated(
 				if outputType.Kind() == reflect.Ptr {
 					outputType = outputType.Elem()
 				}
-				if outputType.Kind() == reflect.Struct && outputType.NumField() > 0 {
-					if _, err := i.generator.GenerateSchemaRef(outputType); err != nil {
-						return
-					} else {
-						respSchema := i.generator.Types[outputType]
-						response := &openapi3.ResponseRef{
-							Value: openapi3.NewResponse().
-								WithDescription("Successfully handled.").
-								WithContent(openapi3.NewContentWithJSONSchemaRef(
-									openapi3.NewSchemaRef("#/components/schemas/"+respSchema.Ref, nil))),
+				outputName := outputType.Name()
+				if len(outputName) > 0 {
+					if _, ok := i.components[outputType]; !ok {
+						if schema := i.generateSchemaRef(outputType); schema != nil {
+							i.components[outputType] = schema
+							response := &openapi3.ResponseRef{
+								Value: openapi3.NewResponse().
+									WithDescription("Successfully handled").
+									WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
+										WithPropertyRef("payload", &openapi3.SchemaRef{
+											Ref: "#/components/schemas/" + outputName,
+										}))),
+							}
+							responseName = outputName + "Response"
+							i.responses[responseName] = response
 						}
-						responseName = respSchema.Ref + "Response"
-						i.responses[responseName] = response
+					} else {
+						responseName = outputName + "Response"
 					}
 				}
 			}
 			path := &openapi3.PathItem{
 				Post: &openapi3.Operation{
-					OperationID: reqSchema.Ref,
+					OperationID: inputName,
 					RequestBody: &openapi3.RequestBodyRef{
-						Ref: "#/components/requestBodies/" + requestName,
+						Ref: "#/components/requestBodies/"+requestName,
 					},
 					Responses: openapi3.Responses{
 						"200": &openapi3.ResponseRef{
-							Ref: "#/components/responses/" + responseName,
+							Ref: "#/components/responses/"+responseName,
+						},
+						"422": &openapi3.ResponseRef{
+							Ref: "#/components/responses/ValidationError",
+						},
+						"500": &openapi3.ResponseRef{
+							Ref: "#/components/responses/UnknownError",
 						},
 					},
 					Tags: []string{inputType.PkgPath()},
 				},
 			}
-			i.paths["/process/" + reqSchema.Ref] = path
+			i.paths["/process/"+strings.ToLower(inputName)] = path
 		}
 	}
 }
@@ -210,6 +229,64 @@ func (i *Installer) DescriptorCreated(
 ) {
 }
 
+func (i *Installer) addInitialComponents() {
+	for _, extra := range extraTypes {
+		_ = i.generateSchemaRef(extra)
+	}
+	i.responses["NoResponse"] = &openapi3.ResponseRef{
+		Value: openapi3.NewResponse().
+			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
+				WithProperty("payload", openapi3.NewSchema()))),
+	}
+	i.responses["ValidationError"] =  &openapi3.ResponseRef{
+		Value: openapi3.NewResponse().
+			WithDescription("Validation failed").
+			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
+				WithPropertyRef("payload", &openapi3.SchemaRef{
+					Value: &openapi3.Schema{
+						Type: "array",
+						Items: &openapi3.SchemaRef{
+							Ref: "#/components/schemas/validationFailure",
+						},
+					},
+				}))),
+	}
+	i.responses["UnknownError"] =  &openapi3.ResponseRef{
+		Value: openapi3.NewResponse().
+			WithDescription("Oops ... something went wrong").
+			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
+				WithPropertyRef("payload", &openapi3.SchemaRef{
+					Ref: "#/components/schemas/unknownError",
+				}))),
+	}
+}
+
+func (i *Installer) generateExampleJson(
+	handler miruken.Handler,
+) {
+	for _, schema := range i.components {
+		if example := schema.Value.Example; !miruken.IsNil(example) {
+			if reflect.TypeOf(example).Kind() == reflect.Struct {
+				if js, _, err := maps.Map[string](handler, example, api.ToJson); err == nil {
+					schema.Value.Example = json.RawMessage(js)
+				}
+			}
+		}
+	}
+}
+
+func (i *Installer) generateSchemaRef(
+	t reflect.Type,
+) *openapi3.SchemaRef {
+	if example := reflect.Zero(t).Interface(); !miruken.IsNil(example) {
+		if schema, err := i.generator.NewSchemaRefForValue(example, i.schemas); err == nil {
+			schema.Value.Example = example
+			return schema
+		}
+	}
+	return nil
+}
+
 func (i *Installer) customize(
 	name   string,
 	t      reflect.Type,
@@ -217,20 +294,22 @@ func (i *Installer) customize(
 	schema *openapi3.Schema,
 ) error {
 	if props := schema.Properties; props != nil {
-		for idx, prop := range props {
-			switch prop.Value.Type {
-			case "object":
-				props[idx] = &openapi3.SchemaRef{
-					Ref: "#/components/schemas/" + prop.Ref,
+		for key, sc := range props {
+			camel := camelcase(key)
+			if camel != key {
+				if _, ok := props[camel]; !ok {
+					props[camel] = sc
+					delete(props, key)
 				}
-			case "array":
-				return nil
-			default:
-				props[idx].Ref = ""
 			}
 		}
 	}
 	return nil
+}
+
+func camelcase(name string) string {
+	r, n := utf8.DecodeRuneInString(name)
+	return string(unicode.ToLower(r)) + name[n:]
 }
 
 // TypeInfoFormat selects how the type discriminator is generated.
@@ -253,9 +332,8 @@ func Feature(config ...func(installer *Installer)) *Installer {
 
 var (
 	featureTag byte
-	skipTypes  = []reflect.Type{miruken.TypeOf[time.Time]()}
 	extraTypes = []reflect.Type{
-		miruken.TypeOf[json.OutcomeSurrogate](),
-		miruken.TypeOf[json.ErrorSurrogate](),
+		miruken.TypeOf[validationFailure](),
+		miruken.TypeOf[unknownError](),
 	}
 )

@@ -226,9 +226,10 @@ func (suite *ControllerTestSuite) TestController() {
 		suite.Run("ConcurrentBatchSingle", func() {
 			handler := suite.Setup()
 			var team *TeamData
-			results, err := miruken.BatchAsync(handler, func(batch miruken.Handler) *promise.Promise[*TeamData]{
-				r, pr, err := api.Send[*TeamData](batch,
-					api.RouteTo(&CreateTeam{Name: "Chelsea"}, suite.srv.URL))
+			results, err := miruken.BatchAsync(handler,
+				func(batch miruken.Handler) *promise.Promise[*TeamData]{
+					r, pr, err := api.Send[*TeamData](batch,
+						api.RouteTo(&CreateTeam{Name: "Chelsea"}, suite.srv.URL))
 				suite.Nil(err)
 				suite.Zero(r)
 				suite.NotNil(pr)
@@ -267,9 +268,10 @@ func (suite *ControllerTestSuite) TestController() {
 		suite.Run("ConcurrentBatchSingleError", func() {
 			handler := suite.Setup()
 			var ex error
-			results, err := miruken.BatchAsync(handler, func(batch miruken.Handler) *promise.Promise[*TeamData]{
-				r, pr, err := api.Send[*TeamData](batch,
-					api.RouteTo(&CreateTeam{Name: ""}, suite.srv.URL))
+			results, err := miruken.BatchAsync(handler,
+				func(batch miruken.Handler) *promise.Promise[*TeamData]{
+					r, pr, err := api.Send[*TeamData](batch,
+						api.RouteTo(&CreateTeam{Name: ""}, suite.srv.URL))
 				suite.Nil(err)
 				suite.Zero(r)
 				suite.NotNil(pr)

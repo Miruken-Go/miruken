@@ -21,6 +21,9 @@ func (m *SurrogateMapper) ReplaceConcurrent(
 	ctx miruken.HandleContext,
 ) (string, error) {
 	sur := ConcurrentSurrogate(batch.Requests)
+	if sur == nil {
+		sur = make(ConcurrentSurrogate, 0)
+	}
 	js, _, err := maps.Map[string](ctx.Composer(), sur, api.ToJson)
 	return js, err
 }
