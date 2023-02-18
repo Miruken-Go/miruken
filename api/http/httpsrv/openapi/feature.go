@@ -133,7 +133,7 @@ func (i *Installer) AfterInstall(
 		}
 	}
 	i.generateExampleJson(miruken.BuildUp(handler, api.Polymorphic))
-	i.generator = nil
+	i.generator  = nil
 	i.components = nil
 	return nil
 }

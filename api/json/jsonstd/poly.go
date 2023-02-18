@@ -177,19 +177,19 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 			return &api.UnknownTypeIdError{TypeId: typeId, Reason: err}
 		} else {
 			vm := v
-			if trans := c.trans; len(trans) > 0 {
-				vm = &transformer{v, trans}
-			}
 			for _, field = range KnownValuesFields {
 				if values := fields[field]; values != nil {
 					data = *values
 					vm   = &typeContainer{
-						v:        vm,
+						v:        v,
 						typInfo:  c.typInfo,
 						trans:    c.trans,
 						composer: c.composer,
 					}
 				}
+			}
+			if trans := c.trans; len(trans) > 0 {
+				vm = &transformer{vm, trans}
 			}
 			if err := json.Unmarshal(data, vm); err != nil {
 				return err
