@@ -7,6 +7,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
+	json2 "github.com/miruken-go/miruken/api/json"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/maps"
 	"reflect"
@@ -16,7 +17,7 @@ import (
 )
 
 type (
-	// Installer configures openapi support
+	// Installer configures openapi support.
 	Installer struct {
 		policy         miruken.Policy
 		schemas        openapi3.Schemas
@@ -25,17 +26,14 @@ type (
 		paths          openapi3.Paths
 		generator      *openapi3gen.Generator
 		components     map[reflect.Type]*openapi3.SchemaRef
-		typeInfoFormat string
+		extraTypes     []reflect.Type
 	}
 
-	validationFailure struct {
+	// ValidationFailure models a single property failure.
+	ValidationFailure struct {
 		PropertyName string
 		Errors       []string
-		Nested       []validationFailure
-	}
-
-	unknownError struct {
-		Message string
+		Nested       []ValidationFailure
 	}
 )
 
@@ -116,7 +114,7 @@ func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 			openapi3gen.SchemaCustomizer(i.customize),
 			openapi3gen.UseAllExportedFields())
 		setup.Observers(i)
-		i.addInitialComponents()
+		i.addInitialDefinitions()
 	}
 	return nil
 }
@@ -188,14 +186,14 @@ func (i *Installer) BindingCreated(
 									WithDescription("Successfully handled").
 									WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
 										WithPropertyRef("payload", &openapi3.SchemaRef{
-											Ref: "#/components/schemas/" + outputName,
+											Ref: "#/components/schemas/"+outputName,
 										}))),
 							}
-							responseName = outputName + "Response"
+							responseName = outputName+"Response"
 							i.responses[responseName] = response
 						}
 					} else {
-						responseName = outputName + "Response"
+						responseName = outputName+"Response"
 					}
 				}
 			}
@@ -213,7 +211,7 @@ func (i *Installer) BindingCreated(
 							Ref: "#/components/responses/ValidationError",
 						},
 						"500": &openapi3.ResponseRef{
-							Ref: "#/components/responses/UnknownError",
+							Ref: "#/components/responses/GenericError",
 						},
 					},
 					Tags: []string{inputType.PkgPath()},
@@ -229,14 +227,17 @@ func (i *Installer) DescriptorCreated(
 ) {
 }
 
-func (i *Installer) addInitialComponents() {
-	for _, extra := range extraTypes {
-		_ = i.generateSchemaRef(extra)
+func (i *Installer) addInitialDefinitions() {
+	extra := i.extraTypes
+	extra = append(extra, miruken.TypeOf[ValidationFailure](), miruken.TypeOf[json2.ErrorSurrogate]())
+	for _, typ := range extra {
+		schema := i.generateSchemaRef(typ)
+		i.components[typ] = schema
 	}
 	i.responses["NoResponse"] = &openapi3.ResponseRef{
 		Value: openapi3.NewResponse().
 			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
-				WithProperty("payload", openapi3.NewSchema()))),
+				WithProperty("payload", openapi3.NewObjectSchema()))),
 	}
 	i.responses["ValidationError"] =  &openapi3.ResponseRef{
 		Value: openapi3.NewResponse().
@@ -246,18 +247,74 @@ func (i *Installer) addInitialComponents() {
 					Value: &openapi3.Schema{
 						Type: "array",
 						Items: &openapi3.SchemaRef{
-							Ref: "#/components/schemas/validationFailure",
+							Ref: "#/components/schemas/ValidationFailure",
 						},
+						Example: json.RawMessage(`{
+    "@type": "json.OutcomeSurrogate",
+    "@values": [
+      {
+        "propertyName": "PropertyName",
+        "errors": [
+          "Key: 'PropertyName' Error:Field validation for 'PropertyName' failed on the 'required' tag"
+        ],
+        "nested": null
+      }
+    ]
+  }`),
 					},
 				}))),
 	}
-	i.responses["UnknownError"] =  &openapi3.ResponseRef{
+	i.responses["GenericError"] =  &openapi3.ResponseRef{
 		Value: openapi3.NewResponse().
 			WithDescription("Oops ... something went wrong").
 			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
 				WithPropertyRef("payload", &openapi3.SchemaRef{
-					Ref: "#/components/schemas/unknownError",
+					Ref: "#/components/schemas/ErrorSurrogate",
 				}))),
+	}
+	payload := &openapi3.RequestBodyRef{
+		Value: openapi3.NewRequestBody().
+			WithDescription("Request to process").
+			WithRequired(true).
+			WithJSONSchema(openapi3.NewSchema().
+				WithProperty("payload", openapi3.NewObjectSchema())),
+	}
+	tags := []string{miruken.TypeOf[api.Message]().PkgPath()}
+	i.paths["/process"] = &openapi3.PathItem{
+		Post: &openapi3.Operation{
+			OperationID: "process",
+			RequestBody: payload,
+			Responses: openapi3.Responses{
+				"200": &openapi3.ResponseRef{
+					Ref: "#/components/responses/NoResponse",
+				},
+				"422": &openapi3.ResponseRef{
+					Ref: "#/components/responses/ValidationError",
+				},
+				"500": &openapi3.ResponseRef{
+					Ref: "#/components/responses/GenericError",
+				},
+			},
+			Tags: tags,
+		},
+	}
+	i.paths["/publish"] = &openapi3.PathItem{
+		Post: &openapi3.Operation{
+			OperationID: "publish",
+			RequestBody: payload,
+			Responses: openapi3.Responses{
+				"200": &openapi3.ResponseRef{
+					Ref: "#/components/responses/NoResponse",
+				},
+				"422": &openapi3.ResponseRef{
+					Ref: "#/components/responses/ValidationError",
+				},
+				"500": &openapi3.ResponseRef{
+					Ref: "#/components/responses/GenericError",
+				},
+			},
+			Tags: tags,
+		},
 	}
 }
 
@@ -279,7 +336,14 @@ func (i *Installer) generateSchemaRef(
 	t reflect.Type,
 ) *openapi3.SchemaRef {
 	if example := reflect.Zero(t).Interface(); !miruken.IsNil(example) {
-		if schema, err := i.generator.NewSchemaRefForValue(example, i.schemas); err == nil {
+		schema, err := i.generator.NewSchemaRefForValue(example, i.schemas)
+		if err == nil {
+			switch example.(type) {
+			case json2.ErrorSurrogate:
+				example = json2.ErrorSurrogate{
+					Message: "Something bad has happened.",
+				}
+			}
 			schema.Value.Example = example
 			return schema
 		}
@@ -312,10 +376,10 @@ func camelcase(name string) string {
 	return string(unicode.ToLower(r)) + name[n:]
 }
 
-// TypeInfoFormat selects how the type discriminator is generated.
-func TypeInfoFormat(format string ) func(installer *Installer) {
+// ExtraTypes provides additional types to generates schemas for.
+func ExtraTypes(types ... reflect.Type) func(installer *Installer) {
 	return func(installer *Installer) {
-		installer.typeInfoFormat = format
+		installer.extraTypes = append(installer.extraTypes, types...)
 	}
 }
 
@@ -330,10 +394,4 @@ func Feature(config ...func(installer *Installer)) *Installer {
 	return installer
 }
 
-var (
-	featureTag byte
-	extraTypes = []reflect.Type{
-		miruken.TypeOf[validationFailure](),
-		miruken.TypeOf[unknownError](),
-	}
-)
+var featureTag byte

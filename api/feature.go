@@ -4,7 +4,7 @@ import (
 	"github.com/miruken-go/miruken"
 )
 
-// Installer enables api support.
+// Installer enables core api support.
 type Installer struct {}
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {

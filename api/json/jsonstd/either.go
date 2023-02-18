@@ -11,7 +11,7 @@ import (
 
 // eitherSurrogate is a surrogate for miruken.Either using standard json.
 type eitherSurrogate[L, R any] struct {
-	Left  bool            `json:"isLeft"`
+	Left  bool            `json:"left"`
 	Value json.RawMessage `json:"value"`
 }
 
