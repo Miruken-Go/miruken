@@ -19,14 +19,14 @@ import (
 type (
 	// Installer configures openapi support.
 	Installer struct {
-		policy         miruken.Policy
-		schemas        openapi3.Schemas
-		requestBodies  openapi3.RequestBodies
-		responses      openapi3.Responses
-		paths          openapi3.Paths
-		generator      *openapi3gen.Generator
-		components     map[reflect.Type]*openapi3.SchemaRef
-		extraTypes     []reflect.Type
+		policy          miruken.Policy
+		schemas         openapi3.Schemas
+		requestBodies   openapi3.RequestBodies
+		responses       openapi3.Responses
+		paths           openapi3.Paths
+		generator       *openapi3gen.Generator
+		components      map[reflect.Type]*openapi3.SchemaRef
+		extraComponents []any
 	}
 
 	// ValidationFailure models a single property failure.
@@ -151,14 +151,8 @@ func (i *Installer) BindingCreated(
 		if inputType.Kind() != reflect.Struct {
 			return
 		}
-		if _, ok := i.components[inputType]; ok {
-			return
-		}
-		if schema := i.generateSchemaRef(inputType); schema == nil {
-			return
-		} else {
+		if _, created := i.generateTypeSchema(inputType); created {
 			inputName := inputType.Name()
-			i.components[inputType] = schema
 			requestBody := &openapi3.RequestBodyRef{
 				Value: openapi3.NewRequestBody().
 					WithDescription("Request to process").
@@ -178,23 +172,20 @@ func (i *Installer) BindingCreated(
 				}
 				outputName := outputType.Name()
 				if len(outputName) > 0 {
-					if _, ok := i.components[outputType]; !ok {
-						if schema := i.generateSchemaRef(outputType); schema != nil {
-							i.components[outputType] = schema
-							response := &openapi3.ResponseRef{
-								Value: openapi3.NewResponse().
-									WithDescription("Successfully handled").
-									WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
-										WithPropertyRef("payload", &openapi3.SchemaRef{
-											Ref: "#/components/schemas/"+outputName,
-										}))),
-							}
-							responseName = outputName+"Response"
-							i.responses[responseName] = response
+					if _, created := i.generateTypeSchema(outputType); created {
+						response := &openapi3.ResponseRef{
+							Value: openapi3.NewResponse().
+								WithDescription("Successfully handled").
+								WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
+									WithPropertyRef("payload", &openapi3.SchemaRef{
+										Ref: "#/components/schemas/"+outputName,
+									}))),
 						}
-					} else {
 						responseName = outputName+"Response"
+						i.responses[responseName] = response
 					}
+				} else {
+					responseName = outputName+"Response"
 				}
 			}
 			path := &openapi3.PathItem{
@@ -228,11 +219,8 @@ func (i *Installer) DescriptorCreated(
 }
 
 func (i *Installer) addInitialDefinitions() {
-	extra := i.extraTypes
-	extra = append(extra, miruken.TypeOf[ValidationFailure](), miruken.TypeOf[json2.ErrorSurrogate]())
-	for _, typ := range extra {
-		schema := i.generateSchemaRef(typ)
-		i.components[typ] = schema
+	for _, component := range i.extraComponents {
+		_, _ = i.generateComponentSchema(component)
 	}
 	i.responses["NoResponse"] = &openapi3.ResponseRef{
 		Value: openapi3.NewResponse().
@@ -323,32 +311,38 @@ func (i *Installer) generateExampleJson(
 ) {
 	for _, schema := range i.components {
 		if example := schema.Value.Example; !miruken.IsNil(example) {
-			if reflect.TypeOf(example).Kind() == reflect.Struct {
-				if js, _, err := maps.Map[string](handler, example, api.ToJson); err == nil {
-					schema.Value.Example = json.RawMessage(js)
-				}
+			if js, _, err := maps.Map[string](handler, example, api.ToJson); err == nil {
+				schema.Value.Example = json.RawMessage(js)
 			}
 		}
 	}
 }
 
-func (i *Installer) generateSchemaRef(
-	t reflect.Type,
-) *openapi3.SchemaRef {
-	if example := reflect.Zero(t).Interface(); !miruken.IsNil(example) {
-		schema, err := i.generator.NewSchemaRefForValue(example, i.schemas)
-		if err == nil {
-			switch example.(type) {
-			case json2.ErrorSurrogate:
-				example = json2.ErrorSurrogate{
-					Message: "Something bad has happened.",
-				}
-			}
-			schema.Value.Example = example
-			return schema
-		}
+func (i *Installer) generateTypeSchema(
+	typ reflect.Type,
+) (*openapi3.SchemaRef, bool) {
+	return i.generateComponentSchema(reflect.Zero(typ).Interface())
+}
+
+func (i *Installer) generateComponentSchema(
+	component any,
+) (*openapi3.SchemaRef, bool) {
+	if miruken.IsNil(component) {
+		return nil, false
 	}
-	return nil
+	typ := reflect.TypeOf(component)
+	if schema, ok := i.components[typ]; !ok {
+		var err error
+		schema, err = i.generator.NewSchemaRefForValue(component, i.schemas)
+		if err == nil {
+			schema.Value.Example = component
+			i.components[typ] = schema
+			return schema, true
+		}
+		return nil, false
+	} else {
+		return schema, false
+	}
 }
 
 func (i *Installer) customize(
@@ -376,16 +370,29 @@ func camelcase(name string) string {
 	return string(unicode.ToLower(r)) + name[n:]
 }
 
-// ExtraTypes provides additional types to generates schemas for.
-func ExtraTypes(types ... reflect.Type) func(installer *Installer) {
+// ExtraComponents provides additional components to include schemas for.
+func ExtraComponents(components ... any) func(*Installer) {
 	return func(installer *Installer) {
-		installer.extraTypes = append(installer.extraTypes, types...)
+		installer.extraComponents = append(installer.extraComponents, components...)
 	}
 }
 
+
 // Feature configures http server support
 func Feature(config ...func(installer *Installer)) *Installer {
-	installer := &Installer{}
+	installer := &Installer{
+		extraComponents: []any{
+			ValidationFailure{
+				PropertyName: "PropertyName",
+				Errors: []string{
+					"Key: 'PropertyName' Error:Field validation for 'PropertyName' failed on the 'required' tag",
+				},
+			},
+			json2.ErrorSurrogate{
+				Message: "Something bad happened.",
+			},
+		},
+	}
 	for _, configure := range config {
 		if configure != nil {
 			configure(installer)
@@ -395,3 +402,4 @@ func Feature(config ...func(installer *Installer)) *Installer {
 }
 
 var featureTag byte
+

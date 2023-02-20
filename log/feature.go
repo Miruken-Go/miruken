@@ -25,7 +25,7 @@ func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 }
 
 // Verbosity sets the default Verbosity level when logging.
-func Verbosity(verbosity int) func(installer *Installer) {
+func Verbosity(verbosity int) func(*Installer) {
 	return func(installer *Installer) {
 		installer.SetVerbosity(verbosity)
 	}
