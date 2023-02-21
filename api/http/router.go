@@ -51,17 +51,22 @@ func (r *Router) Route(
 			return
 		}
 
-		composer := miruken.BuildUp(ctx.Composer(), api.Polymorphic)
-
 		var format string
 		if format = options.Format; len(format) == 0 {
 			format = defaultFormat
 		}
+		to, err := api.ParseContentType(format, maps.DirectionTo)
+		if err != nil {
+			reject(fmt.Errorf("http router: %w", err))
+			return
+		}
+
+		composer := miruken.BuildUp(ctx.Composer(), api.Polymorphic)
 
 		var b bytes.Buffer
 		out := io.Writer(&b)
 		msg := api.Message{Payload: routed.Message}
-		if _, err = maps.MapInto(composer, msg, &out, maps.To(format)); err != nil {
+		if _, err = maps.MapInto(composer, msg, &out, to); err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 		}
 
@@ -101,7 +106,9 @@ func (r *Router) Route(
 		if len(contentType) == 0 {
 			contentType = format
 		}
-		if msg, _, err := maps.Map[api.Message](composer, res.Body, maps.From(format)); err != nil {
+		if from, err := api.ParseContentType(contentType, maps.DirectionFrom); err != nil {
+			reject(fmt.Errorf("http router: %w", err))
+		} else if msg, _, err := maps.Map[api.Message](composer, res.Body, from); err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 		} else {
 			resolve(msg.Payload)
@@ -118,9 +125,12 @@ func (r *Router) decodeError(
 	if len(contentType) == 0 {
 		contentType = format
 	}
-	from := maps.From(format)
-
-	if msg, _, err := maps.Map[api.Message](composer, res.Body, from); err == nil {
+	from, err := api.ParseContentType(contentType, maps.DirectionFrom)
+	if err != nil {
+		return err
+	}
+	msg, _, err := maps.Map[api.Message](composer, res.Body, from)
+	if err == nil {
 		if payload := msg.Payload; payload != nil {
 			if err, ok := payload.(error); ok {
 				return err

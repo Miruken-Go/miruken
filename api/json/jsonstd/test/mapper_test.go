@@ -79,7 +79,7 @@ func (suite *JsonStdTestSuite) Setup() miruken.Handler {
 	handler, _ := miruken.Setup(
 		TestFeature,
 		jsonstd.Feature()).
-		Specs(&api.GoPolymorphismMapper{}).
+		Specs(&api.GoPolymorphism{}).
 		Handler()
 	return handler
 }
@@ -91,7 +91,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 		suite.Run("typeInfo", func() {
 			suite.Run("TypeId", func() {
 				info, _, err := maps.Map[api.TypeFieldInfo](
-					handler, PlayerData{}, maps.To("type:info:dotnet"))
+					handler, PlayerData{}, maps.To("type:info:dotnet", nil))
 				suite.Nil(err)
 				suite.Equal("$type", info.TypeField)
 				suite.Equal("Player,TeamApi", info.TypeValue)

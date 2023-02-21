@@ -141,7 +141,7 @@ type ControllerTestSuite struct {
 func (suite *ControllerTestSuite) Setup(specs ...any) *context.Context {
 	handler, _ := miruken.Setup(
 		TestFeature, http.Feature(), jsonstd.Feature()).
-		Specs(&api.GoPolymorphismMapper{}).
+		Specs(&api.GoPolymorphism{}).
 		Specs(specs...).
 		Handler()
 	return context.New(handler)
@@ -150,7 +150,7 @@ func (suite *ControllerTestSuite) Setup(specs ...any) *context.Context {
 func (suite *ControllerTestSuite) SetupTest() {
 	handler, _ := miruken.Setup(
 		TestFeature, httpsrv.Feature(), jsonstd.Feature()).
-		Specs(&api.GoPolymorphismMapper{}).
+		Specs(&api.GoPolymorphism{}).
 		Handler()
 	suite.srv = httptest.NewServer(httpsrv.Api(context.New(handler)))
 }

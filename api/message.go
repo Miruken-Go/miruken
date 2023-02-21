@@ -40,8 +40,8 @@ type (
 		ValuesField string
 	}
 
-	// GoPolymorphismMapper provides polymorphic support for GO types.
-	GoPolymorphismMapper struct{}
+	// GoPolymorphism provides polymorphic support for GO types.
+	GoPolymorphism struct{}
 )
 
 const (
@@ -49,14 +49,14 @@ const (
 	PolymorphismRoot Polymorphism = 1 << iota
 )
 
-// GoPolymorphismMapper
+// GoPolymorphism
 
 // TypeInfo uses package and name to generate type metadata.
-func (m *GoPolymorphismMapper) TypeInfo(
+func (m *GoPolymorphism) TypeInfo(
 	_ *struct {
 		maps.It
 		maps.Format `to:"type:info"`
-	}, maps *maps.It,
+	  }, maps *maps.It,
 ) (TypeFieldInfo, error) {
 	val := reflect.TypeOf(maps.Source()).String()
 	if strings.HasPrefix(val, "*") {
@@ -72,7 +72,7 @@ func (m *GoPolymorphismMapper) TypeInfo(
 	}, nil
 }
 
-func (m *GoPolymorphismMapper) Static(
+func (m *GoPolymorphism) Static(
 	_ *struct {
 		miruken.Strict
 		b     creates.It `key:"bool"`
@@ -105,7 +105,7 @@ func (m *GoPolymorphismMapper) Static(
 		f64s  creates.It `key:"[]float64"`
 		sts   creates.It `key:"[]string"`
 		as    creates.It `key:"[]interface {}"`
-	}, create *creates.It,
+	  }, create *creates.It,
 ) any {
 	if key, ok := create.Key().(string); ok {
 		if proto, ok := staticTypeMap[key]; ok {
@@ -115,11 +115,11 @@ func (m *GoPolymorphismMapper) Static(
 	return nil
 }
 
-func (m *GoPolymorphismMapper) Dynamic(
+func (m *GoPolymorphism) Dynamic(
 	_ *struct {
 		miruken.Strict
 		creates.It
-	}, create *creates.It,
+	  }, create *creates.It,
 	ctx miruken.HandleContext,
 ) any {
 	if key, ok := create.Key().(string); ok {
@@ -264,7 +264,7 @@ var (
 	})
 
 	// ToTypeInfo requests the type discriminator for a type.
-	ToTypeInfo = maps.To("type:info")
+	ToTypeInfo = maps.To("type:info", nil)
 
 	staticTypeMap = map[string]any{
 		"bool":           new(bool),

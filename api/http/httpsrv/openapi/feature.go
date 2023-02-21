@@ -2,12 +2,14 @@ package openapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3gen"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
 	json2 "github.com/miruken-go/miruken/api/json"
+	"github.com/miruken-go/miruken/api/json/jsonstd"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/maps"
 	"reflect"
@@ -27,6 +29,7 @@ type (
 		generator       *openapi3gen.Generator
 		components      map[reflect.Type]*openapi3.SchemaRef
 		extraComponents []any
+		surrogates      map[reflect.Type]any
 	}
 
 	// ValidationFailure models a single property failure.
@@ -113,8 +116,8 @@ func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 		i.generator     = openapi3gen.NewGenerator(
 			openapi3gen.SchemaCustomizer(i.customize),
 			openapi3gen.UseAllExportedFields())
+		i.initializeDefinitions()
 		setup.Observers(i)
-		i.addInitialDefinitions()
 	}
 	return nil
 }
@@ -123,16 +126,7 @@ func (i *Installer) AfterInstall(
 	setup   *miruken.SetupBuilder,
 	handler miruken.Handler,
 ) error {
-	for typ, schema := range i.generator.Types {
-		if typ.Kind() == reflect.Struct {
-			if _, ok := i.schemas[typ.Name()]; !ok {
-				i.schemas[typ.Name()] = schema
-			}
-		}
-	}
 	i.generateExampleJson(miruken.BuildUp(handler, api.Polymorphic))
-	i.generator  = nil
-	i.components = nil
 	return nil
 }
 
@@ -148,19 +142,13 @@ func (i *Installer) BindingCreated(
 		if inputType.Kind() == reflect.Ptr {
 			inputType = inputType.Elem()
 		}
-		if inputType.Kind() != reflect.Struct {
-			return
-		}
-		if _, created := i.generateTypeSchema(inputType); created {
-			inputName := inputType.Name()
+		if schema, inputName, created := i.generateTypeSchema(inputType); created {
 			requestBody := &openapi3.RequestBodyRef{
 				Value: openapi3.NewRequestBody().
 					WithDescription("Request to process").
 					WithRequired(true).
 					WithJSONSchema(openapi3.NewSchema().
-						WithPropertyRef("payload", &openapi3.SchemaRef{
-						Ref: "#/components/schemas/"+inputName,
-					})),
+						WithPropertyRef("payload", schema)),
 				}
 			requestName := inputName+"Request"
 			i.requestBodies[requestName] = requestBody
@@ -170,20 +158,15 @@ func (i *Installer) BindingCreated(
 				if outputType.Kind() == reflect.Ptr {
 					outputType = outputType.Elem()
 				}
-				outputName := outputType.Name()
-				if len(outputName) > 0 {
-					if _, created := i.generateTypeSchema(outputType); created {
-						response := &openapi3.ResponseRef{
-							Value: openapi3.NewResponse().
-								WithDescription("Successfully handled").
-								WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
-									WithPropertyRef("payload", &openapi3.SchemaRef{
-										Ref: "#/components/schemas/"+outputName,
-									}))),
-						}
-						responseName = outputName+"Response"
-						i.responses[responseName] = response
+				if schema, outputName, created := i.generateTypeSchema(outputType); created {
+					response := &openapi3.ResponseRef{
+						Value: openapi3.NewResponse().
+							WithDescription("Successfully handled").
+							WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
+								WithPropertyRef("payload", schema))),
 					}
+					responseName = outputName+"Response"
+					i.responses[responseName] = response
 				} else {
 					responseName = outputName+"Response"
 				}
@@ -191,6 +174,7 @@ func (i *Installer) BindingCreated(
 			path := &openapi3.PathItem{
 				Post: &openapi3.Operation{
 					OperationID: inputName,
+					Description: fmt.Sprintf("Handled by %s", descriptor.HandlerSpec()),
 					RequestBody: &openapi3.RequestBodyRef{
 						Ref: "#/components/requestBodies/"+requestName,
 					},
@@ -218,9 +202,14 @@ func (i *Installer) DescriptorCreated(
 ) {
 }
 
-func (i *Installer) addInitialDefinitions() {
+func (i *Installer) initializeDefinitions() {
 	for _, component := range i.extraComponents {
-		_, _ = i.generateComponentSchema(component)
+		schema, name, created := i.generateComponentSchema(component)
+		if created {
+			if _, ok := i.schemas[name]; !ok {
+				i.schemas[name] = schema
+			}
+		}
 	}
 	i.responses["NoResponse"] = &openapi3.ResponseRef{
 		Value: openapi3.NewResponse().
@@ -320,28 +309,35 @@ func (i *Installer) generateExampleJson(
 
 func (i *Installer) generateTypeSchema(
 	typ reflect.Type,
-) (*openapi3.SchemaRef, bool) {
+) (*openapi3.SchemaRef, string, bool) {
 	return i.generateComponentSchema(reflect.Zero(typ).Interface())
 }
 
 func (i *Installer) generateComponentSchema(
 	component any,
-) (*openapi3.SchemaRef, bool) {
+) (*openapi3.SchemaRef, string, bool) {
 	if miruken.IsNil(component) {
-		return nil, false
+		return nil, "", false
 	}
-	typ := reflect.TypeOf(component)
+	typ  := reflect.TypeOf(component)
+	if sur, ok := i.surrogates[typ]; ok {
+		component = sur
+	}
+	name := typ.Name()
+	if len(name) == 0 {
+		return nil, "", false
+	}
 	if schema, ok := i.components[typ]; !ok {
 		var err error
 		schema, err = i.generator.NewSchemaRefForValue(component, i.schemas)
 		if err == nil {
 			schema.Value.Example = component
 			i.components[typ] = schema
-			return schema, true
+			return schema, name, true
 		}
-		return nil, false
+		return nil, "", false
 	} else {
-		return schema, false
+		return schema, name, false
 	}
 }
 
@@ -377,6 +373,15 @@ func ExtraComponents(components ... any) func(*Installer) {
 	}
 }
 
+func Surrogates(surrogates map[reflect.Type]any) func(*Installer) {
+	return func(installer *Installer) {
+		for typ, example := range surrogates {
+			if typ != nil && example != nil {
+				installer.surrogates[typ] = example
+			}
+		}
+	}
+}
 
 // Feature configures http server support
 func Feature(config ...func(installer *Installer)) *Installer {
@@ -390,6 +395,14 @@ func Feature(config ...func(installer *Installer)) *Installer {
 			},
 			json2.ErrorSurrogate{
 				Message: "Something bad happened.",
+			},
+		},
+		surrogates: map[reflect.Type]any{
+			miruken.TypeOf[api.ScheduledResult](): jsonstd.ScheduledResultSurrogate{
+				jsonstd.EitherSurrogate[error, any]{
+					Left:  false,
+					Value: json.RawMessage("\"success\""),
+				},
 			},
 		},
 	}

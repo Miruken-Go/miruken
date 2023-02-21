@@ -101,7 +101,7 @@ type OpenApiTestSuite struct {
 func (suite *OpenApiTestSuite) Setup(specs ...any) *context.Context {
 	handler, _ := miruken.Setup(
 		TestFeature, http.Feature(), jsonstd.Feature()).
-		Specs(&api.GoPolymorphismMapper{}).
+		Specs(&api.GoPolymorphism{}).
 		Specs(specs...).
 		Handler()
 	return context.New(handler)
@@ -111,7 +111,7 @@ func (suite *OpenApiTestSuite) SetupTest() {
 	suite.openapi = openapi.Feature()
 	handler, _ := miruken.Setup(
 		TestFeature, jsonstd.Feature(), suite.openapi).
-		Specs(&api.GoPolymorphismMapper{}).
+		Specs(&api.GoPolymorphism{}).
 		Handler()
 	suite.srv = httptest.NewServer(httpsrv.Api(context.New(handler)))
 }

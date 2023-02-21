@@ -9,7 +9,7 @@ import (
 
 type (
 	// ScheduledResultSurrogate is a surrogate for api.ScheduledResult over json.
-	ScheduledResultSurrogate []eitherSurrogate[error, any]
+	ScheduledResultSurrogate []EitherSurrogate[error, any]
 )
 
 
@@ -40,13 +40,13 @@ func (m *SurrogateMapper) ReplaceScheduledResult(
 		err := either.Fold(resp, func(e error) error {
 			ej, _, err := maps.Map[string](ctx.Composer(), e, api.ToJson)
 			if err == nil {
-				sur[i] = eitherSurrogate[error, any]{true, []byte(ej)}
+				sur[i] = EitherSurrogate[error, any]{true, []byte(ej)}
 			}
 			return err
 		}, func(val any) error {
 			vj, _, err := maps.Map[string](ctx.Composer(), val, api.ToJson)
 			if err == nil {
-				sur[i] = eitherSurrogate[error, any]{false, []byte(vj)}
+				sur[i] = EitherSurrogate[error, any]{false, []byte(vj)}
 			}
 			return err
 		})

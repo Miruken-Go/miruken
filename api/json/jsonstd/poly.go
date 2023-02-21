@@ -37,7 +37,7 @@ var (
 
 func (c *typeContainer) typeInfo() *maps.Format {
 	if typeInfo := c.typInfo; len(typeInfo) > 0 {
-		return maps.To(typeInfo)
+		return maps.To(typeInfo, nil)
 	}
 	return api.ToTypeInfo
 }

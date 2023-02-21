@@ -39,6 +39,7 @@ type (
 		rule       FormatRule
 		identifier string
 		pattern    *regexp.Regexp
+		params     map[string]string
 	}
 )
 
@@ -105,6 +106,10 @@ func (f *Format) Rule() FormatRule {
 
 func (f *Format) Identifier() string {
 	return f.identifier
+}
+
+func (f *Format) Params() map[string]string {
+	return f.params
 }
 
 func (f *Format) InitWithTag(tag reflect.StructTag) error {
@@ -212,8 +217,8 @@ func (f *Format) parse(format string) error {
 }
 
 // To maps to a format.
-func To(format string) *Format {
-	f := &Format{direction: DirectionTo}
+func To(format string, params map[string]string) *Format {
+	f := &Format{direction: DirectionTo, params: params}
 	if err := f.parse(format); err != nil {
 		panic(err)
 	}
@@ -221,8 +226,8 @@ func To(format string) *Format {
 }
 
 // From maps from a format.
-func From(format string) *Format {
-	f := &Format{direction: DirectionFrom}
+func From(format string, params map[string]string) *Format {
+	f := &Format{direction: DirectionFrom, params: params}
 	if err := f.parse(format); err != nil {
 		panic(err)
 	}
