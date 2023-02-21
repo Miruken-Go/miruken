@@ -23,7 +23,7 @@ func Handler(api *openapi3.T, enableCors bool) http.HandlerFunc {
 
 		w.WriteHeader(http.StatusOK)
 
-		// customize the swagger header based on host
+		// customize the document based on host
 		scheme := ""
 		if req.TLS != nil {
 			scheme = "https"
@@ -56,7 +56,7 @@ func Handler(api *openapi3.T, enableCors bool) http.HandlerFunc {
 		}
 		mux.Unlock()
 
-		enc :=json.NewEncoder(w)
+		enc := json.NewEncoder(w)
 		enc.SetIndent("", "    ")
 		_ = enc.Encode(v)
 	}

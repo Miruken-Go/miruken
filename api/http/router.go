@@ -9,7 +9,6 @@ import (
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/promise"
-	"github.com/miruken-go/miruken/provides"
 	"io"
 	"net/http"
 	"net/url"
@@ -35,7 +34,6 @@ const defaultTimeout = 30 * time.Second
 func (r *Router) Route(
 	_*struct{
 		handles.It
-		provides.Single
 		api.Routes `scheme:"http,https"`
 	  }, routed api.Routed,
 	_*struct{

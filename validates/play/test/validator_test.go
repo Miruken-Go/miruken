@@ -62,7 +62,7 @@ type CreateUserNoTags struct {
 
 // CreateUserIntegrity validates CreateUser
 type CreateUserIntegrity struct {
-	play.Validator
+	play.ValidatorT[*CreateUserNoTags]
 }
 
 // UserHandler handles User commands.
@@ -75,8 +75,8 @@ type UserHandler struct {
 
 func (v *CreateUserIntegrity) Constructor(
 	_ *struct{ miruken.Optional }, translator ut.Translator,
-) {
-	v.ConstructWithRules(
+) error {
+	return v.ConstructWithRules(
 		play.Rules{
 			{AddressNoTags{}, map[string]string{
 				"Street": "required",
@@ -96,11 +96,6 @@ func (v *CreateUserIntegrity) Constructor(
 		}, nil, translator)
 }
 
-func (v *CreateUserIntegrity) Validate(
-	it *validates.It, create *CreateUserNoTags,
-) miruken.HandleResult {
-	return v.ValidateAndStop(create, it.Outcome())
-}
 
 // UserHandler
 

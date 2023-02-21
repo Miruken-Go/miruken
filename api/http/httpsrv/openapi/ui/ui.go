@@ -16,7 +16,7 @@ func Handler(prefix string, api *openapi3.T) http.HandlerFunc {
 	dir, _ := fs.Sub(static, "static")
 	server := http.StripPrefix(prefix, http.FileServer(http.FS(dir)))
 	return func(rw http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "swagger.json") {
+		if strings.HasSuffix(r.URL.Path, "openapi.json") {
 			openapi.Handler(api, false)(rw, r)
 			return
 		}

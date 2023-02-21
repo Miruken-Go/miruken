@@ -161,7 +161,7 @@ func (i *Installer) BindingCreated(
 				if schema, outputName, created := i.generateTypeSchema(outputType); created {
 					response := &openapi3.ResponseRef{
 						Value: openapi3.NewResponse().
-							WithDescription("Successfully handled").
+							WithDescription("Successful Response").
 							WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
 								WithPropertyRef("payload", schema))),
 					}
@@ -218,7 +218,7 @@ func (i *Installer) initializeDefinitions() {
 	}
 	i.responses["ValidationError"] =  &openapi3.ResponseRef{
 		Value: openapi3.NewResponse().
-			WithDescription("Validation failed").
+			WithDescription("Validation Error").
 			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
 				WithPropertyRef("payload", &openapi3.SchemaRef{
 					Value: &openapi3.Schema{

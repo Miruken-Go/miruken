@@ -11,18 +11,25 @@ import (
 )
 
 type (
-	// Validator provides common validation behavior.
+	// Validator provides core validation behavior.
 	Validator struct {
 		validate   *play.Validate
 		translator ut.Translator
+	}
+
+	// ValidatorT extends validation for a specific type.
+	ValidatorT[T any] struct {
+		Validator
 	}
 
 	// Rules express the validation behavior explicitly
 	// without depending on validation struct tags.
 	Rules []struct{ Type any; Rules map[string]string }
 
+	// validator performs default tag based validation.
 	validator struct { Validator }
 )
+
 
 // Validator
 
@@ -36,11 +43,14 @@ func (v *Validator) Constructor(
 
 func (v *Validator) ConstructWithRules(
 	rules      Rules,
-	validate   *play.Validate,
+	configure  func(*play.Validate) error,
 	translator ut.Translator,
-) {
-	if validate == nil {
-		validate = play.New()
+) error {
+	validate := play.New()
+	if configure != nil {
+		if err := configure(validate); err != nil {
+			return err
+		}
 	}
 
 	for _, rule := range rules {
@@ -49,6 +59,7 @@ func (v *Validator) ConstructWithRules(
 
 	v.validate   = validate
 	v.translator = translator
+	return nil
 }
 
 func (v *Validator) Validate(
@@ -80,12 +91,12 @@ func (v *Validator) ValidateAndStop(
 	target  any,
 	outcome *validates.Outcome,
 ) miruken.HandleResult {
-	if result := v.Validate(target, outcome); result.Handled() {
+	result := v.Validate(target, outcome)
+	if result.Handled() {
 		// Stop the generic validator from validating tags
 		return result.Or(miruken.HandledAndStop)
-	} else {
-		return result
 	}
+	return result
 }
 
 func (v *Validator) addErrors(
@@ -114,10 +125,19 @@ func (v *Validator) translateErrors(
 }
 
 
+// ValidatorT
+
+func (v *ValidatorT[T]) Validate(
+	validate *validates.It, t T,
+) miruken.HandleResult {
+	return v.ValidateAndStop(t, validate.Outcome())
+}
+
+
 // validator
 
 func (v *validator) Validate(
-	it *validates.It, target any,
+	validate *validates.It, target any,
 ) miruken.HandleResult {
-	return v.Validator.Validate(target, it.Outcome())
+	return v.Validator.Validate(target, validate.Outcome())
 }

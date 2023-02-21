@@ -176,6 +176,16 @@ func (f *Format) Satisfies(required miruken.BindingConstraint) bool {
 	return false
 }
 
+func (f *Format) FlipDirection() *Format {
+	flip := *f
+	if f.direction == DirectionTo {
+		flip.direction = DirectionFrom
+	} else {
+		flip.direction = DirectionTo
+	}
+	return &flip
+}
+
 func (f *Format) parse(format string) error {
 	format = strings.TrimSpace(format)
 	var start, end int
