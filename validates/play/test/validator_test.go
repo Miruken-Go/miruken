@@ -3,6 +3,7 @@ package test
 import (
 	ut "github.com/go-playground/universal-translator"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/validates"
 	play "github.com/miruken-go/miruken/validates/play"
@@ -74,7 +75,7 @@ type UserHandler struct {
 // CreateUserIntegrity
 
 func (v *CreateUserIntegrity) Constructor(
-	_ *struct{ miruken.Optional }, translator ut.Translator,
+	_ *struct{ args.Optional }, translator ut.Translator,
 ) error {
 	return v.ConstructWithRules(
 		play.Rules{

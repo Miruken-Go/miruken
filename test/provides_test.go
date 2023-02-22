@@ -90,7 +90,7 @@ func (p *SpecificationProvider) ProvideFoo(
 
 func (p *SpecificationProvider) ProvideBar(
 	_*struct{
-		provides.It; miruken.Strict
+		provides.It; provides.Strict
 	  },
 ) []*Bar {
 	p.bar.Inc()

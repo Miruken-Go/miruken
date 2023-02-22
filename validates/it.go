@@ -9,13 +9,18 @@ import (
 	"strings"
 )
 
-// It validates callbacks contravariantly.
-type It struct {
-	miruken.CallbackBase
-	source  any
-	groups  []any
-	outcome Outcome
-}
+type (
+	// It validates callbacks contravariantly.
+	It struct {
+		miruken.CallbackBase
+		source  any
+		groups  []any
+		outcome Outcome
+	}
+
+	// Strict alias for validation
+	Strict = miruken.Strict
+)
 
 func (v *It) Source() any {
 	return v.source

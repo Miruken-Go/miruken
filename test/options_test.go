@@ -2,6 +2,7 @@ package test
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -16,7 +17,7 @@ type (
 
 func (h *FooOptionsHandler) HandleFoo(
 	_ *handles.It, foo *Foo,
-	_*struct{ miruken.FromOptions }, options FooOptions,
+	_*struct{ args.FromOptions }, options FooOptions,
 ) {
 	for i := 0; i < options.Increment; i++ {
 		foo.Inc()

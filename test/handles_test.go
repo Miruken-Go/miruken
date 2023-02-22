@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/promise"
@@ -187,7 +188,7 @@ func (h *EverythingSpecHandler) HandleEverything(
 type SpecificationHandler struct{}
 
 func (h *SpecificationHandler) HandleFoo(
-	_*struct{ handles.It; miruken.Strict }, foo *Foo,
+	_*struct{ handles.It; handles.Strict }, foo *Foo,
 ) miruken.HandleResult {
 	foo.Inc()
 	return miruken.Handled
@@ -218,7 +219,7 @@ func (h *DependencyHandler) RequiredSliceDependency(
 
 func (h *DependencyHandler) OptionalDependency(
 	_ *handles.It, bar *Bar,
-	_*struct{ miruken.Optional }, foo *Foo,
+	_*struct{ args.Optional }, foo *Foo,
 ) {
 	bar.Inc()
 	if foo != nil {
@@ -228,7 +229,7 @@ func (h *DependencyHandler) OptionalDependency(
 
 func (h *DependencyHandler) OptionalSliceDependency(
 	_ *handles.It, baz *Baz,
-	_*struct{ miruken.Optional }, bars []*Bar,
+	_*struct{ args.Optional }, bars []*Bar,
 ) {
 	baz.Inc()
 	for _, bar := range bars {
@@ -238,7 +239,7 @@ func (h *DependencyHandler) OptionalSliceDependency(
 
 func (h *DependencyHandler) StrictDependency(
 	_ *handles.It, bam *Bam,
-	_*struct{ miruken.Strict }, bars []*Bar,
+	_*struct{ args.Strict }, bars []*Bar,
 ) {
 	bam.Inc()
 	for _, bar := range bars {
@@ -395,7 +396,7 @@ type ComplexAsyncHandler struct {}
 func (h *ComplexAsyncHandler) HandleFoo(
 	_*struct{
 		handles.It
-		miruken.Strict
+		handles.Strict
 	  }, foo *Foo,
 	baz []*Baz,
 ) []*Baz {
@@ -526,7 +527,7 @@ func (m *MetadataHandler) HandleFoo(
 func (m *MetadataHandler) HandleBar(
 	_*struct {
 		handles.It
-		miruken.Strict
+		handles.Strict
 	    Anonymous
       }, bar *Bar,
 	ctx miruken.HandleContext,

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/promise"
@@ -37,8 +38,8 @@ func (r *Router) Route(
 		api.Routes `scheme:"http,https"`
 	  }, routed api.Routed,
 	_*struct{
-		miruken.Optional
-		miruken.FromOptions
+		args.Optional
+		args.FromOptions
 	  }, options Options,
 	ctx miruken.HandleContext,
 ) *promise.Promise[any] {

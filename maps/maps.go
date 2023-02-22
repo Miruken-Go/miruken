@@ -41,6 +41,9 @@ type (
 		pattern    *regexp.Regexp
 		params     map[string]string
 	}
+
+	// Strict alias for mapping
+	Strict = miruken.Strict
 )
 
 const (

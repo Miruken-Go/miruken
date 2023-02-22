@@ -6,6 +6,7 @@ import (
 	ut "github.com/go-playground/universal-translator"
 	play "github.com/go-playground/validator/v10"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/validates"
 	"strings"
 )
@@ -35,7 +36,7 @@ type (
 
 func (v *Validator) Constructor(
 	validate *play.Validate,
-	_ *struct{ miruken.Optional }, translator ut.Translator,
+	_ *struct{ args.Optional }, translator ut.Translator,
 ) {
 	v.validate   = validate
 	v.translator = translator

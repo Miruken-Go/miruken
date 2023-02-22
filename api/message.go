@@ -74,7 +74,7 @@ func (m *GoPolymorphism) TypeInfo(
 
 func (m *GoPolymorphism) Static(
 	_ *struct {
-		miruken.Strict
+		creates.Strict
 		b     creates.It `key:"bool"`
 		i     creates.It `key:"int"`
 		i8    creates.It `key:"int8"`
@@ -117,8 +117,8 @@ func (m *GoPolymorphism) Static(
 
 func (m *GoPolymorphism) Dynamic(
 	_ *struct {
-		miruken.Strict
 		creates.It
+	    creates.Strict
 	  }, create *creates.It,
 	ctx miruken.HandleContext,
 ) any {

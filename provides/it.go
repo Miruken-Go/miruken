@@ -6,4 +6,5 @@ type (
 	It      = miruken.Provides
 	Builder = miruken.ProvidesBuilder
 	Single  = miruken.Single
+	Strict  = miruken.Strict
 )

@@ -6,6 +6,7 @@ import (
 	"github.com/Rican7/conjson/transform"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/maps"
 	"io"
 )
@@ -29,12 +30,12 @@ func (m *Mapper) ToJson(
 		maps.Format `to:"application/json"`
 	  }, maps *maps.It,
 	_*struct{
-		miruken.Optional
-		miruken.FromOptions
+		args.Optional
+		args.FromOptions
 	  }, options Options,
 	_*struct{
-		miruken.Optional
-		miruken.FromOptions
+		args.Optional
+		args.FromOptions
 	  }, apiOptions api.Options,
 	ctx miruken.HandleContext,
 ) (js string, err error) {
@@ -64,12 +65,12 @@ func (m *Mapper) ToJsonStream(
 		maps.Format `to:"application/json"`
 	  }, maps *maps.It,
 	_*struct{
-		miruken.Optional
-		miruken.FromOptions
+		args.Optional
+		args.FromOptions
 	  }, options Options,
 	_*struct{
-		miruken.Optional
-		miruken.FromOptions
+		args.Optional
+		args.FromOptions
 	  }, apiOptions api.Options,
 	ctx miruken.HandleContext,
 ) (stream io.Writer, err error) {
@@ -103,12 +104,12 @@ func (m *Mapper) FromJson(
 		maps.Format `from:"application/json"`
 	  }, jsonString string,
 	_*struct{
-		miruken.Optional
-		miruken.FromOptions
+		args.Optional
+		args.FromOptions
 	  }, options Options,
 	_*struct{
-		miruken.Optional
-		miruken.FromOptions
+		args.Optional
+		args.FromOptions
 	  }, apiOptions api.Options,
 	maps *maps.It,
 	ctx  miruken.HandleContext,
@@ -136,12 +137,12 @@ func (m *Mapper) FromJsonStream(
 		maps.Format `from:"application/json"`
 	  }, stream io.Reader,
 	_*struct{
-		miruken.Optional
-		miruken.FromOptions
+		args.Optional
+		args.FromOptions
 	  }, options Options,
 	_*struct{
-		miruken.Optional
-		miruken.FromOptions
+		args.Optional
+		args.FromOptions
 	  }, apiOptions api.Options,
 	maps *maps.It,
 	ctx  miruken.HandleContext,
