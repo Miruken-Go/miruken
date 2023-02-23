@@ -120,10 +120,7 @@ type OpenProvider struct {
 }
 
 func (p *OpenProvider) ProvideSingletons(
-	_*struct{
-		provides.It
-		provides.Single
-	  }, it *provides.It,
+	_*struct{provides.Single}, it *provides.It,
 ) any {
 	if key := it.Key(); key == miruken.TypeOf[*Foo]() {
 		p.foo.Inc()
@@ -140,10 +137,7 @@ func (p *OpenProvider) ProvideSingletons(
 }
 
 func (p *OpenProvider) ProvideScoped(
-	_*struct{
-		provides.It
-		context.Lifestyle
-	  }, it *provides.It,
+	_*struct{context.Lifestyle}, it *provides.It,
 ) any {
 	if key := it.Key(); key == miruken.TypeOf[*Baz]() {
 		p.baz.Inc()

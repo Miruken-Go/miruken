@@ -54,7 +54,6 @@ const (
 // TypeInfo uses package and name to generate type metadata.
 func (m *GoPolymorphism) TypeInfo(
 	_ *struct {
-		maps.It
 		maps.Format `to:"type:info"`
 	  }, maps *maps.It,
 ) (TypeFieldInfo, error) {
@@ -116,10 +115,7 @@ func (m *GoPolymorphism) Static(
 }
 
 func (m *GoPolymorphism) Dynamic(
-	_ *struct {
-		creates.It
-	    creates.Strict
-	  }, create *creates.It,
+	_ *struct {creates.Strict}, create *creates.It,
 	ctx miruken.HandleContext,
 ) any {
 	if key, ok := create.Key().(string); ok {

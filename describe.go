@@ -190,15 +190,13 @@ func (s HandlerTypeSpec) newHandlerDescriptor(
 	if ctor, ok := typ.MethodByName("Constructor"); ok {
 		constructor = &ctor
 		ctorType   := ctor.Type
-		if ctorType.NumIn() > 1 {
-			if spec, err := factory.createSpec(ctorType.In(1)); err == nil {
-				if spec != nil {
-					ctorSpec     = spec
-					ctorPolicies = spec.policies
-				}
-			} else {
-				invalid = multierror.Append(invalid, err)
+		if spec, err := factory.createSpec(ctorType, 2); err == nil {
+			if spec != nil {
+				ctorSpec     = spec
+				ctorPolicies = spec.policies
 			}
+		} else {
+			invalid = multierror.Append(invalid, err)
 		}
 	}
 	if _, noImplicit := typ.MethodByName("NoConstructor"); !noImplicit {
@@ -236,10 +234,7 @@ func (s HandlerTypeSpec) newHandlerDescriptor(
 			continue
 		}
 		methodType := method.Type
-		if methodType.NumIn() < 2 {
-			continue // must have a callback/spec
-		}
-		if spec, err := factory.createSpec(methodType.In(1)); err == nil {
+		if spec, err := factory.createSpec(methodType, 2); err == nil {
 			if spec == nil { // not a handler method
 				continue
 			}
@@ -291,9 +286,7 @@ func (s HandlerFuncSpec) newHandlerDescriptor(
 	bindings   := make(policyBindingsMap)
 	descriptor  = &HandlerDescriptor{spec: s}
 
-	if funType.NumIn() < 1 {
-		invalid = fmt.Errorf("missing callback spec in first argument")
-	} else if spec, err := factory.createSpec(funType.In(0)); err == nil {
+	if spec, err := factory.createSpec(funType, 1); err == nil {
 		if spec == nil {
 			invalid = fmt.Errorf("first argument is not a callback spec")
 		} else {

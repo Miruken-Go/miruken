@@ -91,7 +91,6 @@ func (v *PlayerValidator) MustHaveNameAndDOB(
 
 func (v *PlayerValidator) MustBeTenOrUnder(
 	_*struct{
-		validates.It
 		validates.Group `name:"Recreational"`
 	  }, player *Player,
 	it *validates.It,
@@ -117,7 +116,6 @@ func (v *TeamValidator) MustHaveName(
 
 func (v *TeamValidator) MustHaveLicensedCoach(
 	_*struct{
-		validates.It
 		validates.Group `name:"ECNL"`
 	  }, team *Team,
 	it *validates.It,

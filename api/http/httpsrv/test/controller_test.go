@@ -119,10 +119,7 @@ func (t *TeamApiConsumer) TeamNotifications(
 // BadFormatter
 
 func (f *BadFormatter) Bad(
-	_*struct{
-		maps.It
-		maps.Format `to:"bad"`
-	  }, msg api.Message,
+	_*struct{maps.Format `to:"bad"`}, msg api.Message,
 	m *maps.It,
 ) (io.Writer, error) {
 	if writer, ok := m.Target().(*io.Writer); ok && !miruken.IsNil(writer) {

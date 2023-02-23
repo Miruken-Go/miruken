@@ -49,11 +49,7 @@ func (l *Load) Satisfies(required miruken.BindingConstraint) bool {
 // NewConfiguration return a new configuration instance
 // populated by the assigned Provider.
 func (f *Factory) NewConfiguration(
-	_*struct{
-		provides.It
-		provides.Single
-		Load
-	  }, p *provides.It,
+	_*struct{provides.Single; Load}, p *provides.It,
 ) (any, error) {
 	if typ, ok := p.Key().(reflect.Type); ok {
 		var out any

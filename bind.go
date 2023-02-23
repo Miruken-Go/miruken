@@ -219,32 +219,61 @@ func (b *bindingSpec) complete() error {
 // bindingSpecFactory
 
 func (p *bindingSpecFactory) createSpec(
-	callbackOrSpec reflect.Type,
+	typ     reflect.Type,
+	minArgs int,
 ) (spec *bindingSpec, err error) {
+	if typ.Kind() != reflect.Func || typ.NumIn() < minArgs {
+		return nil, nil
+	}
+	specType := typ.In(minArgs-1)
 	// Is it a policy spec?
-	if callbackOrSpec.Kind() == reflect.Ptr {
-		if specType := callbackOrSpec.Elem();
-			specType.Name() == "" && // anonymous
-				specType.Kind() == reflect.Struct &&
-				specType.NumField() > 0 {
+	if specType.Kind() == reflect.Ptr {
+		if at := specType.Elem(); // anonymous struct
+				at.Name() == "" &&
+				at.Kind() == reflect.Struct {
 			spec = &bindingSpec{}
-			if err = parseBinding(specType, spec, p.parsers);
-				err != nil || len(spec.policies) == 0 {
+			if err = parseBinding(at, spec, p.parsers); err != nil {
 				return nil, err
 			}
 			spec.arg = zeroArg{} // spec is just a placeholder
-			return spec, nil
+			if len(spec.policies) > 0 {
+				return spec, nil
+			}
 		}
 	}
-	// Is it a Callback arg?
-	if callbackOrSpec.Kind() != reflect.Interface && callbackOrSpec.Implements(callbackType) {
-		return &bindingSpec{
-			policies: []policyKey{{policy: p.policyOf(callbackOrSpec)}},
-			arg:      CallbackArg{},
-			filters:  []FilterProvider{&ConstraintProvider{}},
-		}, nil
+	if spec == nil {
+		// Is it a Callback arg?
+		if specType.Kind() != reflect.Interface && specType.Implements(callbackType) {
+			spec = &bindingSpec{
+				arg:      CallbackArg{},
+				policies: []policyKey{{policy: p.policyOf(specType)}},
+				filters:  []FilterProvider{&ConstraintProvider{}},
+			}
+		}
 	}
-	return nil, nil
+	if spec != nil {
+		// Discover additional callbacks
+		for i := minArgs; i < typ.NumIn(); i++ {
+			argType := typ.In(i)
+			if argType.Kind() != reflect.Interface && argType.Implements(callbackType) {
+				addPolicy := true
+				policy := p.policyOf(argType)
+				for _, pk := range spec.policies {
+					if pk.policy == policy && pk.key == nil {
+						addPolicy = false
+						break
+					}
+				}
+				if addPolicy {
+					spec.policies = append(spec.policies, policyKey{policy: policy})
+				}
+			}
+		}
+		if len(spec.policies) == 0 {
+			return nil, nil
+		}
+	}
+	return spec, nil
 }
 
 func (p *bindingSpecFactory) policyOf(

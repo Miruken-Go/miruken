@@ -207,7 +207,7 @@ func (m *InvalidMapper) UntypedInterfaceDependency(
 }
 
 func (m *InvalidMapper) MissingCallbackArgument(
-	_*struct{ handles.It },
+	_*struct{handles.It},
 ) miruken.HandleResult {
 	return miruken.Handled
 }

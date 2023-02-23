@@ -26,7 +26,6 @@ type (
 
 func (m *Mapper) ToJson(
 	_*struct{
-		maps.It
 		maps.Format `to:"application/json"`
 	  }, maps *maps.It,
 	_*struct{
@@ -61,7 +60,6 @@ func (m *Mapper) ToJson(
 
 func (m *Mapper) ToJsonStream(
 	_*struct{
-		maps.It
 		maps.Format `to:"application/json"`
 	  }, maps *maps.It,
 	_*struct{
@@ -100,7 +98,6 @@ func (m *Mapper) ToJsonStream(
 
 func (m *Mapper) FromJson(
 	_*struct{
-		maps.It
 		maps.Format `from:"application/json"`
 	  }, jsonString string,
 	_*struct{
@@ -133,7 +130,6 @@ func (m *Mapper) FromJson(
 
 func (m *Mapper) FromJsonStream(
 	_*struct{
-		maps.It
 		maps.Format `from:"application/json"`
 	  }, stream io.Reader,
 	_*struct{

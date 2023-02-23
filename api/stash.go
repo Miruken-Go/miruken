@@ -52,9 +52,7 @@ func (s *Stash) NoConstructor() {}
 
 // Provide retrieves an item by key.
 func (s *Stash) Provide(
-	_*struct{
-		provides.It; provides.Strict
-	  }, p *provides.It,
+	_*struct{provides.Strict}, p *provides.It,
 ) any {
 	return s.data[p.Key()]
 }

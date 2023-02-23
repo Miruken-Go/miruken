@@ -16,7 +16,6 @@ type MessageSurrogate struct {
 
 func (m *SurrogateMapper) EncodeMessage(
 	_*struct{
-		maps.It
 		maps.Format `to:"application/json"`
 	  }, msg api.Message,
 	it *maps.It,

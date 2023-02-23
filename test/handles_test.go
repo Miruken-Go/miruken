@@ -188,7 +188,7 @@ func (h *EverythingSpecHandler) HandleEverything(
 type SpecificationHandler struct{}
 
 func (h *SpecificationHandler) HandleFoo(
-	_*struct{ handles.It; handles.Strict }, foo *Foo,
+	_*struct{handles.It; handles.Strict}, foo *Foo,
 ) miruken.HandleResult {
 	foo.Inc()
 	return miruken.Handled
@@ -219,7 +219,7 @@ func (h *DependencyHandler) RequiredSliceDependency(
 
 func (h *DependencyHandler) OptionalDependency(
 	_ *handles.It, bar *Bar,
-	_*struct{ args.Optional }, foo *Foo,
+	_*struct{args.Optional}, foo *Foo,
 ) {
 	bar.Inc()
 	if foo != nil {
@@ -229,7 +229,7 @@ func (h *DependencyHandler) OptionalDependency(
 
 func (h *DependencyHandler) OptionalSliceDependency(
 	_ *handles.It, baz *Baz,
-	_*struct{ args.Optional }, bars []*Bar,
+	_*struct{args.Optional}, bars []*Bar,
 ) {
 	baz.Inc()
 	for _, bar := range bars {
@@ -239,7 +239,7 @@ func (h *DependencyHandler) OptionalSliceDependency(
 
 func (h *DependencyHandler) StrictDependency(
 	_ *handles.It, bam *Bam,
-	_*struct{ args.Strict }, bars []*Bar,
+	_*struct{args.Strict}, bars []*Bar,
 ) {
 	bam.Inc()
 	for _, bar := range bars {
@@ -310,7 +310,7 @@ type DependencyResolverHandler struct{}
 
 func (h *DependencyResolverHandler) UseDependencyResolver(
 	_ *handles.It, foo *Foo,
-	_*struct{ DefaultConfiguration }, config *Config,
+	_*struct{DefaultConfiguration}, config *Config,
 ) *Config {
 	foo.Inc()
 	return config
@@ -458,13 +458,13 @@ func (h *InvalidHandler) UntypedInterfaceDependency(
 }
 
 func (h *InvalidHandler) CallbackInterfaceSpec(
-	*struct{ miruken.Callback },
+	*struct{miruken.Callback},
 ) miruken.HandleResult {
 	return miruken.Handled
 }
 
 func (h *InvalidHandler) MissingCallbackArgument(
-	*struct{ handles.It },
+	*struct{handles.It},
 ) miruken.HandleResult {
 	return miruken.Handled
 }
@@ -555,7 +555,7 @@ func HandleFoo(
 }
 
 func HandleCounted(
-	_*struct{ handles.It }, counter Counter,
+	_*struct{handles.It}, counter Counter,
 ) {
 	counter.Inc()
 	counter.Inc()

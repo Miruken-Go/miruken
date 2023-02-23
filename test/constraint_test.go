@@ -69,8 +69,8 @@ func (d *Doctor) Init() error {
 // Hospital
 
 func (h *Hospital) Constructor(
-	_*struct{ Doctor },     doctor     Person,
-	_*struct{ Programmer }, programmer Person,
+	_*struct{Doctor},     doctor     Person,
+	_*struct{Programmer}, programmer Person,
 ) {
 	h.doctor     = doctor
 	h.programmer = programmer
@@ -147,8 +147,8 @@ func (r *RemoteSettings) ServerUrl() string {
 // Client
 
 func (c *Client) Constructor(
-	_*struct{ miruken.Named `name:"local"` },  local  AppSettings,
-	_*struct{ miruken.Named `name:"remote"` }, remote AppSettings,
+	_*struct{miruken.Named `name:"local"`},  local  AppSettings,
+	_*struct{miruken.Named `name:"remote"`}, remote AppSettings,
 ) {
 	c.local  = local
 	c.remote = remote

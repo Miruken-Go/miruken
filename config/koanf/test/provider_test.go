@@ -58,7 +58,7 @@ func (e *EventStore) Env() string {
 }
 
 func (e *EventStore) Publish(
-	_*struct{ handles.It }, _ CustomerCreated,
+	_*struct{handles.It}, _ CustomerCreated,
 	_*struct{config.Load}, cfg map[string]any,
 ) {
 	fmt.Println(cfg["services"].(map[string]any)["eventStoreUrl"])
@@ -67,8 +67,8 @@ func (e *EventStore) Publish(
 // Gateway
 
 func (g *Gateway) CreateCustomer(
-	_*struct{ handles.It }, _ CreateCustomer,
-	_*struct{ config.Load }, cfg AppConfig,
+	_*struct{handles.It}, _ CreateCustomer,
+	_*struct{config.Load}, cfg AppConfig,
 	ctx miruken.HandleContext,
 ) error {
 	fmt.Println(cfg.Services.CustomerUrl)
@@ -79,8 +79,8 @@ func (g *Gateway) CreateCustomer(
 // Repository
 
 func (r *Repository) LoadCustomer(
-	_*struct{ handles.It }, _ LoadCustomer,
-	_*struct{ config.Load `path:",flat"` }, cfg struct {
+	_*struct{handles.It}, _ LoadCustomer,
+	_*struct{config.Load `path:",flat"`}, cfg struct {
 		Databases []DatabaseConfig `path:"databases"`
 	},
 ) {
