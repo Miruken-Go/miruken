@@ -2,11 +2,17 @@ package jsonstd
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/json"
 )
 
 // Installer configure json support.
 type Installer struct {}
+
+func (i *Installer) DependsOn() []miruken.Feature {
+	return []miruken.Feature{
+		api.Feature()}
+}
 
 func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {

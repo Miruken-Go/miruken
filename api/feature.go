@@ -13,7 +13,8 @@ func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 			&Stash{},
 			&Scheduler{},
 			&PassThroughRouter{},
-			&batchRouter{}).
+			&batchRouter{},
+			&MultipartMapper{}).
 			Handlers(NewStash(true))
 	}
 	return nil

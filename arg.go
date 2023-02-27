@@ -41,7 +41,11 @@ func (c CallbackArg) resolve(
 	typ reflect.Type,
 	ctx HandleContext,
 ) (reflect.Value, *promise.Promise[reflect.Value], error) {
-	return reflect.ValueOf(ctx.Callback()), nil, nil
+	val := reflect.ValueOf(ctx.Callback())
+	if val.Type().AssignableTo(typ) {
+		return val, nil, nil
+	}
+	return reflect.Zero(typ), nil, nil
 }
 
 // sourceArg returns the callback source.
@@ -106,7 +110,7 @@ func (s *dependencySpec) setResolver(
 }
 
 func (s *dependencySpec) addConstraint(
-	constraint BindingConstraint,
+	constraint Constraint,
 ) error {
 	s.constraints = append(s.constraints, constraint)
 	return nil

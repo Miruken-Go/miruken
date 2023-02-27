@@ -158,17 +158,17 @@ func (i *Installer) BindingCreated(
 				if outputType.Kind() == reflect.Ptr {
 					outputType = outputType.Elem()
 				}
-				if schema, outputName, created := i.generateTypeSchema(outputType); created {
+				if schema, _, created := i.generateTypeSchema(outputType); created {
 					response := &openapi3.ResponseRef{
 						Value: openapi3.NewResponse().
 							WithDescription("Successful Response").
 							WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
 								WithPropertyRef("payload", schema))),
 					}
-					responseName = outputName+"Response"
+					responseName = inputName+"Response"
 					i.responses[responseName] = response
 				} else {
-					responseName = outputName+"Response"
+					responseName = inputName+"Response"
 				}
 			}
 			path := &openapi3.PathItem{
@@ -310,7 +310,14 @@ func (i *Installer) generateExampleJson(
 func (i *Installer) generateTypeSchema(
 	typ reflect.Type,
 ) (*openapi3.SchemaRef, string, bool) {
-	return i.generateComponentSchema(reflect.Zero(typ).Interface())
+	var component reflect.Value
+	switch typ.Kind() {
+	case reflect.Slice:
+		component = reflect.MakeSlice(typ, 0, 0)
+	default:
+		component = reflect.Zero(typ)
+	}
+	return i.generateComponentSchema(component.Interface())
 }
 
 func (i *Installer) generateComponentSchema(
@@ -325,7 +332,18 @@ func (i *Installer) generateComponentSchema(
 	}
 	name := typ.Name()
 	if len(name) == 0 {
-		return nil, "", false
+		if typ.Kind() == reflect.Slice {
+			elem := typ.Elem()
+			if elem.Kind() == reflect.Ptr {
+				elem = elem.Elem()
+			}
+			if name = elem.Name(); len(name) > 0 {
+				name = name + "Array"
+			}
+		}
+		if len(name) == 0 {
+			return nil, "", false
+		}
 	}
 	if schema, ok := i.components[typ]; !ok {
 		var err error

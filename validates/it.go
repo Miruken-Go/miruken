@@ -89,7 +89,7 @@ func (g *Group) InitWithTag(tag reflect.StructTag) error {
 	return nil
 }
 
-func (g *Group) Merge(constraint miruken.BindingConstraint) bool {
+func (g *Group) Merge(constraint miruken.Constraint) bool {
 	if group, ok := constraint.(*Group); ok {
 		for grp := range group.groups {
 			g.groups[grp] = miruken.Void{}
@@ -99,7 +99,7 @@ func (g *Group) Merge(constraint miruken.BindingConstraint) bool {
 	return false
 }
 
-func (g *Group) Satisfies(required miruken.BindingConstraint) bool {
+func (g *Group) Satisfies(required miruken.Constraint) bool {
 	rg, ok := required.(*Group)
 	if !ok {
 		return false
@@ -119,7 +119,7 @@ func (g *Group) Satisfies(required miruken.BindingConstraint) bool {
 }
 
 // Groups builds a validation Group constraint.
-func Groups(groups ...any) miruken.BindingConstraint {
+func Groups(groups ...any) miruken.Constraint {
 	if len(groups) == 0 {
 		panic("at least one group required")
 	}

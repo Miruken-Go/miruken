@@ -33,13 +33,13 @@ type (
 	// FormatRule describes how to interpret the format.
 	FormatRule uint8
 
-	// Format is a BindingConstraint for applying formatting.
+	// Format is a Constraint for applying formatting.
 	Format struct {
-		direction  Direction
-		rule       FormatRule
-		identifier string
-		pattern    *regexp.Regexp
-		params     map[string]string
+		name      string
+		direction Direction
+		rule      FormatRule
+		pattern   *regexp.Regexp
+		params    map[string]string
 	}
 
 	// Strict alias for mapping
@@ -95,8 +95,8 @@ func (m *It) String() string {
 
 // Format
 
-func (f *Format) Required() bool {
-	return true
+func (f *Format) Name() string {
+	return f.name
 }
 
 func (f *Format) Direction() Direction {
@@ -107,12 +107,12 @@ func (f *Format) Rule() FormatRule {
 	return f.rule
 }
 
-func (f *Format) Identifier() string {
-	return f.identifier
-}
-
 func (f *Format) Params() map[string]string {
 	return f.params
+}
+
+func (f *Format) Required() bool {
+	return true
 }
 
 func (f *Format) InitWithTag(tag reflect.StructTag) error {
@@ -126,7 +126,7 @@ func (f *Format) InitWithTag(tag reflect.StructTag) error {
 	return ErrInvalidFormat
 }
 
-func (f *Format) Merge(constraint miruken.BindingConstraint) bool {
+func (f *Format) Merge(constraint miruken.Constraint) bool {
 	if format, ok := constraint.(*Format); ok {
 		*f = *format
 		return true
@@ -134,7 +134,7 @@ func (f *Format) Merge(constraint miruken.BindingConstraint) bool {
 	return false
 }
 
-func (f *Format) Satisfies(required miruken.BindingConstraint) bool {
+func (f *Format) Satisfies(required miruken.Constraint) bool {
 	rf, ok := required.(*Format)
 	if !ok {
 		return false
@@ -146,34 +146,34 @@ func (f *Format) Satisfies(required miruken.BindingConstraint) bool {
 	case FormatRuleEquals:
 		switch f.rule {
 		case FormatRuleEquals:
-			return rf.identifier == f.identifier
+			return rf.name == f.name
 		case FormatRuleStartsWith:
-			return strings.HasPrefix(rf.identifier, f.identifier)
+			return strings.HasPrefix(rf.name, f.name)
 		case FormatRuleEndsWith:
-			return strings.HasSuffix(rf.identifier, f.identifier)
+			return strings.HasSuffix(rf.name, f.name)
 		case FormatRulePattern:
-			return f.pattern.MatchString(rf.identifier)
+			return f.pattern.MatchString(rf.name)
 		}
 	case FormatRuleStartsWith:
 		switch f.rule {
 		case FormatRuleEquals, FormatRuleStartsWith:
-			return strings.HasPrefix(rf.identifier, f.identifier)
+			return strings.HasPrefix(rf.name, f.name)
 		case FormatRulePattern:
-			return f.pattern.MatchString(rf.identifier)
+			return f.pattern.MatchString(rf.name)
 		}
 	case FormatRuleEndsWith:
 		switch f.rule {
 		case FormatRuleEquals:
-			return strings.HasSuffix(rf.identifier, f.identifier)
+			return strings.HasSuffix(rf.name, f.name)
 		case FormatRuleEndsWith:
-			return strings.HasSuffix(f.identifier, rf.identifier)
+			return strings.HasSuffix(f.name, rf.name)
 		case FormatRulePattern:
-			return f.pattern.MatchString(rf.identifier)
+			return f.pattern.MatchString(rf.name)
 		}
 	case FormatRulePattern:
 		switch f.rule {
 		case FormatRuleEquals, FormatRuleStartsWith, FormatRuleEndsWith:
-			return rf.pattern.MatchString(f.identifier)
+			return rf.pattern.MatchString(f.name)
 		}
 	}
 	return false
@@ -225,7 +225,7 @@ func (f *Format) parse(format string) error {
 	} else if endsWith {
 		f.rule = FormatRuleEndsWith
 	}
-	f.identifier = format
+	f.name = format
 	return nil
 }
 
@@ -316,7 +316,7 @@ func MapInto[T any](
 	source      any,
 	target      *T,
 	constraints ...any,
-) (tp *promise.Promise[T], err error) {
+) (vp *promise.Promise[promise.Void], err error) {
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
@@ -333,7 +333,7 @@ func MapInto[T any](
 	} else if !result.Handled() {
 		err = &miruken.NotHandledError{Callback: maps}
 	} else {
-		_, tp, err = miruken.CoerceResult[T](maps, target)
+		vp, err = miruken.CompleteResult(maps)
 	}
 	return
 }
@@ -409,5 +409,5 @@ func MapAll[T any](
 var (
 	mapsPolicy       miruken.Policy = &miruken.BivariantPolicy{}
 	ErrInvalidFormat                = errors.New("invalid format tag")
-	ErrEmptyFormatIdentifier = errors.New("empty format identifier")
+	ErrEmptyFormatIdentifier = errors.New("empty format name")
 )

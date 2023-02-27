@@ -114,7 +114,7 @@ type (
 		policies    []policyKey
 		flags       bindingFlags
 		filters     []FilterProvider
-		constraints []BindingConstraint
+		constraints []Constraint
 		metadata    []any
 		arg         arg
 		lt          reflect.Type
@@ -163,11 +163,11 @@ func (b *bindingSpec) addFilterProvider(
 }
 
 func (b *bindingSpec) addConstraint(
-	constraint BindingConstraint,
+	constraint Constraint,
 ) error {
 	for _, c := range b.constraints {
 		if merge, ok := c.(interface {
-			Merge(BindingConstraint) bool
+			Merge(Constraint) bool
 		}); ok && merge.Merge(constraint) {
 			return nil
 		}
@@ -436,12 +436,12 @@ func parseConstraints(
 	if ct := coerceToPtr(typ, constraintType); ct != nil {
 		bound = true
 		if b, ok := binding.(interface {
-			addConstraint(BindingConstraint) error
+			addConstraint(Constraint) error
 		}); ok {
 			if constraint, invalid := newWithTag(ct, field.Tag); invalid != nil {
 				err = fmt.Errorf(
 					"parseConstraints: new key at index %v failed: %w", index, invalid)
-			} else if invalid := b.addConstraint(constraint.(BindingConstraint)); invalid != nil {
+			} else if invalid := b.addConstraint(constraint.(Constraint)); invalid != nil {
 				err = fmt.Errorf(
 					"parseConstraints: key %v at index %v failed: %w", constraint, index, invalid)
 			}
@@ -527,5 +527,5 @@ var (
 	bindingGroupType    = TypeOf[BindingGroup]()
 	definesBindingGroup = TypeOf[interface{ DefinesBindingGroup() }]()
 	filterType          = TypeOf[Filter]()
-	constraintType      = TypeOf[BindingConstraint]()
+	constraintType      = TypeOf[Constraint]()
 )

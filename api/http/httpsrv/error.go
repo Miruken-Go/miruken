@@ -17,11 +17,8 @@ func (s *StatusCodeMapper) NotHandled(
 	_*struct{
 		maps.It
 		maps.Format `to:"http:status-code"`
-	  }, nhe *miruken.NotHandledError,
+	  }, _ *miruken.NotHandledError,
 ) int {
-	if _, ok := nhe.Callback.(*maps.It); ok {
-		return http.StatusUnsupportedMediaType
-	}
 	return http.StatusNotFound
 }
 

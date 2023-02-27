@@ -88,8 +88,7 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 		if len(byt) > 1 && byt[1] != '}' {
 			comma = ","
 		}
-		typeProperty := []byte(fmt.Sprintf("\"%v\":\"%v\"%s",
-			typeInfo.TypeField, typeInfo.TypeValue, comma))
+		typeProperty := []byte(fmt.Sprintf("%q:%q%s", typeInfo.TypeField, typeInfo.TypeValue, comma))
 		byt = append(byt, typeProperty...)
 		copy(byt[len(typeProperty)+1:], byt[1:])
 		copy(byt[1:], typeProperty)
@@ -171,7 +170,7 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(*typeIdRaw, &typeId); err != nil {
 		return err
 	} else if len(typeId) == 0 {
-		return fmt.Errorf("empty type id for field \"%s\"", field)
+		return fmt.Errorf("empty type id for field %q", field)
 	} else {
 		if v, _, err := miruken.CreateKey[any](c.composer, typeId); err != nil {
 			return &api.UnknownTypeIdError{TypeId: typeId, Reason: err}

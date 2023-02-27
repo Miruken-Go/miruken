@@ -499,7 +499,7 @@ func (t *Transactional) InitWithTag(tag reflect.StructTag) error {
 		case "requiresNew":
 			t.mode = TransactionalRequiresNew
 		default:
-			return fmt.Errorf("unrecognized transactional mode '%s'", mode)
+			return fmt.Errorf("unrecognized transactional mode %q", mode)
 		}
 	}
 	return nil
@@ -889,7 +889,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 				if r := recover(); r != nil {
 					if err, ok := r.(*miruken.HandlerDescriptorError); ok {
 						suite.Equal(
-							"1 error occurred:\n\t* unrecognized transactional mode 'suppress'\n\n",
+							"1 error occurred:\n\t* unrecognized transactional mode \"suppress\"\n\n",
 							err.Reason.Error())
 						return
 					}

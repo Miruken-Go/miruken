@@ -1,6 +1,7 @@
 package jsonstd
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/Rican7/conjson"
 	"github.com/Rican7/conjson/transform"
@@ -12,9 +13,6 @@ import (
 )
 
 type (
-	// Mapper formats to and from json using encoding/json.
-	Mapper struct{}
-
 	// Options provide options for controlling json encoding.
 	Options struct {
 		Prefix       string
@@ -22,9 +20,12 @@ type (
 		EscapeHTML   miruken.Option[bool]
 		Transformers []transform.Transformer
 	}
+
+	// Mapper formats to and from json using encoding/json.
+	Mapper struct{}
 )
 
-func (m *Mapper) ToJson(
+func (m *Mapper) ToBytes(
 	_*struct{
 		maps.Format `to:"application/json"`
 	  }, maps *maps.It,
@@ -37,8 +38,121 @@ func (m *Mapper) ToJson(
 		args.FromOptions
 	  }, apiOptions api.Options,
 	ctx miruken.HandleContext,
-) (js string, err error) {
-	var data []byte
+) (byt []byte, err error) {
+	return marshal(maps, &options, &apiOptions, ctx)
+}
+
+func (m *Mapper) ToString(
+	_*struct{
+		maps.Format `to:"application/json"`
+	  }, maps *maps.It,
+	_*struct{
+		args.Optional
+		args.FromOptions
+	  }, options Options,
+	_*struct{
+		args.Optional
+		args.FromOptions
+	  }, apiOptions api.Options,
+	ctx miruken.HandleContext,
+) (string, error) {
+	if byt, err := marshal(maps, &options, &apiOptions, ctx); err == nil {
+		return string(byt), nil
+	} else {
+		return "", err
+	}
+}
+
+func (m *Mapper) ToWriter(
+	_*struct{
+		maps.Format `to:"application/json"`
+	  }, maps *maps.It,
+	_*struct{
+		args.Optional
+		args.FromOptions
+	  }, options Options,
+	_*struct{
+		args.Optional
+		args.FromOptions
+	  }, apiOptions api.Options,
+	ctx miruken.HandleContext,
+) (io.Writer, error) {
+	var writer io.Writer
+	if w := maps.Target().(*io.Writer); miruken.IsNil(*w) {
+		var b bytes.Buffer
+		w := io.Writer(&b)
+		writer = w
+	} else {
+		writer = *w
+	}
+	if err := encode(maps, writer, &options, &apiOptions, ctx); err == nil {
+		return writer, nil
+	} else {
+		return nil, err
+	}
+}
+
+func (m *Mapper) FromBytes(
+	_*struct{
+		maps.Format `from:"application/json"`
+	  }, byt []byte,
+	_*struct{
+		args.Optional
+		args.FromOptions
+	  }, options Options,
+	_*struct{
+		args.Optional
+		args.FromOptions
+	  }, apiOptions api.Options,
+	maps *maps.It,
+	ctx  miruken.HandleContext,
+) (any, error) {
+	return unmarshal(maps, byt, &options, &apiOptions, ctx)
+}
+
+func (m *Mapper) FromString(
+	_*struct{
+		maps.Format `from:"application/json"`
+	  }, json string,
+	_*struct{
+		args.Optional
+		args.FromOptions
+	  }, options Options,
+	_*struct{
+		args.Optional
+		args.FromOptions
+	  }, apiOptions api.Options,
+	maps *maps.It,
+	ctx  miruken.HandleContext,
+) (any, error) {
+	return unmarshal(maps, []byte(json), &options, &apiOptions, ctx)
+}
+
+func (m *Mapper) FromReader(
+	_*struct{
+		maps.Format `from:"application/json"`
+	  }, reader io.Reader,
+	_*struct{
+		args.Optional
+		args.FromOptions
+	  }, options Options,
+	_*struct{
+		args.Optional
+		args.FromOptions
+	  }, apiOptions api.Options,
+	maps *maps.It,
+	ctx  miruken.HandleContext,
+) (any, error) {
+	return decode(maps, reader, &options, &apiOptions, ctx)
+}
+
+
+func marshal(
+	maps       *maps.It,
+	options    *Options,
+	apiOptions *api.Options,
+	ctx        miruken.HandleContext,
+) (byt []byte, err error) {
 	src := maps.Source()
 	if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
 		src = &typeContainer{
@@ -51,114 +165,87 @@ func (m *Mapper) ToJson(
 		src = &transformer{src, trans}
 	}
 	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
-		data, err = json.MarshalIndent(src, prefix, indent)
+		byt, err = json.MarshalIndent(src, prefix, indent)
 	} else {
-		data, err = json.Marshal(src)
+		byt, err = json.Marshal(src)
 	}
-	return string(data), err
+	return
 }
 
-func (m *Mapper) ToJsonStream(
-	_*struct{
-		maps.Format `to:"application/json"`
-	  }, maps *maps.It,
-	_*struct{
-		args.Optional
-		args.FromOptions
-	  }, options Options,
-	_*struct{
-		args.Optional
-		args.FromOptions
-	  }, apiOptions api.Options,
-	ctx miruken.HandleContext,
-) (stream io.Writer, err error) {
-	if writer, ok := maps.Target().(*io.Writer); ok && !miruken.IsNil(writer) {
-		enc := json.NewEncoder(*writer)
-		if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
-			enc.SetIndent(prefix, indent)
-		}
-		if escapeHTML := options.EscapeHTML; escapeHTML.Set() {
-			enc.SetEscapeHTML(escapeHTML.Value())
-		}
-		src := maps.Source()
-		if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
-			src = &typeContainer{
-				v:        src,
-				typInfo:  apiOptions.TypeInfoFormat,
-				trans:    options.Transformers,
-				composer: ctx.Composer()}
-		} else if trans := options.Transformers; len(trans) > 0 {
-			src = &transformer{src, trans}
-		}
-		err    = enc.Encode(src)
-		stream = *writer
-	}
-	return stream, err
-}
-
-func (m *Mapper) FromJson(
-	_*struct{
-		maps.Format `from:"application/json"`
-	  }, jsonString string,
-	_*struct{
-		args.Optional
-		args.FromOptions
-	  }, options Options,
-	_*struct{
-		args.Optional
-		args.FromOptions
-	  }, apiOptions api.Options,
-	maps *maps.It,
-	ctx  miruken.HandleContext,
-) (any, error) {
-	target := maps.Target()
+func unmarshal(
+	maps       *maps.It,
+	byt        []byte,
+	options    *Options,
+	apiOptions *api.Options,
+	ctx        miruken.HandleContext,
+) (target any, err error) {
+	target = maps.Target()
 	if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
 		tc := typeContainer{
 			v:        target,
 			trans:    options.Transformers,
 			composer: ctx.Composer(),
 		}
-		err := json.Unmarshal([]byte(jsonString), &tc)
-		return target, err
+		err = json.Unmarshal(byt, &tc)
+		return
 	} else if trans := options.Transformers; len(trans) > 0 {
 		t := transformer{target, trans}
 		target = &t
 	}
-	err := json.Unmarshal([]byte(jsonString), target)
-	return target, err
+	err = json.Unmarshal(byt, target)
+	return
 }
 
-func (m *Mapper) FromJsonStream(
-	_*struct{
-		maps.Format `from:"application/json"`
-	  }, stream io.Reader,
-	_*struct{
-		args.Optional
-		args.FromOptions
-	  }, options Options,
-	_*struct{
-		args.Optional
-		args.FromOptions
-	  }, apiOptions api.Options,
-	maps *maps.It,
-	ctx  miruken.HandleContext,
-) (any, error) {
-	target := maps.Target()
-	dec    := json.NewDecoder(stream)
+func encode(
+	maps       *maps.It,
+	writer     io.Writer,
+	options    *Options,
+	apiOptions *api.Options,
+	ctx        miruken.HandleContext,
+) error {
+	enc := json.NewEncoder(writer)
+	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
+		enc.SetIndent(prefix, indent)
+	}
+	if escapeHTML := options.EscapeHTML; escapeHTML.Set() {
+		enc.SetEscapeHTML(escapeHTML.Value())
+	}
+	src := maps.Source()
+	if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
+		src = &typeContainer{
+			v:        src,
+			typInfo:  apiOptions.TypeInfoFormat,
+			trans:    options.Transformers,
+			composer: ctx.Composer()}
+	} else if trans := options.Transformers; len(trans) > 0 {
+		src = &transformer{src, trans}
+	}
+	return enc.Encode(src)
+}
+
+func decode(
+	maps       *maps.It,
+	reader     io.Reader,
+	options    *Options,
+	apiOptions *api.Options,
+	ctx        miruken.HandleContext,
+) (target any, err error) {
+	target = maps.Target()
+	dec := json.NewDecoder(reader)
 	if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
 		tc := typeContainer{
 			v:        target,
 			trans:    options.Transformers,
 			composer: ctx.Composer(),
 		}
-		err := dec.Decode(&tc)
-		return target, err
+		err = dec.Decode(&tc)
+		return
 	} else if trans := options.Transformers; len(trans) > 0 {
 		t := transformer{target, trans}
 		target = &t
 	}
-	err := dec.Decode(target)
-	return target, err
+	err = dec.Decode(target)
+	return
 }
 
 

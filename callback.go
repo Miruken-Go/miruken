@@ -10,7 +10,7 @@ import (
 type (
 	// Callback represents any intention.
 	Callback interface {
-		BindingConstraintSource
+		ConstraintSource
 		Key() any
 		Source() any
 		Policy() Policy
@@ -50,12 +50,12 @@ type (
 		promises      []*promise.Promise[any]
 		accept        AcceptResultFunc
 		acceptPromise AcceptPromiseResultFunc
-		constraints   []BindingConstraint
+		constraints   []Constraint
 	}
 
 	// CallbackBuilder builds common CallbackBase.
  	CallbackBuilder struct {
-		constraints []BindingConstraint
+		constraints []Constraint
 	}
 
 	// customizeDispatch customizes Callback dispatch.
@@ -181,7 +181,7 @@ func (c *CallbackBase) ReceiveResult(
 	}
 }
 
-func (c *CallbackBase) Constraints() []BindingConstraint {
+func (c *CallbackBase) Constraints() []Constraint {
 	return c.constraints
 }
 
@@ -196,12 +196,12 @@ func (b *CallbackBuilder) WithConstraints(
 		case string:
 			n := Named(c)
 			b.constraints = append(b.constraints, &n)
-		case BindingConstraint:
+		case Constraint:
 			b.constraints = append(b.constraints, c)
 		case map[any]any:
 			var m Metadata = c
 			b.constraints = append(b.constraints, &m)
-		case BindingConstraintSource:
+		case ConstraintSource:
 			b.constraints = append(b.constraints, c.Constraints()...)
 		default:
 			panic(fmt.Sprintf("unrecognized constraint: %T", constraint))

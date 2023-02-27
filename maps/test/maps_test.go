@@ -134,7 +134,7 @@ func (m *FormatMapper) ToPlayerJson(
 		maps.Format `to:"application/json"`
 	  }, data *PlayerData,
 ) string {
-	return fmt.Sprintf("{\"id\":%v,\"name\":\"%v\"}", data.Id, data.Name)
+	return fmt.Sprintf("{\"id\":%v,\"name\":%q}", data.Id, data.Name)
 }
 
 func (m *FormatMapper) FromPlayerJson(

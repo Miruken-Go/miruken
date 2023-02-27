@@ -10,15 +10,15 @@ import (
 )
 
 type (
-	// BindingConstraint manages BindingMetadata assertions.
-	BindingConstraint interface {
+	// Constraint manages BindingMetadata assertions.
+	Constraint interface {
 		Required() bool
-		Satisfies(required BindingConstraint) bool
+		Satisfies(required Constraint) bool
 	}
 
-	// BindingConstraintSource returns one or more BindingConstraint.
-	BindingConstraintSource interface {
-		Constraints() []BindingConstraint
+	// ConstraintSource returns one or more Constraint.
+	ConstraintSource interface {
+		Constraints() []Constraint
 	}
 )
 
@@ -39,10 +39,10 @@ func (n *Named) InitWithTag(tag reflect.StructTag) error {
 		*n = Named(name)
 		return nil
 	}
-	return ErrNameMissing
+	return ErrConstraintNameMissing
 }
 
-func (n *Named) Satisfies(required BindingConstraint) bool {
+func (n *Named) Satisfies(required Constraint) bool {
 	rn, ok := required.(*Named)
 	return ok && *n == *rn
 }
@@ -88,7 +88,7 @@ func (m *Metadata) InitWithTag(
 	return err
 }
 
-func (m *Metadata) Satisfies(required BindingConstraint) bool {
+func (m *Metadata) Satisfies(required Constraint) bool {
 	rm, ok := required.(metadataOwner)
 	return ok && reflect.DeepEqual(rm.metadata(), m.metadata())
 }
@@ -111,7 +111,7 @@ func (q Qualifier[T]) Required() bool {
 	return false
 }
 
-func (q Qualifier[T]) Satisfies(required BindingConstraint) bool {
+func (q Qualifier[T]) Satisfies(required Constraint) bool {
 	_, ok := required.(qualifierOwner[T])
 	return ok
 }
@@ -132,7 +132,7 @@ func (c *constraintFilter) Next(
 	ctx      HandleContext,
 	provider FilterProvider,
 )  ([]any, *promise.Promise[[]any], error) {
-	if cp, ok := provider.(BindingConstraintSource); ok {
+	if cp, ok := provider.(ConstraintSource); ok {
 		constraints := cp.Constraints()
 		required    := ctx.Callback().Constraints()
 		if len(required) == 0 {
@@ -144,14 +144,14 @@ func (c *constraintFilter) Next(
 		} else if len(constraints) == 0 {
 			return next.Abort()
 		} else {
-			var matched map[BindingConstraint]struct{}
+			var matched map[Constraint]struct{}
 			Loop:
 			for _, rc := range required {
 				for _, c := range constraints {
 					if c.Satisfies(rc) {
 						if c.Required() {
 							if matched == nil {
-								matched = make(map[BindingConstraint]struct{})
+								matched = make(map[Constraint]struct{})
 							}
 							matched[c] = struct{}{}
 						}
@@ -176,10 +176,10 @@ var _constraintFilter = []Filter{&constraintFilter{}}
 
 // ConstraintProvider is a FilterProvider for constraints.
 type ConstraintProvider struct {
-	constraints []BindingConstraint
+	constraints []Constraint
 }
 
-func (c *ConstraintProvider) Constraints() []BindingConstraint {
+func (c *ConstraintProvider) Constraints() []Constraint {
 	return c.constraints
 }
 
@@ -195,4 +195,4 @@ func (c *ConstraintProvider) Filters(
 	return _constraintFilter, nil
 }
 
-var ErrNameMissing = errors.New("the Named constraint requires a non-empty `name:[name]` tag")
+var ErrConstraintNameMissing = errors.New("the Named constraint requires a non-empty `name:[name]` tag")
