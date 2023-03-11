@@ -13,6 +13,7 @@ func (m *SurrogateMapper) New(
 		o creates.It `key:"json.OutcomeSurrogate"`
 		e creates.It `key:"json.ErrorSurrogate"`
 		c creates.It `key:"json.ConcurrentSurrogate"`
+	    s creates.It `key:"json.SequentialSurrogate"`
 	  }, create *creates.It,
 ) any {
 	switch create.Key() {
@@ -22,6 +23,8 @@ func (m *SurrogateMapper) New(
 		return new(ErrorSurrogate)
 	case "json.ConcurrentSurrogate":
 		return new(ConcurrentSurrogate)
+	case "json.SequentialSurrogate":
+		return new(SequentialSurrogate)
 	}
 	return nil
 }

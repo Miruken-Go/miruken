@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/maps"
 	"io"
 	"mime"
 	"strings"
@@ -26,20 +25,18 @@ type (
 		ContentType() string
 		Metadata() map[string][]string
 		Boundary() string
-		Keys() []string
-		MainKey() string
-		Part(key string) Part
+		Parts() map[string]Part
+		MainPart() Part
 	}
 
 	// PartBuilder builds a message Part.
 	PartBuilder struct {
-		part partEntry
+		part partDetail
 	}
 
 	// ReadPartsBuilder builds a PartContainer for reading Part's.
 	ReadPartsBuilder struct {
 		container partContainer
-		firstKey  string
 	}
 
 	// WritePartsBuilder builds a PartContainer for writing Part's.
@@ -47,7 +44,7 @@ type (
 		ReadPartsBuilder
 	}
 
-	partEntry struct {
+	partDetail struct {
 		contentType string
 		metadata    map[string][]string
 		filename    string
@@ -59,7 +56,7 @@ type (
 		boundary    string
 		metadata    map[string][]string
 		parts       map[string]Part
-		main        string
+		main        Part
 	}
 )
 
@@ -112,16 +109,38 @@ func (b *PartBuilder) Content(
 }
 
 func (b *PartBuilder) Build() Part {
-	return b.part
+	part := b.part
+	if part.metadata == nil {
+		part.metadata = make(map[string][]string)
+	}
+	return part
 }
 
 
 // ReadPartsBuilder
 
-func (b *ReadPartsBuilder) MainKey(
-	key string,
+func (b *ReadPartsBuilder) Metadata(
+	metadata map[string][]string,
 ) *ReadPartsBuilder {
-	b.container.main = key
+	for key, val := range metadata {
+		m := b.container.metadata
+		if m == nil {
+			m = make(map[string][]string)
+			b.container.metadata = m
+		}
+		if v, ok := m[key]; ok {
+			m[key] = append(v, val...)
+		} else {
+			m[key] = val
+		}
+	}
+	return b
+}
+
+func (b *ReadPartsBuilder) MainPart(
+	main Part,
+) *ReadPartsBuilder {
+	b.container.main = main
 	return b
 }
 
@@ -143,17 +162,18 @@ func (b *ReadPartsBuilder) AddPart(
 		panic(fmt.Sprintf("part with key %q already added", key))
 	}
 	parts[key] = part
-	if len(b.firstKey) == 0 {
-		b.firstKey = key
-	}
 	return b
 }
 
 func (b *ReadPartsBuilder) Build() PartContainer {
-	if len(b.container.main) == 0 {
-		b.container.main = b.firstKey
+	ctr := b.container
+	if ctr.parts == nil {
+		ctr.parts = make(map[string]Part)
 	}
-	return b.container
+	if ctr.metadata == nil {
+		ctr.metadata = make(map[string][]string)
+	}
+	return ctr
 }
 
 
@@ -180,8 +200,11 @@ func (b *WritePartsBuilder) Boundary(
 
 func (b *WritePartsBuilder) Build() PartContainer {
 	ctr := &b.container
-	if len(ctr.main) == 0 {
-		ctr.main = b.firstKey
+	if ctr.parts == nil {
+		ctr.parts = make(map[string]Part)
+	}
+	if ctr.metadata == nil {
+		ctr.metadata = make(map[string][]string)
 	}
 	if boundary := ctr.boundary; len(boundary) == 0 {
 		ctr.boundary = randomBoundary()
@@ -200,21 +223,21 @@ func (b *WritePartsBuilder) Build() PartContainer {
 }
 
 
-// partEntry
+// partDetail
 
-func (p partEntry) ContentType() string {
+func (p partDetail) ContentType() string {
 	return p.contentType
 }
 
-func (p partEntry) Metadata() map[string][]string {
+func (p partDetail) Metadata() map[string][]string {
 	return p.metadata
 }
 
-func (p partEntry) Filename() string {
+func (p partDetail) Filename() string {
 	return p.filename
 }
 
-func (p partEntry) Content() any {
+func (p partDetail) Content() any {
 	return p.content
 }
 
@@ -233,21 +256,12 @@ func (c partContainer) Metadata() map[string][]string {
 	return c.metadata
 }
 
-func (c partContainer) Keys() []string {
-	return maps.Keys(c.parts)
+func (c partContainer) Parts() map[string]Part {
+	return c.parts
 }
 
-func (c partContainer) MainKey() string {
+func (c partContainer) MainPart() Part {
 	return c.main
-}
-
-func (c partContainer) Part(key string) Part {
-	if parts := c.parts; parts != nil {
-		if p, ok := parts[key]; ok {
-			return p
-		}
-	}
-	return nil
 }
 
 

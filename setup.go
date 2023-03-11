@@ -217,8 +217,8 @@ func (s *SetupBuilder) installGraph(
 	return err
 }
 
-// GroupFeatures combines one or more Feature's into a single Feature.
-func GroupFeatures(features ...Feature) FeatureFunc {
+// FeatureSet combines one or more Feature's into a single Feature.
+func FeatureSet(features ...Feature) FeatureFunc {
 	return func(setup *SetupBuilder) error {
 		for _, feature := range features {
 			if !IsNil(feature) {

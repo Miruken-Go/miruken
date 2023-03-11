@@ -2,14 +2,12 @@ package httpsrv
 
 import (
 	"errors"
-	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/provides"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"strings"
 )
@@ -23,7 +21,7 @@ func (c *ApiController) ServeHTTP(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	accepted, contentType, from, boundary, publish := c.acceptRequest(w, r)
+	accepted, contentType, from, publish := c.acceptRequest(w, r)
 	if !accepted {
 		return
 	}
@@ -33,41 +31,31 @@ func (c *ApiController) ServeHTTP(
 	defer child.Dispose()
 	handler := miruken.BuildUp(child, api.Polymorphic)
 
-	var payload any
-	var body any = r.Body
-
-	if len(boundary) > 0 {
-		mr := multipart.NewReader(r.Body, boundary)
-		if pc, _, err := maps.Map[api.PartContainer](handler, mr, from); err != nil {
-			c.encodeError(err, true, contentType, to, w, handler)
-			return
-		} else if mainKey := pc.MainKey(); len(mainKey) > 0 {
-			if main := pc.Part(mainKey); main != nil {
-				contentType = main.ContentType()
-				if len(contentType) == 0 {
-					http.Error(w, fmt.Sprintf("400 missing %q part 'Content-Type' header", mainKey), http.StatusBadRequest)
-					return
-				}
-				from    = maps.From(contentType, nil)
-				to      = maps.To(contentType, nil)
-				body    = main.Content()
-				handler = miruken.BuildUp(handler, provides.With(pc))
-			} else {
-				http.Error(w, fmt.Sprintf("400 missing %q part", mainKey), http.StatusBadRequest)
-				return
-			}
-		} else {
-			http.Error(w, "400 unknown main part", http.StatusBadRequest)
-			return
-		}
-	}
-
-	if msg, _, err := maps.Map[api.Message](handler, body, from); err != nil {
+	msg, _, err := maps.Map[api.Message](handler, r.Body, from)
+	if err != nil {
 		c.encodeError(err, true, contentType, to, w, handler)
 		return
-	} else if payload = msg.Payload; payload == nil {
-		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	payload := msg.Payload
+	if payload == nil {
+		http.Error(w, "400 missing payload", http.StatusBadRequest)
 		return
+	}
+
+	if pc, ok := payload.(api.PartContainer); ok {
+		if main := pc.MainPart(); main != nil {
+			if payload = main.Content(); miruken.IsNil(payload) {
+				http.Error(w, "400 empty main part", http.StatusBadRequest)
+				return
+			}
+			contentType = main.ContentType()
+			to          = maps.To(contentType, nil)
+			handler     = miruken.BuildUp(handler, provides.With(pc))
+		} else {
+			http.Error(w, "400 missing main part", http.StatusBadRequest)
+			return
+		}
 	}
 
 	if publish {
@@ -97,7 +85,7 @@ func (c *ApiController) ServeHTTP(
 func (c *ApiController) acceptRequest(
 	w http.ResponseWriter,
 	r *http.Request,
-) (accepted bool, contentType string, format *maps.Format, boundary string, publish bool) {
+) (accepted bool, contentType string, format *maps.Format, publish bool) {
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
 		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
@@ -112,14 +100,6 @@ func (c *ApiController) acceptRequest(
 	if err != nil {
 		http.Error(w, "415 invalid 'Content-Type' header", http.StatusUnsupportedMediaType)
 		return
-	}
-	if strings.HasPrefix(format.Name(), "multipart/") {
-		if b, ok := format.Params()["boundary"]; !ok {
-			http.Error(w, http.ErrMissingBoundary.Error(), http.StatusUnsupportedMediaType)
-			return
-		} else {
-			boundary = b
-		}
 	}
 	path := r.RequestURI
 	if path == "/process" || strings.HasPrefix(path, "/process/") {

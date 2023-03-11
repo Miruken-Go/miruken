@@ -416,6 +416,8 @@ func Feature(config ...func(installer *Installer)) *Installer {
 			},
 		},
 		surrogates: map[reflect.Type]any{
+			miruken.TypeOf[api.ConcurrentBatch](): json2.ConcurrentSurrogate{},
+			miruken.TypeOf[api.SequentialBatch](): json2.SequentialSurrogate{},
 			miruken.TypeOf[api.ScheduledResult](): jsonstd.ScheduledResultSurrogate{
 				jsonstd.EitherSurrogate[error, any]{
 					Left:  false,

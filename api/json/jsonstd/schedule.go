@@ -34,26 +34,26 @@ func (m *SurrogateMapper) ReplaceScheduledResult(
 		maps.Format `to:"application/json"`
 	  }, result api.ScheduledResult,
 	ctx miruken.HandleContext,
-) (string, error) {
+) ([]byte, error) {
 	sur := make(ScheduledResultSurrogate, len(result.Responses))
 	for i, resp := range result.Responses {
 		err := either.Fold(resp, func(e error) error {
-			ej, _, err := maps.Map[string](ctx.Composer(), e, api.ToJson)
+			byt, _, err := maps.Map[[]byte](ctx.Composer(), e, api.ToJson)
 			if err == nil {
-				sur[i] = EitherSurrogate[error, any]{true, []byte(ej)}
+				sur[i] = EitherSurrogate[error, any]{true, byt}
 			}
 			return err
 		}, func(val any) error {
-			vj, _, err := maps.Map[string](ctx.Composer(), val, api.ToJson)
+			byt, _, err := maps.Map[[]byte](ctx.Composer(), val, api.ToJson)
 			if err == nil {
-				sur[i] = EitherSurrogate[error, any]{false, []byte(vj)}
+				sur[i] = EitherSurrogate[error, any]{false, byt}
 			}
 			return err
 		})
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 	}
-	js, _, err := maps.Map[string](ctx.Composer(), sur, api.ToJson)
+	js, _, err := maps.Map[[]byte](ctx.Composer(), sur, api.ToJson)
 	return js, err
 }
