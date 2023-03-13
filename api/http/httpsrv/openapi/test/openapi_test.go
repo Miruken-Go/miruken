@@ -123,7 +123,7 @@ func (suite *OpenApiTestSuite) TearDownTest() {
 
 func (suite *OpenApiTestSuite) TestOpenApi() {
 	suite.Run("Generates OpenApi", func() {
-		api := openapi3.T{
+		docs := openapi3.T{
 			OpenAPI: "3.0.0",
 			Info: &openapi3.Info{
 				Title:       "Team Api",
@@ -144,7 +144,7 @@ func (suite *OpenApiTestSuite) TestOpenApi() {
 				},
 			},
 		}
-		suite.openapi.Merge(&api)
+		suite.openapi.Merge(&docs)
 	})
 }
 

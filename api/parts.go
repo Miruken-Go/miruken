@@ -24,7 +24,6 @@ type (
 	PartContainer interface {
 		ContentType() string
 		Metadata() map[string][]string
-		Boundary() string
 		Parts() map[string]Part
 		MainPart() Part
 	}
@@ -67,7 +66,7 @@ func (b *PartBuilder) ContentType(
 	contentType string,
 ) *PartBuilder {
 	if _, _, err := mime.ParseMediaType(contentType); err != nil {
-		panic(fmt.Sprintf("invalid content type: %q", contentType))
+		panic(fmt.Errorf("invalid content type %q (%w)", contentType, err))
 	}
 	b.part.contentType = contentType
 	return b
@@ -183,18 +182,11 @@ func (b *WritePartsBuilder) ContentType(
 	contentType string,
 ) *WritePartsBuilder {
 	if _, params, err := mime.ParseMediaType(contentType); err != nil {
-		panic(fmt.Sprintf("invalid content type: %q", contentType))
+		panic(fmt.Errorf("invalid content type %q: %w", contentType, err))
 	} else {
 		b.container.contentType = contentType
 		b.container.boundary    = params["boundary"]
 	}
-	return b
-}
-
-func (b *WritePartsBuilder) Boundary(
-	boundary string,
-) *WritePartsBuilder {
-	b.container.boundary = boundary
 	return b
 }
 
@@ -206,18 +198,13 @@ func (b *WritePartsBuilder) Build() PartContainer {
 	if ctr.metadata == nil {
 		ctr.metadata = make(map[string][]string)
 	}
-	if boundary := ctr.boundary; len(boundary) == 0 {
-		ctr.boundary = randomBoundary()
-	} else if strings.ContainsAny(boundary, `()<>@,;:\"/[]?= `) {
-		ctr.boundary = `"` + boundary + `"`
-	}
 	if len(ctr.contentType) == 0 {
 		ctr.contentType = "multipart/form-data"
 	} else if !strings.HasPrefix(ctr.contentType, "multipart/") {
 		ctr.contentType = "multipart/" + ctr.contentType
 	}
-	if !strings.Contains(ctr.contentType, "boundary") {
-		ctr.contentType = ctr.contentType + "; boundary=" + ctr.boundary
+	if len(ctr.boundary) == 0 {
+		ctr.contentType = ctr.contentType + "; boundary=" + randomBoundary()
 	}
 	return ctr
 }
@@ -246,10 +233,6 @@ func (p partDetail) Content() any {
 
 func (c partContainer) ContentType() string {
 	return c.contentType
-}
-
-func (c partContainer) Boundary() string {
-	return c.boundary
 }
 
 func (c partContainer) Metadata() map[string][]string {

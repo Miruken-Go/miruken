@@ -68,14 +68,13 @@ func (m *MultipartMapper) Read(
 			}
 		}
 
-		reader := bytes.NewReader(content)
-
 		if addPart {
 			if key != "" {
+				reader := bytes.NewReader(content)
 				mb.AddPart(key, pb.Content(reader).Build())
 			}
-		} else {
-			late, _, err := maps.Map[miruken.Late](composer, reader, maps.From(ct, nil))
+		} else if len(content) > 0 {
+			late, _, err := maps.Map[miruken.Late](composer, content, maps.From(ct, nil))
 			if err != nil {
 				return msg, err
 			}
@@ -89,6 +88,9 @@ func (m *MultipartMapper) Read(
 				main = pb.Content(payload).Build()
 				mb.MainPart(main)
 			}
+		} else {
+			main = pb.Build()
+			mb.MainPart(main)
 		}
 	}
 	msg.Payload = mb.Build()

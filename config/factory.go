@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/constraints"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/slices"
 	"reflect"
@@ -59,8 +60,13 @@ func (f *Factory) NewConfiguration(
 		} else {
 			out = reflect.New(typ).Interface()
 		}
-		load := loadPreference(p)
-		if err := f.provider.Unmarshal(load.Path, load.Flat, out); err != nil {
+		var path string
+		var flat bool
+		if load, ok := constraints.First[*Load](p); ok {
+			path = load.Path
+			flat = load.Flat
+		}
+		if err := f.provider.Unmarshal(path, flat, out); err != nil {
 			return nil, fmt.Errorf("config: %w", err)
 		}
 		if !ptr {
@@ -71,11 +77,3 @@ func (f *Factory) NewConfiguration(
 	return nil, nil
 }
 
-func loadPreference(p *provides.It) *Load {
-	for _, c := range p.Constraints() {
-		if l, ok := c.(*Load); ok {
-			return l
-		}
-	}
-	return &Load{}
-}

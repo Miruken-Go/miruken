@@ -21,6 +21,8 @@ func (c *ApiController) ServeHTTP(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
+	defer handlePanic(w)
+
 	accepted, contentType, from, publish := c.acceptRequest(w, r)
 	if !accepted {
 		return
@@ -154,6 +156,19 @@ func (c *ApiController) encodeError(
 	out := io.Writer(w)
 	msg := api.Message{Payload: err}
 	_, _ = maps.MapInto(handler, msg, &out, format)
+}
+
+func handlePanic(w http.ResponseWriter) {
+	if r := recover(); r != nil {
+		switch t := r.(type) {
+		case string:
+			http.Error(w, t, http.StatusInternalServerError)
+		case error:
+			http.Error(w, t.Error(), http.StatusInternalServerError)
+		default:
+			http.Error(w, "unknown error", http.StatusInternalServerError)
+		}
+	}
 }
 
 // Api creates a new ApiController to serve http routed messages.

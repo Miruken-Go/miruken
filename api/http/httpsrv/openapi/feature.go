@@ -41,14 +41,14 @@ type (
 )
 
 
-func (i *Installer) Merge(api *openapi3.T)  {
-	if api == nil {
-		panic("api cannot be nil")
+func (i *Installer) Merge(docs *openapi3.T)  {
+	if docs == nil {
+		panic("docs cannot be nil")
 	}
-	components := api.Components
+	components := docs.Components
 	if components == nil {
 		components = new(openapi3.Components)
-		api.Components = components
+		docs.Components = components
 	}
 	if schemas := i.schemas; len(schemas) > 0 {
 		if components.Schemas == nil {
@@ -87,14 +87,14 @@ func (i *Installer) Merge(api *openapi3.T)  {
 		}
 	}
 	if paths := i.paths; len(paths) > 0 {
-		if api.Paths == nil {
-			api.Paths = make(openapi3.Paths)
+		if docs.Paths == nil {
+			docs.Paths = make(openapi3.Paths)
 		}
 		for name, path := range i.paths {
-			if _, ok := api.Paths[name]; ok {
+			if _, ok := docs.Paths[name]; ok {
 				break
 			} else {
-				api.Paths[name] = path
+				docs.Paths[name] = path
 			}
 		}
 	}
