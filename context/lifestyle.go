@@ -12,7 +12,7 @@ import (
 
 type (
 	// Lifestyle is a BindingGroup for requesting a scoped lifestyle.
-	// Build associates both the scoped lifestyle and fromScope constraint.
+	// Lifestyle associates both the scoped lifestyle and fromScope constraint.
 	Lifestyle struct {
 		miruken.BindingGroup
 		scoped
@@ -216,6 +216,6 @@ func (s *scopedFilter) tryDispose(instance any) {
 }
 
 var (
-	From        miruken.Qualifier[fromScope]
+	From miruken.Qualifier[fromScope]
 	contextType = miruken.TypeOf[*Context]()
 )

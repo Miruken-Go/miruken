@@ -9,9 +9,8 @@ import (
 	"net/http"
 )
 
-type (
-	StatusCodeMapper struct {}
-)
+// StatusCodeMapper maps errors into a corresponding http status code.
+type StatusCodeMapper struct {}
 
 func (s *StatusCodeMapper) NotHandled(
 	_*struct{

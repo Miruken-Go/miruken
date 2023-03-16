@@ -113,7 +113,7 @@ func (suite *OpenApiTestSuite) SetupTest() {
 		TestFeature, jsonstd.Feature(), suite.openapi).
 		Specs(&api.GoPolymorphism{}).
 		Handler()
-	suite.srv = httptest.NewServer(httpsrv.Api(context.New(handler)))
+	suite.srv = httptest.NewServer(httpsrv.Handler(handler))
 }
 
 func (suite *OpenApiTestSuite) TearDownTest() {
