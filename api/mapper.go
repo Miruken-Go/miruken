@@ -17,7 +17,7 @@ func (m *Mapper) ToString(
 	ctx miruken.HandleContext,
 ) (string, error) {
 	format, _ := constraints.First[*maps.Format](it)
-	b, bp, err := maps.Map[[]byte](ctx.Composer(), it.Source(), format)
+	b, bp, err := maps.Out[[]byte](ctx.Composer(), it.Source(), format)
 	if err != nil {
 		return "", err
 	}
@@ -36,7 +36,7 @@ func (m *Mapper) ToBytesBuffer(
 	ctx miruken.HandleContext,
 ) (*bytes.Buffer, error) {
 	format, _ := constraints.First[*maps.Format](it)
-	b, bp, err := maps.Map[[]byte](ctx.Composer(), it.Source(), format)
+	b, bp, err := maps.Out[[]byte](ctx.Composer(), it.Source(), format)
 	if err != nil {
 		return nil, err
 	}

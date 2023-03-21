@@ -27,7 +27,7 @@ func (m *SurrogateMapper) ReplaceOutcome(
 	ctx miruken.HandleContext,
 ) ([]byte, error) {
 	sur := outcomeToSurrogate(outcome)
-	js, _, err := maps.Map[[]byte](ctx.Composer(), sur, api.ToJson)
+	js, _, err := maps.Out[[]byte](ctx.Composer(), sur, api.ToJson)
 	return js, err
 }
 
@@ -90,6 +90,6 @@ func (m *SurrogateMapper) ReplaceError(
 	ctx miruken.HandleContext,
 ) ([]byte, error) {
 	sur := ErrorSurrogate{err.Error()}
-	js, _, err := maps.Map[[]byte](ctx.Composer(), sur, api.ToJson)
+	js, _, err := maps.Out[[]byte](ctx.Composer(), sur, api.ToJson)
 	return js, err
 }

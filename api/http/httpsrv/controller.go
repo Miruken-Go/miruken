@@ -50,7 +50,7 @@ func (h *ApiHandler) ServeHTTP(
 	defer child.Dispose()
 	handler := miruken.BuildUp(child, api.Polymorphic)
 
-	msg, _, err := maps.Map[api.Message](handler, r.Body, from)
+	msg, _, err := maps.Out[api.Message](handler, r.Body, from)
 	if err != nil {
 		h.encodeError(err, true, contentType, to, w, handler)
 		return
@@ -142,7 +142,7 @@ func (h *ApiHandler) encodeResult(
 	w.Header().Set("Content-Type", contentType)
 	out := io.Writer(w)
 	msg := api.Message{Payload: res}
-	if _, err := maps.MapInto(handler, msg, &out, format); err != nil {
+	if _, err := maps.Into(handler, msg, &out, format); err != nil {
 		h.encodeError(err, false, contentType, format, w, handler)
 	}
 }
@@ -165,13 +165,13 @@ func (h *ApiHandler) encodeError(
 	w.Header().Set("Content-Type", contentType)
 	statusCode := http.StatusInternalServerError
 	handler = miruken.BuildUp(handler, miruken.BestEffort)
-	if sc, _, sce := maps.Map[int](handler, err, toStatusCode); sc != 0 && sce == nil {
+	if sc, _, sce := maps.Out[int](handler, err, toStatusCode); sc != 0 && sce == nil {
 		statusCode = sc
 	}
 	w.WriteHeader(statusCode)
 	out := io.Writer(w)
 	msg := api.Message{Payload: err}
-	_, _ = maps.MapInto(handler, msg, &out, format)
+	_, _ = maps.Into(handler, msg, &out, format)
 }
 
 func (h *ApiHandler) handlePanic(w http.ResponseWriter) {

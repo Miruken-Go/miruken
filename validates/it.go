@@ -153,7 +153,7 @@ func (b *Builder) New() *It {
 	}
 }
 
-// Validate initiates validation of the `target`.
+// Validate performs all validations on `target`.
 func Validate(
 	handler     miruken.Handler,
 	target      any,

@@ -65,7 +65,7 @@ func (r *Router) Route(
 		var b bytes.Buffer
 		out := io.Writer(&b)
 		msg := api.Message{Payload: routed.Message}
-		if _, err = maps.MapInto(composer, msg, &out, to); err != nil {
+		if _, err = maps.Into(composer, msg, &out, to); err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 		}
 
@@ -107,7 +107,7 @@ func (r *Router) Route(
 		}
 		if from, err := api.ParseContentType(contentType, maps.DirectionFrom); err != nil {
 			reject(fmt.Errorf("http router: %w", err))
-		} else if msg, _, err := maps.Map[api.Message](composer, res.Body, from); err != nil {
+		} else if msg, _, err := maps.Out[api.Message](composer, res.Body, from); err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 		} else {
 			resolve(msg.Payload)
@@ -128,7 +128,7 @@ func (r *Router) decodeError(
 	if err != nil {
 		return err
 	}
-	msg, _, err := maps.Map[api.Message](composer, res.Body, from)
+	msg, _, err := maps.Out[api.Message](composer, res.Body, from)
 	if err == nil {
 		if payload := msg.Payload; payload != nil {
 			if err, ok := payload.(error); ok {

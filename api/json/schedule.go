@@ -42,7 +42,7 @@ func (m *SurrogateMapper) ReplaceConcurrent(
 	if sur == nil {
 		sur = make(ConcurrentSurrogate, 0)
 	}
-	byt, _, err = maps.Map[[]byte](ctx.Composer(), sur, api.ToJson)
+	byt, _, err = maps.Out[[]byte](ctx.Composer(), sur, api.ToJson)
 	return
 }
 
@@ -57,6 +57,6 @@ func (m *SurrogateMapper) ReplaceSequential(
 	if sur == nil {
 		sur = make(SequentialSurrogate, 0)
 	}
-	byt, _, err = maps.Map[[]byte](ctx.Composer(), sur, api.ToJson)
+	byt, _, err = maps.Out[[]byte](ctx.Composer(), sur, api.ToJson)
 	return
 }

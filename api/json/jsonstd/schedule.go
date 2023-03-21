@@ -38,13 +38,13 @@ func (m *SurrogateMapper) ReplaceScheduledResult(
 	sur := make(ScheduledResultSurrogate, len(result.Responses))
 	for i, resp := range result.Responses {
 		err := either.Fold(resp, func(e error) error {
-			byt, _, err := maps.Map[[]byte](ctx.Composer(), e, api.ToJson)
+			byt, _, err := maps.Out[[]byte](ctx.Composer(), e, api.ToJson)
 			if err == nil {
 				sur[i] = EitherSurrogate[error, any]{true, byt}
 			}
 			return err
 		}, func(val any) error {
-			byt, _, err := maps.Map[[]byte](ctx.Composer(), val, api.ToJson)
+			byt, _, err := maps.Out[[]byte](ctx.Composer(), val, api.ToJson)
 			if err == nil {
 				sur[i] = EitherSurrogate[error, any]{false, byt}
 			}
@@ -54,6 +54,6 @@ func (m *SurrogateMapper) ReplaceScheduledResult(
 			return nil, err
 		}
 	}
-	js, _, err := maps.Map[[]byte](ctx.Composer(), sur, api.ToJson)
+	js, _, err := maps.Out[[]byte](ctx.Composer(), sur, api.ToJson)
 	return js, err
 }

@@ -229,13 +229,13 @@ func (suite *MapsTestSuite) Setup() (miruken.Handler, error) {
 
 func (suite *MapsTestSuite) TestMap() {
 	suite.Run("It", func () {
-		suite.Run("New", func() {
+		suite.Run("Out", func() {
 			handler, _ := suite.Setup()
 			entity := PlayerEntity{
 				Entity{ Id: 1 },
 				"Tim Howard",
 			}
-			data, _, err := maps.Map[*PlayerData](handler, &entity)
+			data, _, err := maps.Out[*PlayerData](handler, &entity)
 			suite.Nil(err)
 			suite.Equal(1, data.Id)
 			suite.Equal("Tim Howard", data.Name)
@@ -248,7 +248,7 @@ func (suite *MapsTestSuite) TestMap() {
 				"David Silva",
 			}
 			var data PlayerData
-			_, err := maps.MapInto(handler, &entity, &data)
+			_, err := maps.Into(handler, &entity, &data)
 			suite.Nil(err)
 			suite.Equal(2, data.Id)
 			suite.Equal("David Silva", data.Name)
@@ -261,7 +261,7 @@ func (suite *MapsTestSuite) TestMap() {
 				"Franz Beckenbauer",
 			}
 			data := new(PlayerData)
-			_, err  := maps.MapInto(handler, &entity, data)
+			_, err  := maps.Into(handler, &entity, data)
 			suite.Nil(err)
 			suite.Equal(3, data.Id)
 			suite.Equal("Franz Beckenbauer", data.Name)
@@ -273,7 +273,7 @@ func (suite *MapsTestSuite) TestMap() {
 				Entity{ Id: 1 },
 				"Tim Howard",
 			}
-			data, _, err := maps.Map[*PlayerData](handler, &entity)
+			data, _, err := maps.Out[*PlayerData](handler, &entity)
 			suite.Nil(err)
 			suite.Equal(1, data.Id)
 			suite.Equal("Tim Howard", data.Name)
@@ -285,7 +285,7 @@ func (suite *MapsTestSuite) TestMap() {
 				Entity{ Id: 1 },
 				"Marco Royce",
 			}
-			data, _, err := maps.Map[map[string]any](handler, &entity)
+			data, _, err := maps.Out[map[string]any](handler, &entity)
 			suite.Nil(err)
 			suite.Equal(1, data["Id"])
 			suite.Equal("Marco Royce", data["Name"])
@@ -297,7 +297,7 @@ func (suite *MapsTestSuite) TestMap() {
 				"Id":    2,
 				"Name": "George Best",
 			}
-			entity, _, err := maps.Map[*PlayerEntity](handler, data)
+			entity, _, err := maps.Out[*PlayerEntity](handler, data)
 			suite.Nil(err)
 			suite.Equal(2, entity.Id)
 			suite.Equal("George Best", entity.Name)
@@ -310,15 +310,15 @@ func (suite *MapsTestSuite) TestMap() {
 				Id:   1,
 				Name: "Tim Howard",
 			}
-			jsonString, _, err := maps.Map[string](handler, &data, api.ToJson)
+			jsonString, _, err := maps.Out[string](handler, &data, api.ToJson)
 			suite.Nil(err)
 			suite.Equal("{\"id\":1,\"name\":\"Tim Howard\"}", jsonString)
 
-			_, _, err = maps.Map[string](handler, &data, maps.To("foo", nil))
+			_, _, err = maps.Out[string](handler, &data, maps.To("foo", nil))
 			suite.IsType(err, &miruken.NotHandledError{})
 
 			var data2 PlayerData
-			_, err = maps.MapInto(handler, jsonString, &data2, api.FromJson)
+			_, err = maps.Into(handler, jsonString, &data2, api.FromJson)
 			suite.Nil(err)
 			suite.Equal(1, data.Id)
 			suite.Equal("Tim Howard", data.Name)
@@ -341,7 +341,7 @@ func (suite *MapsTestSuite) TestMap() {
 				},
 			}
 
-			data, _, err := maps.MapAll[*PlayerData](handler, entities)
+			data, _, err := maps.All[*PlayerData](handler, entities)
 			suite.Nil(err)
 			suite.Len(data, len(entities))
 			suite.True(reflect.DeepEqual(data, []*PlayerData{
@@ -386,51 +386,51 @@ func (suite *MapsTestSuite) TestMap() {
 		suite.Run("StartsWith", func () {
 			handler, _ := miruken.Setup().Specs(&FormatMapper{}).Handler()
 			var data PlayerData
-			res, _, err := maps.Map[string](handler, &data, maps.To("hello", nil))
+			res, _, err := maps.Out[string](handler, &data, maps.To("hello", nil))
 			suite.Nil(err)
 			suite.Equal("startsWith", res)
-			res, _, err = maps.Map[string](handler, &data, maps.To("hellohello", nil))
+			res, _, err = maps.Out[string](handler, &data, maps.To("hellohello", nil))
 			suite.Nil(err)
 			suite.Equal("startsWith", res)
-			res, _, err = maps.Map[string](handler, &data, maps.To("/hello", nil))
+			res, _, err = maps.Out[string](handler, &data, maps.To("/hello", nil))
 			suite.Nil(err)
 			suite.Equal("startsWith", res)
-			res, _, err = maps.Map[string](handler, &data, maps.To("hel", nil))
+			res, _, err = maps.Out[string](handler, &data, maps.To("hel", nil))
 			suite.NotNil(err)
-			res, _, err = maps.Map[string](handler, &data, maps.To("/hel", nil))
+			res, _, err = maps.Out[string](handler, &data, maps.To("/hel", nil))
 			suite.NotNil(err)
 		})
 
 		suite.Run("EndsWith", func () {
 			handler, _ := miruken.Setup().Specs(&FormatMapper{}).Handler()
 			var data PlayerData
-			res, _, err := maps.Map[string](handler, &data, maps.To("world", nil))
+			res, _, err := maps.Out[string](handler, &data, maps.To("world", nil))
 			suite.Nil(err)
 			suite.Equal("endsWith", res)
-			res, _, err = maps.Map[string](handler, &data, maps.To("theworld", nil))
+			res, _, err = maps.Out[string](handler, &data, maps.To("theworld", nil))
 			suite.Nil(err)
 			suite.Equal("endsWith", res)
-			res, _, err = maps.Map[string](handler, &data, maps.To("world/", nil))
+			res, _, err = maps.Out[string](handler, &data, maps.To("world/", nil))
 			suite.Nil(err)
 			suite.Equal("endsWith", res)
-			res, _, err = maps.Map[string](handler, &data, maps.To("worldwide", nil))
+			res, _, err = maps.Out[string](handler, &data, maps.To("worldwide", nil))
 			suite.NotNil(err)
-			res, _, err = maps.Map[string](handler, &data, maps.To("wor/", nil))
+			res, _, err = maps.Out[string](handler, &data, maps.To("wor/", nil))
 			suite.NotNil(err)
 		})
 
 		suite.Run("Pattern", func () {
 			handler, _ := miruken.Setup().Specs(&FormatMapper{}).Handler()
 			var data PlayerData
-			res, _, err := maps.Map[string](handler, &data, maps.To("J9!P3", nil))
+			res, _, err := maps.Out[string](handler, &data, maps.To("J9!P3", nil))
 			suite.Nil(err)
 			suite.Equal("pattern", res)
-			res, _, err = maps.Map[string](handler, &data, maps.To("J256!ABC1", nil))
+			res, _, err = maps.Out[string](handler, &data, maps.To("J256!ABC1", nil))
 			suite.Nil(err)
 			suite.Equal("pattern", res)
-			res, _, err = maps.Map[string](handler, &data, maps.To("J!2", nil))
+			res, _, err = maps.Out[string](handler, &data, maps.To("J!2", nil))
 			suite.NotNil(err)
-			res, _, err = maps.Map[string](handler, &data, maps.To("J85!92", nil))
+			res, _, err = maps.Out[string](handler, &data, maps.To("J85!92", nil))
 			suite.NotNil(err)
 		})
 	})

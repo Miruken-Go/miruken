@@ -300,7 +300,7 @@ func (i *Installer) generateExampleJson(
 ) {
 	for _, schema := range i.components {
 		if example := schema.Value.Example; !miruken.IsNil(example) {
-			if js, _, err := maps.Map[string](handler, example, api.ToJson); err == nil {
+			if js, _, err := maps.Out[string](handler, example, api.ToJson); err == nil {
 				schema.Value.Example = json.RawMessage(js)
 			}
 		}

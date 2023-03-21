@@ -297,8 +297,8 @@ func (b *Builder) New() *It {
 	}
 }
 
-func Map[T any](
-	handler miruken.Handler,
+func Out[T any](
+	handler     miruken.Handler,
 	source      any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], err error) {
@@ -320,8 +320,8 @@ func Map[T any](
 	return
 }
 
-func MapInto[T any](
-	handler miruken.Handler,
+func Into[T any](
+	handler     miruken.Handler,
 	source      any,
 	target      *T,
 	constraints ...any,
@@ -347,8 +347,8 @@ func MapInto[T any](
 	return
 }
 
-func MapKey[T any](
-	handler miruken.Handler,
+func Key[T any](
+	handler     miruken.Handler,
 	key         any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], err error) {
@@ -370,7 +370,7 @@ func MapKey[T any](
 	return
 }
 
-func MapAll[T any](
+func All[T any](
 	handler miruken.Handler,
 	source      any,
 	constraints ...any,

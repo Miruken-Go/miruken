@@ -74,7 +74,7 @@ func (m *MultipartMapper) Read(
 				mb.AddPart(key, pb.Content(reader).Build())
 			}
 		} else if len(content) > 0 {
-			late, _, err := maps.Map[miruken.Late](composer, content, maps.From(ct, nil))
+			late, _, err := maps.Out[miruken.Late](composer, content, maps.From(ct, nil))
 			if err != nil {
 				return msg, err
 			}
