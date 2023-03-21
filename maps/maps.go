@@ -55,6 +55,7 @@ const (
 	FormatRuleStartsWith FormatRule = 1 << iota
 	FormatRuleEndsWith
 	FormatRulePattern
+	FormatRuleAll
 )
 
 // It
@@ -142,6 +143,9 @@ func (f *Format) Satisfies(required miruken.Constraint) bool {
 	if f.direction != rf.direction {
 		return false
 	}
+	if f.rule == FormatRuleAll || rf.rule == FormatRuleAll {
+		return true
+	}
 	switch rf.rule {
 	case FormatRuleEquals:
 		switch f.rule {
@@ -191,6 +195,11 @@ func (f *Format) FlipDirection() *Format {
 
 func (f *Format) parse(format string) error {
 	format = strings.TrimSpace(format)
+	if format == "*" {
+		f.rule = FormatRuleAll
+		f.name = "*"
+		return nil
+	}
 	var start, end int
 	var startsWith, endsWith bool
 	if strings.HasPrefix(format, "//") {

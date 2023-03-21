@@ -39,28 +39,23 @@ func (m *Mapper) ToBytes(
 	  }, apiOptions api.Options,
 	ctx miruken.HandleContext,
 ) (byt []byte, err error) {
-	return marshal(maps, &options, &apiOptions, ctx)
-}
-
-func (m *Mapper) ToString(
-	_*struct{
-		maps.Format `to:"application/json"`
-	  }, maps *maps.It,
-	_*struct{
-		args.Optional
-		args.FromOptions
-	  }, options Options,
-	_*struct{
-		args.Optional
-		args.FromOptions
-	  }, apiOptions api.Options,
-	ctx miruken.HandleContext,
-) (string, error) {
-	if byt, err := marshal(maps, &options, &apiOptions, ctx); err == nil {
-		return string(byt), nil
-	} else {
-		return "", err
+	src := maps.Source()
+	if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
+		src = &typeContainer{
+			v:        src,
+			typInfo:  apiOptions.TypeInfoFormat,
+			trans:    options.Transformers,
+			composer: ctx.Composer(),
+		}
+	} else if trans := options.Transformers; len(trans) > 0 {
+		src = &transformer{src, trans}
 	}
+	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
+		byt, err = json.MarshalIndent(src, prefix, indent)
+	} else {
+		byt, err = json.Marshal(src)
+	}
+	return
 }
 
 func (m *Mapper) ToWriter(
@@ -85,7 +80,24 @@ func (m *Mapper) ToWriter(
 	} else {
 		writer = *w
 	}
-	if err := encode(maps, writer, &options, &apiOptions, ctx); err == nil {
+	enc := json.NewEncoder(writer)
+	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
+		enc.SetIndent(prefix, indent)
+	}
+	if escapeHTML := options.EscapeHTML; escapeHTML.Set() {
+		enc.SetEscapeHTML(escapeHTML.Value())
+	}
+	src := maps.Source()
+	if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
+		src = &typeContainer{
+			v:        src,
+			typInfo:  apiOptions.TypeInfoFormat,
+			trans:    options.Transformers,
+			composer: ctx.Composer()}
+	} else if trans := options.Transformers; len(trans) > 0 {
+		src = &transformer{src, trans}
+	}
+	if err := enc.Encode(src); err == nil {
 		return writer, nil
 	} else {
 		return nil, err
@@ -147,31 +159,6 @@ func (m *Mapper) FromReader(
 }
 
 
-func marshal(
-	maps       *maps.It,
-	options    *Options,
-	apiOptions *api.Options,
-	ctx        miruken.HandleContext,
-) (byt []byte, err error) {
-	src := maps.Source()
-	if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
-		src = &typeContainer{
-			v:        src,
-			typInfo:  apiOptions.TypeInfoFormat,
-			trans:    options.Transformers,
-			composer: ctx.Composer(),
-		}
-	} else if trans := options.Transformers; len(trans) > 0 {
-		src = &transformer{src, trans}
-	}
-	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
-		byt, err = json.MarshalIndent(src, prefix, indent)
-	} else {
-		byt, err = json.Marshal(src)
-	}
-	return
-}
-
 func unmarshal(
 	maps       *maps.It,
 	byt        []byte,
@@ -196,32 +183,6 @@ func unmarshal(
 	return
 }
 
-func encode(
-	maps       *maps.It,
-	writer     io.Writer,
-	options    *Options,
-	apiOptions *api.Options,
-	ctx        miruken.HandleContext,
-) error {
-	enc := json.NewEncoder(writer)
-	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
-		enc.SetIndent(prefix, indent)
-	}
-	if escapeHTML := options.EscapeHTML; escapeHTML.Set() {
-		enc.SetEscapeHTML(escapeHTML.Value())
-	}
-	src := maps.Source()
-	if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
-		src = &typeContainer{
-			v:        src,
-			typInfo:  apiOptions.TypeInfoFormat,
-			trans:    options.Transformers,
-			composer: ctx.Composer()}
-	} else if trans := options.Transformers; len(trans) > 0 {
-		src = &transformer{src, trans}
-	}
-	return enc.Encode(src)
-}
 
 func decode(
 	maps       *maps.It,
