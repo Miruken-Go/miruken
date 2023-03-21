@@ -3,6 +3,7 @@ package test
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/suite"
@@ -76,7 +77,7 @@ func (suite *StashTestSuite) Setup() miruken.Handler {
 func (suite *StashTestSuite) TestStash() {
 	suite.Run("Unmanaged", func() {
 		handler := suite.Setup()
-		_, _, err := miruken.Create[*api.Stash](handler)
+		_, _, err := creates.New[*api.Stash](handler)
 		suite.IsType(err, &miruken.NotHandledError{})
 	})
 

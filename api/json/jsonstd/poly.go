@@ -7,6 +7,7 @@ import (
 	"github.com/Rican7/conjson/transform"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/maps"
 	"io"
 	"reflect"
@@ -172,7 +173,7 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 	} else if len(typeId) == 0 {
 		return fmt.Errorf("empty type id for field %q", field)
 	} else {
-		if v, _, err := miruken.CreateKey[any](c.composer, typeId); err != nil {
+		if v, _, err := creates.Key[any](c.composer, typeId); err != nil {
 			return &api.UnknownTypeIdError{TypeId: typeId, Reason: err}
 		} else {
 			vm := v

@@ -111,11 +111,11 @@ func (m *GoPolymorphism) Dynamic(
 		dynamicLock.RUnlock()
 		if proto == nil {
 			if strings.HasPrefix(key, "*") {
-				if id, _, err := miruken.CreateKey[any](ctx.Composer(), key[1:]); err == nil {
+				if id, _, err := creates.Key[any](ctx.Composer(), key[1:]); err == nil {
 					proto = id
 				}
 			} else if strings.HasPrefix(key, "[]") {
-				if el, _, err := miruken.CreateKey[any](ctx.Composer(), key[2:]); err == nil {
+				if el, _, err := creates.Key[any](ctx.Composer(), key[2:]); err == nil {
 					proto = reflect.New(reflect.SliceOf(reflect.TypeOf(el))).Interface()
 				}
 			}
