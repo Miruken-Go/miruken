@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -143,7 +144,7 @@ func (suite *StashTestSuite) TestStash() {
 		order := &Order{1, OrderCreated}
 		err := api.StashPut(handler, order)
 		suite.Nil(err)
-		o, _, err := miruken.Resolve[*Order](handler)
+		o, _, err := provides.Type[*Order](handler)
 		suite.Nil(err)
 		suite.Same(order, o)
 	})

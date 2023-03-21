@@ -9,6 +9,7 @@ import (
 	"github.com/miruken-go/miruken/config"
 	koanfp "github.com/miruken-go/miruken/config/koanf"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
 	"testing"
 	"time"
@@ -99,7 +100,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 	suite.Run("Load", func() {
 		suite.Run("Resolve", func() {
 			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
-			cfg, _, err := miruken.Resolve[AppConfig](handler, new(config.Load))
+			cfg, _, err := provides.Type[AppConfig](handler, new(config.Load))
 			suite.Nil(err)
 			suite.Equal("develop", cfg.Env)
 			suite.Len(cfg.Databases, 1)
@@ -110,7 +111,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 				config.Feature(koanfp.P(k))).
 				Specs(&EventStore{}).
 				Handler()
-			es, _, err := miruken.Resolve[*EventStore](handler)
+			es, _, err := provides.Type[*EventStore](handler)
 			suite.Nil(err)
 			suite.Equal("develop", es.Env())
 		})
@@ -132,7 +133,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 				CustomerUrl   string
 			}
 			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
-			cfg, _, err := miruken.Resolve[UrlConfig](handler, &config.Load{Path: "services"})
+			cfg, _, err := provides.Type[UrlConfig](handler, &config.Load{Path: "services"})
 			suite.Nil(err)
 			suite.Equal("http://gateway/events", cfg.EventStoreUrl)
 			suite.Equal("http://gateway/customer", cfg.CustomerUrl)
@@ -144,7 +145,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 				CustomerUrl   string `path:"services.customerUrl"`
 			}
 			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
-			cfg, _, err := miruken.Resolve[UrlConfig](handler, &config.Load{Flat: true})
+			cfg, _, err := provides.Type[UrlConfig](handler, &config.Load{Flat: true})
 			suite.Nil(err)
 			suite.Equal("http://gateway/events", cfg.EventStoreUrl)
 			suite.Equal("http://gateway/customer", cfg.CustomerUrl)

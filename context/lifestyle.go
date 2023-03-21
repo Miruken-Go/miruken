@@ -84,7 +84,7 @@ func (s *scopedFilter) Next(
 	if !s.isCompatibleWithParent(ctx, rooted) {
 		return nil, nil,nil
 	}
-	context, _, err := miruken.Resolve[*Context](ctx.Composer())
+	context, _, err := provides.Type[*Context](ctx.Composer())
 	if err != nil {
 		return nil, nil, err
 	} else if context == nil {

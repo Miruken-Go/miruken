@@ -192,7 +192,7 @@ func Handler(handler miruken.Handler) http.Handler {
 	if _, ok := handler.(*context.Context); !ok {
 		handler = context.New(handler)
 	}
-	h, cp, err := miruken.Resolve[*ApiHandler](handler)
+	h, cp, err := provides.Type[*ApiHandler](handler)
 	if err != nil {
 		panic(err)
 	}

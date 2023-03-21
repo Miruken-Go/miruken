@@ -7,6 +7,7 @@ import (
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/log"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
 	"testing"
 	"time"
@@ -59,7 +60,7 @@ func (suite *LogTestSuite) TestLogging() {
 		handler, _ := miruken.Setup(
 			log.Feature(testr.New(suite.T())),
 		).Handler()
-		logger, _, err:= miruken.Resolve[logr.Logger](handler)
+		logger, _, err:= provides.Type[logr.Logger](handler)
 		suite.Nil(err)
 		logger.Info("Hello")
 	})
@@ -70,7 +71,7 @@ func (suite *LogTestSuite) TestLogging() {
 				testr.NewWithOptions(suite.T(), testr.Options{Verbosity: 1}),
 			),
 		).Handler()
-		logger, _, err:= miruken.Resolve[logr.Logger](handler)
+		logger, _, err:= provides.Type[logr.Logger](handler)
 		suite.Nil(err)
 		logger.V(1).Info("World")
 	})
@@ -80,7 +81,7 @@ func (suite *LogTestSuite) TestLogging() {
 			log.Feature(testr.New(suite.T()))).
 			Specs(&Service{}).
 			Handler()
-		svc, _, err := miruken.Resolve[*Service](handler)
+		svc, _, err := provides.Type[*Service](handler)
 		suite.Nil(err)
 		svc.Run()
 	})

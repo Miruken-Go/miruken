@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/provides"
 	"reflect"
 	"time"
 )
@@ -63,7 +64,7 @@ func (f filter) Next(
 	provider miruken.FilterProvider,
 )  (out []any, pout *promise.Promise[[]any], err error) {
 	if lp, ok := provider.(*Provider); ok {
-		logger, _, re := miruken.Resolve[logr.Logger](ctx.Composer())
+		logger, _, re := provides.Type[logr.Logger](ctx.Composer())
 		if re != nil {
 			return next.Pipe()
 		}

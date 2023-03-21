@@ -160,14 +160,14 @@ func (b *ProvidesBuilder) New() *Provides {
 }
 
 func Resolve[T any](
-	handler Handler,
+	handler     Handler,
 	constraints ...any,
 ) (T, *promise.Promise[T], error) {
 	return ResolveKey[T](handler, TypeOf[T](), constraints...)
 }
 
 func ResolveKey[T any](
-	handler Handler,
+	handler     Handler,
 	key         any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], err error) {
@@ -187,7 +187,7 @@ func ResolveKey[T any](
 }
 
 func ResolveAll[T any](
-	handler Handler,
+	handler     Handler,
 	constraints ...any,
 ) (t []T, tp *promise.Promise[[]T], err error) {
 	if IsNil(handler) {
