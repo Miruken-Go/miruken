@@ -286,7 +286,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 			handler, _ := suite.Setup()
 			player := Player{DOB:  time.Date(2007, time.June,
 				14, 13, 26, 00, 0, time.Local) }
-			outcome, _, err := validates.Validate(handler, &player)
+			outcome, _, err := validates.Source(handler, &player)
 			suite.Nil(err)
 			suite.NotNil(outcome)
 			suite.False(outcome.Valid())
@@ -303,7 +303,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 				DOB:       time.Date(2007, time.June, 14,
 					13, 26, 00, 0, time.Local),
 			}
-			outcome, _, err := validates.Validate(handler, &player, validates.Groups("Recreational"))
+			outcome, _, err := validates.Source(handler, &player, validates.Groups("Recreational"))
 			suite.Nil(err)
 			suite.NotNil(outcome)
 			suite.False(outcome.Valid())

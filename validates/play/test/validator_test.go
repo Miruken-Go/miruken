@@ -132,7 +132,7 @@ func (suite *ValidatorTestSuite) SetupTest() {
 
 func (suite *ValidatorTestSuite) TestValidator() {
 	suite.Run("Tags", func() {
-		suite.Run("Valid Target", func() {
+		suite.Run("Valid Source", func() {
 			create := CreateUser{
 				User{
 					FirstName:      "Badger",
@@ -157,7 +157,7 @@ func (suite *ValidatorTestSuite) TestValidator() {
 			}
 		})
 
-		suite.Run("Invalid Target", func() {
+		suite.Run("Invalid Source", func() {
 			create := CreateUser{
 				User{
 					Age:            200,
@@ -181,7 +181,7 @@ func (suite *ValidatorTestSuite) TestValidator() {
 	})
 
 	suite.Run("No Tags", func() {
-		suite.Run("Valid Target", func() {
+		suite.Run("Valid Source", func() {
 			create := CreateUserNoTags{
 				UserNoTags{
 					FirstName:      "Badger",
@@ -206,7 +206,7 @@ func (suite *ValidatorTestSuite) TestValidator() {
 			}
 		})
 
-		suite.Run("Invalid Target", func() {
+		suite.Run("Invalid Source", func() {
 			create := CreateUserNoTags{
 				UserNoTags{
 					Age:            200,

@@ -133,62 +133,62 @@ func Groups(groups ...any) miruken.Constraint {
 // Builder builds It callbacks.
 type Builder struct {
 	miruken.CallbackBuilder
-	target any
+	src any
 }
 
-func (b *Builder) Target(
-	target any,
+func (b *Builder) Source(
+	src any,
 ) *Builder {
-	if miruken.IsNil(target) {
+	if miruken.IsNil(src) {
 		panic("source cannot be nil")
 	}
-	b.target = target
+	b.src = src
 	return b
 }
 
 func (b *Builder) New() *It {
 	return &It{
 		CallbackBase: b.CallbackBase(),
-		source:       b.target,
+		source:       b.src,
 	}
 }
 
-// Validate performs all validations on `target`.
-func Validate(
+// Source performs all validations on `src`.
+func Source(
 	handler     miruken.Handler,
-	target      any,
+	src         any,
 	constraints ...any,
 ) (o *Outcome, po *promise.Promise[*Outcome], err error) {
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder Builder
-	builder.Target(target).
+	builder.Source(src).
 			WithConstraints(constraints...)
 	validates := builder.New()
 	if result := handler.Handle(validates, true, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.Handled() {
 		o = validates.Outcome()
-		setTargetValidationOutcome(target, o)
+		setValidationOutcome(src, o)
 	} else if _, pv := validates.Result(false); pv == nil {
 		o = validates.Outcome()
-		setTargetValidationOutcome(target, o)
+		setValidationOutcome(src, o)
 	} else {
 		po = promise.Then(pv, func(any) *Outcome {
 			outcome := validates.Outcome()
-			setTargetValidationOutcome(target, outcome)
+			setValidationOutcome(src, outcome)
 			return outcome
 		})
 	}
 	return
 }
 
-func setTargetValidationOutcome(
-	target  any,
+func setValidationOutcome(
+	src     any,
 	outcome *Outcome,
 ) {
-	if v, ok := target.(interface {
+	if v, ok := src.(interface {
 		SetValidationOutcome(*Outcome)
 	}); ok {
 		v.SetValidationOutcome(outcome)

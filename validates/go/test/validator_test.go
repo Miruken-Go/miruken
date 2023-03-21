@@ -60,7 +60,7 @@ func (suite *ValidatorTestSuite) SetupTest() {
 }
 
 func (suite *ValidatorTestSuite) TestValidator() {
-	suite.Run("Valid Target", func() {
+	suite.Run("Valid Source", func() {
 		create := CreateUser{
 			User{
 				Name:     "John",
@@ -87,7 +87,7 @@ func (suite *ValidatorTestSuite) TestValidator() {
 		}
 	})
 
-	suite.Run("Invalid Target", func() {
+	suite.Run("Invalid Source", func() {
 		create := CreateUser{
 			User{
 				Email: "john",

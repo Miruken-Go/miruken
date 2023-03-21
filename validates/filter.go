@@ -62,7 +62,7 @@ func (f filter) Next(
 	if vp, ok := provider.(*Provider); ok {
 		callback := ctx.Callback()
 		composer := ctx.Composer()
-		outcomeIn, poi, errIn := Validate(composer, callback.Source())
+		outcomeIn, poi, errIn := Source(composer, callback.Source())
 		if errIn != nil {
 			// error validating input
 			return nil, nil, errIn
@@ -79,7 +79,7 @@ func (f filter) Next(
 			} else if pout == nil {
 				// validates output if available
 				if len(out) > 0 && !miruken.IsNil(out[0]) {
-					outcomeOut, poo, errOut := Validate(composer, out[0])
+					outcomeOut, poo, errOut := Source(composer, out[0])
 					if errOut != nil {
 						// error validating so return
 						return nil, nil, errOut
@@ -106,7 +106,7 @@ func (f filter) Next(
 				// asynchronous output validation
 				return nil, promise.Then(pout, func(oo []any) []any {
 					if len(oo) > 0 && !miruken.IsNil(oo[0]) {
-						outcomeOut, poo, errOut := Validate(composer, oo[0])
+						outcomeOut, poo, errOut := Source(composer, oo[0])
 						if errOut != nil {
 							// error validating input
 							panic(errOut)
@@ -135,7 +135,7 @@ func (f filter) Next(
 			oo := next.PipeAwait()
 			// validates output if requested and available
 			if vp.validateOutput && len(oo) > 0 && !miruken.IsNil(oo[0]) {
-				outcomeOut, poo, errOut := Validate(composer, oo[0])
+				outcomeOut, poo, errOut := Source(composer, oo[0])
 				if errOut != nil {
 					// error validating output
 					panic(errOut)
