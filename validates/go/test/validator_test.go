@@ -80,7 +80,7 @@ func (suite *ValidatorTestSuite) TestValidator() {
 				}},
 			},
 		}
-		if user, _, err := miruken.Execute[User](suite.handler, &create); err == nil {
+		if user, _, err := handles.Request[User](suite.handler, &create); err == nil {
 			suite.Equal(1, user.Id)
 		} else {
 			suite.Fail("unexpected error", err.Error())
@@ -95,7 +95,7 @@ func (suite *ValidatorTestSuite) TestValidator() {
 				Work:  []Address{{}},
 			},
 		}
-		if _, _, err := miruken.Execute[User](suite.handler, &create); err != nil {
+		if _, _, err := handles.Request[User](suite.handler, &create); err != nil {
 			suite.IsType(&validates.Outcome{}, err)
 			outcome := err.(*validates.Outcome)
 			suite.False(outcome.Valid())

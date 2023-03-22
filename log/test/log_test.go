@@ -94,10 +94,10 @@ func (suite *LogTestSuite) TestLogging() {
 			}))).
 			Specs(&Service{}).
 			Handler()
-		next, _, err := miruken.Execute[Command](handler, Command(1))
+		next, _, err := handles.Request[Command](handler, Command(1))
 		suite.Nil(err)
 		suite.Equal(Command(2), next)
-		next, _, err = miruken.Execute[Command](handler, next)
+		next, _, err = handles.Request[Command](handler, next)
 		suite.Nil(err)
 		suite.Equal(Command(3), next)
 	})
@@ -110,7 +110,7 @@ func (suite *LogTestSuite) TestLogging() {
 			}))).
 			Specs(&Service{}).
 			Handler()
-		next, np, err := miruken.Execute[LongCommand](handler, LongCommand(8))
+		next, np, err := handles.Request[LongCommand](handler, LongCommand(8))
 		suite.Nil(err)
 		suite.NotNil(np)
 		next, err = np.Await()
@@ -126,7 +126,7 @@ func (suite *LogTestSuite) TestLogging() {
 			}), log.Verbosity(2))).
 			Specs(&Service{}).
 			Handler()
-		next, _, err := miruken.Execute[Command](handler, Command(2))
+		next, _, err := handles.Request[Command](handler, Command(2))
 		suite.Nil(err)
 		suite.Equal(Command(3), next)
 	})

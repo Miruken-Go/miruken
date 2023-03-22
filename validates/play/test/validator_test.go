@@ -150,7 +150,7 @@ func (suite *ValidatorTestSuite) TestValidator() {
 					},
 				},
 			}
-			if user, _, err := miruken.Execute[User](suite.handler, &create); err == nil {
+			if user, _, err := handles.Request[User](suite.handler, &create); err == nil {
 				suite.Greater(user.Id, 0)
 			} else {
 				suite.Fail("unexpected error", err.Error())
@@ -168,7 +168,7 @@ func (suite *ValidatorTestSuite) TestValidator() {
 					},
 				},
 			}
-			if _, _, err := miruken.Execute[User](suite.handler, &create); err != nil {
+			if _, _, err := handles.Request[User](suite.handler, &create); err != nil {
 				suite.IsType(&validates.Outcome{}, err)
 				outcome := err.(*validates.Outcome)
 				suite.False(outcome.Valid())
@@ -199,7 +199,7 @@ func (suite *ValidatorTestSuite) TestValidator() {
 					},
 				},
 			}
-			if user, _, err := miruken.Execute[UserNoTags](suite.handler, &create); err == nil {
+			if user, _, err := handles.Request[UserNoTags](suite.handler, &create); err == nil {
 				suite.Greater(user.Id, 0)
 			} else {
 				suite.Fail("unexpected error", err.Error())
@@ -217,7 +217,7 @@ func (suite *ValidatorTestSuite) TestValidator() {
 					},
 				},
 			}
-			if _, _, err := miruken.Execute[UserNoTags](suite.handler, &create); err != nil {
+			if _, _, err := handles.Request[UserNoTags](suite.handler, &create); err != nil {
 				suite.IsType(&validates.Outcome{}, err)
 				outcome := err.(*validates.Outcome)
 				suite.False(outcome.Valid())

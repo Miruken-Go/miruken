@@ -73,7 +73,7 @@ func (g *Gateway) CreateCustomer(
 	ctx miruken.HandleContext,
 ) error {
 	fmt.Println(cfg.Services.CustomerUrl)
-	_, err := miruken.Command(ctx.Composer(), CustomerCreated{})
+	_, err := handles.Command(ctx.Composer(), CustomerCreated{})
 	return err
 }
 
@@ -121,7 +121,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 				config.Feature(koanfp.P(k))).
 				Specs(&Gateway{}, &EventStore{}).
 				Handler()
-			_, err := miruken.Command(handler, CreateCustomer{})
+			_, err := handles.Command(handler, CreateCustomer{})
 			suite.Nil(err)
 		})
 	})
@@ -156,7 +156,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 				config.Feature(koanfp.P(k))).
 				Specs(&Repository{}).
 				Handler()
-			_, err := miruken.Command(handler, LoadCustomer{})
+			_, err := handles.Command(handler, LoadCustomer{})
 			suite.Nil(err)
 		})
 	})

@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 )
 
@@ -59,7 +60,7 @@ func Post(
 			}
 		}
 	}()
-	return miruken.Command(stash, message)
+	return handles.Command(stash, message)
 }
 
 // Send sends a request with an expected response.
@@ -86,7 +87,7 @@ func Send[TResponse any](
 			}
 		}
 	}()
-	return miruken.Execute[TResponse](stash, request)
+	return handles.Request[TResponse](stash, request)
 }
 
 // Publish sends a message to all recipients.
@@ -112,7 +113,7 @@ func Publish(
 			}
 		}
 	}()
-	if pv, err := miruken.CommandAll(stash, message); err == nil {
+	if pv, err := handles.CommandAll(stash, message); err == nil {
 		return pv, err
 	} else if _, ok := err.(*miruken.NotHandledError); ok {
 		return nil, nil

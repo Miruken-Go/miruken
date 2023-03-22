@@ -95,8 +95,8 @@ func (b *HandlesBuilder) New() *Handles {
 // Command invokes a callback with no results.
 // returns an empty promise if execution is asynchronous.
 func Command(
-	handler Handler,
-	callback any,
+	handler     Handler,
+	callback    any,
 	constraints ...any,
 ) (pv *promise.Promise[Void], err error) {
 	if IsNil(handler) {
@@ -119,7 +119,7 @@ func Command(
 // Execute executes a callback with results.
 // returns the results or promise if execution is asynchronous.
 func Execute[T any](
-	handler Handler,
+	handler     Handler,
 	callback    any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], err error) {
@@ -143,7 +143,7 @@ func Execute[T any](
 // CommandAll invokes a callback on all with no results.
 // returns an empty promise if execution is asynchronous.
 func CommandAll(
-	handler Handler,
+	handler     Handler,
 	callback    any,
 	constraints ...any,
 ) (pv *promise.Promise[Void], err error) {
@@ -167,7 +167,7 @@ func CommandAll(
 // ExecuteAll executes a callback on all and collects the results.
 // returns the results or promise if execution is asynchronous.
 func ExecuteAll[T any](
-	handler Handler,
+	handler     Handler,
 	callback    any,
 	constraints ...any,
 ) (t []T, tp *promise.Promise[[]T], err error) {
