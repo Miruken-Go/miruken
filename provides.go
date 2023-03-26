@@ -86,7 +86,7 @@ func (p *Provides) Dispatch(
 }
 
 func (p *Provides) String() string {
-	return fmt.Sprintf("Build => %+v", p.key)
+	return fmt.Sprintf("provides %+v", p.key)
 }
 
 func (p *Provides) Resolve(

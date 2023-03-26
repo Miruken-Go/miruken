@@ -158,18 +158,15 @@ func (i *Installer) BindingCreated(
 				if outputType.Kind() == reflect.Ptr {
 					outputType = outputType.Elem()
 				}
-				if schema, _, created := i.generateTypeSchema(outputType); created {
-					response := &openapi3.ResponseRef{
-						Value: openapi3.NewResponse().
-							WithDescription("Successful Response").
-							WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
-								WithPropertyRef("payload", schema))),
-					}
-					responseName = inputName+"Response"
-					i.responses[responseName] = response
-				} else {
-					responseName = inputName+"Response"
+				schema, _, _ := i.generateTypeSchema(outputType)
+				response := &openapi3.ResponseRef{
+					Value: openapi3.NewResponse().
+						WithDescription("Successful Response").
+						WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
+							WithPropertyRef("payload", schema))),
 				}
+				responseName = inputName+"Response"
+				i.responses[responseName] = response
 			}
 			path := &openapi3.PathItem{
 				Post: &openapi3.Operation{
@@ -300,8 +297,8 @@ func (i *Installer) generateExampleJson(
 ) {
 	for _, schema := range i.components {
 		if example := schema.Value.Example; !miruken.IsNil(example) {
-			if js, _, err := maps.Out[string](handler, example, api.ToJson); err == nil {
-				schema.Value.Example = json.RawMessage(js)
+			if b, _, err := maps.Out[[]byte](handler, example, api.ToJson); err == nil {
+				schema.Value.Example = json.RawMessage(b)
 			}
 		}
 	}

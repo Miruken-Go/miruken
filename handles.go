@@ -66,7 +66,7 @@ func (h *Handles) Dispatch(
 }
 
 func (h *Handles) String() string {
-	return fmt.Sprintf("Handles => %v", h.callback)
+	return fmt.Sprintf("handles => %v", h.callback)
 }
 
 // HandlesBuilder builds Handles callbacks.

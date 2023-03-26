@@ -63,7 +63,7 @@ func (v *It) Dispatch(
 }
 
 func (v *It) String() string {
-	return fmt.Sprintf("Build => %+v", v.source)
+	return fmt.Sprintf("validates %+v", v.source)
 }
 
 

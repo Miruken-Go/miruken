@@ -14,7 +14,6 @@ func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 			&Scheduler{},
 			&PassThroughRouter{},
 			&batchRouter{},
-			&Mapper{},
 			&MultipartMapper{}).
 			Handlers(NewStash(true))
 	}

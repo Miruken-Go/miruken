@@ -41,8 +41,8 @@ func (m *PlayerMapper) ToPlayerJson(
 		maps.It
 	    maps.Format `to:"application/json"`
       }, data PlayerData,
-) string {
-	return fmt.Sprintf("{\"id\":%v,\"name\":%q}", data.Id, strings.ToUpper(data.Name))
+) []byte {
+	return []byte(fmt.Sprintf("{\"id\":%v,\"name\":%q}", data.Id, strings.ToUpper(data.Name)))
 }
 
 func (m *TypeIdMapper) PlayerDotNet(
@@ -99,7 +99,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 		})
 
 		suite.Run("Json", func() {
-			suite.Run("ToJsonBytes", func() {
+			suite.Run("ToJsonBytesStruct", func() {
 				data := struct{
 					Name string
 					Age  int
@@ -107,49 +107,36 @@ func (suite *JsonStdTestSuite) TestJson() {
 					"John Smith",
 					23,
 				}
-				byt, _, err := maps.Out[[]byte](handler, data, api.ToJson)
+				b, _, err := maps.Out[[]byte](handler, data, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("{\"Name\":\"John Smith\",\"Age\":23}", string(byt))
+				suite.Equal("{\"Name\":\"John Smith\",\"Age\":23}", string(b))
 			})
 
-			suite.Run("ToJsonString", func() {
-				data := struct{
-					Name string
-					Age  int
-				}{
-					"John Smith",
-					23,
-				}
-				j, _, err := maps.Out[string](handler, data, api.ToJson)
+			suite.Run("ToJsonBytesPrimitive", func() {
+				b, _, err := maps.Out[[]byte](handler, 12, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("{\"Name\":\"John Smith\",\"Age\":23}", j)
+				suite.Equal("12", string(b))
+
+				b, _, err = maps.Out[[]byte](handler, "hello", api.ToJson)
+				suite.Nil(err)
+				suite.Equal("\"hello\"", string(b))
 			})
 
-			suite.Run("ToJsonStringPrimitive", func() {
-				j, _, err := maps.Out[string](handler, 12, api.ToJson)
+			suite.Run("ToJsonBytesArray", func() {
+				b, _, err := maps.Out[[]byte](handler, []int{1,2,3}, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("12", j)
+				suite.Equal("[1,2,3]", string(b))
 
-				j, _, err = maps.Out[string](handler, "hello", api.ToJson)
+				b, _, err = maps.Out[[]byte](handler, []string{"A","B","C"}, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("\"hello\"", j)
+				suite.Equal("[\"A\",\"B\",\"C\"]", string(b))
+
+				b, _, err = maps.Out[[]byte](handler, []any{nil}, api.ToJson)
+				suite.Nil(err)
+				suite.Equal("[null]", string(b))
 			})
 
-			suite.Run("ToJsonStringArray", func() {
-				j, _, err := maps.Out[string](handler, []int{1,2,3}, api.ToJson)
-				suite.Nil(err)
-				suite.Equal("[1,2,3]", j)
-
-				j, _, err = maps.Out[string](handler, []string{"A","B","C"}, api.ToJson)
-				suite.Nil(err)
-				suite.Equal("[\"A\",\"B\",\"C\"]", j)
-
-				j, _, err = maps.Out[string](handler, []any{nil}, api.ToJson)
-				suite.Nil(err)
-				suite.Equal("[null]", j)
-			})
-
-			suite.Run("ToJsonStringWithIndent", func() {
+			suite.Run("ToJsonBytesWithIndent", func() {
 				data := struct{
 					Name string
 					Age  int
@@ -157,24 +144,24 @@ func (suite *JsonStdTestSuite) TestJson() {
 					"Sarah Conner",
 					38,
 				}
-				j, _, err := maps.Out[string](
+				b, _, err := maps.Out[[]byte](
 					miruken.BuildUp(handler, miruken.Options(jsonstd.Options{Indent: "  "})),
 					data, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("{\n  \"Name\": \"Sarah Conner\",\n  \"Age\": 38\n}", j)
+				suite.Equal("{\n  \"Name\": \"Sarah Conner\",\n  \"Age\": 38\n}", string(b))
 			})
 
-			suite.Run("ToJsonStringMap", func() {
+			suite.Run("ToJsonBytesMap", func() {
 				data := map[string]any{
 					"Id":    2,
 					"Name": "George Best",
 				}
-				j, _, err := maps.Out[string](handler, data, api.ToJson)
+				b, _, err := maps.Out[[]byte](handler, data, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("{\"Id\":2,\"Name\":\"George Best\"}", j)
+				suite.Equal("{\"Id\":2,\"Name\":\"George Best\"}", string(b))
 			})
 
-			suite.Run("ToJsonStringTransformers", func() {
+			suite.Run("ToJsonBytesTransformers", func() {
 				data := TeamData{
 					Id: 9,
 					Name: "Breakaway",
@@ -184,14 +171,14 @@ func (suite *JsonStdTestSuite) TestJson() {
 						{8, "Michael Binder"},
 					},
 				}
-				j, _, err := maps.Out[string](
+				b, _, err := maps.Out[[]byte](
 					miruken.BuildUp(handler, jsonstd.CamelCase),
 					data, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("{\"id\":9,\"name\":\"Breakaway\",\"players\":[{\"id\":1,\"name\":\"Sean Rose\"},{\"id\":4,\"name\":\"Mark Kingston\"},{\"id\":8,\"name\":\"Michael Binder\"}]}", j)
+				suite.Equal("{\"id\":9,\"name\":\"Breakaway\",\"players\":[{\"id\":1,\"name\":\"Sean Rose\"},{\"id\":4,\"name\":\"Mark Kingston\"},{\"id\":8,\"name\":\"Michael Binder\"}]}", string(b))
 			})
 
-			suite.Run("ToJsonStringTyped", func() {
+			suite.Run("ToBytesStringTyped", func() {
 				data := TeamData{
 					Id: 9,
 					Name: "Breakaway",
@@ -201,46 +188,46 @@ func (suite *JsonStdTestSuite) TestJson() {
 						{8, "Michael Binder"},
 					},
 				}
-				j, _, err := maps.Out[string](
+				b, _, err := maps.Out[[]byte](
 					miruken.BuildUp(handler, api.Polymorphic),
 					data, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}", j)
+				suite.Equal("{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}", string(b))
 			})
 
-			suite.Run("ToJsonStringTypedPrimitive", func() {
-				j, _, err := maps.Out[string](
+			suite.Run("ToJsonBytesTypedPrimitive", func() {
+				b, _, err := maps.Out[[]byte](
 					miruken.BuildUp(handler, api.Polymorphic),
 					22, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("22", j)
+				suite.Equal("22", string(b))
 
-				j, _, err = maps.Out[string](
+				b, _, err = maps.Out[[]byte](
 					miruken.BuildUp(handler, api.Polymorphic),
 					"World", api.ToJson)
 				suite.Nil(err)
-				suite.Equal("\"World\"", j)
+				suite.Equal("\"World\"", string(b))
 			})
 
-			suite.Run("ToJsonStringTypedArray", func() {
-				j, _, err := maps.Out[string](
+			suite.Run("ToJsonBytesTypedArray", func() {
+				b, _, err := maps.Out[[]byte](
 					miruken.BuildUp(handler, api.Polymorphic),
 					[]int{2,4,6}, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("{\"@type\":\"[]int\",\"@values\":[2,4,6]}", j)
+				suite.Equal("{\"@type\":\"[]int\",\"@values\":[2,4,6]}", string(b))
 
-				j, _, err = maps.Out[string](
+				b, _, err = maps.Out[[]byte](
 					miruken.BuildUp(handler, api.Polymorphic),
 					[]string{"X","Y","Z"}, api.ToJson)
-				suite.Equal("{\"@type\":\"[]string\",\"@values\":[\"X\",\"Y\",\"Z\"]}", j)
+				suite.Equal("{\"@type\":\"[]string\",\"@values\":[\"X\",\"Y\",\"Z\"]}", string(b))
 
-				j, _, err = maps.Out[string](
+				b, _, err = maps.Out[[]byte](
 					miruken.BuildUp(handler, api.Polymorphic),
 					[]any{nil}, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("{\"@type\":\"[]interface {}\",\"@values\":[null]}", j)
+				suite.Equal("{\"@type\":\"[]interface {}\",\"@values\":[null]}", string(b))
 
-				j, _, err = maps.Out[string](
+				b, _, err = maps.Out[[]byte](
 					miruken.BuildUp(handler, api.Polymorphic),
 					[]TeamData{{Id: 9, Name: "Breakaway", Players: []PlayerData{
 						{1, "Sean Rose"},
@@ -248,9 +235,9 @@ func (suite *JsonStdTestSuite) TestJson() {
 						{8, "Michael Binder"},
 					},
 					}}, api.ToJson)
-				suite.Equal("{\"@type\":\"[]test.TeamData\",\"@values\":[{\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}]}", j)
+				suite.Equal("{\"@type\":\"[]test.TeamData\",\"@values\":[{\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}]}", string(b))
 
-				j, _, err = maps.Out[string](
+				b, _, err = maps.Out[[]byte](
 					miruken.BuildUp(handler, api.Polymorphic),
 					[]any{TeamData{Id: 9, Name: "Breakaway", Players: []PlayerData{
 						{1, "Sean Rose"},
@@ -258,7 +245,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 						{8, "Michael Binder"},
 					},
 					}}, api.ToJson)
-				suite.Equal("{\"@type\":\"[]interface {}\",\"@values\":[{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}]}", j)
+				suite.Equal("{\"@type\":\"[]interface {}\",\"@values\":[{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}]}", string(b))
 
 				x := []int{1,2}
 				y := []TeamData{{
@@ -270,7 +257,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				fmt.Printf("%T - %v\n", y, reflect.TypeOf(y).String())
 			})
 
-			suite.Run("ToJsonStringTypedIndent", func() {
+			suite.Run("ToJsonBytesTypedIndent", func() {
 				data := TeamData{
 					Id: 9,
 					Name: "Breakaway",
@@ -280,16 +267,16 @@ func (suite *JsonStdTestSuite) TestJson() {
 						{8, "Michael Binder"},
 					},
 				}
-				j, _, err := maps.Out[string](
+				b, _, err := maps.Out[[]byte](
 					miruken.BuildUp(handler,
 						api.Polymorphic,
 						miruken.Options(jsonstd.Options{Prefix: "abc", Indent:"def"})),
 					data, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("{\nabcdef\"@type\": \"test.TeamData\",\nabcdef\"Id\": 9,\nabcdef\"Name\": \"Breakaway\",\nabcdef\"Players\": [\nabcdefdef{\nabcdefdefdef\"Id\": 1,\nabcdefdefdef\"Name\": \"Sean Rose\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 4,\nabcdefdefdef\"Name\": \"Mark Kingston\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 8,\nabcdefdefdef\"Name\": \"Michael Binder\"\nabcdefdef}\nabcdef]\nabc}", j)
+				suite.Equal("{\nabcdef\"@type\": \"test.TeamData\",\nabcdef\"Id\": 9,\nabcdef\"Name\": \"Breakaway\",\nabcdef\"Players\": [\nabcdefdef{\nabcdefdefdef\"Id\": 1,\nabcdefdefdef\"Name\": \"Sean Rose\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 4,\nabcdefdefdef\"Name\": \"Mark Kingston\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 8,\nabcdefdefdef\"Name\": \"Michael Binder\"\nabcdefdef}\nabcdef]\nabc}", string(b))
 			})
 
-			suite.Run("ToJsonStringTypedOverrideTypeId", func() {
+			suite.Run("ToJsonBytesTypedOverrideTypeId", func() {
 				data := TeamData{
 					Id: 9,
 					Name: "Breakaway",
@@ -299,37 +286,37 @@ func (suite *JsonStdTestSuite) TestJson() {
 						{8, "Michael Binder"},
 					},
 				}
-				j, _, err := maps.Out[string](
+				b, _, err := maps.Out[[]byte](
 					miruken.BuildUp(handler,  miruken.Options(api.Options{
 						Polymorphism:   miruken.Set(api.PolymorphismRoot),
 						TypeInfoFormat: "type:info:dotnet",
 					})),
 					data, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("{\"$type\":\"Team,TeamApi\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}", j)
+				suite.Equal("{\"$type\":\"Team,TeamApi\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}", string(b))
 			})
 
-			suite.Run("ToJsonStringTypedTransformers", func() {
+			suite.Run("ToJsonBytesTypedTransformers", func() {
 				data := TeamData{
 					Id: 14,
 					Name: "Liverpool",
 				}
-				j, _, err := maps.Out[string](
+				b, _, err := maps.Out[[]byte](
 					miruken.BuildUp(handler, api.Polymorphic, jsonstd.CamelCase),
 					data, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("{\"@type\":\"test.TeamData\",\"id\":14,\"name\":\"Liverpool\",\"players\":null}", j)
+				suite.Equal("{\"@type\":\"test.TeamData\",\"id\":14,\"name\":\"Liverpool\",\"players\":null}", string(b))
 			})
 
-			suite.Run("ToJsonStringOverride", func() {
+			suite.Run("ToJsonBytesOverride", func() {
 				data := PlayerData{
 					Id:   1,
 					Name: "Tim Howard",
 				}
 
-				j, _, err := maps.Out[string](handler, data, api.ToJson)
+				b, _, err := maps.Out[[]byte](handler, data, api.ToJson)
 				suite.Nil(err)
-				suite.Equal("{\"id\":1,\"name\":\"TIM HOWARD\"}", j)
+				suite.Equal("{\"id\":1,\"name\":\"TIM HOWARD\"}", string(b))
 			})
 
 			suite.Run("ToJsonWriter", func() {
@@ -416,40 +403,40 @@ func (suite *JsonStdTestSuite) TestJson() {
 				suite.Equal("{\"@type\":\"test.TeamData\",\"Id\":15,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}\n", b.String())
 			})
 			
-			suite.Run("FromJsonString", func() {
+			suite.Run("FromJsonBytesStruct", func() {
 				type Data struct {
 					Name string
 					Age  int
 				}
-				j := "{\"Name\":\"Ralph Hall\",\"Age\":84}"
-				data, _, err := maps.Out[Data](handler, j, api.FromJson)
+				b := []byte("{\"Name\":\"Ralph Hall\",\"Age\":84}")
+				data, _, err := maps.Out[Data](handler, b, api.FromJson)
 				suite.Nil(err)
 				suite.Equal(Data{Name: "Ralph Hall", Age: 84}, data)
 			})
 
-			suite.Run("FromJsonStringPrimitive", func() {
-				i, _, err := maps.Out[int](handler, "9", api.FromJson)
+			suite.Run("FromJsonBytesPrimitive", func() {
+				i, _, err := maps.Out[int](handler, []byte("9"), api.FromJson)
 				suite.Nil(err)
 				suite.Equal(9, i)
 
-				s, _, err := maps.Out[string](handler, "\"hello\"", api.FromJson)
+				s, _, err := maps.Out[string](handler, []byte("\"hello\""), api.FromJson)
 				suite.Nil(err)
 				suite.Equal("hello", s)
 			})
 
-			suite.Run("FromJsonStringArray", func() {
-				ia, _, err := maps.Out[[]int](handler, "[3,6,9]", api.FromJson)
+			suite.Run("FromJsonBytesArray", func() {
+				ia, _, err := maps.Out[[]int](handler, []byte("[3,6,9]"), api.FromJson)
 				suite.Nil(err)
 				suite.Equal([]int{3,6,9}, ia)
 
-				sa, _, err := maps.Out[[]string](handler, "[\"E\",\"F\",\"G\"]", api.FromJson)
+				sa, _, err := maps.Out[[]string](handler, []byte("[\"E\",\"F\",\"G\"]"), api.FromJson)
 				suite.Nil(err)
 				suite.Equal([]string{"E","F","G"}, sa)
 			})
 
-			suite.Run("FromJsonStringMap", func() {
+			suite.Run("FromJsonBytesMap", func() {
 				j := "{\"Name\":\"Ralph Hall\",\"Age\":84}"
-				data, _,  err := maps.Out[map[string]any](handler, j, api.FromJson)
+				data, _,  err := maps.Out[map[string]any](handler, []byte(j), api.FromJson)
 				suite.Nil(err)
 				suite.Equal(84.0, data["Age"])
 				suite.Equal("Ralph Hall", data["Name"])
@@ -478,56 +465,56 @@ func (suite *JsonStdTestSuite) TestJson() {
 				suite.Equal(Data{Name: "Ralph Hall", Age: 84}, data)
 			})
 
-			suite.Run("FromJsonStringTyped", func() {
+			suite.Run("FromJsonBytesTyped", func() {
 				j := "{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Liverpool\"}"
 				data, _, err := maps.Out[*TeamData](
 					miruken.BuildUp(handler, api.Polymorphic),
-					j, api.FromJson)
+					[]byte(j), api.FromJson)
 				suite.Nil(err)
 				suite.NotNil(data)
 				suite.Equal(TeamData{Id: 9, Name: "Liverpool"}, *data)
 			})
 
-			suite.Run("FromJsonStringTypedPrimitive", func() {
+			suite.Run("FromJsonBytesTypedPrimitive", func() {
 				i, _, err := maps.Out[int](
 					miruken.BuildUp(handler, api.Polymorphic),
-					"99", api.FromJson)
+					[]byte("99"), api.FromJson)
 				suite.Nil(err)
 				suite.Equal(99, i)
 
 				s, _, err := maps.Out[string](
 					miruken.BuildUp(handler, api.Polymorphic),
-					"\"world\"", api.FromJson)
+					[]byte("\"world\""), api.FromJson)
 				suite.Nil(err)
 				suite.Equal("world", s)
 			})
 
-			suite.Run("FromJsonStringTypedArray", func() {
+			suite.Run("FromJsonBytesTypedArray", func() {
 				ia, _, err := maps.Out[[]int](
 					miruken.BuildUp(handler, api.Polymorphic),
-					"[100,200,300]", api.FromJson)
+					[]byte("[100,200,300]"), api.FromJson)
 				suite.Nil(err)
 				suite.Equal([]int{100,200,300}, ia)
 
-				sa, _, err := maps.Out[[]string](handler, "[\"E\",\"F\",\"G\"]", api.FromJson)
+				sa, _, err := maps.Out[[]string](handler, []byte("[\"E\",\"F\",\"G\"]"), api.FromJson)
 				suite.Nil(err)
 				suite.Equal([]string{"E","F","G"}, sa)
 
 				i8a, _, err := maps.Out[[]int8](
 					miruken.BuildUp(handler, api.Polymorphic),
-					"{\"@type\":\"[]int8\",\"@values\":[2,4,6]}", api.FromJson)
+					[]byte("{\"@type\":\"[]int8\",\"@values\":[2,4,6]}"), api.FromJson)
 				suite.Nil(err)
 				suite.Equal([]int8{2,4,6}, i8a)
 
 				sa, _, err = maps.Out[[]string](
 					miruken.BuildUp(handler, api.Polymorphic),
-					"{\"@type\":\"[]string\",\"@values\":[\"Craig\",\"Brenda\",\"Lauren\"]}", api.FromJson)
+					[]byte("{\"@type\":\"[]string\",\"@values\":[\"Craig\",\"Brenda\",\"Lauren\"]}"), api.FromJson)
 				suite.Nil(err)
 				suite.Equal([]string{"Craig","Brenda","Lauren"}, sa)
 
 				ta, _, err := maps.Out[[]*TeamData](
 					miruken.BuildUp(handler, api.Polymorphic),
-					"{\"@type\":\"[]test.TeamData\",\"@values\":[{\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}]}", api.FromJson)
+					[]byte("{\"@type\":\"[]test.TeamData\",\"@values\":[{\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}]}"), api.FromJson)
 				suite.Nil(err)
 				suite.Equal([]*TeamData{{Id: 9, Name: "Breakaway", Players: []PlayerData{
 					{1, "Sean Rose"},
@@ -537,7 +524,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 
 				ta, _, err = maps.Out[[]*TeamData](
 					miruken.BuildUp(handler, api.Polymorphic),
-					"[{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Luca Schalk\"},{\"Id\":4,\"Name\":\"Brad Bullock\"},{\"Id\":8,\"Name\":\"William Tippet\"}]}]", api.FromJson)
+					[]byte("[{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Luca Schalk\"},{\"Id\":4,\"Name\":\"Brad Bullock\"},{\"Id\":8,\"Name\":\"William Tippet\"}]}]"), api.FromJson)
 				suite.Nil(err)
 				suite.Equal([]*TeamData{{Id: 9, Name: "Breakaway", Players: []PlayerData{
 					{1, "Luca Schalk"},
@@ -547,7 +534,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 
 				tp, _, err := maps.Out[[]any](
 					miruken.BuildUp(handler, api.Polymorphic),
-					"[{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Luca Schalk\"},{\"Id\":4,\"Name\":\"Brad Bullock\"},{\"Id\":8,\"Name\":\"William Tippet\"}]}]", api.FromJson)
+					[]byte("[{\"@type\":\"test.TeamData\",\"Id\":9,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Luca Schalk\"},{\"Id\":4,\"Name\":\"Brad Bullock\"},{\"Id\":8,\"Name\":\"William Tippet\"}]}]"), api.FromJson)
 				suite.Nil(err)
 				suite.Equal([]any{&TeamData{Id: 9, Name: "Breakaway", Players: []PlayerData{
 					{1, "Luca Schalk"},
@@ -577,43 +564,43 @@ func (suite *JsonStdTestSuite) TestJson() {
 				suite.Equal(TeamData{Id: 11, Name: "Chelsea"}, *late.Value.(*TeamData))
 			})
 
-			suite.Run("FromJsonStringNoTypeInfo", func() {
+			suite.Run("FromJsonBytesNoTypeInfo", func() {
 				j := "{\"Id\":23,\"Name\":\"Everton\"}"
 				data, _, err := maps.Out[*TeamData](
 					miruken.BuildUp(handler, api.Polymorphic),
-					j, api.FromJson)
+					[]byte(j), api.FromJson)
 				suite.Nil(err)
 				suite.NotNil(data)
 				suite.Equal(TeamData{Id: 23, Name: "Everton"}, *data)
 			})
 
-			suite.Run("FromJsonStringNoTypeInfoAny", func() {
+			suite.Run("FromJsonBytesNoTypeInfoAny", func() {
 				j := "{\"Id\":19,\"Name\":\"Wolves\"}"
 				dat, _, err := maps.Out[any](
 					miruken.BuildUp(handler, api.Polymorphic),
-					j, api.FromJson)
+					[]byte(j), api.FromJson)
 				suite.Nil(err)
 				suite.True(reflect.DeepEqual(map[string]any{
 					"Id": float64(19), "Name": "Wolves",
 				}, dat))
 			})
 
-			suite.Run("FromJsonStringNoTypeInfoLate", func() {
+			suite.Run("FromJsonBytesNoTypeInfoLate", func() {
 				j := "{\"Id\":23,\"Name\":\"Everton\"}"
 				late, _, err := maps.Out[miruken.Late](
 					miruken.BuildUp(handler, api.Polymorphic),
-					j, api.FromJson)
+					[]byte(j), api.FromJson)
 				suite.Nil(err)
 				suite.True(reflect.DeepEqual(map[string]any{
 					"Id": float64(23), "Name": "Everton",
 				}, late.Value))
 			})
 
-			suite.Run("FromJsonStringMissingTypeInfo", func() {
+			suite.Run("FromJsonBytesMissingTypeInfo", func() {
 				j := "{\"@type\":\"test.Team\",\"Id\":9,\"Name\":\"Leeds United\"}"
 				_, _, err := maps.Out[*TeamData](
 					miruken.BuildUp(handler, api.Polymorphic),
-					j, api.FromJson)
+					[]byte(j), api.FromJson)
 				suite.NotNil(err)
 			})
 		})

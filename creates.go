@@ -31,7 +31,7 @@ func (c *Creates) Dispatch(
 }
 
 func (c *Creates) String() string {
-	return fmt.Sprintf("Creates => %+v", c.key)
+	return fmt.Sprintf("creates => %+v", c.key)
 }
 
 // CreatesBuilder builds Creates callbacks.

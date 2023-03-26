@@ -54,6 +54,6 @@ func (m *SurrogateMapper) ReplaceScheduledResult(
 			return nil, err
 		}
 	}
-	js, _, err := maps.Out[[]byte](ctx.Composer(), sur, api.ToJson)
-	return js, err
+	byt, _, err := maps.Out[[]byte](ctx.Composer(), sur, api.ToJson)
+	return byt, err
 }
