@@ -178,7 +178,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				suite.Equal("{\"id\":9,\"name\":\"Breakaway\",\"players\":[{\"id\":1,\"name\":\"Sean Rose\"},{\"id\":4,\"name\":\"Mark Kingston\"},{\"id\":8,\"name\":\"Michael Binder\"}]}", string(b))
 			})
 
-			suite.Run("ToBytesStringTyped", func() {
+			suite.Run("ToJsonBytesTyped", func() {
 				data := TeamData{
 					Id: 9,
 					Name: "Breakaway",

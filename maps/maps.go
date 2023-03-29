@@ -11,9 +11,10 @@ type (
 	// It maps callbacks bivariantly.
 	It struct {
 		miruken.CallbackBase
-		key    any
-		source any
-		target any
+		key     any
+		source  any
+		target  any
+		written bool
 	}
 
 	// Builder builds It callbacks.
@@ -35,6 +36,15 @@ func (m *It) Source() any {
 
 func (m *It) Target() any {
 	return m.target
+}
+
+func (m *It) TargetForWrite() any {
+	m.written = true
+	return m.target
+}
+
+func (m *It) TargetWritten() bool {
+	return m.written
 }
 
 func (m *It) Key() any {
@@ -116,13 +126,13 @@ func Out[T any](
 	builder.FromSource(source).
 		    ToTarget(&t).
 			WithConstraints(constraints...)
-	maps := builder.New()
-	if result := handler.Handle(maps, false, nil); result.IsError() {
+	m := builder.New()
+	if result := handler.Handle(m, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.Handled() {
-		err = &miruken.NotHandledError{Callback: maps}
+		err = &miruken.NotHandledError{Callback: m}
 	} else {
-		_, tp, err = miruken.CoerceResult[T](maps, &t)
+		tp, err = ensureTargetWritten[T](&t, m)
 	}
 	return
 }
@@ -147,13 +157,20 @@ func Into[T any](
 	} else {
 		builder.ToTarget(target)
 	}
-	maps := builder.New()
-	if result := handler.Handle(maps, false, nil); result.IsError() {
+	m := builder.New()
+	if result := handler.Handle(m, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.Handled() {
-		err = &miruken.NotHandledError{Callback: maps}
+		err = &miruken.NotHandledError{Callback: m}
+	}else if m.TargetWritten() {
+		vp, err = miruken.CompleteResult(m)
 	} else {
-		vp, err = miruken.CompleteResult(maps)
+		var tp *promise.Promise[T]
+		if _, tp, err = miruken.CoerceResult[T](m, target); err == nil && tp != nil {
+			vp = promise.Then(tp, func(T) promise.Void {
+				return promise.Void{}
+			})
+		}
 	}
 	return
 }
@@ -170,13 +187,13 @@ func Key[T any](
 	builder.WithKey(key).
 			ToTarget(&t).
 			WithConstraints(constraints...)
-	maps := builder.New()
-	if result := handler.Handle(maps, false, nil); result.IsError() {
+	m := builder.New()
+	if result := handler.Handle(m, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.Handled() {
-		err = &miruken.NotHandledError{Callback: maps}
+		err = &miruken.NotHandledError{Callback: m}
 	} else {
-		_, tp, err = miruken.CoerceResult[T](maps, &t)
+		tp, err = ensureTargetWritten[T](&t, m)
 	}
 	return
 }
@@ -200,13 +217,13 @@ func All[T any](
 		builder.FromSource(ts.Index(i).Interface()).
 				ToTarget(&t[i]).
 				WithConstraints(constraints...)
-		maps := builder.New()
-		if result := handler.Handle(maps, false, nil); result.IsError() {
+		m := builder.New()
+		if result := handler.Handle(m, false, nil); result.IsError() {
 			return nil, nil, result.Error()
 		} else if !result.Handled() {
-			return nil, nil, &miruken.NotHandledError{Callback: maps}
+			return nil, nil, &miruken.NotHandledError{Callback: m}
 		}
-		if _, pm, err := miruken.CoerceResult[T](maps, &t[i]); err != nil {
+		if pm, err := ensureTargetWritten[T](&t[i], m); err != nil {
 			return nil, nil, err
 		} else if pm != nil {
 			promises = append(promises, pm)
@@ -224,6 +241,23 @@ func All[T any](
 			return t
 		}), nil
 	}
+}
+
+func ensureTargetWritten[T any](
+	t *T,
+	m *It,
+) (tp *promise.Promise[T], err error) {
+	if m.TargetWritten() {
+		var vp *promise.Promise[promise.Void]
+		if vp, err = miruken.CompleteResult(m); err == nil && vp != nil {
+			tp = promise.Then(vp, func(promise.Void) T {
+				return *t
+			})
+		}
+	} else {
+		_, tp, err = miruken.CoerceResult[T](m, t)
+	}
+	return
 }
 
 var (

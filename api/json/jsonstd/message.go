@@ -21,7 +21,7 @@ func (m *SurrogateMapper) EncodeMessage(
 	it *maps.It,
 	ctx miruken.HandleContext,
 ) (io.Writer, error) {
-	if writer, ok := it.Target().(*io.Writer); ok {
+	if writer, ok := it.TargetForWrite().(*io.Writer); ok {
 		var sur MessageSurrogate
 		if payload := msg.Payload; payload != nil {
 			pb, _, err := maps.Out[[]byte](ctx.Composer(), msg.Payload, api.ToJson)
@@ -43,21 +43,25 @@ func (m *SurrogateMapper) DecodeMessage(
 		maps.It
 		maps.Format `from:"application/json"`
 	  }, reader io.Reader,
+	it *maps.It,
 	ctx miruken.HandleContext,
 ) (msg api.Message, err error) {
-	var sur MessageSurrogate
-	dec := json.NewDecoder(reader)
-	if err = dec.Decode(&sur); err != nil {
-		return
-	}
-	if payload := sur.Payload; payload != nil {
-		var late miruken.Late
-		composer := ctx.Composer()
-		late, _, err = maps.Out[miruken.Late](composer, []byte(payload), api.FromJson)
-		if sur, ok := late.Value.(api.Surrogate); ok {
-			late.Value, err = sur.Original(composer)
+	if mp, ok := it.TargetForWrite().(*api.Message); ok {
+		var sur MessageSurrogate
+		dec := json.NewDecoder(reader)
+		if err = dec.Decode(&sur); err != nil {
+			return
 		}
-		msg.Payload = late.Value
+		if payload := sur.Payload; payload != nil {
+			var late miruken.Late
+			composer := ctx.Composer()
+			late, _, err = maps.Out[miruken.Late](composer, []byte(payload), api.FromJson)
+			if sur, ok := late.Value.(api.Surrogate); ok {
+				late.Value, err = sur.Original(composer)
+			}
+			mp.Payload = late.Value
+			msg = *mp
+		}
 	}
 	return
 }

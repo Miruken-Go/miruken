@@ -38,36 +38,19 @@ func (m *Mapper) ToJson(
 		args.FromOptions
 	  }, apiOptions api.Options,
 	ctx miruken.HandleContext,
-) (any, error) {
-	switch t := it.Target().(type) {
+) (json any, err error) {
+	switch t := it.TargetForWrite().(type) {
 	case *[]byte:
-		return marshal(it, &options, &apiOptions, ctx)
+		return marshal(it, t, &options, &apiOptions, ctx.Composer())
 	case *io.Writer:
-		var writer io.Writer
 		if miruken.IsNil(*t) {
-			var b bytes.Buffer
-			w := io.Writer(&b)
-			writer = w
-		} else {
-			writer = *t
+			*t = new(bytes.Buffer)
 		}
-		err := encode(it, writer, &options, &apiOptions, ctx)
-		if err == nil {
-			return writer, nil
+		if err = encode(it, *t, &options, &apiOptions, ctx.Composer()); err == nil {
+			json = *t
 		}
-		return nil, err
-	default:
-		byt, err := marshal(it, &options, &apiOptions, ctx)
-		if err != nil {
-			return nil, err
-		}
-		t = it.Target()
-		if _, err = maps.Into(ctx.Composer(), byt, &t); err != nil {
-			return nil, err
-		}
-		return t, nil
 	}
-	//return nil, nil
+	return
 }
 
 func (m *Mapper) FromBytes(
@@ -85,7 +68,7 @@ func (m *Mapper) FromBytes(
 	maps *maps.It,
 	ctx  miruken.HandleContext,
 ) (any, error) {
-	return unmarshal(maps, byt, &options, &apiOptions, ctx)
+	return unmarshal(maps, byt, &options, &apiOptions, ctx.Composer())
 }
 
 func (m *Mapper) FromReader(
@@ -103,52 +86,34 @@ func (m *Mapper) FromReader(
 	maps *maps.It,
 	ctx  miruken.HandleContext,
 ) (any, error) {
-	return decode(maps, reader, &options, &apiOptions, ctx)
+	return decode(maps, reader, &options, &apiOptions, ctx.Composer())
 }
-
-/*
-func (m *Mapper) FromString(
-	_*struct{
-		maps.Format `from:"application/json"`
-	  }, json string,
-	_*struct{
-		args.Optional
-		args.FromOptions
-	  }, options Options,
-	_*struct{
-		args.Optional
-		args.FromOptions
-	  }, apiOptions api.Options,
-	maps *maps.It,
-	ctx  miruken.HandleContext,
-) (any, error) {
-	return unmarshal(maps, []byte(json), &options, &apiOptions, ctx)
-}
-*/
 
 func marshal(
-	maps       *maps.It,
+	it         *maps.It,
+	byt        *[]byte,
 	options    *Options,
 	apiOptions *api.Options,
-	ctx        miruken.HandleContext,
-) (byt []byte, err error) {
-	src := maps.Source()
+	composer   miruken.Handler,
+) ([]byte, error) {
+	src := it.Source()
 	if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
 		src = &typeContainer{
 			v:        src,
 			typInfo:  apiOptions.TypeInfoFormat,
 			trans:    options.Transformers,
-			composer: ctx.Composer(),
+			composer: composer,
 		}
 	} else if trans := options.Transformers; len(trans) > 0 {
 		src = &transformer{src, trans}
 	}
+	var err error
 	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
-		byt, err = json.MarshalIndent(src, prefix, indent)
+		*byt, err = json.MarshalIndent(src, prefix, indent)
 	} else {
-		byt, err = json.Marshal(src)
+		*byt, err = json.Marshal(src)
 	}
-	return
+	return *byt, err
 }
 
 func unmarshal(
@@ -156,14 +121,14 @@ func unmarshal(
 	byt        []byte,
 	options    *Options,
 	apiOptions *api.Options,
-	ctx        miruken.HandleContext,
+	composer   miruken.Handler,
 ) (target any, err error) {
-	target = maps.Target()
+	target = maps.TargetForWrite()
 	if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
 		tc := typeContainer{
 			v:        target,
 			trans:    options.Transformers,
-			composer: ctx.Composer(),
+			composer: composer,
 		}
 		err = json.Unmarshal(byt, &tc)
 		return
@@ -176,11 +141,11 @@ func unmarshal(
 }
 
 func encode(
-	maps       *maps.It,
+	it         *maps.It,
 	writer     io.Writer,
 	options    *Options,
 	apiOptions *api.Options,
-	ctx        miruken.HandleContext,
+	composer   miruken.Handler,
 ) error {
 	enc := json.NewEncoder(writer)
 	if prefix, indent := options.Prefix, options.Indent; len(prefix) > 0 || len(indent) > 0 {
@@ -189,13 +154,14 @@ func encode(
 	if escapeHTML := options.EscapeHTML; escapeHTML.Set() {
 		enc.SetEscapeHTML(escapeHTML.Value())
 	}
-	src := maps.Source()
+	src := it.Source()
 	if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
 		src = &typeContainer{
 			v:        src,
 			typInfo:  apiOptions.TypeInfoFormat,
 			trans:    options.Transformers,
-			composer: ctx.Composer()}
+			composer: composer,
+		}
 	} else if trans := options.Transformers; len(trans) > 0 {
 		src = &transformer{src, trans}
 	}
@@ -203,19 +169,19 @@ func encode(
 }
 
 func decode(
-	maps       *maps.It,
+	it         *maps.It,
 	reader     io.Reader,
 	options    *Options,
 	apiOptions *api.Options,
-	ctx        miruken.HandleContext,
+	composer   miruken.Handler,
 ) (target any, err error) {
-	target = maps.Target()
+	target = it.TargetForWrite()
 	dec := json.NewDecoder(reader)
 	if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
 		tc := typeContainer{
 			v:        target,
 			trans:    options.Transformers,
-			composer: ctx.Composer(),
+			composer: composer,
 		}
 		err = dec.Decode(&tc)
 		return
