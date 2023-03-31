@@ -8,12 +8,12 @@ type SurrogateMapper struct {}
 
 func (m *SurrogateMapper) New(
 	_*struct{
-		sr creates.It `key:"jsonstd.ScheduledResultSurrogate"`
+		sr creates.It `key:"jsonstd.ScheduledResult"`
 	  }, create *creates.It,
 ) any {
 	switch create.Key() {
-	case "jsonstd.ScheduledResultSurrogate":
-		return new(ScheduledResultSurrogate)
+	case "jsonstd.ScheduledResult":
+		return new(ScheduledResult)
 	}
 	return nil
 }

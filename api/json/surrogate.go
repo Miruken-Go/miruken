@@ -10,21 +10,21 @@ type SurrogateMapper struct {}
 
 func (m *SurrogateMapper) New(
 	_*struct{
-		o creates.It `key:"json.OutcomeSurrogate"`
-		e creates.It `key:"json.ErrorSurrogate"`
-		c creates.It `key:"json.ConcurrentSurrogate"`
-	    s creates.It `key:"json.SequentialSurrogate"`
+		o creates.It `key:"json.Outcome"`
+		e creates.It `key:"json.Error"`
+		c creates.It `key:"json.Concurrent"`
+	    s creates.It `key:"json.Sequential"`
 	  }, create *creates.It,
 ) any {
 	switch create.Key() {
-	case "json.OutcomeSurrogate":
-		return new(OutcomeSurrogate)
-	case "json.ErrorSurrogate":
-		return new(ErrorSurrogate)
-	case "json.ConcurrentSurrogate":
-		return new(ConcurrentSurrogate)
-	case "json.SequentialSurrogate":
-		return new(SequentialSurrogate)
+	case "json.Outcome":
+		return new(Outcome)
+	case "json.Error":
+		return new(Error)
+	case "json.Concurrent":
+		return new(Concurrent)
+	case "json.Sequential":
+		return new(Sequential)
 	}
 	return nil
 }

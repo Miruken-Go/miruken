@@ -224,7 +224,7 @@ func (i *Installer) initializeDefinitions() {
 							Ref: "#/components/schemas/ValidationFailure",
 						},
 						Example: json.RawMessage(`{
-    "@type": "json.OutcomeSurrogate",
+    "@type": "json.Outcome",
     "@values": [
       {
         "propertyName": "PropertyName",
@@ -243,7 +243,7 @@ func (i *Installer) initializeDefinitions() {
 			WithDescription("Oops ... something went wrong").
 			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
 				WithPropertyRef("payload", &openapi3.SchemaRef{
-					Ref: "#/components/schemas/ErrorSurrogate",
+					Ref: "#/components/schemas/Error",
 				}))),
 	}
 	payload := &openapi3.RequestBodyRef{
@@ -408,15 +408,15 @@ func Feature(config ...func(installer *Installer)) *Installer {
 					"Key: 'PropertyName' Error:Field validation for 'PropertyName' failed on the 'required' tag",
 				},
 			},
-			json2.ErrorSurrogate{
+			json2.Error{
 				Message: "Something bad happened.",
 			},
 		},
 		surrogates: map[reflect.Type]any{
-			miruken.TypeOf[api.ConcurrentBatch](): json2.ConcurrentSurrogate{},
-			miruken.TypeOf[api.SequentialBatch](): json2.SequentialSurrogate{},
-			miruken.TypeOf[api.ScheduledResult](): jsonstd.ScheduledResultSurrogate{
-				jsonstd.EitherSurrogate[error, any]{
+			miruken.TypeOf[api.ConcurrentBatch](): json2.Concurrent{},
+			miruken.TypeOf[api.SequentialBatch](): json2.Sequential{},
+			miruken.TypeOf[api.ScheduledResult](): jsonstd.ScheduledResult{
+				jsonstd.Either[error, any]{
 					Left:  false,
 					Value: json.RawMessage("\"success\""),
 				},

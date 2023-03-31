@@ -7,24 +7,24 @@ import (
 )
 
 type (
-	// ConcurrentSurrogate is a surrogate for api.ConcurrentBatch over json.
-	ConcurrentSurrogate []any
+	// Concurrent is a surrogate for api.ConcurrentBatch over json.
+	Concurrent []any
 
-	// SequentialSurrogate is a surrogate for api.SequentialBatch over json.
-	SequentialSurrogate []any
+	// Sequential is a surrogate for api.SequentialBatch over json.
+	Sequential []any
 )
 
 
-// ConcurrentSurrogate
+// Concurrent
 
-func (s ConcurrentSurrogate) Original(miruken.Handler) (any, error) {
+func (s Concurrent) Original(miruken.Handler) (any, error) {
 	return &api.ConcurrentBatch{Requests: s}, nil
 }
 
 
-// SequentialSurrogate
+// Sequential
 
-func (s SequentialSurrogate) Original(miruken.Handler) (any, error) {
+func (s Sequential) Original(miruken.Handler) (any, error) {
 	return &api.SequentialBatch{Requests: s}, nil
 }
 
@@ -38,9 +38,9 @@ func (m *SurrogateMapper) ReplaceConcurrent(
 	  }, batch api.ConcurrentBatch,
 	ctx miruken.HandleContext,
 ) (byt []byte, err error) {
-	sur := ConcurrentSurrogate(batch.Requests)
+	sur := Concurrent(batch.Requests)
 	if sur == nil {
-		sur = make(ConcurrentSurrogate, 0)
+		sur = make(Concurrent, 0)
 	}
 	byt, _, err = maps.Out[[]byte](ctx.Composer(), sur, api.ToJson)
 	return
@@ -53,9 +53,9 @@ func (m *SurrogateMapper) ReplaceSequential(
 	  }, batch api.SequentialBatch,
 	ctx miruken.HandleContext,
 ) (byt []byte, err error) {
-	sur := SequentialSurrogate(batch.Requests)
+	sur := Sequential(batch.Requests)
 	if sur == nil {
-		sur = make(SequentialSurrogate, 0)
+		sur = make(Sequential, 0)
 	}
 	byt, _, err = maps.Out[[]byte](ctx.Composer(), sur, api.ToJson)
 	return

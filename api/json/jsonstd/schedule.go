@@ -8,12 +8,12 @@ import (
 )
 
 type (
-	// ScheduledResultSurrogate is a surrogate for api.ScheduledResult over json.
-	ScheduledResultSurrogate []EitherSurrogate[error, any]
+	// ScheduledResult is a surrogate for api.ScheduledResult over json.
+	ScheduledResult []Either[error, any]
 )
 
 
-func (s ScheduledResultSurrogate) Original(composer miruken.Handler) (any, error) {
+func (s ScheduledResult) Original(composer miruken.Handler) (any, error) {
 	responses := make([]either.Monad[error, any], len(s))
 	for i, resp := range s {
 		if orig, err := resp.Original(composer); err != nil {
@@ -35,18 +35,18 @@ func (m *SurrogateMapper) ReplaceScheduledResult(
 	  }, result api.ScheduledResult,
 	ctx miruken.HandleContext,
 ) ([]byte, error) {
-	sur := make(ScheduledResultSurrogate, len(result.Responses))
+	sur := make(ScheduledResult, len(result.Responses))
 	for i, resp := range result.Responses {
 		err := either.Fold(resp, func(e error) error {
 			byt, _, err := maps.Out[[]byte](ctx.Composer(), e, api.ToJson)
 			if err == nil {
-				sur[i] = EitherSurrogate[error, any]{true, byt}
+				sur[i] = Either[error, any]{true, byt}
 			}
 			return err
 		}, func(val any) error {
 			byt, _, err := maps.Out[[]byte](ctx.Composer(), val, api.ToJson)
 			if err == nil {
-				sur[i] = EitherSurrogate[error, any]{false, byt}
+				sur[i] = Either[error, any]{false, byt}
 			}
 			return err
 		})

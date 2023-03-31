@@ -8,14 +8,14 @@ import (
 	"github.com/miruken-go/miruken/validates"
 )
 
-// OutcomeSurrogate is a surrogate for validates.Outcome over json.
-type OutcomeSurrogate []struct {
+// Outcome is a surrogate for validates.Outcome over json.
+type Outcome []struct {
 	PropertyName string
 	Errors       []string
-	Nested       OutcomeSurrogate
+	Nested       Outcome
 }
 
-func (s OutcomeSurrogate) Original(miruken.Handler) (any, error) {
+func (s Outcome) Original(miruken.Handler) (any, error) {
 	return surrogateToOutcome(s), nil
 }
 
@@ -31,11 +31,11 @@ func (m *SurrogateMapper) ReplaceOutcome(
 	return js, err
 }
 
-func outcomeToSurrogate(outcome *validates.Outcome) OutcomeSurrogate {
-	var sur OutcomeSurrogate
+func outcomeToSurrogate(outcome *validates.Outcome) Outcome {
+	var sur Outcome
 	for _, field := range outcome.Fields() {
 		var messages []string
-		var children OutcomeSurrogate
+		var children Outcome
 		for _, err := range outcome.FieldErrors(field) {
 			if child, ok := err.(*validates.Outcome); ok {
 				children = append(children, outcomeToSurrogate(child)...)
@@ -45,8 +45,8 @@ func outcomeToSurrogate(outcome *validates.Outcome) OutcomeSurrogate {
 		}
 		sur = append(sur, struct {
 			PropertyName string
-			Errors       []string
-			Nested       OutcomeSurrogate
+			Errors []string
+			Nested Outcome
 		}{
 			PropertyName: field,
 			Errors: 	  messages,
@@ -56,7 +56,7 @@ func outcomeToSurrogate(outcome *validates.Outcome) OutcomeSurrogate {
 	return sur
 }
 
-func surrogateToOutcome(surrogate OutcomeSurrogate) *validates.Outcome {
+func surrogateToOutcome(surrogate Outcome) *validates.Outcome {
 	outcome := &validates.Outcome{}
 	for _, sur := range surrogate {
 		field := sur.PropertyName
@@ -72,13 +72,12 @@ func surrogateToOutcome(surrogate OutcomeSurrogate) *validates.Outcome {
 	return outcome
 }
 
-
-// ErrorSurrogate is a surrogate for a generic error over json.
-type ErrorSurrogate struct {
+// Error is a surrogate for a generic error over json.
+type Error struct {
 	Message string
 }
 
-func (s *ErrorSurrogate) Original(miruken.Handler) (any, error) {
+func (s *Error) Original(miruken.Handler) (any, error) {
 	return errors.New(s.Message), nil
 }
 
@@ -89,7 +88,7 @@ func (m *SurrogateMapper) ReplaceError(
 	  }, err error,
 	ctx miruken.HandleContext,
 ) ([]byte, error) {
-	sur := ErrorSurrogate{err.Error()}
+	sur := Error{err.Error()}
 	js, _, err := maps.Out[[]byte](ctx.Composer(), sur, api.ToJson)
 	return js, err
 }

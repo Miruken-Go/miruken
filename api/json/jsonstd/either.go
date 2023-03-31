@@ -9,13 +9,13 @@ import (
 	"github.com/miruken-go/miruken/maps"
 )
 
-// EitherSurrogate is a surrogate for either.Monad using standard json.
-type EitherSurrogate[L, R any] struct {
+// Either is a surrogate for either.Monad using standard json.
+type Either[L, R any] struct {
 	Left  bool            `json:"left"`
 	Value json.RawMessage `json:"value"`
 }
 
-func (s EitherSurrogate[L, R]) Original(
+func (s Either[L, R]) Original(
 	composer miruken.Handler,
 ) (any, error) {
 	if v, _, err := maps.Out[any](composer, s.Value, api.FromJson); err != nil {
