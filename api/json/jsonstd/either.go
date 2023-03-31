@@ -9,7 +9,7 @@ import (
 	"github.com/miruken-go/miruken/maps"
 )
 
-// EitherSurrogate is a surrogate for miruken.Either using standard json.
+// EitherSurrogate is a surrogate for either.Monad using standard json.
 type EitherSurrogate[L, R any] struct {
 	Left  bool            `json:"left"`
 	Value json.RawMessage `json:"value"`

@@ -176,7 +176,7 @@ func (b *batchRouter) CompleteBatch(
 		routeTo := RouteTo(ConcurrentBatch{messages}, route)
 		complete = append(complete,
 			promise.Then(sendBatch(composer, routeTo),
-				func(results []either.Either[error, any]) RouteReply {
+				func(results []either.Monad[error, any]) RouteReply {
 					responses := make([]any, len(results))
 					for i := len(responses); i < len(messages); i++ {
 						group[i].deferred.Reject(ErrMissingResponse)

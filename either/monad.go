@@ -3,37 +3,37 @@ package either
 import "fmt"
 
 type (
-	// Either represents one of two values (left or right).
-	Either[L, R any] interface{}
+	// Monad represents one of two values (left or right).
+	Monad[L, R any] interface{}
 
-	// right represents the right side of an Either.
+	// right represents the right side of an Monad.
 	right[R any] struct {
 		val R
 	}
 
-	// left represents the left side of an Either.
+	// left represents the left side of an Monad.
 	left[L any] struct {
 		val L
 	}
 )
 
-// Left returns a new Either with a left value.
-func Left[L any](val L) Either[L, any] {
+// Left returns a new Monad with a left value.
+func Left[L any](val L) Monad[L, any] {
 	return left[L]{val}
 }
 
-// Right returns a new Either with a right value.
-func Right[R any](val R) Either[any, R] {
+// Right returns a new Monad with a right value.
+func Right[R any](val R) Monad[any, R] {
 	return right[R]{val}
 }
 
 // Seq (seq)
-func Seq[L, R, R2 any](_ Either[L, R], e Either[L, R2]) Either[L, R2] {
+func Seq[L, R, R2 any](_ Monad[L, R], e Monad[L, R2]) Monad[L, R2] {
 	return e
 }
 
 // Map (map/fmap)
-func Map[L, R, R2 any](e Either[L, R], f func(R) R2) Either[L, R2] {
+func Map[L, R, R2 any](e Monad[L, R], f func(R) R2) Monad[L, R2] {
 	if e == nil {
 		panic("e cannot be nil")
 	}
@@ -47,7 +47,7 @@ func Map[L, R, R2 any](e Either[L, R], f func(R) R2) Either[L, R2] {
 }
 
 // Apply (apply/<*>/ap)
-func Apply[L, R, R2 any](e Either[L, func(R) R2], f Either[L, R]) Either[L, R2] {
+func Apply[L, R, R2 any](e Monad[L, func(R) R2], f Monad[L, R]) Monad[L, R2] {
 	if e == nil {
 		panic("e cannot be nil")
 	}
@@ -61,7 +61,7 @@ func Apply[L, R, R2 any](e Either[L, func(R) R2], f Either[L, R]) Either[L, R2] 
 }
 
 // FlatMap (flatMap/bind/chain/liftM)
-func FlatMap[L, R, R2 any](e Either[L, R], f func(R) Either[L, R2]) Either[L, R2] {
+func FlatMap[L, R, R2 any](e Monad[L, R], f func(R) Monad[L, R2]) Monad[L, R2] {
 	if e == nil {
 		panic("e cannot be nil")
 	}
@@ -75,7 +75,7 @@ func FlatMap[L, R, R2 any](e Either[L, R], f func(R) Either[L, R2]) Either[L, R2
 }
 
 // MapLeft (mapLeft)
-func MapLeft[L, L2, R any](e Either[L, R], f func(L) L2) Either[L2, R] {
+func MapLeft[L, L2, R any](e Monad[L, R], f func(L) L2) Monad[L2, R] {
 	if e == nil {
 		panic("e cannot be nil")
 	}
@@ -89,7 +89,7 @@ func MapLeft[L, L2, R any](e Either[L, R], f func(L) L2) Either[L2, R] {
 }
 
 // Fold (fold/either)
-func Fold[L, R, A any](e Either[L, R], l func(L) A, r func(R) A) A {
+func Fold[L, R, A any](e Monad[L, R], l func(L) A, r func(R) A) A {
 	if e == nil {
 		panic("e cannot be nil")
 	}
@@ -110,7 +110,7 @@ func Fold[L, R, A any](e Either[L, R], l func(L) A, r func(R) A) A {
 }
 
 // Match (fold/either)
-func Match[L, R any](e Either[L, R], l func(L), r func(R)) {
+func Match[L, R any](e Monad[L, R], l func(L), r func(R)) {
 	if e == nil {
 		panic("e cannot be nil")
 	}

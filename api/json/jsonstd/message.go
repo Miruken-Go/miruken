@@ -21,7 +21,7 @@ func (m *SurrogateMapper) EncodeMessage(
 	it *maps.It,
 	ctx miruken.HandleContext,
 ) (io.Writer, error) {
-	if writer, ok := it.TargetForWrite().(*io.Writer); ok {
+	if writer, ok := it.Target().(*io.Writer); ok {
 		var sur MessageSurrogate
 		if payload := msg.Payload; payload != nil {
 			pb, _, err := maps.Out[[]byte](ctx.Composer(), msg.Payload, api.ToJson)
@@ -32,6 +32,7 @@ func (m *SurrogateMapper) EncodeMessage(
 		}
 		enc := json.NewEncoder(*writer)
 		if err := enc.Encode(sur); err == nil {
+			it.TargetForWrite()
 			return *writer, err
 		}
 	}
@@ -46,7 +47,7 @@ func (m *SurrogateMapper) DecodeMessage(
 	it *maps.It,
 	ctx miruken.HandleContext,
 ) (msg api.Message, err error) {
-	if mp, ok := it.TargetForWrite().(*api.Message); ok {
+	if mp, ok := it.Target().(*api.Message); ok {
 		var sur MessageSurrogate
 		dec := json.NewDecoder(reader)
 		if err = dec.Decode(&sur); err != nil {
@@ -59,6 +60,7 @@ func (m *SurrogateMapper) DecodeMessage(
 			if sur, ok := late.Value.(api.Surrogate); ok {
 				late.Value, err = sur.Original(composer)
 			}
+			it.TargetForWrite()
 			mp.Payload = late.Value
 			msg = *mp
 		}

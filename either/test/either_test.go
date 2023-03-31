@@ -11,7 +11,7 @@ import (
 func tryParseDate(
 	candidate string,
 	layouts   ...string,
-) either.Either[string, time.Time] {
+) either.Monad[string, time.Time] {
 	for _, layout := range layouts {
 		if t, err := time.Parse(layout, candidate); err == nil {
 			return either.Right(t)
@@ -22,21 +22,21 @@ func tryParseDate(
 
 func tryParseDuration(
 	candidate string,
-) either.Either[string, time.Duration] {
+) either.Monad[string, time.Duration] {
 	if d, err := time.ParseDuration(candidate); err == nil {
 		return either.Right(d)
 	}
 	return either.Left(candidate)
 }
 
-func daysForward(d time.Duration) either.Either[string, float64] {
+func daysForward(d time.Duration) either.Monad[string, float64] {
 	if d < 0 {
 		return either.Left(fmt.Sprintf("negative duration not allowed: %v.", d))
 	}
 	return either.Right(d.Hours()/24)
 }
 
-func nat(d float64) either.Either[string, int] {
+func nat(d float64) either.Monad[string, int] {
 	if d != float64(int64(d)){
 		return either.Left(fmt.Sprintf("non-integers not allowed: {%v}.", d))
 	}
@@ -58,16 +58,16 @@ func Test_Map(t *testing.T) {
 	t.Run("Right", func (t *testing.T) {
 		dt := tryParseDate("2022-07-19", "2006-01-02")
 		ts := tryParseDuration("2h")
-		var nested = either.Map(dt, func (t time.Time) either.Either[string, time.Time]{
+		var nested = either.Map(dt, func (t time.Time) either.Monad[string, time.Time]{
 			return either.Map(ts, func (d time.Duration) time.Time {
 				return t.Add(d)
 			})
 		})
 		flattened := either.Fold(nested,
-			func (c string) either.Either[string, time.Time] {
+			func (c string) either.Monad[string, time.Time] {
 				return either.Left[string](c)
 			},
-			func (e either.Either[string, time.Time]) either.Either[string, time.Time] {
+			func (e either.Monad[string, time.Time]) either.Monad[string, time.Time] {
 				return e
 			})
 
@@ -83,7 +83,7 @@ func Test_FlatMap(t *testing.T) {
 	t.Run("Right", func (t *testing.T) {
 		dt := tryParseDate("2022-07-19", "2006-01-02")
 		ts := tryParseDuration("2h")
-		var flattened = either.FlatMap(dt, func (t time.Time) either.Either[string, time.Time]{
+		var flattened = either.FlatMap(dt, func (t time.Time) either.Monad[string, time.Time]{
 			return either.Map(ts, func (d time.Duration) time.Time {
 				return t.Add(d)
 			})
@@ -103,7 +103,7 @@ func Test_Laws(t *testing.T) {
 			"5h30m40s",
 			"foo",
 		}
-		ret := func(s string) either.Either[string, string] {
+		ret := func(s string) either.Monad[string, string] {
 			return either.Right(s)
 		}
 		h := tryParseDuration
@@ -120,10 +120,10 @@ func Test_Laws(t *testing.T) {
 			"19 Jul 19 04:30 CST",
 			"bar",
 		}
-		f := func(s string) either.Either[string, time.Time] {
+		f := func(s string) either.Monad[string, time.Time] {
 			return tryParseDate(s, time.RFC822)
 		}
-		ret := func(t time.Time) either.Either[string, time.Time] {
+		ret := func(t time.Time) either.Monad[string, time.Time] {
 			return either.Right(t)
 		}
 		for _, test := range testCases{
@@ -148,7 +148,7 @@ func Test_Laws(t *testing.T) {
 		for _, test := range testCases{
 			m := f(test)
 			if either.FlatMap(either.FlatMap(m, g), h) !=
-				either.FlatMap(m, func(x time.Duration) either.Either[string, int] {
+				either.FlatMap(m, func(x time.Duration) either.Monad[string, int] {
 					return either.FlatMap(g(x), h)
 				}) {
 				t.Errorf("Associativity failed for %q", test)

@@ -79,8 +79,8 @@ func (suite *MessageTestSuite) TestMessage() {
 	suite.Run("Success", func() {
 		red    := api.Success("red")
 		blue   := api.Success("blue")
-		result := either.FlatMap(red, func(r1 string) either.Either[error, string] {
-			return either.FlatMap(blue, func(r2 string) either.Either[error, string] {
+		result := either.FlatMap(red, func(r1 string) either.Monad[error, string] {
+			return either.FlatMap(blue, func(r2 string) either.Monad[error, string] {
 				return api.Success(fmt.Sprintf("%v %v", r1, r2))
 			})
 		})
@@ -92,8 +92,8 @@ func (suite *MessageTestSuite) TestMessage() {
 	suite.Run("Failure", func() {
 		red    := api.Success("red")
 		blue   := api.Success("blue")
-		result := either.FlatMap(red, func(r1 string) either.Either[error, string] {
-			return either.FlatMap(blue, func(r2 string) either.Either[error, string] {
+		result := either.FlatMap(red, func(r1 string) either.Monad[error, string] {
+			return either.FlatMap(blue, func(r2 string) either.Monad[error, string] {
 				return api.Failure(errors.New("broken"))
 			})
 		})

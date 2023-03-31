@@ -33,7 +33,7 @@ type (
 	// ScheduledResult represents the results of a scheduled request.
 	// The result is either an error (if fails) or success value.
 	ScheduledResult struct {
-		Responses []either.Either[error, any]
+		Responses []either.Monad[error, any]
 	}
 
 	// Scheduler performs the scheduling of requests.
@@ -57,7 +57,7 @@ func (s *Scheduler) Concurrent(
 ) *promise.Promise[ScheduledResult] {
 	return promise.New(func(resolve func(ScheduledResult), reject func(error)) {
 		requests := concurrent.Requests
-		responses := make([]either.Either[error, any], len(requests))
+		responses := make([]either.Monad[error, any], len(requests))
 
 		var waitGroup sync.WaitGroup
 		waitGroup.Add(len(requests))
@@ -81,7 +81,7 @@ func (s *Scheduler) Sequential(
 ) *promise.Promise[ScheduledResult] {
 	return promise.New(func(resolve func(ScheduledResult), reject func(error)) {
 		requests := sequential.Requests
-		var responses []either.Either[error, any]
+		var responses []either.Monad[error, any]
 
 		for _, request := range requests {
 			response, success := process(request, composer)
@@ -129,7 +129,7 @@ func (s *Scheduler) New(
 func Sequential(
 	handler  miruken.Handler,
 	requests ...any,
-) *promise.Promise[[]either.Either[error, any]] {
+) *promise.Promise[[]either.Monad[error, any]] {
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
@@ -141,7 +141,7 @@ func Sequential(
 func Concurrent(
 	handler  miruken.Handler,
 	requests ...any,
-) *promise.Promise[[]either.Either[error, any]] {
+) *promise.Promise[[]either.Monad[error, any]] {
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
@@ -151,7 +151,7 @@ func Concurrent(
 func process(
 	request any,
 	handler miruken.Handler,
-) (either.Either[error, any], bool) {
+) (either.Monad[error, any], bool) {
 	res, pr, err := Send[any](handler, request)
 	if err != nil {
 		return Failure(err), false
@@ -167,11 +167,11 @@ func process(
 func sendBatch(
 	handler miruken.Handler,
 	batch   any,
-) *promise.Promise[[]either.Either[error, any]] {
+) *promise.Promise[[]either.Monad[error, any]] {
 	if r, pr, err := Send[ScheduledResult](handler, batch); err != nil {
-		return promise.Reject[[]either.Either[error, any]](err)
+		return promise.Reject[[]either.Monad[error, any]](err)
 	} else if pr != nil {
-		return promise.Then(pr, func(result ScheduledResult) []either.Either[error, any] {
+		return promise.Then(pr, func(result ScheduledResult) []either.Monad[error, any] {
 			return result.Responses
 		})
 	} else {

@@ -14,7 +14,7 @@ type (
 
 
 func (s ScheduledResultSurrogate) Original(composer miruken.Handler) (any, error) {
-	responses := make([]either.Either[error, any], len(s))
+	responses := make([]either.Monad[error, any], len(s))
 	for i, resp := range s {
 		if orig, err := resp.Original(composer); err != nil {
 			return nil, err
