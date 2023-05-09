@@ -17,8 +17,8 @@ type (
 
 // Concurrent
 
-func (s Concurrent) Original(miruken.Handler) (any, error) {
-	return &api.ConcurrentBatch{Requests: s}, nil
+func (c Concurrent) Original(miruken.Handler) (any, error) {
+	return &api.ConcurrentBatch{Requests: c}, nil
 }
 
 

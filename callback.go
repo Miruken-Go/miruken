@@ -8,11 +8,13 @@ import (
 )
 
 type (
-	// Callback represents any intention.
+	// Callback represents an intention.
 	Callback interface {
 		ConstraintSource
 		Key() any
 		Source() any
+		Target() any
+		TargetForWrite() any
 		Policy() Policy
 		ResultCount() int
 		Result(many bool) (any, *promise.Promise[any])
@@ -47,6 +49,8 @@ type (
 	CallbackBase struct {
 		result        any
 		results       []any
+		target        any
+		written       bool
 		promises      []*promise.Promise[any]
 		accept        AcceptResultFunc
 		acceptPromise AcceptPromiseResultFunc
@@ -55,6 +59,7 @@ type (
 
 	// CallbackBuilder builds common CallbackBase.
  	CallbackBuilder struct {
+		target      any
 		constraints []Constraint
 	}
 
@@ -81,6 +86,22 @@ type (
 
 func (c *CallbackBase) Source() any {
 	return nil
+}
+
+func (c *CallbackBase) Target() any {
+	return c.target
+}
+
+func (c *CallbackBase) TargetForWrite() any {
+	target := c.target
+	if !IsNil(target) {
+		c.written = true
+	}
+	return target
+}
+
+func (c *CallbackBase) TargetWritten() bool {
+	return c.written
 }
 
 func (c *CallbackBase) ResultCount() int {
@@ -188,6 +209,16 @@ func (c *CallbackBase) Constraints() []Constraint {
 
 // CallbackBuilder
 
+func (b *CallbackBuilder) ToTarget(
+	target any,
+) *CallbackBuilder {
+	if IsNil(target) {
+		panic("target cannot be nil")
+	}
+	b.target = target
+	return b
+}
+
 func (b *CallbackBuilder) WithConstraints(
 	constraints ...any,
 ) *CallbackBuilder {
@@ -211,7 +242,7 @@ func (b *CallbackBuilder) WithConstraints(
 }
 
 func (b *CallbackBuilder) CallbackBase() CallbackBase {
-	return CallbackBase{constraints: b.constraints}
+	return CallbackBase{target: b.target, constraints: b.constraints}
 }
 
 func CoerceResult[T any](
@@ -221,25 +252,8 @@ func CoerceResult[T any](
 	if target == nil {
 		target = &t
 	}
-	if result, p := callback.Result(false); p == nil {
-		CopyIndirect(result, target)
-	} else {
+	if _, p := callback.Result(false); p != nil {
 		tp = promise.Then(p, func(res any) T {
-			// During processing of the callback, it may be
-			// promoted to asynchronous operation.
-			//   e.g.  async filter, async args
-			// This is necessary to unwrap the promise to obtain
-			// the correct result to bind to.
-			if res != nil && !reflect.TypeOf(res).AssignableTo(TypeOf[T]()) {
-				if pr, ok := res.(promise.Reflect); ok {
-					if r, err := pr.AwaitAny(); err != nil {
-						panic(err)
-					} else {
-						res = r
-					}
-				}
-			}
-			CopyIndirect(res, target)
 			return *target
 		})
 	}
@@ -251,11 +265,6 @@ func CompleteResult(
 ) (*promise.Promise[Void], error) {
 	if _, p := callback.Result(false); p != nil {
 		return promise.Then(p, func(res any) Void {
-			if pr, ok := res.(promise.Reflect); ok {
-				if _, err := pr.AwaitAny(); err != nil {
-					panic(err)
-				}
-			}
 			return Void{}
 		}), nil
 	}
@@ -269,20 +278,8 @@ func CoerceResults[T any](
 	if target == nil {
 		target = &t
 	}
-	if result, p := callback.Result(true); p == nil {
-		CopySliceIndirect(result.([]any), target)
-	} else {
+	if _, p := callback.Result(true); p != nil {
 		tp = promise.Then(p, func(res any) []T {
-			if res != nil && !reflect.TypeOf(res).AssignableTo(TypeOf[T]()) {
-				if pr, ok := res.(promise.Reflect); ok {
-					if r, err := pr.AwaitAny(); err != nil {
-						panic(err)
-					} else {
-						res = r
-					}
-				}
-			}
-			CopySliceIndirect(res.([]any), target)
 			return *target
 		})
 	}
@@ -294,11 +291,6 @@ func CompleteResults(
 ) (*promise.Promise[Void], error) {
 	if _, p := callback.Result(true); p != nil {
 		return promise.Then(p, func(res any) Void {
-			if pr, ok := res.(promise.Reflect); ok {
-				if _, err := pr.AwaitAny(); err != nil {
-					panic(err)
-				}
-			}
 			return Void{}
 		}), nil
 	}
@@ -324,11 +316,17 @@ func (c *CallbackBase) ensureResult(many bool, expand bool) any {
 			})
 		}
 		if many {
-			c.result = results
+			c.result = unwrapResult(results)
+			if !(c.written || IsNil(c.target)) {
+				CopySliceIndirect(results, c.target)
+			}
 		} else if len(results) == 0 {
 			c.result = nil
 		} else {
-			c.result = results[0]
+			c.result = unwrapResult(results[0])
+			if !(c.written || IsNil(c.target)) {
+				CopyIndirect(c.result, c.target)
+			}
 		}
 	}
 	return c.result
@@ -393,4 +391,22 @@ func (c *CallbackBase) processResults(
 		}
 	}
 	return expand, res
+}
+
+// unwrapResult unwraps the result if it's a promise.
+// During processing of a callback, it may be
+// promoted to asynchronous operation.
+//   e.g.  async filter, async args
+func unwrapResult(result any) any {
+	if result == nil {
+		return nil
+	}
+	if pr, ok := result.(promise.Reflect); ok {
+		if r, err := pr.AwaitAny(); err != nil {
+			panic(err)
+		} else {
+			result = r
+		}
+	}
+	return result
 }

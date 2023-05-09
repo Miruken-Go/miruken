@@ -74,6 +74,7 @@ func CreateKey[T any](
 	}
 	var builder CreatesBuilder
 	builder.WithKey(key).
+			ToTarget(&t).
 			WithConstraints(constraints...)
 	creates := builder.New()
 	if result := handler.Handle(creates, false, nil); result.IsError() {
@@ -95,6 +96,7 @@ func CreateAll[T any](
 	}
 	var builder CreatesBuilder
 	builder.WithKey(TypeOf[T]()).
+			ToTarget(&t).
 			WithConstraints(constraints...)
 	creates := builder.New()
 	if result := handler.Handle(creates, true, nil); result.IsError() {

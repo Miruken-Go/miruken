@@ -13,8 +13,6 @@ type (
 		miruken.CallbackBase
 		key     any
 		source  any
-		target  any
-		written bool
 	}
 
 	// Builder builds It callbacks.
@@ -22,7 +20,6 @@ type (
 		miruken.CallbackBuilder
 		key    any
 		source any
-		target any
 	}
 
 	// Strict alias for mapping
@@ -34,25 +31,12 @@ func (m *It) Source() any {
 	return m.source
 }
 
-func (m *It) Target() any {
-	return m.target
-}
-
-func (m *It) TargetForWrite() any {
-	m.written = true
-	return m.target
-}
-
-func (m *It) TargetWritten() bool {
-	return m.written
-}
-
 func (m *It) Key() any {
 	in := m.key
 	if in == nil {
 		in = reflect.TypeOf(m.source)
 	}
-	out := reflect.TypeOf(m.target).Elem()
+	out := reflect.TypeOf(m.Target()).Elem()
 	return miruken.DiKey{In: in, Out: out}
 }
 
@@ -95,22 +79,11 @@ func (b *Builder) FromSource(
 	return b
 }
 
-func (b *Builder) ToTarget(
-	target any,
-) *Builder {
-	if miruken.IsNil(target) {
-		panic("source cannot be nil")
-	}
-	b.target = target
-	return b
-}
-
 func (b *Builder) New() *It {
 	return &It{
 		CallbackBase: b.CallbackBase(),
 		key:          b.key,
 		source:       b.source,
-		target:       b.target,
 	}
 }
 

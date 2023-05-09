@@ -11,18 +11,17 @@ import (
 )
 
 type (
-	// Polymorphism is an enum that defines how type
-	// discriminators are included in polymorphic messages.
+	// Polymorphism enumerates how type information should be included in messages.
 	Polymorphism uint8
 
-	// TypeFieldInfo defines metadata for polymorphic serialization.
+	// TypeFieldInfo defines the type information for polymorphic messages.
 	TypeFieldInfo struct {
 		TypeField   string
 		TypeValue   string
 		ValuesField string
 	}
 
-	// GoPolymorphism provides polymorphic support for GO types.
+	// GoPolymorphism provides type information using GO types names.
 	GoPolymorphism struct{}
 
 	// UnknownTypeIdError reports an invalid type discriminator.
@@ -143,12 +142,17 @@ func (e *UnknownTypeIdError) Unwrap() error {
 
 
 var (
-	// Polymorphic request encoding to include type information.
+	// Polymorphic instructs type information to be included.
 	Polymorphic = miruken.Options(Options{
 		Polymorphism: miruken.Set(PolymorphismRoot),
 	})
 
-	// ToTypeInfo requests the type discriminator for a type.
+	// NoPolymorphism instructs type information to be suppressed.
+	NoPolymorphism = miruken.Options(Options{
+		Polymorphism: miruken.Set(PolymorphismNone),
+	})
+
+	// ToTypeInfo formats a value into corresponding type information.
 	ToTypeInfo = maps.To("type:info", nil)
 
 	staticTypeMap = map[string]any{

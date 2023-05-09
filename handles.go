@@ -128,6 +128,7 @@ func Execute[T any](
 	}
 	var builder HandlesBuilder
 	builder.WithCallback(callback).
+		    ToTarget(&t).
 			WithConstraints(constraints...)
 	handles := builder.New()
 	if result := handler.Handle(handles, false, nil); result.IsError() {
@@ -176,6 +177,7 @@ func ExecuteAll[T any](
 	}
 	var builder HandlesBuilder
 	builder.WithCallback(callback).
+		    ToTarget(&t).
 			WithConstraints(constraints...)
 	handles := builder.New()
 	if result := handler.Handle(handles, true, nil); result.IsError() {
