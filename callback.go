@@ -100,10 +100,6 @@ func (c *CallbackBase) TargetForWrite() any {
 	return target
 }
 
-func (c *CallbackBase) TargetWritten() bool {
-	return c.written
-}
-
 func (c *CallbackBase) ResultCount() int {
 	return len(c.results)
 }
@@ -206,97 +202,6 @@ func (c *CallbackBase) Constraints() []Constraint {
 	return c.constraints
 }
 
-
-// CallbackBuilder
-
-func (b *CallbackBuilder) ToTarget(
-	target any,
-) *CallbackBuilder {
-	if IsNil(target) {
-		panic("target cannot be nil")
-	}
-	b.target = target
-	return b
-}
-
-func (b *CallbackBuilder) WithConstraints(
-	constraints ...any,
-) *CallbackBuilder {
-	for _, constraint := range constraints {
-		switch c := constraint.(type) {
-		case string:
-			n := Named(c)
-			b.constraints = append(b.constraints, &n)
-		case Constraint:
-			b.constraints = append(b.constraints, c)
-		case map[any]any:
-			var m Metadata = c
-			b.constraints = append(b.constraints, &m)
-		case ConstraintSource:
-			b.constraints = append(b.constraints, c.Constraints()...)
-		default:
-			panic(fmt.Sprintf("unrecognized constraint: %T", constraint))
-		}
-	}
-	return b
-}
-
-func (b *CallbackBuilder) CallbackBase() CallbackBase {
-	return CallbackBase{target: b.target, constraints: b.constraints}
-}
-
-func CoerceResult[T any](
-	callback Callback,
-	target   *T,
-) (t T, tp *promise.Promise[T], _ error) {
-	if target == nil {
-		target = &t
-	}
-	if _, p := callback.Result(false); p != nil {
-		tp = promise.Then(p, func(res any) T {
-			return *target
-		})
-	}
-	return
-}
-
-func CompleteResult(
-	callback Callback,
-) (*promise.Promise[Void], error) {
-	if _, p := callback.Result(false); p != nil {
-		return promise.Then(p, func(res any) Void {
-			return Void{}
-		}), nil
-	}
-	return nil, nil
-}
-
-func CoerceResults[T any](
-	callback Callback,
-	target   *[]T,
-) (t []T, tp *promise.Promise[[]T], _ error) {
-	if target == nil {
-		target = &t
-	}
-	if _, p := callback.Result(true); p != nil {
-		tp = promise.Then(p, func(res any) []T {
-			return *target
-		})
-	}
-	return
-}
-
-func CompleteResults(
-	callback Callback,
-) (*promise.Promise[Void], error) {
-	if _, p := callback.Result(true); p != nil {
-		return promise.Then(p, func(res any) Void {
-			return Void{}
-		}), nil
-	}
-	return nil, nil
-}
-
 func (c *CallbackBase) ensureResult(many bool, expand bool) any {
 	if c.result == nil {
 		var results []any
@@ -391,6 +296,97 @@ func (c *CallbackBase) processResults(
 		}
 	}
 	return expand, res
+}
+
+
+// CallbackBuilder
+
+func (b *CallbackBuilder) ToTarget(
+	target any,
+) *CallbackBuilder {
+	if IsNil(target) {
+		panic("target cannot be nil")
+	}
+	b.target = target
+	return b
+}
+
+func (b *CallbackBuilder) WithConstraints(
+	constraints ...any,
+) *CallbackBuilder {
+	for _, constraint := range constraints {
+		switch c := constraint.(type) {
+		case string:
+			n := Named(c)
+			b.constraints = append(b.constraints, &n)
+		case Constraint:
+			b.constraints = append(b.constraints, c)
+		case map[any]any:
+			var m Metadata = c
+			b.constraints = append(b.constraints, &m)
+		case ConstraintSource:
+			b.constraints = append(b.constraints, c.Constraints()...)
+		default:
+			panic(fmt.Sprintf("unrecognized constraint: %T", constraint))
+		}
+	}
+	return b
+}
+
+func (b *CallbackBuilder) CallbackBase() CallbackBase {
+	return CallbackBase{target: b.target, constraints: b.constraints}
+}
+
+func CoerceResult[T any](
+	callback Callback,
+	target   *T,
+) (t T, tp *promise.Promise[T], _ error) {
+	if target == nil {
+		target = &t
+	}
+	if _, p := callback.Result(false); p != nil {
+		tp = promise.Then(p, func(res any) T {
+			return *target
+		})
+	}
+	return
+}
+
+func CompleteResult(
+	callback Callback,
+) (*promise.Promise[Void], error) {
+	if _, p := callback.Result(false); p != nil {
+		return promise.Then(p, func(res any) Void {
+			return Void{}
+		}), nil
+	}
+	return nil, nil
+}
+
+func CoerceResults[T any](
+	callback Callback,
+	target   *[]T,
+) (t []T, tp *promise.Promise[[]T], _ error) {
+	if target == nil {
+		target = &t
+	}
+	if _, p := callback.Result(true); p != nil {
+		tp = promise.Then(p, func(res any) []T {
+			return *target
+		})
+	}
+	return
+}
+
+func CompleteResults(
+	callback Callback,
+) (*promise.Promise[Void], error) {
+	if _, p := callback.Result(true); p != nil {
+		return promise.Then(p, func(res any) Void {
+			return Void{}
+		}), nil
+	}
+	return nil, nil
 }
 
 // unwrapResult unwraps the result if it's a promise.

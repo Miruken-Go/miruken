@@ -105,7 +105,7 @@ func Out[T any](
 	} else if !result.Handled() {
 		err = &miruken.NotHandledError{Callback: m}
 	} else {
-		tp, err = ensureTargetWritten[T](&t, m)
+		_, tp, err = miruken.CoerceResult[T](m, &t)
 	}
 	return
 }
@@ -135,15 +135,8 @@ func Into[T any](
 		err = result.Error()
 	} else if !result.Handled() {
 		err = &miruken.NotHandledError{Callback: m}
-	}else if m.TargetWritten() {
-		vp, err = miruken.CompleteResult(m)
 	} else {
-		var tp *promise.Promise[T]
-		if _, tp, err = miruken.CoerceResult[T](m, target); err == nil && tp != nil {
-			vp = promise.Then(tp, func(T) promise.Void {
-				return promise.Void{}
-			})
-		}
+		vp, err = miruken.CompleteResult(m)
 	}
 	return
 }
@@ -166,7 +159,7 @@ func Key[T any](
 	} else if !result.Handled() {
 		err = &miruken.NotHandledError{Callback: m}
 	} else {
-		tp, err = ensureTargetWritten[T](&t, m)
+		_, tp, err = miruken.CoerceResult[T](m, &t)
 	}
 	return
 }
@@ -196,7 +189,7 @@ func All[T any](
 		} else if !result.Handled() {
 			return nil, nil, &miruken.NotHandledError{Callback: m}
 		}
-		if pm, err := ensureTargetWritten[T](&t[i], m); err != nil {
+		if _, pm, err := miruken.CoerceResult[T](m, &t[i]); err != nil {
 			return nil, nil, err
 		} else if pm != nil {
 			promises = append(promises, pm)
@@ -214,23 +207,6 @@ func All[T any](
 			return t
 		}), nil
 	}
-}
-
-func ensureTargetWritten[T any](
-	t *T,
-	m *It,
-) (tp *promise.Promise[T], err error) {
-	if m.TargetWritten() {
-		var vp *promise.Promise[promise.Void]
-		if vp, err = miruken.CompleteResult(m); err == nil && vp != nil {
-			tp = promise.Then(vp, func(promise.Void) T {
-				return *t
-			})
-		}
-	} else {
-		_, tp, err = miruken.CoerceResult[T](m, t)
-	}
-	return
 }
 
 var (
