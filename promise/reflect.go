@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-type Void = struct {}
-
 type Reflect interface {
 	UnderlyingType() reflect.Type
 
@@ -132,10 +130,10 @@ func Unwrap[T any](promise *Promise[*Promise[T]]) *Promise[T] {
 	})
 }
 
-func Delay(delay time.Duration) *Promise[Void] {
-	return New(func(resolve func(Void), reject func(error)) {
+func Delay(delay time.Duration) *Promise[any] {
+	return New(func(resolve func(any), reject func(error)) {
 		time.Sleep(delay)
-		resolve(Void{})
+		resolve(nil)
 	})
 }
 

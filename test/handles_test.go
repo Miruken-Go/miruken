@@ -344,7 +344,7 @@ func (h *SimpleAsyncHandler) HandleBar(
 	bar.Inc()
 	return promise.Then(
 		promise.Delay(time.Duration(bar.Count()) * time.Millisecond),
-		func(void miruken.Void) *Bar { return bar })
+		func(any) *Bar { return bar })
 }
 
 func (h *SimpleAsyncHandler) HandleBoo(

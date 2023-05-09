@@ -42,7 +42,7 @@ type (
 	// miruken.ResolveAll(handler, &counted)
 	//
 	inferenceGuard struct {
-		resolved map[reflect.Type]Void
+		resolved map[reflect.Type]struct{}
 	}
 )
 
@@ -129,9 +129,9 @@ func (g *inferenceGuard) CanDispatch(
 	if methodBinding, ok := binding.(*methodIntercept); ok {
 		handlerType := methodBinding.handlerType
 		if resolved := g.resolved; resolved == nil {
-			g.resolved = map[reflect.Type]Void { handlerType: {} }
+			g.resolved = map[reflect.Type]struct{} { handlerType: {} }
 		} else if _, found := resolved[handlerType]; !found {
-			resolved[handlerType] = Void{}
+			resolved[handlerType] = struct{}{}
 		} else {
 			return nil, false
 		}

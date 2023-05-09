@@ -176,13 +176,13 @@ func ResolveKey[T any](
 	}
 	var builder ProvidesBuilder
 	builder.WithKey(key).
-		    ToTarget(&t).
+		    IntoTarget(&t).
 		    WithConstraints(constraints...)
 	p := builder.New()
 	if result := handler.Handle(p, false, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {
-		_, tp, err = CoerceResult[T](p, &t)
+		tp = CoerceResult[T](p, &t)
 	}
 	return
 }
@@ -196,13 +196,13 @@ func ResolveAll[T any](
 	}
 	var builder ProvidesBuilder
 	builder.WithKey(TypeOf[T]()).
-		    ToTarget(&t).
+		    IntoTarget(&t).
 		    WithConstraints(constraints...)
 	p := builder.New()
 	if result := handler.Handle(p, true, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {
-		_, tp, err = CoerceResults[T](p, &t)
+		tp = CoerceResults[T](p, &t)
 	}
 	return
 }

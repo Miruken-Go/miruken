@@ -41,20 +41,20 @@ func (m *MissionControlHandler) Launch(
 
 func (m *MissionControlHandler) Track(
 	_ *handles.It, track *MissileTracked,
-) *promise.Promise[miruken.Void] {
+) *promise.Promise[struct{}] {
 	track.Count++
 	if track.Count == 2 {
-		return promise.Resolve(miruken.Void{})
+		return promise.Resolve(struct{}{})
 	}
 	return nil
 }
 
 func (p *PresidentHandler) Track(
 	_ *handles.It, track *MissileTracked,
-) *promise.Promise[miruken.Void] {
+) *promise.Promise[struct{}] {
 	track.Count++
 	if track.Count == 2 {
-		return promise.Resolve(miruken.Void{})
+		return promise.Resolve(struct{}{})
 	}
 	return nil
 }

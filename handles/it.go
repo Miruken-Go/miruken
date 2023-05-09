@@ -15,7 +15,7 @@ func Command(
 	handler     miruken.Handler,
 	callback    any,
 	constraints ...any,
-) (pv *promise.Promise[miruken.Void], err error) {
+) (pv *promise.Promise[any], err error) {
 	return miruken.Command(handler, callback, constraints...)
 }
 
@@ -31,7 +31,7 @@ func CommandAll(
 	handler     miruken.Handler,
 	callback    any,
 	constraints ...any,
-) (pv *promise.Promise[miruken.Void], err error) {
+) (pv *promise.Promise[any], err error) {
 	return miruken.CommandAll(handler, callback, constraints...)
 }
 

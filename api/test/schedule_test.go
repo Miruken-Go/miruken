@@ -46,12 +46,12 @@ func (s *StockQuoteHandler) Quote(
 
 func (s *StockQuoteHandler) Sell(
 	_ *handles.It, sell SellStock,
-) *promise.Promise[promise.Void] {
+) *promise.Promise[any] {
 	if symbol := sell.Symbol; symbol == "EX" {
-		return promise.Reject[promise.Void](
+		return promise.Reject[any](
 			errors.New("stock exchange is down"))
 	}
-	return promise.Resolve(promise.Void{})
+	return promise.Resolve[any](nil)
 }
 
 type ScheduleTestSuite struct {

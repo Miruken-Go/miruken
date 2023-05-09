@@ -23,7 +23,7 @@ type (
 		factory   func([]BindingParser, []HandlerDescriptorObserver) HandlerDescriptorFactory
 		parsers   []BindingParser
 		observers []HandlerDescriptorObserver
-		tags      map[any]Void
+		tags      map[any]struct{}
 	}
 )
 
@@ -116,10 +116,10 @@ func (s *SetupBuilder) WithoutInference() *SetupBuilder {
 
 func (s *SetupBuilder) Tag(tag any) bool {
 	if tags := s.tags; tags == nil {
-		s.tags = map[any]Void{tag: {}}
+		s.tags = map[any]struct{}{tag: {}}
 		return true
 	} else if _, found := tags[tag]; !found {
-		tags[tag] = Void{}
+		tags[tag] = struct{}{}
 		return true
 	}
 	return false

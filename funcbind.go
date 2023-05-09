@@ -8,9 +8,6 @@ import (
 )
 
 type (
-	// Void is friendly name for nothing.
-	Void = struct {}
-
 	// FuncBinder creates a binding to a function.
 	FuncBinder interface {
 		NewFuncBinding(

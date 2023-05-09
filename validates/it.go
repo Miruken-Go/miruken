@@ -69,7 +69,7 @@ func (v *It) String() string {
 
 // Group marks a set of related validations.
 type Group struct {
-	groups map[any]miruken.Void
+	groups map[any]struct{}
 }
 
 func (g *Group) Required() bool {
@@ -78,9 +78,9 @@ func (g *Group) Required() bool {
 
 func (g *Group) InitWithTag(tag reflect.StructTag) error {
 	if name, ok := tag.Lookup("name"); ok {
-		g.groups = make(map[any]miruken.Void)
+		g.groups = make(map[any]struct{})
 		if group := strings.TrimSpace(name); len(group) > 0 {
-			g.groups[group] = miruken.Void{}
+			g.groups[group] = struct{}{}
 		}
 	}
 	if len(g.groups) == 0 {
@@ -92,7 +92,7 @@ func (g *Group) InitWithTag(tag reflect.StructTag) error {
 func (g *Group) Merge(constraint miruken.Constraint) bool {
 	if group, ok := constraint.(*Group); ok {
 		for grp := range group.groups {
-			g.groups[grp] = miruken.Void{}
+			g.groups[grp] = struct{}{}
 		}
 		return true
 	}
@@ -123,9 +123,9 @@ func Groups(groups ...any) miruken.Constraint {
 	if len(groups) == 0 {
 		panic("at least one group required")
 	}
-	groupMap := make(map[any]miruken.Void)
+	groupMap := make(map[any]struct{})
 	for _, group := range groups {
-		groupMap[group] = miruken.Void{}
+		groupMap[group] = struct{}{}
 	}
 	return &Group{groups: groupMap}
 }

@@ -43,7 +43,7 @@ func (e *MalformedErrorError) Error() string {
 func Post(
 	handler miruken.Handler,
 	message any,
-) (p *promise.Promise[miruken.Void], err error) {
+) (p *promise.Promise[any], err error) {
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
@@ -96,7 +96,7 @@ func Send[TResponse any](
 func Publish(
 	handler miruken.Handler,
 	message any,
-) (p *promise.Promise[miruken.Void], err error) {
+) (p *promise.Promise[any], err error) {
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")
 	}

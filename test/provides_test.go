@@ -168,9 +168,7 @@ func (p *SimpleAsyncProvider) ProvideFoo(
 ) *promise.Promise[*Foo] {
 	p.foo.Inc()
 	return promise.Then(promise.Delay(5 * time.Millisecond),
-		func(void miruken.Void) *Foo {
-			return &p.foo
-		})
+		func(any) *Foo { return &p.foo })
 }
 
 // ComplexAsyncProvider
@@ -183,12 +181,12 @@ func (p *ComplexAsyncProvider) Constructor(
 		p provides.It
 		c creates.It
 	  },
-) *promise.Promise[miruken.Void] {
+) *promise.Promise[any] {
 	return promise.Then(
 		promise.Delay(2 * time.Millisecond),
-			func(miruken.Void) miruken.Void {
+			func(any) any {
 				p.bar.Inc()
-				return miruken.Void{}
+				return nil
 			})
 }
 

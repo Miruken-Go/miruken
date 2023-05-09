@@ -301,7 +301,7 @@ func (c *CallbackBase) processResults(
 
 // CallbackBuilder
 
-func (b *CallbackBuilder) ToTarget(
+func (b *CallbackBuilder) IntoTarget(
 	target any,
 ) *CallbackBuilder {
 	if IsNil(target) {
@@ -340,58 +340,30 @@ func (b *CallbackBuilder) CallbackBase() CallbackBase {
 func CoerceResult[T any](
 	callback Callback,
 	target   *T,
-) (t T, tp *promise.Promise[T], _ error) {
-	if target == nil {
-		target = &t
-	}
+) (tp *promise.Promise[T]) {
 	if _, p := callback.Result(false); p != nil {
-		tp = promise.Then(p, func(res any) T {
+		tp = promise.Then(p, func(any) T {
 			return *target
 		})
 	}
 	return
-}
-
-func CompleteResult(
-	callback Callback,
-) (*promise.Promise[Void], error) {
-	if _, p := callback.Result(false); p != nil {
-		return promise.Then(p, func(res any) Void {
-			return Void{}
-		}), nil
-	}
-	return nil, nil
 }
 
 func CoerceResults[T any](
 	callback Callback,
 	target   *[]T,
-) (t []T, tp *promise.Promise[[]T], _ error) {
-	if target == nil {
-		target = &t
-	}
+) (tp *promise.Promise[[]T]) {
 	if _, p := callback.Result(true); p != nil {
-		tp = promise.Then(p, func(res any) []T {
+		tp = promise.Then(p, func(any) []T {
 			return *target
 		})
 	}
 	return
 }
 
-func CompleteResults(
-	callback Callback,
-) (*promise.Promise[Void], error) {
-	if _, p := callback.Result(true); p != nil {
-		return promise.Then(p, func(res any) Void {
-			return Void{}
-		}), nil
-	}
-	return nil, nil
-}
-
 // unwrapResult unwraps the result if it's a promise.
-// During processing of a callback, it may be
-// promoted to asynchronous operation.
+// During processing of a callback, it may be  promoted
+// to an asynchronous operation, so it must be unwrapped.
 //   e.g.  async filter, async args
 func unwrapResult(result any) any {
 	if result == nil {

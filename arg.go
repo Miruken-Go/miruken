@@ -307,7 +307,7 @@ func resolveArgs(
 	args      []arg,
 	ctx       HandleContext,
 ) ([]reflect.Value, *promise.Promise[[]reflect.Value], error) {
-	var promises []*promise.Promise[Void]
+	var promises []*promise.Promise[struct{}]
 	resolved := make([]reflect.Value, len(args))
 	for i, arg := range args {
 		typ := funType.In(fromIndex + i)
@@ -330,7 +330,7 @@ func resolveArgs(
 			idx := i
 			promises = append(promises, promise.Then(pa, func(v reflect.Value) struct {} {
 				resolved[idx] = v
-				return Void{}
+				return struct{}{}
 			}))
 		}
 	}
@@ -339,10 +339,10 @@ func resolveArgs(
 		return resolved, nil, nil
 	case 1:
 		return nil, promise.Then(promises[0],
-			func(Void) []reflect.Value { return resolved }), nil
+			func(struct{}) []reflect.Value { return resolved }), nil
 	default:
 		return nil, promise.Then(promise.All(promises...),
-			func([]Void) []reflect.Value { return resolved }), nil
+			func([]struct{}) []reflect.Value { return resolved }), nil
 	}
 }
 

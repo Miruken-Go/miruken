@@ -97,7 +97,7 @@ func Out[T any](
 	}
 	var builder Builder
 	builder.FromSource(source).
-		    ToTarget(&t).
+		    IntoTarget(&t).
 			WithConstraints(constraints...)
 	m := builder.New()
 	if result := handler.Handle(m, false, nil); result.IsError() {
@@ -105,7 +105,7 @@ func Out[T any](
 	} else if !result.Handled() {
 		err = &miruken.NotHandledError{Callback: m}
 	} else {
-		_, tp, err = miruken.CoerceResult[T](m, &t)
+		tp = miruken.CoerceResult[T](m, &t)
 	}
 	return
 }
@@ -115,7 +115,7 @@ func Into[T any](
 	source      any,
 	target      *T,
 	constraints ...any,
-) (vp *promise.Promise[promise.Void], err error) {
+) (p *promise.Promise[any], err error) {
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
@@ -126,9 +126,9 @@ func Into[T any](
 	builder.FromSource(source).
 			WithConstraints(constraints...)
 	if miruken.TypeOf[T]() == anyType {
-		builder.ToTarget(*target)
+		builder.IntoTarget(*target)
 	} else {
-		builder.ToTarget(target)
+		builder.IntoTarget(target)
 	}
 	m := builder.New()
 	if result := handler.Handle(m, false, nil); result.IsError() {
@@ -136,7 +136,7 @@ func Into[T any](
 	} else if !result.Handled() {
 		err = &miruken.NotHandledError{Callback: m}
 	} else {
-		vp, err = miruken.CompleteResult(m)
+		_, p = m.Result(false)
 	}
 	return
 }
@@ -151,7 +151,7 @@ func Key[T any](
 	}
 	var builder Builder
 	builder.WithKey(key).
-			ToTarget(&t).
+		    IntoTarget(&t).
 			WithConstraints(constraints...)
 	m := builder.New()
 	if result := handler.Handle(m, false, nil); result.IsError() {
@@ -159,7 +159,7 @@ func Key[T any](
 	} else if !result.Handled() {
 		err = &miruken.NotHandledError{Callback: m}
 	} else {
-		_, tp, err = miruken.CoerceResult[T](m, &t)
+		tp = miruken.CoerceResult[T](m, &t)
 	}
 	return
 }
@@ -181,7 +181,7 @@ func All[T any](
 	for i := 0; i < ts.Len(); i++ {
 		var builder Builder
 		builder.FromSource(ts.Index(i).Interface()).
-				ToTarget(&t[i]).
+			    IntoTarget(&t[i]).
 				WithConstraints(constraints...)
 		m := builder.New()
 		if result := handler.Handle(m, false, nil); result.IsError() {
@@ -189,9 +189,7 @@ func All[T any](
 		} else if !result.Handled() {
 			return nil, nil, &miruken.NotHandledError{Callback: m}
 		}
-		if _, pm, err := miruken.CoerceResult[T](m, &t[i]); err != nil {
-			return nil, nil, err
-		} else if pm != nil {
+		if pm := miruken.CoerceResult[T](m, &t[i]); pm != nil {
 			promises = append(promises, pm)
 		}
 	}

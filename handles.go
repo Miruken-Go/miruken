@@ -98,7 +98,7 @@ func Command(
 	handler     Handler,
 	callback    any,
 	constraints ...any,
-) (pv *promise.Promise[Void], err error) {
+) (pv *promise.Promise[any], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
@@ -111,7 +111,7 @@ func Command(
 	} else if !result.Handled() {
 		err = &NotHandledError{callback}
 	} else {
-		pv, err = CompleteResult(handles)
+		_, pv = handles.Result(false)
 	}
 	return
 }
@@ -128,7 +128,7 @@ func Execute[T any](
 	}
 	var builder HandlesBuilder
 	builder.WithCallback(callback).
-		    ToTarget(&t).
+		    IntoTarget(&t).
 			WithConstraints(constraints...)
 	handles := builder.New()
 	if result := handler.Handle(handles, false, nil); result.IsError() {
@@ -136,7 +136,7 @@ func Execute[T any](
 	} else if !result.Handled() {
 		err = &NotHandledError{callback}
 	} else {
-		_, tp, err = CoerceResult[T](handles, &t)
+		tp = CoerceResult[T](handles, &t)
 	}
 	return
 }
@@ -147,7 +147,7 @@ func CommandAll(
 	handler     Handler,
 	callback    any,
 	constraints ...any,
-) (pv *promise.Promise[Void], err error) {
+) (p *promise.Promise[any], err error) {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
@@ -160,7 +160,7 @@ func CommandAll(
 	} else if !result.Handled() {
 		err = &NotHandledError{Callback: callback}
 	} else {
-		pv, err = CompleteResults(handles)
+		_, p = handles.Result(true)
 	}
 	return
 }
@@ -177,7 +177,7 @@ func ExecuteAll[T any](
 	}
 	var builder HandlesBuilder
 	builder.WithCallback(callback).
-		    ToTarget(&t).
+		    IntoTarget(&t).
 			WithConstraints(constraints...)
 	handles := builder.New()
 	if result := handler.Handle(handles, true, nil); result.IsError() {
@@ -185,7 +185,7 @@ func ExecuteAll[T any](
 	} else if !result.Handled() {
 		err = &NotHandledError{Callback: callback}
 	} else {
-		_, tp, err = CoerceResults[T](handles, &t)
+		tp = CoerceResults[T](handles, &t)
 	}
 	return
 }

@@ -98,7 +98,7 @@ func (s *Scheduler) Sequential(
 func (s *Scheduler) Publish(
 	_ *handles.It, publish Published,
 	composer miruken.Handler,
-) (p *promise.Promise[miruken.Void], err error) {
+) (p *promise.Promise[any], err error) {
 	return Publish(composer, publish.Message)
 }
 
