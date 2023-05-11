@@ -13,24 +13,21 @@ type (
 	// Part represents a piece of a message.
 	// Part can also be used to provide explicit message details.
 	Part interface {
-		ContentType() string
-		Metadata() map[string][]string
+		Content
 		Filename() string
-		Content() any
 	}
 
 	// PartContainer stores all the Part's of a message.
 	// The main part is typically the message payload.
 	PartContainer interface {
-		ContentType() string
-		Metadata() map[string][]string
+		Content
 		Parts() map[string]Part
 		MainPart() Part
 	}
 
 	// PartBuilder builds a message Part.
 	PartBuilder struct {
-		part partDetail
+		part part
 	}
 
 	// ReadPartsBuilder builds a PartContainer for reading Part's.
@@ -43,17 +40,17 @@ type (
 		ReadPartsBuilder
 	}
 
-	partDetail struct {
+	part struct {
 		contentType string
-		metadata    map[string][]string
+		metadata    map[string][]any
 		filename    string
-		content     any
+		body        any
 	}
 
 	partContainer struct {
 		contentType string
 		boundary    string
-		metadata    map[string][]string
+		metadata    map[string][]any
 		parts       map[string]Part
 		main        Part
 	}
@@ -73,12 +70,12 @@ func (b *PartBuilder) ContentType(
 }
 
 func (b *PartBuilder) Metadata(
-	metadata map[string][]string,
+	metadata map[string][]any,
 ) *PartBuilder {
 	for key, val := range metadata {
 		m := b.part.metadata
 		if m == nil {
-			m = make(map[string][]string)
+			m = make(map[string][]any)
 			b.part.metadata = m
 		}
 		if v, ok := m[key]; ok {
@@ -90,6 +87,20 @@ func (b *PartBuilder) Metadata(
 	return b
 }
 
+func (b *PartBuilder) MetadataStrings(
+	metadata map[string][]string,
+) *PartBuilder {
+	meta := make(map[string][]any)
+	for k, arr := range metadata {
+		s := make([]any, len(arr))
+		for i, v := range arr {
+			s[i] = v
+		}
+		meta[k] = s
+	}
+	return b
+}
+
 func (b *PartBuilder) Filename(
 	filename string,
 ) *PartBuilder {
@@ -97,20 +108,20 @@ func (b *PartBuilder) Filename(
 	return b
 }
 
-func (b *PartBuilder) Content(
-	content any,
+func (b *PartBuilder) Body(
+	body any,
 ) *PartBuilder {
-	if miruken.IsNil(content) {
-		panic("content cannot be nil")
+	if miruken.IsNil(body) {
+		panic("body cannot be nil")
 	}
-	b.part.content = content
+	b.part.body = body
 	return b
 }
 
 func (b *PartBuilder) Build() Part {
 	part := b.part
 	if part.metadata == nil {
-		part.metadata = make(map[string][]string)
+		part.metadata = make(map[string][]any)
 	}
 	return part
 }
@@ -119,12 +130,12 @@ func (b *PartBuilder) Build() Part {
 // ReadPartsBuilder
 
 func (b *ReadPartsBuilder) Metadata(
-	metadata map[string][]string,
+	metadata map[string][]any,
 ) *ReadPartsBuilder {
 	for key, val := range metadata {
 		m := b.container.metadata
 		if m == nil {
-			m = make(map[string][]string)
+			m = make(map[string][]any)
 			b.container.metadata = m
 		}
 		if v, ok := m[key]; ok {
@@ -170,7 +181,7 @@ func (b *ReadPartsBuilder) Build() PartContainer {
 		ctr.parts = make(map[string]Part)
 	}
 	if ctr.metadata == nil {
-		ctr.metadata = make(map[string][]string)
+		ctr.metadata = make(map[string][]any)
 	}
 	return ctr
 }
@@ -196,7 +207,7 @@ func (b *WritePartsBuilder) Build() PartContainer {
 		ctr.parts = make(map[string]Part)
 	}
 	if ctr.metadata == nil {
-		ctr.metadata = make(map[string][]string)
+		ctr.metadata = make(map[string][]any)
 	}
 	if len(ctr.contentType) == 0 {
 		ctr.contentType = "multipart/form-data"
@@ -210,22 +221,22 @@ func (b *WritePartsBuilder) Build() PartContainer {
 }
 
 
-// partDetail
+// part
 
-func (p partDetail) ContentType() string {
+func (p part) ContentType() string {
 	return p.contentType
 }
 
-func (p partDetail) Metadata() map[string][]string {
+func (p part) Metadata() map[string][]any {
 	return p.metadata
 }
 
-func (p partDetail) Filename() string {
+func (p part) Filename() string {
 	return p.filename
 }
 
-func (p partDetail) Content() any {
-	return p.content
+func (p part) Body() any {
+	return p.body
 }
 
 
@@ -235,7 +246,7 @@ func (c partContainer) ContentType() string {
 	return c.contentType
 }
 
-func (c partContainer) Metadata() map[string][]string {
+func (c partContainer) Metadata() map[string][]any {
 	return c.metadata
 }
 
@@ -245,6 +256,10 @@ func (c partContainer) Parts() map[string]Part {
 
 func (c partContainer) MainPart() Part {
 	return c.main
+}
+
+func (c partContainer) Body() any {
+	return c
 }
 
 

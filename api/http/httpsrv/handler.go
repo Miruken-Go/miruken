@@ -1,6 +1,7 @@
 package httpsrv
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/go-logr/logr"
@@ -10,6 +11,8 @@ import (
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/provides"
+	"github.com/miruken-go/miruken/slices"
+	"github.com/timewasted/go-accept-headers"
 	"io"
 	"net/http"
 	"runtime"
@@ -28,10 +31,11 @@ func (h *ApiHandler) Constructor(
 	ctx *context.Context,
 ) {
 	if logger == h.logger {
-		logger = logr.Discard()
+		h.logger = logr.Discard()
+	} else {
+		h.logger = logger
 	}
-	h.logger = logger
-	h.ctx    = ctx
+	h.ctx = ctx
 }
 
 func (h *ApiHandler) ServeHTTP(
@@ -40,11 +44,10 @@ func (h *ApiHandler) ServeHTTP(
 ) {
 	defer h.handlePanic(w)
 
-	accepted, contentType, from, publish := h.acceptRequest(w, r)
+	accepted, from, publish := h.acceptRequest(w, r)
 	if !accepted {
 		return
 	}
-	to := from.FlipDirection()
 
 	child := h.ctx.NewChild()
 	defer child.Dispose()
@@ -52,7 +55,7 @@ func (h *ApiHandler) ServeHTTP(
 
 	msg, _, err := maps.Out[api.Message](handler, r.Body, from)
 	if err != nil {
-		h.encodeError(err, true, contentType, to, w, handler)
+		h.encodeError(err, http.StatusUnsupportedMediaType, w, handler)
 		return
 	}
 
@@ -64,13 +67,11 @@ func (h *ApiHandler) ServeHTTP(
 
 	if pc, ok := payload.(api.PartContainer); ok {
 		if main := pc.MainPart(); main != nil {
-			if payload = main.Content(); miruken.IsNil(payload) {
+			if payload = main.Body(); miruken.IsNil(payload) {
 				http.Error(w, "400 empty main part", http.StatusBadRequest)
 				return
 			}
-			contentType = main.ContentType()
-			to          = maps.To(contentType, nil)
-			handler     = miruken.BuildUp(handler, provides.With(pc))
+			handler = miruken.BuildUp(handler, provides.With(pc))
 		} else {
 			http.Error(w, "400 missing main part", http.StatusBadRequest)
 			return
@@ -79,23 +80,23 @@ func (h *ApiHandler) ServeHTTP(
 
 	if publish {
 		if pv, err := api.Publish(handler, payload); err != nil {
-			h.encodeError(err, false, contentType, to, w, handler)
+			h.encodeError(err, 0, w, handler)
 		} else if pv == nil {
-			h.encodeResult(nil, contentType, to, w, handler)
+			h.encodeResult(nil, r, w, handler)
 		} else if _, err = pv.Await(); err == nil {
-			h.encodeResult(nil, contentType, to, w, handler)
+			h.encodeResult(nil, r, w, handler)
 		} else {
-			h.encodeError(err, false, contentType, to, w, handler)
+			h.encodeError(err, 0, w, handler)
 		}
 	} else {
 		if res, pr, err := api.Send[any](handler, payload); err != nil {
-			h.encodeError(err, false, contentType, to, w, handler)
+			h.encodeError(err, 0, w, handler)
 		} else if pr == nil {
-			h.encodeResult(res, contentType, to, w, handler)
+			h.encodeResult(res, r, w, handler)
 		} else if res, err = pr.Await(); err == nil {
-			h.encodeResult(res, contentType, to, w, handler)
+			h.encodeResult(res, r, w, handler)
 		} else {
-			h.encodeError(err, false, contentType, to, w, handler)
+			h.encodeError(err, 0, w, handler)
 		}
 	}
 }
@@ -103,13 +104,13 @@ func (h *ApiHandler) ServeHTTP(
 func (h *ApiHandler) acceptRequest(
 	w http.ResponseWriter,
 	r *http.Request,
-) (accepted bool, contentType string, format *maps.Format, publish bool) {
+) (accepted bool, format *maps.Format, publish bool) {
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
 		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	contentType = r.Header.Get("Content-Type")
+	contentType := r.Header.Get("Content-Type")
 	if len(contentType) == 0 {
 		http.Error(w, "400 missing 'Content-Type' header", http.StatusBadRequest)
 		return
@@ -133,45 +134,99 @@ func (h *ApiHandler) acceptRequest(
 }
 
 func (h *ApiHandler) encodeResult(
-	res         any,
-	contentType string,
-	format      *maps.Format,
-	w           http.ResponseWriter,
-	handler     miruken.Handler,
+	result  any,
+	r       *http.Request,
+	w       http.ResponseWriter,
+	handler miruken.Handler,
 ) {
-	w.Header().Set("Content-Type", contentType)
-	out := io.Writer(w)
-	msg := api.Message{Payload: res}
-	if _, err := maps.Into(handler, msg, &out, format); err != nil {
-		h.encodeError(err, false, contentType, format, w, handler)
+	header := w.Header()
+	var formats []*maps.Format
+	if content, ok := result.(api.Content); ok {
+		if format, err := api.ParseContentType(content.ContentType(), maps.DirectionTo); err == nil {
+			formats = []*maps.Format{format}
+			result  = content.Body()
+		} else {
+			h.encodeError(err, 0, w, handler)
+			return
+		}
+		for k, vs := range content.Metadata() {
+			for _, v := range vs {
+				header.Add(k, fmt.Sprintf("%v", v))
+			}
+		}
+	} else if hdr := r.Header.Get("Accept"); hdr != "" {
+		if fs := accept.Parse(hdr); len(fs) > 0 {
+			formats = slices.Map[accept.Accept, *maps.Format](fs,
+				func(a accept.Accept) *maps.Format {
+					var sb strings.Builder
+					if a.Subtype == "*" {
+						sb.WriteString("/")
+					}
+					sb.WriteString(a.Type)
+					if a.Subtype != "*" {
+						sb.WriteString("/")
+						sb.WriteString(a.Subtype)
+					} else {
+						sb.WriteString("//")
+					}
+					return maps.To(sb.String(), a.Extensions)
+				})
+		} else {
+			w.WriteHeader(http.StatusNotAcceptable)
+			return
+		}
+	} else {
+		formats = []*maps.Format{api.ToJson}
+	}
+	msg := api.Message{Payload: result}
+	if len(formats) == 1 {
+		format := formats[0]
+		header.Set("Content-Type", format.Name())
+		out := io.Writer(w)
+		if _, err := maps.Into(handler, msg, &out, format); err != nil {
+			h.encodeError(err, http.StatusNotAcceptable, w, handler)
+		}
+	} else {
+		for i, format := range formats {
+			var b bytes.Buffer
+			out := io.Writer(&b)
+			if _, err := maps.Into(handler, msg, &out, format); err == nil {
+				header.Set("Content-Type", format.Name())
+				if _, err := w.Write(b.Bytes()); err != nil {
+					h.logger.Error(err, "unable to write response")
+					w.WriteHeader(http.StatusInternalServerError)
+				}
+				break
+			} else if i == len(formats)-1 {
+				h.encodeError(err, http.StatusNotAcceptable, w, handler)
+			}
+		}
 	}
 }
 
 func (h *ApiHandler) encodeError(
-	err         error,
-	mapping     bool,
-	contentType string,
-	format      *maps.Format,
-	w           http.ResponseWriter,
-	handler     miruken.Handler,
+	err                  error,
+	notHandledStatusCode int,
+	w                    http.ResponseWriter,
+	handler              miruken.Handler,
 ) {
-	if mapping {
+	if notHandledStatusCode > 0 {
 		var nh *miruken.NotHandledError
 		if errors.As(err, &nh) {
-			http.Error(w, "415 invalid 'Content-Type' header", http.StatusUnsupportedMediaType)
+			w.WriteHeader(notHandledStatusCode)
 			return
 		}
 	}
-	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Type", api.ToJson.Name())
 	statusCode := http.StatusInternalServerError
 	handler = miruken.BuildUp(handler, miruken.BestEffort)
-	if sc, _, sce := maps.Out[int](handler, err, toStatusCode); sc != 0 && sce == nil {
+	if sc, _, e := maps.Out[int](handler, err, toStatusCode); sc != 0 && e == nil {
 		statusCode = sc
 	}
 	w.WriteHeader(statusCode)
 	out := io.Writer(w)
 	msg := api.Message{Payload: err}
-	_, _ = maps.Into(handler, msg, &out, format)
+	_, _ = maps.Into(handler, msg, &out, api.ToJson)
 }
 
 func (h *ApiHandler) handlePanic(w http.ResponseWriter) {

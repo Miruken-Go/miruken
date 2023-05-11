@@ -81,8 +81,8 @@ func CreateKey[T any](
 		err = result.Error()
 	} else if !result.handled {
 		err = &NotHandledError{creates}
-	} else {
-		tp = CoerceResult[T](creates, &t)
+	} else if _, p := creates.Result(false); p != nil {
+		tp = promise.Coerce[T](p)
 	}
 	return
 }
@@ -102,7 +102,11 @@ func CreateAll[T any](
 	if result := handler.Handle(creates, true, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {
-		tp = CoerceResults[T](creates, &t)
+		if _, p := creates.Result(true); p != nil {
+			tp = promise.Then(p, func(any) []T {
+				return t
+			})
+		}
 	}
 	return
 }

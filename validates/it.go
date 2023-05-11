@@ -99,7 +99,7 @@ func (g *Group) Merge(constraint miruken.Constraint) bool {
 	return false
 }
 
-func (g *Group) Satisfies(required miruken.Constraint) bool {
+func (g *Group) Satisfies(required miruken.Constraint, _ miruken.Callback) bool {
 	rg, ok := required.(*Group)
 	if !ok {
 		return false

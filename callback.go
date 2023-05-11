@@ -224,6 +224,7 @@ func (c *CallbackBase) ensureResult(many bool, expand bool) any {
 			c.result = unwrapResult(results)
 			if !(c.written || IsNil(c.target)) {
 				CopySliceIndirect(results, c.target)
+				c.written = true
 			}
 		} else if len(results) == 0 {
 			c.result = nil
@@ -231,6 +232,7 @@ func (c *CallbackBase) ensureResult(many bool, expand bool) any {
 			c.result = unwrapResult(results[0])
 			if !(c.written || IsNil(c.target)) {
 				CopyIndirect(c.result, c.target)
+				c.written = true
 			}
 		}
 	}
@@ -335,30 +337,6 @@ func (b *CallbackBuilder) WithConstraints(
 
 func (b *CallbackBuilder) CallbackBase() CallbackBase {
 	return CallbackBase{target: b.target, constraints: b.constraints}
-}
-
-func CoerceResult[T any](
-	callback Callback,
-	target   *T,
-) (tp *promise.Promise[T]) {
-	if _, p := callback.Result(false); p != nil {
-		tp = promise.Then(p, func(any) T {
-			return *target
-		})
-	}
-	return
-}
-
-func CoerceResults[T any](
-	callback Callback,
-	target   *[]T,
-) (tp *promise.Promise[[]T]) {
-	if _, p := callback.Result(true); p != nil {
-		tp = promise.Then(p, func(any) []T {
-			return *target
-		})
-	}
-	return
 }
 
 // unwrapResult unwraps the result if it's a promise.

@@ -13,7 +13,7 @@ type (
 	// Constraint manages BindingMetadata assertions.
 	Constraint interface {
 		Required() bool
-		Satisfies(required Constraint) bool
+		Satisfies(required Constraint, callback Callback) bool
 	}
 
 	// ConstraintSource returns one or more Constraint.
@@ -42,7 +42,7 @@ func (n *Named) InitWithTag(tag reflect.StructTag) error {
 	return ErrConstraintNameMissing
 }
 
-func (n *Named) Satisfies(required Constraint) bool {
+func (n *Named) Satisfies(required Constraint, _ Callback) bool {
 	rn, ok := required.(*Named)
 	return ok && *n == *rn
 }
@@ -88,7 +88,7 @@ func (m *Metadata) InitWithTag(
 	return err
 }
 
-func (m *Metadata) Satisfies(required Constraint) bool {
+func (m *Metadata) Satisfies(required Constraint, _ Callback) bool {
 	rm, ok := required.(metadataOwner)
 	return ok && reflect.DeepEqual(rm.metadata(), m.metadata())
 }
@@ -111,7 +111,7 @@ func (q Qualifier[T]) Required() bool {
 	return false
 }
 
-func (q Qualifier[T]) Satisfies(required Constraint) bool {
+func (q Qualifier[T]) Satisfies(required Constraint, _ Callback) bool {
 	_, ok := required.(qualifierOwner[T])
 	return ok
 }
@@ -144,11 +144,12 @@ func (c *constraintFilter) Next(
 		} else if len(constraints) == 0 {
 			return next.Abort()
 		} else {
+			callback := ctx.Callback()
 			var matched map[Constraint]struct{}
 			Loop:
 			for _, rc := range required {
 				for _, c := range constraints {
-					if c.Satisfies(rc) {
+					if c.Satisfies(rc, callback) {
 						if c.Required() {
 							if matched == nil {
 								matched = make(map[Constraint]struct{})

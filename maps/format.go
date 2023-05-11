@@ -79,7 +79,10 @@ func (f *Format) Merge(constraint miruken.Constraint) bool {
 	return false
 }
 
-func (f *Format) Satisfies(required miruken.Constraint) bool {
+func (f *Format) Satisfies(
+	required miruken.Constraint,
+	callback miruken.Callback,
+) bool {
 	rf, ok := required.(*Format)
 	if !ok {
 		return false
@@ -104,15 +107,29 @@ func (f *Format) Satisfies(required miruken.Constraint) bool {
 		}
 	case FormatRuleStartsWith:
 		switch f.rule {
-		case FormatRuleEquals, FormatRuleStartsWith:
-			return strings.HasPrefix(rf.name, f.name)
+		case FormatRuleEquals:
+			if strings.HasPrefix(f.name, rf.name) {
+				if m, ok := callback.(*It); ok && m.match == nil {
+					m.match = f
+				}
+				return true
+			}
+			return false
+		case FormatRuleStartsWith:
+			return strings.HasPrefix(f.name, rf.name)
 		case FormatRulePattern:
 			return f.pattern.MatchString(rf.name)
 		}
 	case FormatRuleEndsWith:
 		switch f.rule {
 		case FormatRuleEquals:
-			return strings.HasSuffix(rf.name, f.name)
+			if strings.HasSuffix(f.name, rf.name) {
+				if m, ok := callback.(*It); ok && m.match == nil {
+					m.match = f
+				}
+				return true
+			}
+			return false
 		case FormatRuleEndsWith:
 			return strings.HasSuffix(f.name, rf.name)
 		case FormatRulePattern:
@@ -120,7 +137,15 @@ func (f *Format) Satisfies(required miruken.Constraint) bool {
 		}
 	case FormatRulePattern:
 		switch f.rule {
-		case FormatRuleEquals, FormatRuleStartsWith, FormatRuleEndsWith:
+		case FormatRuleEquals:
+			if rf.pattern.MatchString(f.name) {
+				if m, ok := callback.(*It); ok && m.match == nil {
+					m.match = f
+				}
+				return true
+			}
+			return false
+		case FormatRuleStartsWith, FormatRuleEndsWith:
 			return rf.pattern.MatchString(f.name)
 		}
 	}

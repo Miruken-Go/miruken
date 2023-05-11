@@ -178,11 +178,15 @@ func ResolveKey[T any](
 	builder.WithKey(key).
 		    IntoTarget(&t).
 		    WithConstraints(constraints...)
-	p := builder.New()
-	if result := handler.Handle(p, false, nil); result.IsError() {
+	provides := builder.New()
+	if result := handler.Handle(provides, false, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {
-		tp = CoerceResult[T](p, &t)
+		if _, p := provides.Result(false); p != nil {
+			tp = promise.Then(p, func(any) T {
+				return t
+			})
+		}
 	}
 	return
 }
@@ -198,11 +202,15 @@ func ResolveAll[T any](
 	builder.WithKey(TypeOf[T]()).
 		    IntoTarget(&t).
 		    WithConstraints(constraints...)
-	p := builder.New()
-	if result := handler.Handle(p, true, nil); result.IsError() {
+	provides := builder.New()
+	if result := handler.Handle(provides, true, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {
-		tp = CoerceResults[T](p, &t)
+		if _, p := provides.Result(true); p != nil {
+			tp = promise.Then(p, func(any) []T {
+				return t
+			})
+		}
 	}
 	return
 }

@@ -135,8 +135,10 @@ func Execute[T any](
 		err = result.Error()
 	} else if !result.Handled() {
 		err = &NotHandledError{callback}
-	} else {
-		tp = CoerceResult[T](handles, &t)
+	} else if _, p := handles.Result(false); p != nil {
+		tp = promise.Then(p, func(any) T {
+			return t
+		})
 	}
 	return
 }
@@ -184,8 +186,10 @@ func ExecuteAll[T any](
 		err = result.Error()
 	} else if !result.Handled() {
 		err = &NotHandledError{Callback: callback}
-	} else {
-		tp = CoerceResults[T](handles, &t)
+	} else if _, p := handles.Result(true); p != nil {
+		tp = promise.Then(p, func(any) []T {
+			return t
+		})
 	}
 	return
 }

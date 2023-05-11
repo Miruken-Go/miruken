@@ -3,35 +3,40 @@ package api
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/constraints"
 	"github.com/miruken-go/miruken/maps"
 	"io"
 	"mime/multipart"
+	"net/textproto"
+	"time"
 )
 
-type (
-	// MultipartMapper maps 'multipart/*' mime messages to
-	// a corresponding PartContainer for reading and writing.
-	MultipartMapper struct{}
-)
+// MultipartMapper reads and writes 'multipart/*'
+// mime messages from a PartContainer.
+type MultipartMapper struct{}
+
 
 func (m *MultipartMapper) Read(
 	_*struct{
 		maps.Format `from:"/multipart//"`
 	  }, reader io.Reader,
-	  it *maps.It,
+	  it  *maps.It,
 	  ctx miruken.HandleContext,
 ) (Message, error) {
 	var msg Message
-	boundary, start := extractMultipartParams(it)
+	_, boundary, start := extractMultipartParams(it)
 	if boundary == "" {
-		return msg, errors.New("multipart: missing \"boundary\" parameter")
+		return msg, ErrMissingBoundary
 	}
+
 	var main Part
-	composer := ctx.Composer()
-	mr := multipart.NewReader(reader, boundary)
 	var mb ReadPartsBuilder
+	composer := ctx.Composer()
+	now := time.Now().UnixNano()
+	mr  := multipart.NewReader(reader, boundary)
+
 	for i := 0;; i++ {
 		p, err := mr.NextPart()
 		if err == io.EOF {
@@ -41,7 +46,7 @@ func (m *MultipartMapper) Read(
 			return msg, err
 		}
 
-		content, err := io.ReadAll(p)
+		body, err := io.ReadAll(p)
 		if err != nil {
 			return msg, err
 		}
@@ -52,12 +57,15 @@ func (m *MultipartMapper) Read(
 
 		var pb PartBuilder
 		pb.ContentType(ct).
-			Metadata(header).
-			Filename(p.FileName())
+		   MetadataStrings(header).
+		   Filename(p.FileName())
 
 		var key string
 		if key = p.FormName(); key == "" {
 			key = header.Get("Content-ID")
+		}
+		if key == "" {
+			key = fmt.Sprintf("%d-%d", now, i)
 		}
 
 		if main == nil {
@@ -70,11 +78,11 @@ func (m *MultipartMapper) Read(
 
 		if addPart {
 			if key != "" {
-				reader := bytes.NewReader(content)
-				mb.AddPart(key, pb.Content(reader).Build())
+				reader := bytes.NewReader(body)
+				mb.AddPart(key, pb.Body(reader).Build())
 			}
-		} else if len(content) > 0 {
-			late, _, err := maps.Out[miruken.Late](composer, content, maps.From(ct, nil))
+		} else if len(body) > 0 {
+			late, _, err := maps.Out[miruken.Late](composer, body, maps.From(ct, nil))
 			if err != nil {
 				return msg, err
 			}
@@ -85,7 +93,7 @@ func (m *MultipartMapper) Read(
 				}
 			}
 			if payload := late.Value; payload != nil {
-				main = pb.Content(payload).Build()
+				main = pb.Body(payload).Build()
 				mb.MainPart(main)
 			}
 		} else {
@@ -97,9 +105,110 @@ func (m *MultipartMapper) Read(
 	return msg, nil
 }
 
+func (m *MultipartMapper) Write(
+	_*struct{
+		maps.Format `to:"/multipart//"`
+	  }, msg Message,
+	it  *maps.It,
+	ctx miruken.HandleContext,
+) (io.Writer, error) {
+	if parts, ok := msg.Payload.(PartContainer); ok {
+		return m.WriteParts(nil, parts, it, ctx)
+	}
+	return nil, nil
+}
+
+func (m *MultipartMapper) WriteParts(
+	_*struct{
+		maps.Format `to:"/multipart//"`
+	  }, pc PartContainer,
+	it  *maps.It,
+	ctx miruken.HandleContext,
+) (io.Writer, error) {
+	if writer, ok := it.Target().(*io.Writer); ok {
+		typ, boundary, start := extractMultipartParams(it)
+		if boundary == "" {
+			return nil, ErrMissingBoundary
+		}
+		if start == "" {
+			start = "main"
+		}
+		mw := multipart.NewWriter(*writer)
+		if err := mw.SetBoundary(boundary); err != nil {
+			return nil, err
+		}
+		if main := pc.MainPart(); main != nil {
+			if err := addPart(start, typ, main, mw, ctx); err != nil {
+				return nil, err
+			}
+		}
+		for key, part := range pc.Parts() {
+			if err := addPart(key, typ, part, mw, ctx); err != nil {
+				return nil, err
+			}
+		}
+		if err := mw.Close(); err != nil {
+			return nil, err
+		}
+		return *writer, nil
+	}
+	return nil, nil
+}
+
+func addPart(
+	key    string,
+	typ    string,
+	part   Part,
+	writer *multipart.Writer,
+	ctx    miruken.HandleContext,
+) error {
+	var header = textproto.MIMEHeader{}
+	for k, vs := range part.Metadata() {
+		for _, v := range vs {
+			header.Add(k, fmt.Sprintf("%v", v))
+		}
+	}
+	contentType := part.ContentType()
+	header.Set("Content-Type", contentType)
+
+	if typ == "multipart/form-data" {
+		if header.Get("Content-Disposition") == "" {
+			if filename := part.Filename(); filename != "" {
+				header.Set("Content-Disposition",
+					fmt.Sprintf(`form-data; name="%s"; filename="%s"`, key, filename))
+			} else {
+				header.Set("Content-Disposition",
+					fmt.Sprintf(`form-data; name="%s"`, key))
+			}
+		}
+	} else {
+		if header.Get("Content-ID") == "" {
+			header.Set("Content-ID", key)
+		}
+		if filename := part.Filename(); filename != "" {
+			header.Set("Content-Filename", filename)
+		}
+	}
+
+	w, err := writer.CreatePart(header)
+	if err == nil {
+		body := part.Body()
+		if reader, ok := body.(io.Reader); ok {
+			_, err = io.Copy(w, reader)
+		} else {
+			var format *maps.Format
+			format, err = ParseContentType(contentType, maps.DirectionTo)
+			if err == nil {
+				_, err = maps.Into(ctx.Composer(), body, &w, format)
+			}
+		}
+	}
+	return err
+}
+
 func extractMultipartParams(
 	src miruken.ConstraintSource,
-) (boundary string, start string) {
+) (typ string, boundary string, start string) {
 	if format, ok := constraints.First[*maps.Format](src); ok {
 		if b, ok := format.Params()["boundary"]; ok {
 			boundary = b
@@ -107,6 +216,9 @@ func extractMultipartParams(
 		if s, ok := format.Params()["start"]; ok {
 			start = s
 		}
+		typ = format.Name()
 	}
 	return
 }
+
+var ErrMissingBoundary = errors.New(`multipart: missing "boundary" parameter`)

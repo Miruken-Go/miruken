@@ -398,7 +398,7 @@ func (suite *MapsTestSuite) TestMap() {
 			res, _, err = maps.Out[string](handler, &data, maps.To("hel", nil))
 			suite.NotNil(err)
 			res, _, err = maps.Out[string](handler, &data, maps.To("/hel", nil))
-			suite.NotNil(err)
+			suite.Nil(err)
 		})
 
 		suite.Run("EndsWith", func () {

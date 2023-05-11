@@ -13,6 +13,7 @@ type (
 		miruken.CallbackBase
 		key     any
 		source  any
+		match   *Format
 	}
 
 	// Builder builds It callbacks.
@@ -42,6 +43,14 @@ func (m *It) Key() any {
 
 func (m *It) Policy() miruken.Policy {
 	return mapsPolicy
+}
+
+func (m *It) Matched() *Format {
+	return m.match
+}
+
+func (m *It) SetMatched(format *Format) {
+	m.match = format
 }
 
 func (m *It) Dispatch(
@@ -104,8 +113,10 @@ func Out[T any](
 		err = result.Error()
 	} else if !result.Handled() {
 		err = &miruken.NotHandledError{Callback: m}
-	} else {
-		tp = miruken.CoerceResult[T](m, &t)
+	} else if _, p := m.Result(false); p != nil {
+		tp = promise.Then(p, func(any) T {
+			return t
+		})
 	}
 	return
 }
@@ -158,8 +169,10 @@ func Key[T any](
 		err = result.Error()
 	} else if !result.Handled() {
 		err = &miruken.NotHandledError{Callback: m}
-	} else {
-		tp = miruken.CoerceResult[T](m, &t)
+	} else if _, p := m.Result(false); p != nil {
+		tp = promise.Then(p, func(any) T {
+			return t
+		})
 	}
 	return
 }
@@ -188,9 +201,11 @@ func All[T any](
 			return nil, nil, result.Error()
 		} else if !result.Handled() {
 			return nil, nil, &miruken.NotHandledError{Callback: m}
-		}
-		if pm := miruken.CoerceResult[T](m, &t[i]); pm != nil {
-			promises = append(promises, pm)
+		} else if _, p := m.Result(false); p != nil {
+			idx := i
+			promises = append(promises, promise.Then(p, func(any) T {
+				return t[idx]
+			}))
 		}
 	}
 	switch len(promises) {

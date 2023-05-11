@@ -131,7 +131,7 @@ func Unwrap[T any](promise *Promise[*Promise[T]]) *Promise[T] {
 }
 
 func Delay(delay time.Duration) *Promise[any] {
-	return New(func(resolve func(any), reject func(error)) {
+	return New(func(resolve func(any), _ func(error)) {
 		time.Sleep(delay)
 		resolve(nil)
 	})
