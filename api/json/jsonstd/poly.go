@@ -81,7 +81,7 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 		return byt, err
 	}
 	if byt[0] == '{' {
-		typeInfo, _, err := maps.Out[api.TypeFieldInfo](c.composer, v, c.typeInfo())
+		typeInfo, _, _, err := maps.Out[api.TypeFieldInfo](c.composer, v, c.typeInfo())
 		if err != nil {
 			return nil, err
 		}
@@ -94,7 +94,7 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 		copy(byt[len(typeProperty)+1:], byt[1:])
 		copy(byt[1:], typeProperty)
 	} else if byt[0] == '[' {
-		typeInfo, _, err := maps.Out[api.TypeFieldInfo](c.composer, c.v, c.typeInfo())
+		typeInfo, _, _, err := maps.Out[api.TypeFieldInfo](c.composer, c.v, c.typeInfo())
 		if err != nil {
 			return nil, err
 		}

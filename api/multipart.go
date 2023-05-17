@@ -56,7 +56,7 @@ func (m *MultipartMapper) Read(
 		ct      := header.Get("Content-Type")
 
 		var pb PartBuilder
-		pb.ContentType(ct).
+		pb.MediaType(ct).
 		   MetadataStrings(header).
 		   Filename(p.FileName())
 
@@ -82,7 +82,7 @@ func (m *MultipartMapper) Read(
 				mb.AddPart(key, pb.Body(reader).Build())
 			}
 		} else if len(body) > 0 {
-			late, _, err := maps.Out[miruken.Late](composer, body, maps.From(ct, nil))
+			late, _, _, err := maps.Out[miruken.Late](composer, body, maps.From(ct, nil))
 			if err != nil {
 				return msg, err
 			}
@@ -168,7 +168,7 @@ func addPart(
 			header.Add(k, fmt.Sprintf("%v", v))
 		}
 	}
-	contentType := part.ContentType()
+	contentType := part.MediaType()
 	header.Set("Content-Type", contentType)
 
 	if typ == "multipart/form-data" {
@@ -197,9 +197,9 @@ func addPart(
 			_, err = io.Copy(w, reader)
 		} else {
 			var format *maps.Format
-			format, err = ParseContentType(contentType, maps.DirectionTo)
+			format, err = ParseMediaType(contentType, maps.DirectionTo)
 			if err == nil {
-				_, err = maps.Into(ctx.Composer(), body, &w, format)
+				_, _, err = maps.Into(ctx.Composer(), body, &w, format)
 			}
 		}
 	}

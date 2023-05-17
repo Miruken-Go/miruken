@@ -1062,7 +1062,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 				} else {
 					suite.Fail("unexpected error", err.Error())
 				}
-				if ret, _, err := maps.Out[any](handler, new(Foo)); err == nil {
+				if ret, _, _, err := maps.Out[any](handler, new(Foo)); err == nil {
 					suite.Equal("It *test.Foo", ret)
 				} else {
 					suite.Fail("unexpected error", err.Error())

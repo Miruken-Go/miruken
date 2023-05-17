@@ -15,9 +15,9 @@ type (
 
 	// Content is information produced or consumed by an api.
 	Content interface {
-		ContentType() string
-		Metadata()    map[string][]any
-		Body()        any
+		MediaType() string
+		Metadata()  map[string][]any
+		Body()      any
 	}
 
 	// Surrogate replaces a value with another for api transmission.

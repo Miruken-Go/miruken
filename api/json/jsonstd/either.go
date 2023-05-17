@@ -18,7 +18,7 @@ type Either[L, R any] struct {
 func (s Either[L, R]) Original(
 	composer miruken.Handler,
 ) (any, error) {
-	if v, _, err := maps.Out[any](composer, s.Value, api.FromJson); err != nil {
+	if v, _, _, err := maps.Out[any](composer, s.Value, api.FromJson); err != nil {
 		return nil, err
 	} else {
 		if sur, ok := v.(api.Surrogate); ok {

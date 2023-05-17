@@ -10,18 +10,33 @@ var (
 	FromJson = maps.From("application/json", nil)
 )
 
-
-// ParseContentType parses the contentType into a
+// ParseMediaType parses the mediaType into a
 // maps.Format suitable for mapping in the direction.
-func ParseContentType(
-	contentType string,
-	direction   maps.Direction,
+func ParseMediaType(
+	mediaType string,
+	direction maps.Direction,
 ) (*maps.Format, error) {
-	if mt, params, err := mime.ParseMediaType(contentType); err != nil {
+	if mt, params, err := mime.ParseMediaType(mediaType); err != nil {
 		return nil, err
 	} else if direction == maps.DirectionTo {
 		return maps.To(mt, params), nil
 	} else {
 		return maps.From(mt, params), nil
+	}
+}
+
+// FormatMediaType formats the maps.Format into a
+// media type conforming to RFC 2045 and RFC 2616.
+func FormatMediaType(format *maps.Format) string {
+	if format == nil {
+		panic("format cannot be nil")
+	}
+	switch format.Rule() {
+	case maps.FormatRuleEquals:
+		return mime.FormatMediaType(format.Name(), format.Params())
+	case maps.FormatRuleStartsWith:
+		return mime.FormatMediaType(format.Name() + "/*", format.Params())
+	default:
+		return ""
 	}
 }

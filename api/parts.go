@@ -41,31 +41,31 @@ type (
 	}
 
 	part struct {
-		contentType string
-		metadata    map[string][]any
-		filename    string
-		body        any
+		mediaType string
+		metadata  map[string][]any
+		filename  string
+		body      any
 	}
 
 	partContainer struct {
-		contentType string
-		boundary    string
-		metadata    map[string][]any
-		parts       map[string]Part
-		main        Part
+		mediaType string
+		boundary  string
+		metadata  map[string][]any
+		parts     map[string]Part
+		main      Part
 	}
 )
 
 
 // PartBuilder
 
-func (b *PartBuilder) ContentType(
-	contentType string,
+func (b *PartBuilder) MediaType(
+	mediaType string,
 ) *PartBuilder {
-	if _, _, err := mime.ParseMediaType(contentType); err != nil {
-		panic(fmt.Errorf("invalid content type %q (%w)", contentType, err))
+	if _, _, err := mime.ParseMediaType(mediaType); err != nil {
+		panic(fmt.Errorf("invalid media type %q (%w)", mediaType, err))
 	}
-	b.part.contentType = contentType
+	b.part.mediaType = mediaType
 	return b
 }
 
@@ -189,13 +189,13 @@ func (b *ReadPartsBuilder) Build() PartContainer {
 
 // WritePartsBuilder
 
-func (b *WritePartsBuilder) ContentType(
-	contentType string,
+func (b *WritePartsBuilder) MediaType(
+	mediaType string,
 ) *WritePartsBuilder {
-	if _, params, err := mime.ParseMediaType(contentType); err != nil {
-		panic(fmt.Errorf("invalid content type %q: %w", contentType, err))
+	if _, params, err := mime.ParseMediaType(mediaType); err != nil {
+		panic(fmt.Errorf("invalid media type %q: %w", mediaType, err))
 	} else {
-		b.container.contentType = contentType
+		b.container.mediaType = mediaType
 		b.container.boundary    = params["boundary"]
 	}
 	return b
@@ -209,13 +209,13 @@ func (b *WritePartsBuilder) Build() PartContainer {
 	if ctr.metadata == nil {
 		ctr.metadata = make(map[string][]any)
 	}
-	if len(ctr.contentType) == 0 {
-		ctr.contentType = "multipart/form-data"
-	} else if !strings.HasPrefix(ctr.contentType, "multipart/") {
-		ctr.contentType = "multipart/" + ctr.contentType
+	if len(ctr.mediaType) == 0 {
+		ctr.mediaType = "multipart/form-data"
+	} else if !strings.HasPrefix(ctr.mediaType, "multipart/") {
+		ctr.mediaType = "multipart/" + ctr.mediaType
 	}
 	if len(ctr.boundary) == 0 {
-		ctr.contentType = ctr.contentType + "; boundary=" + randomBoundary()
+		ctr.mediaType = ctr.mediaType + "; boundary=" + randomBoundary()
 	}
 	return ctr
 }
@@ -223,8 +223,8 @@ func (b *WritePartsBuilder) Build() PartContainer {
 
 // part
 
-func (p part) ContentType() string {
-	return p.contentType
+func (p part) MediaType() string {
+	return p.mediaType
 }
 
 func (p part) Metadata() map[string][]any {
@@ -242,8 +242,8 @@ func (p part) Body() any {
 
 // partContainer
 
-func (c partContainer) ContentType() string {
-	return c.contentType
+func (c partContainer) MediaType() string {
+	return c.mediaType
 }
 
 func (c partContainer) Metadata() map[string][]any {

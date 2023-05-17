@@ -100,7 +100,7 @@ func Out[T any](
 	handler     miruken.Handler,
 	source      any,
 	constraints ...any,
-) (t T, tp *promise.Promise[T], err error) {
+) (t T, tp *promise.Promise[T], m *It, err error) {
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
@@ -108,7 +108,7 @@ func Out[T any](
 	builder.FromSource(source).
 		    IntoTarget(&t).
 			WithConstraints(constraints...)
-	m := builder.New()
+	m = builder.New()
 	if result := handler.Handle(m, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.Handled() {
@@ -126,7 +126,7 @@ func Into[T any](
 	source      any,
 	target      *T,
 	constraints ...any,
-) (p *promise.Promise[any], err error) {
+) (p *promise.Promise[any], m *It, err error) {
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
@@ -141,7 +141,7 @@ func Into[T any](
 	} else {
 		builder.IntoTarget(target)
 	}
-	m := builder.New()
+	m = builder.New()
 	if result := handler.Handle(m, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.Handled() {
@@ -156,7 +156,7 @@ func Key[T any](
 	handler     miruken.Handler,
 	key         any,
 	constraints ...any,
-) (t T, tp *promise.Promise[T], err error) {
+) (t T, tp *promise.Promise[T], m *It, err error) {
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
@@ -164,7 +164,7 @@ func Key[T any](
 	builder.WithKey(key).
 		    IntoTarget(&t).
 			WithConstraints(constraints...)
-	m := builder.New()
+	m = builder.New()
 	if result := handler.Handle(m, false, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.Handled() {

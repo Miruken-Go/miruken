@@ -53,7 +53,7 @@ func (h *ApiHandler) ServeHTTP(
 	defer child.Dispose()
 	handler := miruken.BuildUp(child, api.Polymorphic)
 
-	msg, _, err := maps.Out[api.Message](handler, r.Body, from)
+	msg, _, _, err := maps.Out[api.Message](handler, r.Body, from)
 	if err != nil {
 		h.encodeError(err, http.StatusUnsupportedMediaType, w, handler)
 		return
@@ -115,7 +115,7 @@ func (h *ApiHandler) acceptRequest(
 		http.Error(w, "400 missing 'Content-Type' header", http.StatusBadRequest)
 		return
 	}
-	format, err := api.ParseContentType(contentType, maps.DirectionFrom)
+	format, err := api.ParseMediaType(contentType, maps.DirectionFrom)
 	if err != nil {
 		http.Error(w, "415 invalid 'Content-Type' header", http.StatusUnsupportedMediaType)
 		return
@@ -142,7 +142,7 @@ func (h *ApiHandler) encodeResult(
 	header := w.Header()
 	var formats []*maps.Format
 	if content, ok := result.(api.Content); ok {
-		if format, err := api.ParseContentType(content.ContentType(), maps.DirectionTo); err == nil {
+		if format, err := api.ParseMediaType(content.MediaType(), maps.DirectionTo); err == nil {
 			formats = []*maps.Format{format}
 			result  = content.Body()
 		} else {
@@ -179,19 +179,25 @@ func (h *ApiHandler) encodeResult(
 		formats = []*maps.Format{api.ToJson}
 	}
 	msg := api.Message{Payload: result}
-	if len(formats) == 1 {
+	if len(formats) == 1 && formats[0].Rule() == maps.FormatRuleEquals {
 		format := formats[0]
 		header.Set("Content-Type", format.Name())
 		out := io.Writer(w)
-		if _, err := maps.Into(handler, msg, &out, format); err != nil {
+		if _, _, err := maps.Into(handler, msg, &out, format); err != nil {
 			h.encodeError(err, http.StatusNotAcceptable, w, handler)
 		}
 	} else {
 		for i, format := range formats {
 			var b bytes.Buffer
 			out := io.Writer(&b)
-			if _, err := maps.Into(handler, msg, &out, format); err == nil {
-				header.Set("Content-Type", format.Name())
+			if _, m, err := maps.Into(handler, msg, &out, format); err == nil {
+				var contentType string
+				if match := m.Matched(); match != nil {
+					contentType = api.FormatMediaType(match)
+				} else {
+					contentType = api.FormatMediaType(format)
+				}
+				header.Set("Content-Type", contentType)
 				if _, err := w.Write(b.Bytes()); err != nil {
 					h.logger.Error(err, "unable to write response")
 					w.WriteHeader(http.StatusInternalServerError)
@@ -220,13 +226,13 @@ func (h *ApiHandler) encodeError(
 	w.Header().Set("Content-Type", api.ToJson.Name())
 	statusCode := http.StatusInternalServerError
 	handler = miruken.BuildUp(handler, miruken.BestEffort)
-	if sc, _, e := maps.Out[int](handler, err, toStatusCode); sc != 0 && e == nil {
+	if sc, _, _, e := maps.Out[int](handler, err, toStatusCode); sc != 0 && e == nil {
 		statusCode = sc
 	}
 	w.WriteHeader(statusCode)
 	out := io.Writer(w)
 	msg := api.Message{Payload: err}
-	_, _ = maps.Into(handler, msg, &out, api.ToJson)
+	_, _, _ = maps.Into(handler, msg, &out, api.ToJson)
 }
 
 func (h *ApiHandler) handlePanic(w http.ResponseWriter) {
