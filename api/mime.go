@@ -5,10 +5,13 @@ import (
 	"mime"
 )
 
-var (
-	ToJson   = maps.To("application/json", nil)
-	FromJson = maps.From("application/json", nil)
-)
+// Content is information produced or consumed by an api.
+type Content interface {
+	MediaType() string
+	Metadata()  map[string][]any
+	Body()      any
+}
+
 
 // ParseMediaType parses the mediaType into a
 // maps.Format suitable for mapping in the direction.
@@ -40,3 +43,8 @@ func FormatMediaType(format *maps.Format) string {
 		return ""
 	}
 }
+
+var (
+	ToJson   = maps.To("application/json", nil)
+	FromJson = maps.From("application/json", nil)
+)

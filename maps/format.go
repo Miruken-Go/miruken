@@ -90,7 +90,15 @@ func (f *Format) Satisfies(
 	if f.direction != rf.direction {
 		return false
 	}
-	if f.rule == FormatRuleAll || rf.rule == FormatRuleAll {
+	if f.rule == FormatRuleAll {
+		return true
+	}
+	if rf.rule == FormatRuleAll {
+		if f.rule == FormatRuleEquals {
+			if m, ok := callback.(*It); ok && m.match == nil {
+				m.match = f
+			}
+		}
 		return true
 	}
 	switch rf.rule {

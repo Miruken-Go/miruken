@@ -156,26 +156,10 @@ func (h *ApiHandler) encodeResult(
 		}
 	} else if hdr := r.Header.Get("Accept"); hdr != "" {
 		if fs := accept.Parse(hdr); len(fs) > 0 {
-			formats = slices.Map[accept.Accept, *maps.Format](fs,
-				func(a accept.Accept) *maps.Format {
-					var sb strings.Builder
-					if a.Subtype == "*" {
-						sb.WriteString("/")
-					}
-					sb.WriteString(a.Type)
-					if a.Subtype != "*" {
-						sb.WriteString("/")
-						sb.WriteString(a.Subtype)
-					} else {
-						sb.WriteString("//")
-					}
-					return maps.To(sb.String(), a.Extensions)
-				})
-		} else {
-			w.WriteHeader(http.StatusNotAcceptable)
-			return
+			formats = slices.Map[accept.Accept, *maps.Format](fs, formatAccept)
 		}
-	} else {
+	}
+	if len(formats) == 0 {
 		formats = []*maps.Format{api.ToJson}
 	}
 	msg := api.Message{Payload: result}
@@ -192,10 +176,13 @@ func (h *ApiHandler) encodeResult(
 			out := io.Writer(&b)
 			if _, m, err := maps.Into(handler, msg, &out, format); err == nil {
 				var contentType string
-				if match := m.Matched(); match != nil {
+				if format.Rule() == maps.FormatRuleEquals {
+					contentType = api.FormatMediaType(format)
+				} else if match := m.Matched(); match != nil {
 					contentType = api.FormatMediaType(match)
 				} else {
-					contentType = api.FormatMediaType(format)
+					w.WriteHeader(http.StatusNotAcceptable)
+					return
 				}
 				header.Set("Content-Type", contentType)
 				if _, err := w.Write(b.Bytes()); err != nil {
@@ -235,6 +222,24 @@ func (h *ApiHandler) encodeError(
 	_, _, _ = maps.Into(handler, msg, &out, api.ToJson)
 }
 
+func formatAccept(a accept.Accept) *maps.Format {
+	var sb strings.Builder
+	if a.Subtype == "*" {
+		if a.Type == "*" {
+			return maps.To("*", a.Extensions)
+		}
+		sb.WriteString("/")
+	}
+	sb.WriteString(a.Type)
+	if a.Subtype != "*" {
+		sb.WriteString("/")
+		sb.WriteString(a.Subtype)
+	} else {
+		sb.WriteString("//")
+	}
+	return maps.To(sb.String(), a.Extensions)
+}
+
 func (h *ApiHandler) handlePanic(w http.ResponseWriter) {
 	if r := recover(); r != nil {
 		err, _ := r.(error)
@@ -264,5 +269,6 @@ func Handler(handler miruken.Handler) http.Handler {
 	}
 	return h
 }
+
 
 var toStatusCode = maps.To("http:status-code", nil)

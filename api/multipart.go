@@ -32,7 +32,7 @@ func (m *MultipartMapper) Read(
 	}
 
 	var main Part
-	var mb ReadPartsBuilder
+	var rpb ReadPartsBuilder
 	composer := ctx.Composer()
 	now := time.Now().UnixNano()
 	mr  := multipart.NewReader(reader, boundary)
@@ -79,7 +79,7 @@ func (m *MultipartMapper) Read(
 		if addPart {
 			if key != "" {
 				reader := bytes.NewReader(body)
-				mb.AddPart(key, pb.Body(reader).Build())
+				rpb.AddPart(key, pb.Body(reader).Build())
 			}
 		} else if len(body) > 0 {
 			late, _, _, err := maps.Out[miruken.Late](composer, body, maps.From(ct, nil))
@@ -94,14 +94,14 @@ func (m *MultipartMapper) Read(
 			}
 			if payload := late.Value; payload != nil {
 				main = pb.Body(payload).Build()
-				mb.MainPart(main)
+				rpb.MainPart(main)
 			}
 		} else {
 			main = pb.Build()
-			mb.MainPart(main)
+			rpb.MainPart(main)
 		}
 	}
-	msg.Payload = mb.Build()
+	msg.Payload = rpb.Build()
 	return msg, nil
 }
 

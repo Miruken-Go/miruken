@@ -15,11 +15,12 @@ var static embed.FS
 func Handler(prefix string, api *openapi3.T) http.HandlerFunc {
 	dir, _ := fs.Sub(static, "static")
 	server := http.StripPrefix(prefix, http.FileServer(http.FS(dir)))
+	docs   := openapi.Handler(api, false)
 	return func(rw http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "openapi.json") {
-			openapi.Handler(api, false)(rw, r)
-			return
+			docs(rw, r)
+		} else {
+			server.ServeHTTP(rw, r)
 		}
-		server.ServeHTTP(rw, r)
 	}
 }

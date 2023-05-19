@@ -13,13 +13,6 @@ type (
 		Payload any
 	}
 
-	// Content is information produced or consumed by an api.
-	Content interface {
-		MediaType() string
-		Metadata()  map[string][]any
-		Body()      any
-	}
-
 	// Surrogate replaces a value with another for api transmission.
 	Surrogate interface {
 		Original(composer miruken.Handler) (any, error)

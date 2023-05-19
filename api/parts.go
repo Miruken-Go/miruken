@@ -175,6 +175,19 @@ func (b *ReadPartsBuilder) AddPart(
 	return b
 }
 
+func (b *ReadPartsBuilder) AddParts(
+	parts map[string]Part,
+) *ReadPartsBuilder {
+	for key, part := range parts {
+		b.AddPart(key, part)
+	}
+	return b
+}
+
+func (b *ReadPartsBuilder) NewPart() *PartBuilder {
+	return &PartBuilder{}
+}
+
 func (b *ReadPartsBuilder) Build() PartContainer {
 	ctr := b.container
 	if ctr.parts == nil {
