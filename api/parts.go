@@ -42,7 +42,7 @@ type (
 
 	part struct {
 		mediaType string
-		metadata  map[string][]any
+		metadata  map[string]any
 		filename  string
 		body      any
 	}
@@ -50,7 +50,7 @@ type (
 	partContainer struct {
 		mediaType string
 		boundary  string
-		metadata  map[string][]any
+		metadata  map[string]any
 		parts     map[string][]Part
 		main      Part
 	}
@@ -70,33 +70,18 @@ func (b *PartBuilder) MediaType(
 }
 
 func (b *PartBuilder) Metadata(
-	metadata map[string][]any,
+	metadata map[string]any,
 ) *PartBuilder {
-	for key, val := range metadata {
-		m := b.part.metadata
-		if m == nil {
-			m = make(map[string][]any)
-			b.part.metadata = m
-		}
-		if v, ok := m[key]; ok {
-			m[key] = append(v, val...)
-		} else {
-			m[key] = val
-		}
-	}
+	b.part.metadata = metadata
 	return b
 }
 
 func (b *PartBuilder) MetadataStrings(
 	metadata map[string][]string,
 ) *PartBuilder {
-	meta := make(map[string][]any)
-	for k, arr := range metadata {
-		s := make([]any, len(arr))
-		for i, v := range arr {
-			s[i] = v
-		}
-		meta[k] = s
+	meta := make(map[string]any)
+	for k, val := range metadata {
+		meta[k] = val
 	}
 	return b
 }
@@ -121,7 +106,7 @@ func (b *PartBuilder) Body(
 func (b *PartBuilder) Build() Part {
 	part := b.part
 	if part.metadata == nil {
-		part.metadata = make(map[string][]any)
+		part.metadata = make(map[string]any)
 	}
 	return part
 }
@@ -130,20 +115,9 @@ func (b *PartBuilder) Build() Part {
 // ReadPartsBuilder
 
 func (b *ReadPartsBuilder) Metadata(
-	metadata map[string][]any,
+	metadata map[string]any,
 ) *ReadPartsBuilder {
-	for key, val := range metadata {
-		m := b.container.metadata
-		if m == nil {
-			m = make(map[string][]any)
-			b.container.metadata = m
-		}
-		if v, ok := m[key]; ok {
-			m[key] = append(v, val...)
-		} else {
-			m[key] = val
-		}
-	}
+	b.container.metadata = metadata
 	return b
 }
 
@@ -199,7 +173,7 @@ func (b *ReadPartsBuilder) Build() PartContainer {
 		ctr.parts = make(map[string][]Part)
 	}
 	if ctr.metadata == nil {
-		ctr.metadata = make(map[string][]any)
+		ctr.metadata = make(map[string]any)
 	}
 	return ctr
 }
@@ -225,7 +199,7 @@ func (b *WritePartsBuilder) Build() PartContainer {
 		ctr.parts = make(map[string][]Part)
 	}
 	if ctr.metadata == nil {
-		ctr.metadata = make(map[string][]any)
+		ctr.metadata = make(map[string]any)
 	}
 	if len(ctr.mediaType) == 0 {
 		ctr.mediaType = "multipart/form-data"
@@ -245,7 +219,7 @@ func (p part) MediaType() string {
 	return p.mediaType
 }
 
-func (p part) Metadata() map[string][]any {
+func (p part) Metadata() map[string]any {
 	return p.metadata
 }
 
@@ -264,7 +238,7 @@ func (c partContainer) MediaType() string {
 	return c.mediaType
 }
 
-func (c partContainer) Metadata() map[string][]any {
+func (c partContainer) Metadata() map[string]any {
 	return c.metadata
 }
 

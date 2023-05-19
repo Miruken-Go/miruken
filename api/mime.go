@@ -1,14 +1,17 @@
 package api
 
 import (
+	"fmt"
 	"github.com/miruken-go/miruken/maps"
 	"mime"
+	"net/textproto"
+	"reflect"
 )
 
 // Content is information produced or consumed by an api.
 type Content interface {
 	MediaType() string
-	Metadata()  map[string][]any
+	Metadata()  map[string]any
 	Body()      any
 }
 
@@ -41,6 +44,35 @@ func FormatMediaType(format *maps.Format) string {
 		return mime.FormatMediaType(format.Name() + "/*", format.Params())
 	default:
 		return ""
+	}
+}
+
+func NewHeader(
+	metadata map[string]any,
+) textproto.MIMEHeader {
+	header := textproto.MIMEHeader{}
+	MergeHeader(header, metadata)
+	return header
+}
+
+func MergeHeader(
+	header   textproto.MIMEHeader,
+	metadata map[string]any,
+) {
+	if header == nil {
+		panic("header cannot be nil")
+	}
+	for k, v := range metadata {
+		typ := reflect.TypeOf(v)
+		switch typ.Kind() {
+		case reflect.Slice, reflect.Array:
+			vs := reflect.ValueOf(v)
+			for i := 0; i < vs.Len(); i++ {
+				header.Add(k, fmt.Sprintf("%v", vs.Index(i)))
+			}
+		default:
+			header.Set(k, fmt.Sprintf("%v", v))
+		}
 	}
 }
 

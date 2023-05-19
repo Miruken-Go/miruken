@@ -15,6 +15,7 @@ import (
 	"github.com/timewasted/go-accept-headers"
 	"io"
 	"net/http"
+	"net/textproto"
 	"runtime"
 	"strings"
 )
@@ -149,11 +150,7 @@ func (h *ApiHandler) encodeResult(
 			h.encodeError(err, 0, w, handler)
 			return
 		}
-		for k, vs := range content.Metadata() {
-			for _, v := range vs {
-				header.Add(k, fmt.Sprintf("%v", v))
-			}
-		}
+		api.MergeHeader(textproto.MIMEHeader(header), content.Metadata())
 	} else if hdr := r.Header.Get("Accept"); hdr != "" {
 		if fs := accept.Parse(hdr); len(fs) > 0 {
 			formats = slices.Map[accept.Accept, *maps.Format](fs, formatAccept)

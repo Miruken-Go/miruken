@@ -9,7 +9,6 @@ import (
 	"github.com/miruken-go/miruken/maps"
 	"io"
 	"mime/multipart"
-	"net/textproto"
 	"time"
 )
 
@@ -164,13 +163,8 @@ func addPart(
 	writer *multipart.Writer,
 	ctx    miruken.HandleContext,
 ) error {
-	var header = textproto.MIMEHeader{}
-	for k, vs := range part.Metadata() {
-		for _, v := range vs {
-			header.Add(k, fmt.Sprintf("%v", v))
-		}
-	}
 	contentType := part.MediaType()
+	header := NewHeader(part.Metadata())
 	header.Set("Content-Type", contentType)
 
 	if typ == "multipart/form-data" {
