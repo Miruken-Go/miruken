@@ -21,7 +21,7 @@ type (
 	// The main part is typically the message payload.
 	PartContainer interface {
 		Content
-		Parts() map[string]Part
+		Parts() map[string][]Part
 		MainPart() Part
 	}
 
@@ -51,7 +51,7 @@ type (
 		mediaType string
 		boundary  string
 		metadata  map[string][]any
-		parts     map[string]Part
+		parts     map[string][]Part
 		main      Part
 	}
 )
@@ -166,20 +166,25 @@ func (b *ReadPartsBuilder) AddPart(
 	}
 	parts := b.container.parts
 	if parts == nil {
-		parts = make(map[string]Part)
-		b.container.parts = parts
-	} else if _, ok := parts[key]; ok {
-		panic(fmt.Sprintf("part with key %q already added", key))
+		parts = make(map[string][]Part)
+		b.container.parts = map[string][]Part{
+			key: {part},
+		}
+	} else if set, ok := parts[key]; ok {
+		parts[key] = append(set, part)
+	} else {
+		parts[key] = []Part{part}
 	}
-	parts[key] = part
 	return b
 }
 
 func (b *ReadPartsBuilder) AddParts(
-	parts map[string]Part,
+	parts map[string][]Part,
 ) *ReadPartsBuilder {
-	for key, part := range parts {
-		b.AddPart(key, part)
+	for key, set := range parts {
+		for _, part := range set {
+			b.AddPart(key, part)
+		}
 	}
 	return b
 }
@@ -191,7 +196,7 @@ func (b *ReadPartsBuilder) NewPart() *PartBuilder {
 func (b *ReadPartsBuilder) Build() PartContainer {
 	ctr := b.container
 	if ctr.parts == nil {
-		ctr.parts = make(map[string]Part)
+		ctr.parts = make(map[string][]Part)
 	}
 	if ctr.metadata == nil {
 		ctr.metadata = make(map[string][]any)
@@ -209,7 +214,7 @@ func (b *WritePartsBuilder) MediaType(
 		panic(fmt.Errorf("invalid media type %q: %w", mediaType, err))
 	} else {
 		b.container.mediaType = mediaType
-		b.container.boundary    = params["boundary"]
+		b.container.boundary  = params["boundary"]
 	}
 	return b
 }
@@ -217,7 +222,7 @@ func (b *WritePartsBuilder) MediaType(
 func (b *WritePartsBuilder) Build() PartContainer {
 	ctr := &b.container
 	if ctr.parts == nil {
-		ctr.parts = make(map[string]Part)
+		ctr.parts = make(map[string][]Part)
 	}
 	if ctr.metadata == nil {
 		ctr.metadata = make(map[string][]any)
@@ -263,7 +268,7 @@ func (c partContainer) Metadata() map[string][]any {
 	return c.metadata
 }
 
-func (c partContainer) Parts() map[string]Part {
+func (c partContainer) Parts() map[string][]Part {
 	return c.parts
 }
 

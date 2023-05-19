@@ -142,9 +142,11 @@ func (m *MultipartMapper) WriteParts(
 				return nil, err
 			}
 		}
-		for key, part := range pc.Parts() {
-			if err := addPart(key, typ, part, mw, ctx); err != nil {
-				return nil, err
+		for key, set := range pc.Parts() {
+			for _, part := range set {
+				if err := addPart(key, typ, part, mw, ctx); err != nil {
+					return nil, err
+				}
 			}
 		}
 		if err := mw.Close(); err != nil {
