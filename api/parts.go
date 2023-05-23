@@ -81,9 +81,13 @@ func (b *PartBuilder) MetadataStrings(
 ) *PartBuilder {
 	meta := make(map[string]any)
 	for k, val := range metadata {
-		meta[k] = val
+		if len(val) == 1 {
+			meta[k] = val[0]
+		} else {
+			meta[k] = val
+		}
 	}
-	return b
+	return b.Metadata(meta)
 }
 
 func (b *PartBuilder) Filename(

@@ -138,11 +138,11 @@ func (i *Installer) BindingCreated(
 	if !(policy == i.policy && binding.Exported()) {
 		return
 	}
-	if inputType, ok := binding.Key().(reflect.Type); ok {
-		if inputType.Kind() == reflect.Ptr {
-			inputType = inputType.Elem()
+	if inType, ok := binding.Key().(reflect.Type); ok {
+		if inType.Kind() == reflect.Ptr {
+			inType = inType.Elem()
 		}
-		if schema, inputName, created := i.generateTypeSchema(inputType); created {
+		if schema, inputName, created := i.generateTypeSchema(inType); created {
 			requestBody := &openapi3.RequestBodyRef{
 				Value: openapi3.NewRequestBody().
 					WithDescription("Request to process").
@@ -154,19 +154,20 @@ func (i *Installer) BindingCreated(
 			i.requestBodies[requestName] = requestBody
 
 			responseName := "NoResponse"
-			if outputType := binding.LogicalOutputType(); outputType != nil {
-				if outputType.Kind() == reflect.Ptr {
-					outputType = outputType.Elem()
+			if outType := binding.LogicalOutputType(); outType != nil {
+				if outType.Kind() == reflect.Ptr {
+					outType = outType.Elem()
 				}
-				schema, _, _ := i.generateTypeSchema(outputType)
-				response := &openapi3.ResponseRef{
-					Value: openapi3.NewResponse().
-						WithDescription("Successful Response").
-						WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
-							WithPropertyRef("payload", schema))),
+				if schema, _, _ := i.generateTypeSchema(outType); schema != nil {
+					response := &openapi3.ResponseRef{
+						Value: openapi3.NewResponse().
+							WithDescription("Successful Response").
+							WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
+								WithPropertyRef("payload", schema))),
+					}
+					responseName = inputName + "Response"
+					i.responses[responseName] = response
 				}
-				responseName = inputName+"Response"
-				i.responses[responseName] = response
 			}
 			path := &openapi3.PathItem{
 				Post: &openapi3.Operation{
@@ -186,7 +187,7 @@ func (i *Installer) BindingCreated(
 							Ref: "#/components/responses/GenericError",
 						},
 					},
-					Tags: []string{inputType.PkgPath()},
+					Tags: []string{inType.PkgPath()},
 				},
 			}
 			i.paths["/process/"+strings.ToLower(inputName)] = path
@@ -210,6 +211,7 @@ func (i *Installer) initializeDefinitions() {
 	}
 	i.responses["NoResponse"] = &openapi3.ResponseRef{
 		Value: openapi3.NewResponse().
+			WithDescription("Empty Response").
 			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
 				WithProperty("payload", openapi3.NewObjectSchema()))),
 	}
@@ -298,6 +300,20 @@ func (i *Installer) generateExampleJson(
 	for _, schema := range i.components {
 		if example := schema.Value.Example; !miruken.IsNil(example) {
 			if b, _, _, err := maps.Out[[]byte](handler, example, api.ToJson); err == nil {
+				var js map[string]any
+				if err := json.Unmarshal(b, &js); err == nil {
+					if typ, ok := js["@type"]; ok {
+						props := schema.Value.Properties
+						if props == nil {
+							props = openapi3.Schemas{}
+						}
+						props["@type"] = &openapi3.SchemaRef{
+							Value: &openapi3.Schema{
+								Type:    "string",
+								Default: typ,
+							}}
+					}
+				}
 				schema.Value.Example = json.RawMessage(b)
 			}
 		}
