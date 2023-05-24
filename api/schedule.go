@@ -104,10 +104,10 @@ func (s *Scheduler) Publish(
 
 func (s *Scheduler) New(
 	_*struct{
-		cb creates.It `key:"api.ConcurrentBatch"`
-		sb creates.It `key:"api.SequentialBatch"`
-		sr creates.It `key:"api.ScheduledResult"`
-		p  creates.It `key:"api.Published"`
+		_ creates.It `key:"api.ConcurrentBatch"`
+		_ creates.It `key:"api.SequentialBatch"`
+		_ creates.It `key:"api.ScheduledResult"`
+		_ creates.It `key:"api.Published"`
 	  }, create *creates.It,
 ) any {
 	switch create.Key() {

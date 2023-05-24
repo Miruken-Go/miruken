@@ -13,6 +13,7 @@ type Content interface {
 	MediaType() string
 	Metadata()  map[string]any
 	Body()      any
+	// optional WriteBody() any
 }
 
 

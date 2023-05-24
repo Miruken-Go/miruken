@@ -8,7 +8,7 @@ type SurrogateMapper struct {}
 
 func (m *SurrogateMapper) New(
 	_*struct{
-		sr creates.It `key:"jsonstd.ScheduledResult"`
+		creates.It `key:"jsonstd.ScheduledResult"`
 	  }, create *creates.It,
 ) any {
 	switch create.Key() {

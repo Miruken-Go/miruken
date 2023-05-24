@@ -66,17 +66,12 @@ func (h *ApiHandler) ServeHTTP(
 		return
 	}
 
-	if pc, ok := payload.(api.PartContainer); ok {
-		if main := pc.MainPart(); main != nil {
-			if payload = main.Body(); miruken.IsNil(payload) {
-				http.Error(w, "400 empty main part", http.StatusBadRequest)
-				return
-			}
-			handler = miruken.BuildUp(handler, provides.With(pc))
-		} else {
-			http.Error(w, "400 missing main part", http.StatusBadRequest)
+	if c, ok := payload.(api.Content); ok {
+		if payload = c.Body(); miruken.IsNil(payload) {
+			http.Error(w, "400 missing content body", http.StatusBadRequest)
 			return
 		}
+		handler = miruken.BuildUp(handler, provides.With(c))
 	}
 
 	if publish {
@@ -145,7 +140,11 @@ func (h *ApiHandler) encodeResult(
 	if content, ok := result.(api.Content); ok {
 		if format, err := api.ParseMediaType(content.MediaType(), maps.DirectionTo); err == nil {
 			formats = []*maps.Format{format}
-			result  = content.Body()
+			if wb := content.(interface{ WriteBody() any }); ok {
+				result = wb.WriteBody()
+			} else {
+				result = content.Body()
+			}
 		} else {
 			h.encodeError(err, 0, w, handler)
 			return

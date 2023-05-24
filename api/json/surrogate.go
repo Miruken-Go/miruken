@@ -5,15 +5,15 @@ import "github.com/miruken-go/miruken/creates"
 // SurrogateMapper maps concepts to values that are more suitable
 // for transmission over a json api.  The replacement type usually
 // implements api.Surrogate to allow infrastructure to obtain the
-// original value using the `Original` method.
+// original value using the Original() method.
 type SurrogateMapper struct {}
 
 func (m *SurrogateMapper) New(
 	_*struct{
-		o creates.It `key:"json.Outcome"`
-		e creates.It `key:"json.Error"`
-		c creates.It `key:"json.Concurrent"`
-	    s creates.It `key:"json.Sequential"`
+		_ creates.It `key:"json.Outcome"`
+		_ creates.It `key:"json.Error"`
+		_ creates.It `key:"json.Concurrent"`
+	    _ creates.It `key:"json.Sequential"`
 	  }, create *creates.It,
 ) any {
 	switch create.Key() {

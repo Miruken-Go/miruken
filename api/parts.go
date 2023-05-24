@@ -255,9 +255,15 @@ func (c partContainer) MainPart() Part {
 }
 
 func (c partContainer) Body() any {
-	return c
+	if main := c.main; main != nil {
+		return main.Body()
+	}
+	return nil
 }
 
+func (c partContainer) WriteBody() any {
+	return c
+}
 
 // randomBoundary copied from multipart.randomBoundary
 func randomBoundary() string {

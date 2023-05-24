@@ -16,7 +16,7 @@ type KeyFactory struct {}
 func (f *KeyFactory) Create(
 	_*struct {
 	    creates.It
-		foo creates.It `key:"foo"`
+		_ creates.It `key:"foo"`
 	  },
 ) *Foo {
 	return &Foo{Counted{1}}
@@ -32,10 +32,10 @@ type MultiKeyFactory struct {
 func (f *MultiKeyFactory) Create(
 	_*struct {
 		provides.Single
-		fc creates.It  `key:"foo"`
-		bc creates.It  `key:"bar"`
-		fp provides.It `key:"foo"`
-		bp provides.It `key:"bar"`
+		_ creates.It  `key:"foo"`
+		_ creates.It  `key:"bar"`
+		_ provides.It `key:"foo"`
+		_ provides.It `key:"bar"`
 	  },
 	c *creates.It,
 	p *provides.It,

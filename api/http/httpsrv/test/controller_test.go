@@ -82,10 +82,10 @@ func (t *TeamApiHandler) CreateTeam(
 
 func (t *TeamApiHandler) New(
 	_*struct{
-		ct  creates.It `key:"test.CreateTeam"`
-		tc  creates.It `key:"test.TeamCreated"`
-	    gtn creates.It `key:"test.GetTeamNotifications"`
-		td  creates.It `key:"test.TeamData"`
+		_ creates.It `key:"test.CreateTeam"`
+		_ creates.It `key:"test.TeamCreated"`
+	    _ creates.It `key:"test.GetTeamNotifications"`
+		_ creates.It `key:"test.TeamData"`
 	  }, create *creates.It,
 ) any {
 	switch create.Key() {

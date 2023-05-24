@@ -60,36 +60,36 @@ func (m *GoPolymorphism) TypeInfo(
 func (m *GoPolymorphism) Static(
 	_*struct{
 		creates.Strict
-		b     creates.It `key:"bool"`
-		i     creates.It `key:"int"`
-		i8    creates.It `key:"int8"`
-		i16   creates.It `key:"int16"`
-		i32   creates.It `key:"int32"`
-		i64   creates.It `key:"int64"`
-		ui    creates.It `key:"uint"`
-		ui8   creates.It `key:"uint8"`
-		ui16  creates.It `key:"uint16"`
-		ui32  creates.It `key:"uint32"`
-		ui64  creates.It `key:"uint64"`
-		f32   creates.It `key:"float32"`
-		f64   creates.It `key:"float64"`
-		st    creates.It `key:"string"`
-		a     creates.It `key:"interface {}"`
-		bs    creates.It `key:"[]bool"`
-		is    creates.It `key:"[]int"`
-		i8s   creates.It `key:"[]int8"`
-		i16s  creates.It `key:"[]int16"`
-		i32s  creates.It `key:"[]int32"`
-		i64s  creates.It `key:"[]int64"`
-		uis   creates.It `key:"[]uint"`
-		ui8s  creates.It `key:"[]uint8"`
-		ui16s creates.It `key:"[]uint16"`
-		ui32s creates.It `key:"[]uint32"`
-		ui64s creates.It `key:"[]uint64"`
-		f32s  creates.It `key:"[]float32"`
-		f64s  creates.It `key:"[]float64"`
-		sts   creates.It `key:"[]string"`
-		as    creates.It `key:"[]interface {}"`
+		_ creates.It `key:"bool"`
+		_ creates.It `key:"int"`
+		_ creates.It `key:"int8"`
+		_ creates.It `key:"int16"`
+		_ creates.It `key:"int32"`
+		_ creates.It `key:"int64"`
+		_ creates.It `key:"uint"`
+		_ creates.It `key:"uint8"`
+		_ creates.It `key:"uint16"`
+		_ creates.It `key:"uint32"`
+		_ creates.It `key:"uint64"`
+		_ creates.It `key:"float32"`
+		_ creates.It `key:"float64"`
+		_ creates.It `key:"string"`
+		_ creates.It `key:"interface {}"`
+		_ creates.It `key:"[]bool"`
+		_ creates.It `key:"[]int"`
+		_ creates.It `key:"[]int8"`
+		_ creates.It `key:"[]int16"`
+		_ creates.It `key:"[]int32"`
+		_ creates.It `key:"[]int64"`
+		_ creates.It `key:"[]uint"`
+		_ creates.It `key:"[]uint8"`
+		_ creates.It `key:"[]uint16"`
+		_ creates.It `key:"[]uint32"`
+		_ creates.It `key:"[]uint64"`
+		_ creates.It `key:"[]float32"`
+		_ creates.It `key:"[]float64"`
+		_ creates.It `key:"[]string"`
+		_ creates.It `key:"[]interface {}"`
 	  }, create *creates.It,
 ) any {
 	if key, ok := create.Key().(string); ok {

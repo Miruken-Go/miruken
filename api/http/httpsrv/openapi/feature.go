@@ -13,33 +13,24 @@ import (
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/maps"
 	"reflect"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 )
 
-type (
-	// Installer configures openapi support.
-	Installer struct {
-		policy          miruken.Policy
-		schemas         openapi3.Schemas
-		requestBodies   openapi3.RequestBodies
-		responses       openapi3.Responses
-		paths           openapi3.Paths
-		generator       *openapi3gen.Generator
-		components      map[reflect.Type]*openapi3.SchemaRef
-		extraComponents []any
-		surrogates      map[reflect.Type]any
-	}
-
-	// ValidationFailure models a single property failure.
-	ValidationFailure struct {
-		PropertyName string
-		Errors       []string
-		Nested       []ValidationFailure
-	}
-)
-
+// Installer configures openapi support.
+type Installer struct {
+	policy          miruken.Policy
+	schemas         openapi3.Schemas
+	requestBodies   openapi3.RequestBodies
+	responses       openapi3.Responses
+	paths           openapi3.Paths
+	generator       *openapi3gen.Generator
+	components      map[reflect.Type]*openapi3.SchemaRef
+	extraComponents []any
+	surrogates      map[reflect.Type]any
+}
 
 func (i *Installer) Merge(docs *openapi3.T)  {
 	if docs == nil {
@@ -55,9 +46,10 @@ func (i *Installer) Merge(docs *openapi3.T)  {
 			components.Schemas = make(openapi3.Schemas)
 		}
 		for name, schema := range i.schemas {
-			if _, ok := components.Schemas[name]; ok {
-				break
-			} else {
+			if name == "" {
+				continue
+			}
+			if _, ok := components.Schemas[name]; !ok {
 				components.Schemas[name] = schema
 			}
 		}
@@ -67,9 +59,7 @@ func (i *Installer) Merge(docs *openapi3.T)  {
 			components.RequestBodies = make(openapi3.RequestBodies)
 		}
 		for name, reqBody := range i.requestBodies {
-			if _, ok := components.RequestBodies[name]; ok {
-				break
-			} else {
+			if _, ok := components.RequestBodies[name]; !ok {
 				components.RequestBodies[name] = reqBody
 			}
 		}
@@ -79,9 +69,7 @@ func (i *Installer) Merge(docs *openapi3.T)  {
 			components.Responses = make(openapi3.Responses)
 		}
 		for name, response := range i.responses {
-			if _, ok := components.Responses[name]; ok {
-				break
-			} else {
+			if _, ok := components.Responses[name]; !ok {
 				components.Responses[name] = response
 			}
 		}
@@ -91,9 +79,7 @@ func (i *Installer) Merge(docs *openapi3.T)  {
 			docs.Paths = make(openapi3.Paths)
 		}
 		for name, path := range i.paths {
-			if _, ok := docs.Paths[name]; ok {
-				break
-			} else {
+			if _, ok := docs.Paths[name]; !ok {
 				docs.Paths[name] = path
 			}
 		}
@@ -123,7 +109,7 @@ func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 }
 
 func (i *Installer) AfterInstall(
-	setup   *miruken.SetupBuilder,
+	_ *miruken.SetupBuilder,
 	handler miruken.Handler,
 ) error {
 	i.generateExampleJson(miruken.BuildUp(handler, api.Polymorphic))
@@ -220,24 +206,7 @@ func (i *Installer) initializeDefinitions() {
 			WithDescription("Validation Error").
 			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
 				WithPropertyRef("payload", &openapi3.SchemaRef{
-					Value: &openapi3.Schema{
-						Type: "array",
-						Items: &openapi3.SchemaRef{
-							Ref: "#/components/schemas/ValidationFailure",
-						},
-						Example: json.RawMessage(`{
-    "@type": "json.Outcome",
-    "@values": [
-      {
-        "propertyName": "PropertyName",
-        "errors": [
-          "Key: 'PropertyName' Error:Field validation for 'PropertyName' failed on the 'required' tag"
-        ],
-        "nested": null
-      }
-    ]
-  }`),
-					},
+					Ref: "#/components/schemas/Outcome",
 				}))),
 	}
 	i.responses["GenericError"] =  &openapi3.ResponseRef{
@@ -344,8 +313,9 @@ func (i *Installer) generateComponentSchema(
 		component = sur
 	}
 	name := typ.Name()
+	kind := typ.Kind()
 	if len(name) == 0 {
-		if typ.Kind() == reflect.Slice {
+		if kind == reflect.Slice {
 			elem := typ.Elem()
 			if elem.Kind() == reflect.Ptr {
 				elem = elem.Elem()
@@ -362,6 +332,12 @@ func (i *Installer) generateComponentSchema(
 		var err error
 		schema, err = i.generator.NewSchemaRefForValue(component, i.schemas)
 		if err == nil {
+			if kind == reflect.Slice || kind == reflect.Array {
+				schema = &openapi3.SchemaRef{
+					Value: openapi3.NewObjectSchema().
+						WithPropertyRef("@values", schema),
+				}
+			}
 			schema.Value.Example = component
 			i.components[typ] = schema
 			return schema, name, true
@@ -379,11 +355,20 @@ func (i *Installer) customize(
 	schema *openapi3.Schema,
 ) error {
 	if props := schema.Properties; props != nil {
-		for key, sc := range props {
+		for key, scr := range props {
+			sc := scr.Value
+			// Fix anonymous self-referencing array
+			if sc.Type == "array" &&
+				sc.Items.Value == schema &&
+				sc.Items.Ref == "#/components/schemas/" {
+				sn := "_schema" + strconv.Itoa(len(i.schemas))
+				sc.Items.Ref = "#/components/schemas/" + sn
+				i.schemas[sn] =  &openapi3.SchemaRef{Value: schema}
+			}
 			camel := camelcase(key)
 			if camel != key {
 				if _, ok := props[camel]; !ok {
-					props[camel] = sc
+					props[camel] = scr
 					delete(props, key)
 				}
 			}
@@ -418,10 +403,12 @@ func Surrogates(surrogates map[reflect.Type]any) func(*Installer) {
 func Feature(config ...func(installer *Installer)) *Installer {
 	installer := &Installer{
 		extraComponents: []any{
-			ValidationFailure{
-				PropertyName: "PropertyName",
-				Errors: []string{
-					"Key: 'PropertyName' Error:Field validation for 'PropertyName' failed on the 'required' tag",
+			json2.Outcome{
+				{
+					PropertyName: "PropertyName",
+					Errors: []string{
+						"Key: 'PropertyName' Error:Field validation for 'PropertyName' failed on the 'required' tag",
+					},
 				},
 			},
 			json2.Error{
@@ -448,4 +435,3 @@ func Feature(config ...func(installer *Installer)) *Installer {
 }
 
 var featureTag byte
-
