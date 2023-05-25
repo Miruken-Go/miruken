@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"fmt"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/require"
@@ -50,8 +51,8 @@ func TestCoerce(t *testing.T) {
 	p := promise.New(func(resolve func(any), reject func(error)) {
 		resolve("Hello")
 	})
-	pc := promise.Coerce[string](p)
-	result, _ := pc.Await()
+	pc := promise.Coerce[string](p, context.Background())
+	result, _ := pc.Await(context.Background())
 	require.Equal(t, "Hello", result)
 }
 
@@ -59,8 +60,8 @@ func TestCoerce_Fail(t *testing.T) {
 	p := promise.New(func(resolve func(any), reject func(error)) {
 		resolve(22)
 	})
-	pc := promise.Coerce[string](p)
-	_, err := pc.Await()
+	pc := promise.Coerce[string](p, context.Background())
+	_, err := pc.Await(context.Background())
 	require.NotNil(t, err)
 	var ta *runtime.TypeAssertionError
 	require.ErrorAs(t, err, &ta)
@@ -72,8 +73,8 @@ func TestCoerceType(t *testing.T) {
 		resolve("Hello")
 	})
 	var ps *promise.Promise[string]
-	pc := promise.CoerceType(reflect.TypeOf(ps), p).(*promise.Promise[string])
-	result, _ := pc.Await()
+	pc := promise.CoerceType(reflect.TypeOf(ps), p, context.Background()).(*promise.Promise[string])
+	result, _ := pc.Await(context.Background())
 	require.Equal(t, "Hello", result)
 }
 
@@ -82,8 +83,8 @@ func TestCoerceType_Fail(t *testing.T) {
 		resolve(22)
 	})
 	var ps *promise.Promise[string]
-	pc := promise.CoerceType(reflect.TypeOf(ps), p).(*promise.Promise[string])
-	_, err := pc.Await()
+	pc := promise.CoerceType(reflect.TypeOf(ps), p, context.Background()).(*promise.Promise[string])
+	_, err := pc.Await(context.Background())
 	var ta *runtime.TypeAssertionError
 	require.ErrorAs(t, err, &ta)
 	require.Equal(t, "interface conversion: interface {} is int, not string", ta.Error())
@@ -93,10 +94,11 @@ func TestUnwrap_Resolve(t *testing.T) {
 	p1 := promise.New(func(resolve func(string), reject func(error)) {
 		resolve("Hello")
 	})
-	p2 := promise.Unwrap(promise.Then(p1, func(data string) *promise.Promise[string] {
-		return promise.Resolve(fmt.Sprintf("%s World", data))
-	}))
-	result, err := p2.Await()
+	p2 := promise.Unwrap(promise.Then(p1, context.Background(),
+		func(data string) *promise.Promise[string] {
+			return promise.Resolve(fmt.Sprintf("%s World", data))
+		}), context.Background())
+	result, err := p2.Await(context.Background())
 	require.Nil(t, err)
 	require.Equal(t, "Hello World", result)
 }
@@ -105,10 +107,11 @@ func TestUnwrap_Reject(t *testing.T) {
 	p1 := promise.New(func(resolve func(string), reject func(error)) {
 		resolve("Hello")
 	})
-	p2 := promise.Unwrap(promise.Then(p1, func(data string) *promise.Promise[string] {
-		return promise.Reject[string](fmt.Errorf("%s Error", data))
-	}))
-	result, err := p2.Await()
+	p2 := promise.Unwrap(promise.Then(p1, context.Background(),
+			func(data string) *promise.Promise[string] {
+			return promise.Reject[string](fmt.Errorf("%s Error", data))
+		}), context.Background())
+	result, err := p2.Await(context.Background())
 	require.Equal(t, "", result)
 	require.Equal(t, "Hello Error", err.Error())
 }

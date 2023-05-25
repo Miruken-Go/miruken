@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
@@ -107,7 +108,7 @@ func (suite *MessageTestSuite) TestMessage() {
 		p, err := api.Post(handler, Launch{Missile: "Patriot"})
 		suite.Nil(err)
 		suite.NotNil(p)
-		_, err = p.Await()
+		_, err = p.Await(context.Background())
 		suite.Nil(err)
 	})
 
@@ -118,7 +119,7 @@ func (suite *MessageTestSuite) TestMessage() {
 		suite.Nil(err)
 		suite.Empty(code)
 		suite.NotNil(pc)
-		code, err = pc.Await()
+		code, err = pc.Await(context.Background())
 		suite.Nil(err)
 		suite.NotEmpty(code)
 	})
@@ -136,13 +137,13 @@ func (suite *MessageTestSuite) TestMessage() {
 		launch  := Launch{Missile: "Patriot"}
 		_, pc, err := api.Send[string](handler, launch)
 		suite.Nil(err)
-		code, err := pc.Await()
+		code, err := pc.Await(context.Background())
 		suite.Nil(err)
 		tracked := &MissileTracked{LaunchCode: code}
 		pt, err := api.Publish(handler, tracked)
 		suite.Nil(err)
 		suite.NotNil(pt)
-		_, err = pt.Await()
+		_, err = pt.Await(context.Background())
 		suite.Equal(2, tracked.Count)
 	})
 }

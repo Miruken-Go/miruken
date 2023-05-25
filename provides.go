@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"context"
 	"fmt"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
@@ -103,7 +104,7 @@ func (p *Provides) Resolve(
 func (p *Provides) acceptPromise(
 	pa *promise.Promise[any],
 ) *promise.Promise[any] {
-	return promise.Catch(pa, func(error) error {
+	return promise.Catch(pa, context.Background(), func(error) error {
 		return nil
 	})
 }
@@ -183,7 +184,7 @@ func ResolveKey[T any](
 		err = result.Error()
 	} else if result.handled {
 		if _, p := provides.Result(false); p != nil {
-			tp = promise.Then(p, func(any) T {
+			tp = promise.Then(p, context.Background(), func(any) T {
 				return t
 			})
 		}
@@ -207,7 +208,7 @@ func ResolveAll[T any](
 		err = result.Error()
 	} else if result.handled {
 		if _, p := provides.Result(true); p != nil {
-			tp = promise.Then(p, func(any) []T {
+			tp = promise.Then(p, context.Background(), func(any) []T {
 				return t
 			})
 		}

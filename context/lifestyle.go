@@ -1,6 +1,7 @@
 package context
 
 import (
+	context2 "context"
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
@@ -66,8 +67,8 @@ type scopedFilter struct {
 }
 
 func (s *scopedFilter) Next(
-	next miruken.Next,
-	ctx miruken.HandleContext,
+	next     miruken.Next,
+	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  (out []any, po *promise.Promise[[]any], err error) {
 	key := ctx.Callback().(*provides.It).Key()
@@ -135,7 +136,7 @@ func (s *scopedFilter) Next(
 			}
 		}()
 		if out, po, err = next.Pipe(); err == nil && po != nil {
-			out, err = po.Await()
+			out, err = po.Await(context2.Background())
 		}
 		if err != nil || len(out) == 0 {
 			entry.once = new(sync.Once)

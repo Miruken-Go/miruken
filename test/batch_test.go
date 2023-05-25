@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
@@ -107,9 +108,10 @@ func (e *EmailBatcher) CompleteBatch(
 		return nil, nil, err
 	} else {
 		if promises := e.promises; len(promises) > 0 {
-			return nil, promise.Then(promise.All(promises...), func([]any) any {
+			bgCtx := context.Background()
+			return nil, promise.Then(promise.All(bgCtx, promises...), bgCtx, func([]any) any {
 				if pr != nil {
-					if r, err = pr.Await(); err != nil {
+					if r, err = pr.Await(bgCtx); err != nil {
 						panic(err)
 					}
 				}
@@ -151,7 +153,7 @@ func (suite *BatchTestSuite) TestBatch() {
 			suite.Nil(err)
 			suite.Zero(r)
 			suite.Nil(pr)
-		}).Await()
+		}).Await(context.Background())
 		suite.Nil(err)
 		suite.Len(results, 1)
 		suite.Equal([]string{"hello batch"}, results[0])
@@ -163,7 +165,7 @@ func (suite *BatchTestSuite) TestBatch() {
 		suite.Nil(err)
 		suite.Zero(r)
 		suite.NotNil(pr)
-		r, err = pr.Await()
+		r, err = pr.Await(context.Background())
 		suite.Nil(err)
 		suite.Equal("hello", r)
 		results, err := miruken.Batch(handler, func(batch miruken.Handler) {
@@ -171,11 +173,11 @@ func (suite *BatchTestSuite) TestBatch() {
 			suite.Nil(err)
 			suite.Zero(r)
 			suite.NotNil(pr)
-			promise.Then(pr, func(res string) any {
+			promise.Then(pr, context.Background(), func(res string) any {
 				suite.Equal("hello batch", res)
 				return nil
 			})
-		}).Await()
+		}).Await(context.Background())
 		suite.Nil(err)
 		suite.Len(results, 1)
 		suite.Equal([]string{"hello"}, results[0])
@@ -189,12 +191,12 @@ func (suite *BatchTestSuite) TestBatch() {
 			suite.Nil(err)
 			suite.Zero(r)
 			suite.NotNil(pr)
-			promise.Catch(pr, func(err error) error {
+			promise.Catch(pr, context.Background(), func(err error) error {
 				suite.Equal("can't send message", err.Error())
 				count++
 				return nil
 			})
-		}).Await()
+		}).Await(context.Background())
 		suite.NotNil(err)
 		suite.Nil(results)
 	})
@@ -206,11 +208,11 @@ func (suite *BatchTestSuite) TestBatch() {
 			suite.Nil(err)
 			suite.Zero(r)
 			suite.NotNil(pr)
-			promise.Then(pr, func(res string) any {
+			promise.Then(pr, context.Background(), func(res string) any {
 				suite.Equal("hello batch", res)
 				return nil
 			})
-		}).Await()
+		}).Await(context.Background())
 		suite.Nil(err)
 		suite.Len(results, 1)
 		suite.Equal([]string{"hello"}, results[0])
@@ -219,7 +221,7 @@ func (suite *BatchTestSuite) TestBatch() {
 		suite.Nil(err)
 		suite.Zero(r)
 		suite.NotNil(pr)
-		r, err = pr.Await()
+		r, err = pr.Await(context.Background())
 		suite.Nil(err)
 		suite.Equal("hello", r)
 	})
@@ -232,18 +234,18 @@ func (suite *BatchTestSuite) TestBatch() {
 			suite.Nil(err)
 			suite.Zero(r)
 			suite.NotNil(pr)
-			return promise.Then(pr, func(res string) any {
+			return promise.Then(pr, context.Background(), func(res string) any {
 				r1, pr1, err1 := api.Send[string](batch, ConfirmSend("hello"))
 				suite.Nil(err)
 				suite.Zero(r)
 				suite.NotNil(pr)
-				r1, err1 = pr1.Await()
+				r1, err1 = pr1.Await(context.Background())
 				suite.Nil(err1)
 				suite.Equal("hello", r1)
 				count = 1
 				return nil
 			})
-		}).Await()
+		}).Await(context.Background())
 		suite.Nil(err)
 		suite.Len(results, 1)
 		suite.Equal(1, count)

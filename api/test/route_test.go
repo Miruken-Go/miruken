@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/handles"
@@ -65,7 +66,7 @@ func (suite *RouteTestSuite) TestRoute() {
 			r, pr, err := api.Send[StockQuote](handler, api.RouteTo(getQuote, "trash"))
 			suite.Nil(err)
 			suite.NotNil(pr)
-			r, err = pr.Await()
+			r, err = pr.Await(context.Background())
 			suite.Nil(err)
 			suite.Zero(r.Symbol)
 			suite.Zero(r.Value)
@@ -81,7 +82,7 @@ func (suite *RouteTestSuite) TestRoute() {
 			pv, err := api.Post(handler, api.RouteTo(sell, "trash"))
 			suite.Nil(err)
 			suite.NotNil(pv)
-			_, err = pv.Await()
+			_, err = pv.Await(context.Background())
 			suite.Nil(err)
 			items := trash.Items()
 			suite.Len(items, 1)
@@ -94,7 +95,7 @@ func (suite *RouteTestSuite) TestRoute() {
 				api.RouteTo(GetStockQuote{"GOOGL"}, "pass-through"))
 			suite.Nil(err)
 			suite.NotNil(pr)
-			r, err = pr.Await()
+			r, err = pr.Await(context.Background())
 			suite.Nil(err)
 			suite.Equal("GOOGL", r.Symbol)
 			suite.True(r.Value > 0)
@@ -121,13 +122,13 @@ func (suite *RouteTestSuite) TestRoute() {
 				func(batch miruken.Handler) *promise.Promise[any] {
 					_, pq, err := api.Send[StockQuote](batch, api.RouteTo(getQuote, "trash"))
 					suite.Nil(err)
-					return pq.Catch(func(err error) error {
+					return pq.Catch(context.Background(), func(err error) error {
 						suite.Equal(err, api.ErrMissingResponse)
 						called = true
 						return nil
 					})
 			})
-			results, err := pb.Await()
+			results, err := pb.Await(context.Background())
 			suite.Nil(err)
 			suite.True(called)
 			suite.Len(results, 1)
@@ -145,7 +146,7 @@ func (suite *RouteTestSuite) TestRoute() {
 					_, pq1, err1 := api.Send[StockQuote](batch,
 						api.RouteTo(GetStockQuote{"GOOGL"}, "pass-through"))
 					suite.Nil(err1)
-					p1 := promise.Then(pq1, func(quote StockQuote) StockQuote {
+					p1 := promise.Then(pq1, context.Background(), func(quote StockQuote) StockQuote {
 						suite.Equal("GOOGL", quote.Symbol)
 						atomic.AddInt32(&counter, 1)
 						return quote
@@ -153,14 +154,14 @@ func (suite *RouteTestSuite) TestRoute() {
 					_, pq2, err2 := api.Send[StockQuote](batch,
 						api.RouteTo(GetStockQuote{"APPL"}, "pass-through"))
 					suite.Nil(err2)
-					p2 := promise.Then(pq2, func(quote StockQuote) StockQuote {
+					p2 := promise.Then(pq2, context.Background(), func(quote StockQuote) StockQuote {
 						suite.Equal("APPL", quote.Symbol)
 						atomic.AddInt32(&counter, 1)
 						return quote
 					})
-					return promise.All(p1, p2)
+					return promise.All(context.Background(), p1, p2)
 			})
-			results, err := pb.Await()
+			results, err := pb.Await(context.Background())
 			suite.Nil(err)
 			suite.Equal(int32(2), counter)
 			suite.Len(results, 1)

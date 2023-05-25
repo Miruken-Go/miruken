@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"context"
 	"fmt"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
@@ -136,7 +137,7 @@ func Execute[T any](
 	} else if !result.Handled() {
 		err = &NotHandledError{callback}
 	} else if _, p := handles.Result(false); p != nil {
-		tp = promise.Then(p, func(any) T {
+		tp = promise.Then(p, context.Background(), func(any) T {
 			return t
 		})
 	}
@@ -187,7 +188,7 @@ func ExecuteAll[T any](
 	} else if !result.Handled() {
 		err = &NotHandledError{Callback: callback}
 	} else if _, p := handles.Result(true); p != nil {
-		tp = promise.Then(p, func(any) []T {
+		tp = promise.Then(p, context.Background(), func(any) []T {
 			return t
 		})
 	}

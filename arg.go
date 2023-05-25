@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"context"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/promise"
@@ -240,7 +241,7 @@ func (r *defaultDependencyResolver) Resolve(
 			err = fmt.Errorf("arg: unable to resolve dependency %v", typ)
 		}
 	} else {
-		pv = promise.Then(pr, func(res any) reflect.Value {
+		pv = promise.Then(pr, context.Background(), func(res any) reflect.Value {
 			var val reflect.Value
 			if many {
 				val = reflect.New(typ).Elem()
@@ -322,13 +323,14 @@ func resolveArgs(
 			}
 		} else if arg.flags() &bindingAsync == bindingAsync {
 			// Already a promise so coerce
+			bgCtx := context.Background()
 			resolved[i] = reflect.ValueOf(
-				promise.CoerceType(typ, pa.Then(func(v any) any {
+				promise.CoerceType(typ, pa.Then(bgCtx, func(v any) any {
 					return v.(reflect.Value).Interface()
-				})))
+				}), bgCtx))
 		} else {
 			idx := i
-			promises = append(promises, promise.Then(pa, func(v reflect.Value) struct {} {
+			promises = append(promises, promise.Then(pa, context.Background(), func(v reflect.Value) struct {} {
 				resolved[idx] = v
 				return struct{}{}
 			}))
@@ -338,10 +340,11 @@ func resolveArgs(
 	case 0:
 		return resolved, nil, nil
 	case 1:
-		return nil, promise.Then(promises[0],
+		return nil, promise.Then(promises[0], context.Background(),
 			func(struct{}) []reflect.Value { return resolved }), nil
 	default:
-		return nil, promise.Then(promise.All(promises...),
+		bgCtx := context.Background()
+		return nil, promise.Then(promise.All(bgCtx, promises...), bgCtx,
 			func([]struct{}) []reflect.Value { return resolved }), nil
 	}
 }

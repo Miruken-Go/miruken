@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
@@ -344,7 +345,7 @@ func (h *SimpleAsyncHandler) HandleBar(
 	bar.Inc()
 	return promise.Then(
 		promise.Delay(time.Duration(bar.Count()) * time.Millisecond),
-		func(any) *Bar { return bar })
+		context.Background(), func(any) *Bar { return bar })
 }
 
 func (h *SimpleAsyncHandler) HandleBoo(
@@ -362,7 +363,7 @@ func (h *SimpleAsyncHandler) HandleBamPromiseArg(
 ) *Baz {
 	bam.Inc()
 	bam.Inc()
-	buz, _ := baz.Await()
+	buz, _ := baz.Await(context.Background())
 	buz.Inc()
 	return buz
 }
@@ -373,7 +374,7 @@ func (h *SimpleAsyncHandler) HandleFooPromiseArgLift(
 ) *Boo {
 	foo.Inc()
 	foo.Inc()
-	boz, _ := boo.Await()
+	boz, _ := boo.Await(context.Background())
 	boz.Inc()
 	return boz
 }
@@ -1204,7 +1205,7 @@ func (suite *HandlesTestSuite) TestHandlesAsync() {
 			p, err := miruken.Command(handler, bar)
 			suite.Nil(err)
 			suite.NotNil(p)
-			_, err = p.Await()
+			_, err = p.Await(context.Background())
 			suite.Nil(err)
 		})
 
@@ -1215,7 +1216,7 @@ func (suite *HandlesTestSuite) TestHandlesAsync() {
 			suite.Nil(err)
 			suite.Nil(b)
 			suite.NotNil(p)
-			b, err = p.Await()
+			b, err = p.Await(context.Background())
 			suite.Nil(err)
 			suite.Same(bar, b)
 			suite.Equal(3, bar.Count())
@@ -1228,7 +1229,7 @@ func (suite *HandlesTestSuite) TestHandlesAsync() {
 			suite.Nil(err)
 			suite.NotNil(p)
 			suite.Nil(baz)
-			baz, err = p.Await()
+			baz, err = p.Await(context.Background())
 			suite.Nil(err)
 			suite.Equal(5, boo.Count())
 			suite.Equal(1, baz.Count())
@@ -1265,7 +1266,7 @@ func (suite *HandlesTestSuite) TestHandlesAsync() {
 			suite.Nil(err)
 			suite.NotNil(p)
 			suite.Nil(baz)
-			baz, err = p.Await()
+			baz, err = p.Await(context.Background())
 			suite.Nil(err)
 			suite.Equal(5, foo.Count())
 			suite.Len(baz, 2)
@@ -1280,7 +1281,7 @@ func (suite *HandlesTestSuite) TestHandlesAsync() {
 			suite.Nil(err)
 			suite.Nil(bar)
 			suite.NotNil(pb)
-			_, err = pb.Await()
+			_, err = pb.Await(context.Background())
 			suite.EqualError(err, fmt.Sprintf("bad Foo %p", foo))
 		})
 	})

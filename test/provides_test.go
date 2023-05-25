@@ -1,6 +1,7 @@
 package test
 
 import (
+	context2 "context"
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
@@ -168,7 +169,7 @@ func (p *SimpleAsyncProvider) ProvideFoo(
 ) *promise.Promise[*Foo] {
 	p.foo.Inc()
 	return promise.Then(promise.Delay(5 * time.Millisecond),
-		func(any) *Foo { return &p.foo })
+		context2.Background(), func(any) *Foo { return &p.foo })
 }
 
 // ComplexAsyncProvider
@@ -183,7 +184,7 @@ func (p *ComplexAsyncProvider) Constructor(
 	  },
 ) *promise.Promise[any] {
 	return promise.Then(
-		promise.Delay(2 * time.Millisecond),
+		promise.Delay(2 * time.Millisecond), context2.Background(),
 			func(any) any {
 				p.bar.Inc()
 				return nil
@@ -470,7 +471,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 			foo, fp, err := miruken.ResolveAll[*Foo](handler)
 			suite.Nil(err)
 			if fp != nil {
-				foo, err = fp.Await()
+				foo, err = fp.Await(context2.Background())
 				suite.Nil(err)
 			}
 			// 1 from FooProvider.ProvideFoo
@@ -600,7 +601,7 @@ func (suite *ProvidesTestSuite) TestProvidesAsync() {
 			suite.Nil(err)
 			suite.Nil(foo)
 			suite.NotNil(pf)
-			foo, err = pf.Await()
+			foo, err = pf.Await(context2.Background())
 			suite.Nil(err)
 			suite.Equal(1, foo.Count())
 		})
@@ -615,14 +616,14 @@ func (suite *ProvidesTestSuite) TestProvidesAsync() {
 			suite.Nil(err)
 			suite.Nil(bar)
 			suite.NotNil(pb)
-			bar, err = pb.Await()
+			bar, err = pb.Await(context2.Background())
 			suite.Nil(err)
 			suite.Equal(2, bar.Count())
 			foo, pf, err := miruken.Resolve[*Foo](handler)
 			suite.Nil(err)
 			suite.Nil(foo)
 			suite.NotNil(pf)
-			foo, err = pf.Await()
+			foo, err = pf.Await(context2.Background())
 			suite.Nil(err)
 			suite.Equal(3, foo.Count())
 		})

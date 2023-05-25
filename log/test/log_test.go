@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"github.com/go-logr/logr"
 	"github.com/go-logr/logr/testr"
 	"github.com/miruken-go/miruken"
@@ -47,7 +48,7 @@ func (s *Service) LongCommand(
 ) *promise.Promise[LongCommand] {
 	duration := time.Duration(cmd) * time.Millisecond
 	logger.Info("executed long command", "duration", duration)
-	_, _ = promise.Delay(duration).Await()
+	_, _ = promise.Delay(duration).Await(context.Background())
 	return promise.Resolve(cmd+1)
 }
 
@@ -113,7 +114,7 @@ func (suite *LogTestSuite) TestLogging() {
 		next, np, err := handles.Request[LongCommand](handler, LongCommand(8))
 		suite.Nil(err)
 		suite.NotNil(np)
-		next, err = np.Await()
+		next, err = np.Await(context.Background())
 		suite.Nil(err)
 		suite.Equal(LongCommand(9), next)
 	})

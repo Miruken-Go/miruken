@@ -1,6 +1,7 @@
 package log
 
 import (
+	"context"
 	"fmt"
 	"github.com/go-logr/logr"
 	"github.com/miruken-go/miruken"
@@ -84,11 +85,12 @@ func (f filter) Next(
 			f.logSuccess(start, logger)
 			return
 		} else {
+			bgCtx := context.Background()
 			return nil, promise.Catch(
-				promise.Then(pout, func(oo []any) []any {
+				promise.Then(pout, bgCtx, func(oo []any) []any {
 					f.logSuccess(start, logger)
 					return oo
-				}), func(ee error) error {
+				}), bgCtx, func(ee error) error {
 					f.logError(ee, start, logger)
 					return ee
 				}), nil

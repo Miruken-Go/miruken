@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"context"
 	"fmt"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
@@ -101,7 +102,7 @@ func (n Next) Handle(
 		return nil, nil, &NotHandledError{callback}
 	} else {
 		if r, pr := cb.Result(greedy); pr != nil {
-			return nil, promise.Then(pr, func(data any) []any {
+			return nil, promise.Then(pr, context.Background(), func(data any) []any {
 				return []any{data}
 			}), nil
 		} else {
@@ -149,7 +150,7 @@ func (f *filterSpecProvider) Filters(
 		return nil, err
 	}
 	if pr != nil {
-		resolve, err = pr.Await()
+		resolve, err = pr.Await(context.Background())
 	}
 	if resolve != nil && err == nil {
 		if filter, ok := resolve.(Filter); ok {
@@ -431,7 +432,7 @@ func DynNext(
 		err, _ = out[2].(error)
 		out, _ = out[0].([]any)
 	} else {
-		po = promise.Then(po, func(o []any) []any {
+		po = promise.Then(po, context.Background(), func(o []any) []any {
 			if err, ok := o[2].(error); ok {
 				panic(err)
 			} else if ro, ok := o[0].([]any); ok {

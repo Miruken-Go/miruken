@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/provides"
@@ -104,7 +105,7 @@ func (suite *CreatesTestSuite) TestCreates() {
 		suite.Nil(err)
 		suite.Nil(c)
 		suite.NotNil(pc)
-		c, err = pc.Await()
+		c, err = pc.Await(context.Background())
 		suite.Nil(err)
 		suite.NotNil(c)
 		suite.Equal(1, c.bar.Count())

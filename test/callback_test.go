@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/suite"
@@ -46,7 +47,7 @@ func (suite *CallbackTestSuite) TestCallback() {
 			suite.Equal(1, callback.ResultCount())
 			_, pr := callback.Result(false)
 			suite.NotNil(pr)
-			result, err := pr.Await()
+			result, err := pr.Await(context.Background())
 			suite.Nil(err)
 			suite.Equal("Hello", result)
 		})
@@ -58,7 +59,7 @@ func (suite *CallbackTestSuite) TestCallback() {
 			suite.Equal(2, callback.ResultCount())
 			_, pr := callback.Result(true)
 			suite.NotNil(pr)
-			result, err := pr.Await()
+			result, err := pr.Await(context.Background())
 			suite.Nil(err)
 			suite.ElementsMatch([]any{"Hello", "Goodbye"}, result)
 		})

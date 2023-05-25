@@ -22,12 +22,10 @@ func (d Deferred[T]) Reject(err error) {
 // Defer creates a Deferred computation.
 func Defer[T any]() Deferred[T] {
 	p := &Promise[T]{
-		pending: true,
-		mutex:   &sync.Mutex{},
-		wg:      &sync.WaitGroup{},
+		value: nil,
+		err:   nil,
+		ch:    make(chan struct{}),
+		once:  sync.Once{},
 	}
-
-	p.wg.Add(1)
-
 	return Deferred[T]{ p }
 }

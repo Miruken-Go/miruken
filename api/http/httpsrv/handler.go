@@ -2,6 +2,7 @@ package httpsrv
 
 import (
 	"bytes"
+	context2 "context"
 	"errors"
 	"fmt"
 	"github.com/go-logr/logr"
@@ -79,7 +80,7 @@ func (h *ApiHandler) ServeHTTP(
 			h.encodeError(err, 0, w, handler)
 		} else if pv == nil {
 			h.encodeResult(nil, r, w, handler)
-		} else if _, err = pv.Await(); err == nil {
+		} else if _, err = pv.Await(context2.Background()); err == nil {
 			h.encodeResult(nil, r, w, handler)
 		} else {
 			h.encodeError(err, 0, w, handler)
@@ -89,7 +90,7 @@ func (h *ApiHandler) ServeHTTP(
 			h.encodeError(err, 0, w, handler)
 		} else if pr == nil {
 			h.encodeResult(res, r, w, handler)
-		} else if res, err = pr.Await(); err == nil {
+		} else if res, err = pr.Await(context2.Background()); err == nil {
 			h.encodeResult(res, r, w, handler)
 		} else {
 			h.encodeError(err, 0, w, handler)
@@ -259,7 +260,7 @@ func Handler(handler miruken.Handler) http.Handler {
 		panic(err)
 	}
 	if cp != nil {
-		if h, err = cp.Await(); err != nil {
+		if h, err = cp.Await(context2.Background()); err != nil {
 			panic(err)
 		}
 	}

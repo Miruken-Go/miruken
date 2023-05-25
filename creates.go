@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"context"
 	"fmt"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
@@ -82,7 +83,7 @@ func CreateKey[T any](
 	} else if !result.handled {
 		err = &NotHandledError{creates}
 	} else if _, p := creates.Result(false); p != nil {
-		tp = promise.Coerce[T](p)
+		tp = promise.Coerce[T](p, context.Background())
 	}
 	return
 }
@@ -103,7 +104,7 @@ func CreateAll[T any](
 		err = result.Error()
 	} else if result.handled {
 		if _, p := creates.Result(true); p != nil {
-			tp = promise.Then(p, func(any) []T {
+			tp = promise.Then(p, context.Background(), func(any) []T {
 				return t
 			})
 		}

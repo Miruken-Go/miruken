@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"container/list"
+	"context"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/promise"
@@ -391,7 +392,7 @@ func (d *HandlerDescriptor) Dispatch(
 				var out  []any
 				var pout *promise.Promise[[]any]
 				var err  error
-				context := HandleContext{
+				ctx := HandleContext{
 					handler,
 					callback,
 					binding,
@@ -399,16 +400,16 @@ func (d *HandlerDescriptor) Dispatch(
 					greedy,
 				}
 				if len(filters) == 0 {
-					out, pout, err = binding.Invoke(context)
+					out, pout, err = binding.Invoke(ctx)
 				} else {
-					out, pout, err = pipeline(context, filters,
+					out, pout, err = pipeline(ctx, filters,
 						func(ctx HandleContext) ([]any, *promise.Promise[[]any], error) {
 							return binding.Invoke(ctx)
 					})
 				}
 				if err == nil {
 					if pout != nil {
-						out = []any{promise.Then(pout, func(oo []any) any {
+						out = []any{promise.Then(pout, context.Background(), func(oo []any) any {
 							res, _ := policy.AcceptResults(oo)
 							return res
 						})}

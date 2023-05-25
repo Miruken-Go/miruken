@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
@@ -174,7 +175,7 @@ func StashGetOrPutKeyFunc(
 	}
 	if v, ok := StashGetKey(handler, key); !ok {
 		if val, pv := fun(); pv != nil {
-			return nil, promise.Then(pv, func(res any) any {
+			return nil, promise.Then(pv, context.Background(), func(res any) any {
 				if err := StashPutKey(handler, key, res); err != nil {
 					panic(err)
 				}
@@ -197,7 +198,7 @@ func StashGetOrPutFunc[T any](
 	}
 	if v, ok := StashGet[T](handler); !ok {
 		if val, pv := fun(); pv != nil {
-			return val, promise.Then(pv, func(res T) T {
+			return val, promise.Then(pv, context.Background(), func(res T) T {
 				if err := StashPut(handler, res); err != nil {
 					panic(err)
 				}
