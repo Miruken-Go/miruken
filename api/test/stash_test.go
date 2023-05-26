@@ -17,7 +17,7 @@ type OrderStatus uint8
 
 const (
 	OrderCreated OrderStatus = 1 << iota
-	OrderCancelled
+	OrderCanceled
 )
 
 type (
@@ -59,7 +59,7 @@ func (o *OrderHandler) Cancel(
       }, cancel *CancelOrder,
 	order  *Order,
 ) (*Order, error) {
-	order.status = OrderCancelled
+	order.status = OrderCanceled
 	return order, nil
 }
 

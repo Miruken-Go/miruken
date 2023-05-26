@@ -62,7 +62,7 @@ func Catch[T any](p *Promise[T], ctx context.Context, reject func(err error) err
 func (p *Promise[T]) Await(ctx context.Context) (res T, _ error) {
 	select {
 	case <-ctx.Done():
-		return res, CancelledError{ctx.Err()}
+		return res, CanceledError{ctx.Err()}
 	case <-p.ch:
 		if val := p.value; val != nil {
 			return *val, p.err
@@ -188,18 +188,22 @@ type tuple[T1, T2 any] struct {
 	_2 T2
 }
 
-type CancelledError struct {
-	Reason error
+type CanceledError struct {
+	reason error
 }
 
-func (e CancelledError) Error() string {
-	if reason := e.Reason; reason != nil {
-		return "promise: cancelled: " + reason.Error()
+func (e CanceledError) Error() string {
+	if reason := e.reason; reason != nil {
+		return "promise: canceled: " + reason.Error()
 	}
-	return "promise: cancelled"
+	return "promise: canceled"
 
 }
 
-func (e CancelledError) Unwrap() error {
-	return e.Reason
+func (e CanceledError) Reason() error {
+	return e.reason
+}
+
+func (e CanceledError) Unwrap() error {
+	return e.reason
 }

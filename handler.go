@@ -53,20 +53,20 @@ func (e *RejectedError) Error() string {
 	return fmt.Sprintf("callback \"%T\" was rejected", e.Callback)
 }
 
-// CancelledError reports a cancelled operation.
-type CancelledError struct {
+// CanceledError reports a canceled operation.
+type CanceledError struct {
 	Message string
 	Reason  error
 }
 
-func (e *CancelledError) Error() string {
+func (e *CanceledError) Error() string {
 	if IsNil(e.Reason) {
 		return e.Message
 	}
 	return fmt.Sprintf("%v: %s", e.Message, e.Reason.Error())
 }
 
-func (e *CancelledError) Unwrap() error {
+func (e *CanceledError) Unwrap() error {
 	return e.Reason
 }
 

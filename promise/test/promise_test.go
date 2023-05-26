@@ -183,3 +183,37 @@ func TestRace_OnlyRejected(t *testing.T) {
 	require.ErrorIs(t, err, errExpected)
 	require.Nil(t, val)
 }
+
+func TestPromise_Cancel(t *testing.T) {
+	p1 := promise.New(func(resolve func(any), reject func(error)) {})
+	ctxDeadline, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Minute*10))
+	cancel()
+
+	val, err := p1.Await(ctxDeadline)
+	require.Error(t, err)
+	var canceled promise.CanceledError
+	require.ErrorAs(t, err, &canceled)
+	require.Equal(t, context.Canceled, canceled.Reason())
+	require.Nil(t, val)
+}
+
+func TestPromise_Timeout(t *testing.T) {
+	p1 := promise.New(func(resolve func(any), reject func(error)) {
+		resolve("Hello")
+	})
+	p2 := promise.New(func(resolve func(any), reject func(error)) {})
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Millisecond*10)
+	defer cancel()
+
+	val, err := p1.Await(ctxTimeout)
+	require.NoError(t, err)
+	require.NotNil(t, val)
+	require.Equal(t, "Hello", val)
+
+	val, err = p2.Await(ctxTimeout)
+	require.Error(t, err)
+	var canceled promise.CanceledError
+	require.ErrorAs(t, err, &canceled)
+	require.Equal(t, context.DeadlineExceeded, canceled.Reason())
+	require.Nil(t, val)
+}
