@@ -11,7 +11,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.14.0
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/imdario/mergo v0.3.15
+	github.com/imdario/mergo v0.3.16
 	github.com/knadh/koanf v1.5.0
 	github.com/stretchr/testify v1.8.3
 	github.com/timewasted/go-accept-headers v0.0.0-20130320203746-c78f304b1b09
