@@ -168,7 +168,7 @@ func (b *batchRouter) RouteBatch(
 func (b *batchRouter) CompleteBatch(
 	composer miruken.Handler,
 ) (any, *promise.Promise[any], error) {
-	bgCtx := context.Background()
+	ctx := context.TODO()
 	var complete []*promise.Promise[any]
 	for route, group := range b.groups {
 		uri := route
@@ -177,7 +177,7 @@ func (b *batchRouter) CompleteBatch(
 		})
 		routeTo := RouteTo(ConcurrentBatch{messages}, route)
 		complete = append(complete,
-			promise.Then(sendBatch(composer, routeTo), bgCtx,
+			promise.Then(sendBatch(composer, routeTo), ctx,
 				func(results []either.Monad[error, any]) RouteReply {
 					responses := make([]any, len(results))
 					for i := len(responses); i < len(messages); i++ {
@@ -195,7 +195,7 @@ func (b *batchRouter) CompleteBatch(
 							})
 					}
 				return RouteReply{ uri, responses }
-			}).Catch(bgCtx, func(err error) error {
+			}).Catch(ctx, func(err error) error {
 				canceled := &miruken.CanceledError{Message: "batch canceled", Reason: err}
 				for _, p := range group {
 					p.deferred.Reject(canceled)
@@ -203,7 +203,7 @@ func (b *batchRouter) CompleteBatch(
 			return err
 		}))
 	}
-	return nil, promise.All(bgCtx, complete...).Then(bgCtx, func(data any) any {
+	return nil, promise.All(ctx, complete...).Then(ctx, func(data any) any {
 		return data
 	}), nil
 }

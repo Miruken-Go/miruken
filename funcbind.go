@@ -82,7 +82,7 @@ func callFunc(
 	} else if pa == nil {
 		return callFuncWithArgs(fun, initArgs, resolvedArgs), nil, nil
 	} else {
-		return nil, promise.Then(pa, context.Background(), func(ra []reflect.Value) []any {
+		return nil, promise.Then(pa, context.TODO(), func(ra []reflect.Value) []any {
 			return callFuncWithArgs(fun, initArgs, ra)
 		}), nil
 	}
@@ -135,7 +135,7 @@ func mergeOutput(
 				return nil, nil, e
 			} else if pf, ok := out[0].(promise.Reflect); ok {
 				// if first output is a promise. resolve and replace
-				ctx := context.Background()
+				ctx := context.TODO()
 				return nil, promise.Coerce[[]any](
 					pf.Then(ctx, func(first any) any {
 						oo := make([]any, len(out))
@@ -148,14 +148,14 @@ func mergeOutput(
 		return out, nil, nil
 	}
 	// if promise, resolve and check output
-	return out, promise.Then(pout, context.Background(), func(oo []any) []any {
+	return out, promise.Then(pout, context.TODO(), func(oo []any) []any {
 		if len(oo) > 0 {
 			// if function error, panic
 			if e, ok := oo[len(oo)-1].(error); ok {
 				panic(e)
 			} else if pf, ok := oo[0].(promise.Reflect); ok {
 				// if first output is a promise. await and replace
-				if first, err := pf.AwaitAny(context.Background()); err != nil {
+				if first, err := pf.AwaitAny(context.TODO()); err != nil {
 					panic(err)
 				} else {
 					oo[0] = first
@@ -189,7 +189,7 @@ func mergeOutputAwait(
 				panic(err)
 			} else if pf, ok := out[0].(promise.Reflect); ok {
 				// if first output is a promise. await and replace
-				if first, err := pf.AwaitAny(context.Background()); err != nil {
+				if first, err := pf.AwaitAny(context.TODO()); err != nil {
 					panic(err)
 				} else {
 					oo := make([]any, len(out))
@@ -202,7 +202,7 @@ func mergeOutputAwait(
 		return out
 	}
 	// if promise, await and check output
-	if oo, err := pout.Await(context.Background()); err != nil {
+	if oo, err := pout.Await(context.TODO()); err != nil {
 		panic(err)
 	} else if len(oo) > 0 {
 		// if function error (last output), panic
@@ -210,7 +210,7 @@ func mergeOutputAwait(
 			panic(err)
 		} else if pf, ok := oo[0].(promise.Reflect); ok {
 			// if first output is a promise. await and replace
-			if first, err := pf.AwaitAny(context.Background()); err != nil {
+			if first, err := pf.AwaitAny(context.TODO()); err != nil {
 				panic(err)
 			} else {
 				oo[0] = first

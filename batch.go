@@ -65,7 +65,7 @@ func (b *batch) Complete(
 			}
 		}
 	}
-	return promise.All(context.Background(), results...)
+	return promise.All(context.TODO(), results...)
 }
 
 func (b *noBatch) CanBatch() bool {
@@ -136,10 +136,10 @@ func (b *batchHandler) Complete(
 	if results := batch.Complete(b); len(promises) == 0 {
 		return results
 	} else {
-		ctx := context.Background()
+		ctx := context.TODO()
 		return promise.Then(results, ctx, func(res []any) []any {
 			if _, err := promise.All(ctx, promises...).
-				Await(context.Background()); err != nil {
+				Await(ctx); err != nil {
 				panic(err)
 			}
 			return res
@@ -196,7 +196,7 @@ func BatchAsync[T any](
 		panic("configure cannot be nil")
 	}
 	batch := &batchHandler{handler, newBatch(tags...), 0}
-	return batch.Complete(configure(batch).Then(context.Background(), func(data any) any {
+	return batch.Complete(configure(batch).Then(context.TODO(), func(data any) any {
 		return data
 	}))
 }

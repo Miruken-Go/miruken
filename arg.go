@@ -241,7 +241,7 @@ func (r *defaultDependencyResolver) Resolve(
 			err = fmt.Errorf("arg: unable to resolve dependency %v", typ)
 		}
 	} else {
-		pv = promise.Then(pr, context.Background(), func(res any) reflect.Value {
+		pv = promise.Then(pr, context.TODO(), func(res any) reflect.Value {
 			var val reflect.Value
 			if many {
 				val = reflect.New(typ).Elem()
@@ -323,14 +323,14 @@ func resolveArgs(
 			}
 		} else if arg.flags() &bindingAsync == bindingAsync {
 			// Already a promise so coerce
-			bgCtx := context.Background()
+			todoCtx := context.TODO()
 			resolved[i] = reflect.ValueOf(
-				promise.CoerceType(typ, pa.Then(bgCtx, func(v any) any {
+				promise.CoerceType(typ, pa.Then(todoCtx, func(v any) any {
 					return v.(reflect.Value).Interface()
-				}), bgCtx))
+				}), todoCtx))
 		} else {
 			idx := i
-			promises = append(promises, promise.Then(pa, context.Background(), func(v reflect.Value) struct {} {
+			promises = append(promises, promise.Then(pa, context.TODO(), func(v reflect.Value) struct {} {
 				resolved[idx] = v
 				return struct{}{}
 			}))
@@ -340,11 +340,11 @@ func resolveArgs(
 	case 0:
 		return resolved, nil, nil
 	case 1:
-		return nil, promise.Then(promises[0], context.Background(),
+		return nil, promise.Then(promises[0], context.TODO(),
 			func(struct{}) []reflect.Value { return resolved }), nil
 	default:
-		bgCtx := context.Background()
-		return nil, promise.Then(promise.All(bgCtx, promises...), bgCtx,
+		todoCtx := context.TODO()
+		return nil, promise.Then(promise.All(todoCtx, promises...), todoCtx,
 			func([]struct{}) []reflect.Value { return resolved }), nil
 	}
 }

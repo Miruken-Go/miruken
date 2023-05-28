@@ -113,11 +113,11 @@ func (c *CallbackBase) Result(
 		case 0:
 			c.ensureResult(many, false)
 		case 1:
-			return nil, c.promises[0].Then(context.Background(), func(any) any {
+			return nil, c.promises[0].Then(context.TODO(), func(any) any {
 				return c.ensureResult(many, true)
 			})
 		default:
-			ctx := context.Background()
+			ctx := context.TODO()
 			return nil, promise.All(ctx, c.promises...).
 				Then(ctx, func(any) any {
 					return c.ensureResult(many, true)
@@ -159,7 +159,7 @@ func (c *CallbackBase) AddResult(
 		// in a list of results.
 		idx := len(c.results)
 		c.results  = append(c.results, result)
-		c.promises = append(c.promises, pr.Then(context.Background(), func(res any) any {
+		c.promises = append(c.promises, pr.Then(context.TODO(), func(res any) any {
 			if accept != nil  {
 				if l := len(c.results); l > idx {
 					c.results[idx] = nil
@@ -251,7 +251,7 @@ func (c *CallbackBase) includeResult(
 		return NotHandled
 	}
 	if pr, ok := result.(promise.Reflect); ok {
-		pp := pr.Then(context.Background(), func(res any) any {
+		pp := pr.Then(context.TODO(), func(res any) any {
 			if !(strict || IsNil(res)) {
 				// Squash list into expando result
 				switch reflect.TypeOf(res).Kind() {
@@ -351,7 +351,7 @@ func unwrapResult(result any) any {
 		return nil
 	}
 	if pr, ok := result.(promise.Reflect); ok {
-		if r, err := pr.AwaitAny(context.Background()); err != nil {
+		if r, err := pr.AwaitAny(context.TODO()); err != nil {
 			panic(err)
 		} else {
 			result = r

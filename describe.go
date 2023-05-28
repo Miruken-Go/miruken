@@ -409,7 +409,7 @@ func (d *HandlerDescriptor) Dispatch(
 				}
 				if err == nil {
 					if pout != nil {
-						out = []any{promise.Then(pout, context.Background(), func(oo []any) any {
+						out = []any{promise.Then(pout, context.TODO(), func(oo []any) any {
 							res, _ := policy.AcceptResults(oo)
 							return res
 						})}

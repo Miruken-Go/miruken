@@ -125,7 +125,7 @@ func (s *single) Next(
 			}
 		}()
 		if out, po, err = next.Pipe(); err == nil && po != nil {
-			out, err = po.Await(context.Background())
+			out, err = po.Await(context.TODO())
 		}
 		if err != nil || len(out) == 0 {
 			entry.once = new(sync.Once)

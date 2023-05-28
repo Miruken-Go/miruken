@@ -85,12 +85,12 @@ func (f filter) Next(
 			f.logSuccess(start, logger)
 			return
 		} else {
-			bgCtx := context.Background()
+			todoCtx := context.TODO()
 			return nil, promise.Catch(
-				promise.Then(pout, bgCtx, func(oo []any) []any {
+				promise.Then(pout, todoCtx, func(oo []any) []any {
 					f.logSuccess(start, logger)
 					return oo
-				}), bgCtx, func(ee error) error {
+				}), todoCtx, func(ee error) error {
 					f.logError(ee, start, logger)
 					return ee
 				}), nil

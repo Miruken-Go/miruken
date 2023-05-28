@@ -176,7 +176,7 @@ func Source(
 		o = validates.Outcome()
 		setValidationOutcome(src, o)
 	} else {
-		po = promise.Then(pv, context.Background(), func(any) *Outcome {
+		po = promise.Then(pv, context.TODO(), func(any) *Outcome {
 			outcome := validates.Outcome()
 			setValidationOutcome(src, outcome)
 			return outcome

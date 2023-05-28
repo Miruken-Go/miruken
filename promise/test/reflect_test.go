@@ -51,7 +51,7 @@ func TestCoerce(t *testing.T) {
 	p := promise.New(func(resolve func(any), reject func(error)) {
 		resolve("Hello")
 	})
-	pc := promise.Coerce[string](p, context.Background())
+	pc := promise.Coerce[string](p, context.TODO())
 	result, _ := pc.Await(context.Background())
 	require.Equal(t, "Hello", result)
 }
