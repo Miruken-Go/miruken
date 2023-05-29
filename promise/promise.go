@@ -62,7 +62,7 @@ func Catch[T any](p *Promise[T], ctx context.Context, reject func(err error) err
 func (p *Promise[T]) Await(ctx context.Context) (res T, _ error) {
 	select {
 	case <-ctx.Done():
-		return res, CanceledError{ctx.Err()}
+		return res, CanceledError{context.Cause(ctx)}
 	case <-p.ch:
 		if val := p.value; val != nil {
 			return *val, p.err
