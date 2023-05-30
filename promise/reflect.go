@@ -1,7 +1,6 @@
 package promise
 
 import (
-	"context"
 	"reflect"
 	"time"
 )
@@ -9,15 +8,15 @@ import (
 type (
 	Reflect interface {
 		UnderlyingType() reflect.Type
-		Then(ctx context.Context, resolve func(data any) any) *Promise[any]
-		Catch(ctx context.Context, reject func(err error) error) *Promise[any]
-		AwaitAny(ctx context.Context) (any, error)
+		Then(resolve func(data any) any) *Promise[any]
+		Catch(reject func(err error) error) *Promise[any]
+		AwaitAny() (any, error)
 	}
 
 	internal interface {
 		Reflect
 		lift(result any)
-		coerce(promise *Promise[any], ctx context.Context)
+		coerce(promise *Promise[any])
 	}
 )
 
@@ -26,14 +25,13 @@ func (p *Promise[T]) UnderlyingType() reflect.Type {
 }
 
 func (p *Promise[T]) Then(
-	ctx context.Context,
 	res func(data any) any,
 ) *Promise[any] {
 	if res == nil {
 		panic("resolve cannot be nil")
 	}
 	return New(func(resolve func(any), reject func(error)) {
-		result, err := p.Await(ctx)
+		result, err := p.Await()
 		if err != nil {
 			reject(err)
 			return
@@ -43,14 +41,13 @@ func (p *Promise[T]) Then(
 }
 
 func (p *Promise[T]) Catch(
-	ctx context.Context,
 	rej func(err error) error,
 ) *Promise[any] {
 	if rej == nil {
 		panic("resolve cannot be nil")
 	}
 	return New(func(resolve func(any), reject func(error)) {
-		result, err := p.Await(ctx)
+		result, err := p.Await()
 		if err != nil {
 			reject(rej(err))
 			return
@@ -59,10 +56,8 @@ func (p *Promise[T]) Catch(
 	})
 }
 
-func (p *Promise[T]) AwaitAny(
-	ctx context.Context,
-) (any, error) {
-	return p.Await(ctx)
+func (p *Promise[T]) AwaitAny() (any, error) {
+	return p.Await()
 }
 
 func (p *Promise[T]) lift(result any) {
@@ -74,15 +69,14 @@ func (p *Promise[T]) lift(result any) {
 
 func (p *Promise[T]) coerce(
 	promise *Promise[any],
-	ctx     context.Context,
 ) {
 	if p.ch == nil {
 		p.ch = make(chan struct{})
 	}
-	promise.Then(ctx, func(result any) any {
+	promise.Then(func(result any) any {
 		p.resolve(result.(T))
 		return nil
-	}).Catch(ctx, func(err error) error {
+	}).Catch(func(err error) error {
 		p.reject(err)
 		return nil
 	})
@@ -110,9 +104,8 @@ func Lift(typ reflect.Type, result any) Reflect {
 
 func Coerce[T any](
 	promise *Promise[any],
-	ctx     context.Context,
 ) *Promise[T] {
-	return Then(promise, ctx, func(data any) T {
+	return Then(promise, func(data any) T {
 		return data.(T)
 	})
 }
@@ -120,28 +113,26 @@ func Coerce[T any](
 func CoerceType(
 	typ     reflect.Type,
 	promise *Promise[any],
-	ctx     context.Context,
 ) Reflect {
 	if typ.Kind() != reflect.Ptr ||  !typ.Implements(reflectType) {
 		panic("typ must be a promise")
 	}
 	p := reflect.New(typ.Elem()).Interface().(internal)
-	p.coerce(promise, ctx)
+	p.coerce(promise)
 	return p
 }
 
 func Unwrap[T any](
 	promise *Promise[*Promise[T]],
-	ctx     context.Context,
 ) *Promise[T] {
 	if promise == nil {
 		panic("promise cannot be nil")
 	}
 	return New(func(resolve func(T), reject func(error)) {
-		if pt, err := promise.Await(ctx); err != nil {
+		if pt, err := promise.Await(); err != nil {
 			reject(err)
 		} else {
-			if data, err := pt.Await(ctx); err != nil {
+			if data, err := pt.Await(); err != nil {
 				reject(err)
 			} else {
 				resolve(data)

@@ -2,7 +2,6 @@ package miruken
 
 import (
 	"container/list"
-	"context"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/promise"
@@ -409,7 +408,7 @@ func (d *HandlerDescriptor) Dispatch(
 				}
 				if err == nil {
 					if pout != nil {
-						out = []any{promise.Then(pout, context.TODO(), func(oo []any) any {
+						out = []any{promise.Then(pout, func(oo []any) any {
 							res, _ := policy.AcceptResults(oo)
 							return res
 						})}

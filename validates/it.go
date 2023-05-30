@@ -1,7 +1,6 @@
 package validates
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
@@ -176,7 +175,7 @@ func Source(
 		o = validates.Outcome()
 		setValidationOutcome(src, o)
 	} else {
-		po = promise.Then(pv, context.TODO(), func(any) *Outcome {
+		po = promise.Then(pv, func(any) *Outcome {
 			outcome := validates.Outcome()
 			setValidationOutcome(src, outcome)
 			return outcome

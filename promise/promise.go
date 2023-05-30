@@ -13,20 +13,26 @@ import (
 type Promise[T any] struct {
 	value *T
 	err   error
+	ctx   context.Context
 	ch    chan struct{}
 	once  sync.Once
 }
 
 func New[T any](executor func(resolve func(T), reject func(error))) *Promise[T] {
+	return WithContext[T](executor, nil)
+}
+
+func WithContext[T any](executor func(resolve func(T), reject func(error)), ctx context.Context) *Promise[T] {
 	if executor == nil {
 		panic("missing executor")
 	}
 
 	p := &Promise[T]{
-		value: nil,
-		err:   nil,
-		ch:    make(chan struct{}),
-		once:  sync.Once{},
+		value:  nil,
+		err:    nil,
+		ctx:    ctx,
+		ch:     make(chan struct{}),
+		once:   sync.Once{},
 	}
 
 	go func() {
@@ -37,33 +43,41 @@ func New[T any](executor func(resolve func(T), reject func(error))) *Promise[T] 
 	return p
 }
 
-func Then[A, B any](p *Promise[A], ctx context.Context, resolve func(A) B) *Promise[B] {
-	return New(func(internalResolve func(B), reject func(error)) {
-		result, err := p.Await(ctx)
+func Then[A, B any](p *Promise[A], resolve func(A) B) *Promise[B] {
+	return WithContext(func(internalResolve func(B), reject func(error)) {
+		result, err := p.Await()
 		if err != nil {
 			reject(err)
 		} else {
 			internalResolve(resolve(result))
 		}
-	})
+	}, p.ctx)
 }
 
-func Catch[T any](p *Promise[T], ctx context.Context, reject func(err error) error) *Promise[T] {
-	return New(func(resolve func(T), internalReject func(error)) {
-		result, err := p.Await(ctx)
+func Catch[T any](p *Promise[T], reject func(err error) error) *Promise[T] {
+	return WithContext(func(resolve func(T), internalReject func(error)) {
+		result, err := p.Await()
 		if err != nil {
 			internalReject(reject(err))
 		} else {
 			resolve(result)
 		}
-	})
+	}, p.ctx)
 }
 
-func (p *Promise[T]) Await(ctx context.Context) (res T, _ error) {
-	select {
-	case <-ctx.Done():
-		return res, CanceledError{context.Cause(ctx)}
-	case <-p.ch:
+func (p *Promise[T]) Await() (res T, _ error) {
+	if ctx := p.ctx; ctx != nil {
+		select {
+		case <-ctx.Done():
+			return res, CanceledError{context.Cause(ctx)}
+		case <-p.ch:
+			if val := p.value; val != nil {
+				return *val, p.err
+			}
+			return res, p.err
+		}
+	} else {
+		<-p.ch
 		if val := p.value; val != nil {
 			return *val, p.err
 		}
@@ -113,7 +127,6 @@ func (p *Promise[T]) handlePanic() {
 
 // All resolves when all promises have resolved, or rejects immediately upon any of the promises rejecting
 func All[T any](
-	ctx      context.Context,
 	promises ...*Promise[T],
 ) *Promise[[]T] {
 	if len(promises) == 0 {
@@ -126,11 +139,11 @@ func All[T any](
 
 		for idx, p := range promises {
 			idx := idx
-			_ = Then(p, ctx, func(data T) T {
+			_ = Then(p, func(data T) T {
 				resultsChan <- tuple[T, int]{_1: data, _2: idx}
 				return data
 			})
-			_ = Catch(p, ctx, func(err error) error {
+			_ = Catch(p, func(err error) error {
 				errsChan <- err
 				return err
 			})
@@ -152,7 +165,6 @@ func All[T any](
 
 // Race resolves or rejects as soon as any one of the promises resolves or rejects
 func Race[T any](
-	ctx      context.Context,
 	promises ...*Promise[T],
 ) *Promise[T] {
 	if len(promises) == 0 {
@@ -164,11 +176,11 @@ func Race[T any](
 		errsChan := make(chan error, len(promises))
 
 		for _, p := range promises {
-			_ = Then(p, ctx, func(data T) T {
+			_ = Then(p, func(data T) T {
 				valsChan <- data
 				return data
 			})
-			_ = Catch(p, ctx, func(err error) error {
+			_ = Catch(p, func(err error) error {
 				errsChan <- err
 				return err
 			})
@@ -189,21 +201,21 @@ type tuple[T1, T2 any] struct {
 }
 
 type CanceledError struct {
-	reason error
+	cause error
 }
 
 func (e CanceledError) Error() string {
-	if reason := e.reason; reason != nil {
-		return "promise: canceled: " + reason.Error()
+	if cause := e.cause; cause != nil {
+		return "promise: canceled: " + cause.Error()
 	}
 	return "promise: canceled"
 
 }
 
-func (e CanceledError) Reason() error {
-	return e.reason
+func (e CanceledError) Cause() error {
+	return e.cause
 }
 
 func (e CanceledError) Unwrap() error {
-	return e.reason
+	return e.cause
 }

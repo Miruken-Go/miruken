@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"errors"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/either"
@@ -168,7 +167,6 @@ func (b *batchRouter) RouteBatch(
 func (b *batchRouter) CompleteBatch(
 	composer miruken.Handler,
 ) (any, *promise.Promise[any], error) {
-	ctx := context.TODO()
 	var complete []*promise.Promise[any]
 	for route, group := range b.groups {
 		uri := route
@@ -177,7 +175,7 @@ func (b *batchRouter) CompleteBatch(
 		})
 		routeTo := RouteTo(ConcurrentBatch{messages}, route)
 		complete = append(complete,
-			promise.Then(sendBatch(composer, routeTo), ctx,
+			promise.Then(sendBatch(composer, routeTo),
 				func(results []either.Monad[error, any]) RouteReply {
 					responses := make([]any, len(results))
 					for i := len(responses); i < len(messages); i++ {
@@ -195,7 +193,7 @@ func (b *batchRouter) CompleteBatch(
 							})
 					}
 				return RouteReply{ uri, responses }
-			}).Catch(ctx, func(err error) error {
+			}).Catch(func(err error) error {
 				canceled := &miruken.CanceledError{Message: "batch canceled", Reason: err}
 				for _, p := range group {
 					p.deferred.Reject(canceled)
@@ -203,7 +201,7 @@ func (b *batchRouter) CompleteBatch(
 			return err
 		}))
 	}
-	return nil, promise.All(ctx, complete...).Then(ctx, func(data any) any {
+	return nil, promise.All(complete...).Then(func(data any) any {
 		return data
 	}), nil
 }

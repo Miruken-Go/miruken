@@ -1,7 +1,6 @@
 package maps
 
 import (
-	"context"
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/promise"
@@ -115,7 +114,7 @@ func Out[T any](
 	} else if !result.Handled() {
 		err = &miruken.NotHandledError{Callback: m}
 	} else if _, p := m.Result(false); p != nil {
-		tp = promise.Then(p, context.TODO(), func(any) T {
+		tp = promise.Then(p, func(any) T {
 			return t
 		})
 	}
@@ -171,7 +170,7 @@ func Key[T any](
 	} else if !result.Handled() {
 		err = &miruken.NotHandledError{Callback: m}
 	} else if _, p := m.Result(false); p != nil {
-		tp = promise.Then(p, context.TODO(), func(any) T {
+		tp = promise.Then(p, func(any) T {
 			return t
 		})
 	}
@@ -204,7 +203,7 @@ func All[T any](
 			return nil, nil, &miruken.NotHandledError{Callback: m}
 		} else if _, p := m.Result(false); p != nil {
 			idx := i
-			promises = append(promises, promise.Then(p, context.TODO(), func(any) T {
+			promises = append(promises, promise.Then(p, func(any) T {
 				return t[idx]
 			}))
 		}
@@ -213,12 +212,11 @@ func All[T any](
 	case 0:
 		return
 	case 1:
-		return nil, promise.Then(promises[0], context.TODO(), func(T) []T {
+		return nil, promise.Then(promises[0], func(T) []T {
 			return t
 		}), nil
 	default:
-		todoCtx := context.TODO()
-		return nil, promise.Then(promise.All(todoCtx, promises...), todoCtx, func([]T) []T {
+		return nil, promise.Then(promise.All(promises...), func([]T) []T {
 			return t
 		}), nil
 	}

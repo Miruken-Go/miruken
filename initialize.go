@@ -1,7 +1,6 @@
 package miruken
 
 import (
-	"context"
 	"github.com/miruken-go/miruken/promise"
 	"math"
 	"reflect"
@@ -29,7 +28,7 @@ func (i *initializer) Next(
 	}
 	if pout != nil {
 		// wait for asynchronous results
-		pout = promise.Then(pout, context.TODO(),func(oo []any) []any {
+		pout = promise.Then(pout, func(oo []any) []any {
 			if len(oo) > 0 {
 				return mergeOutputAwait(i.construct(ctx, oo[0]))
 			}
@@ -38,7 +37,7 @@ func (i *initializer) Next(
  		})
 	} else if _, pout, err = mergeOutput(i.construct(ctx, out[0])); err == nil && pout != nil {
 		// asynchronous constructor so wait for completion
-		pout = promise.Then(pout, context.TODO(), func([]any) []any {
+		pout = promise.Then(pout, func([]any) []any {
 			return out
 		})
 	}

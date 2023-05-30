@@ -1,7 +1,6 @@
 package log
 
 import (
-	"context"
 	"fmt"
 	"github.com/go-logr/logr"
 	"github.com/miruken-go/miruken"
@@ -85,12 +84,11 @@ func (f filter) Next(
 			f.logSuccess(start, logger)
 			return
 		} else {
-			todoCtx := context.TODO()
 			return nil, promise.Catch(
-				promise.Then(pout, todoCtx, func(oo []any) []any {
+				promise.Then(pout, func(oo []any) []any {
 					f.logSuccess(start, logger)
 					return oo
-				}), todoCtx, func(ee error) error {
+				}), func(ee error) error {
 					f.logError(ee, start, logger)
 					return ee
 				}), nil

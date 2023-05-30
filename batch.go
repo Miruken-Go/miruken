@@ -1,7 +1,6 @@
 package miruken
 
 import (
-	"context"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"sync/atomic"
@@ -65,7 +64,7 @@ func (b *batch) Complete(
 			}
 		}
 	}
-	return promise.All(context.TODO(), results...)
+	return promise.All(results...)
 }
 
 func (b *noBatch) CanBatch() bool {
@@ -136,10 +135,9 @@ func (b *batchHandler) Complete(
 	if results := batch.Complete(b); len(promises) == 0 {
 		return results
 	} else {
-		ctx := context.TODO()
-		return promise.Then(results, ctx, func(res []any) []any {
-			if _, err := promise.All(ctx, promises...).
-				Await(ctx); err != nil {
+		return promise.Then(results, func(res []any) []any {
+			if _, err := promise.All(promises...).
+				Await(); err != nil {
 				panic(err)
 			}
 			return res
@@ -196,7 +194,7 @@ func BatchAsync[T any](
 		panic("configure cannot be nil")
 	}
 	batch := &batchHandler{handler, newBatch(tags...), 0}
-	return batch.Complete(configure(batch).Then(context.TODO(), func(data any) any {
+	return batch.Complete(configure(batch).Then(func(data any) any {
 		return data
 	}))
 }

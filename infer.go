@@ -1,7 +1,6 @@
 package miruken
 
 import (
-	"context"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -101,7 +100,7 @@ func (b *methodIntercept) Invoke(
 	if result := composer.Handle(resolves, true, nil); result.IsError() {
 		return nil, nil, result.Error()
 	} else if _, p := resolves.Result(false); p != nil {
-		return nil, promise.Then(p, context.TODO(), func(res any) []any {
+		return nil, promise.Then(p, func(res any) []any {
 			if !resolves.Succeeded() {
 				panic(&NotHandledError{callback})
 			}

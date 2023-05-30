@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/either"
@@ -158,7 +157,7 @@ func process(
 		return Failure(err), false
 	}
 	if pr != nil {
-		if res, err = pr.Await(context.TODO()); err != nil {
+		if res, err = pr.Await(); err != nil {
 			return Failure(err), false
 		}
 	}
@@ -172,7 +171,7 @@ func sendBatch(
 	if r, pr, err := Send[ScheduledResult](handler, batch); err != nil {
 		return promise.Reject[[]either.Monad[error, any]](err)
 	} else if pr != nil {
-		return promise.Then(pr, context.TODO(),
+		return promise.Then(pr,
 			func(result ScheduledResult) []either.Monad[error, any] {
 				return result.Responses
 			})

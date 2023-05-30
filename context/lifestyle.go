@@ -1,7 +1,6 @@
 package context
 
 import (
-	context2 "context"
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
@@ -136,7 +135,7 @@ func (s *scopedFilter) Next(
 			}
 		}()
 		if out, po, err = next.Pipe(); err == nil && po != nil {
-			out, err = po.Await(context2.Background())
+			out, err = po.Await()
 		}
 		if err != nil || len(out) == 0 {
 			entry.once = new(sync.Once)

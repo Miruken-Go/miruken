@@ -1,7 +1,6 @@
 package test
 
 import (
-	context2 "context"
 	json2 "encoding/json"
 	"errors"
 	"github.com/miruken-go/miruken"
@@ -166,7 +165,7 @@ func (suite *ControllerTestSuite) TestController() {
 			_, pp, err := api.Send[*TeamData](handler, create)
 			suite.Nil(err)
 			suite.NotNil(pp)
-			team, err := pp.Await(context2.Background())
+			team, err := pp.Await()
 			suite.Nil(err)
 			suite.Equal(TeamData{1, "Tottenham", nil}, *team)
 
@@ -174,7 +173,7 @@ func (suite *ControllerTestSuite) TestController() {
 			events, pe, err := api.Send[[]any](handler, get)
 			suite.Nil(err)
 			suite.NotNil(pe)
-			events, err = pe.Await(context2.Background())
+			events, err = pe.Await()
 			suite.Nil(err)
 			suite.NotNil(events)
 			created := &TeamCreated{TeamData{1, "Tottenham", nil}}
@@ -188,14 +187,14 @@ func (suite *ControllerTestSuite) TestController() {
 			pv, err := api.Publish(handler, notify)
 			suite.Nil(err)
 			suite.NotNil(pv)
-			_, err = pv.Await(context2.Background())
+			_, err = pv.Await()
 			suite.Nil(err)
 
 			get := api.RouteTo(GetTeamNotifications{}, suite.srv.URL)
 			events, pe, err := api.Send[[]any](handler, get)
 			suite.Nil(err)
 			suite.NotNil(pe)
-			events, err = pe.Await(context2.Background())
+			events, err = pe.Await()
 			suite.Nil(err)
 			suite.NotNil(events)
 			ev := &TeamCreated{TeamData{8, "Liverpool", nil}}
@@ -209,7 +208,7 @@ func (suite *ControllerTestSuite) TestController() {
 			}, suite.srv.URL)
 			r, pr, err := api.Send[api.ScheduledResult](handler, batch)
 			suite.NotNil(pr)
-			r, err = pr.Await(context2.Background())
+			r, err = pr.Await()
 			suite.Nil(err)
 			suite.Len(r.Responses, 1)
 			either.Match(r.Responses[0], func(err error) {
@@ -231,11 +230,11 @@ func (suite *ControllerTestSuite) TestController() {
 				suite.Nil(err)
 				suite.Zero(r)
 				suite.NotNil(pr)
-				return promise.Then(pr, context2.Background(), func(t *TeamData) *TeamData {
+				return promise.Then(pr, func(t *TeamData) *TeamData {
 					team = t
 					return t
 				})
-			}).Await(context2.Background())
+			}).Await()
 			suite.Nil(err)
 			suite.Len(results, 1)
 			suite.Equal([]any{
@@ -250,7 +249,7 @@ func (suite *ControllerTestSuite) TestController() {
 			}, suite.srv.URL)
 			r, pr, err := api.Send[api.ScheduledResult](handler, batch)
 			suite.NotNil(pr)
-			r, err = pr.Await(context2.Background())
+			r, err = pr.Await()
 			suite.Nil(err)
 			suite.Len(r.Responses, 1)
 			either.Match(r.Responses[0], func(err error) {
@@ -273,11 +272,11 @@ func (suite *ControllerTestSuite) TestController() {
 				suite.Nil(err)
 				suite.Zero(r)
 				suite.NotNil(pr)
-				return promise.Catch(pr, context2.Background(), func(e error) error {
+				return promise.Catch(pr, func(e error) error {
 					ex = e
 					return nil
 				})
-			}).Await(context2.Background())
+			}).Await()
 			suite.Nil(err)
 			suite.Len(results, 1)
 			suite.Equal([]any{
@@ -295,7 +294,7 @@ func (suite *ControllerTestSuite) TestController() {
 			}, suite.srv.URL)
 			r, pr, err := api.Send[api.ScheduledResult](handler, batch)
 			suite.NotNil(pr)
-			r, err = pr.Await(context2.Background())
+			r, err = pr.Await()
 			suite.Nil(err)
 			suite.Len(r.Responses, 2)
 			count := 0
@@ -322,7 +321,7 @@ func (suite *ControllerTestSuite) TestController() {
 			_, pp, err := api.Send[*TeamData](handler, create)
 			suite.Nil(err)
 			suite.NotNil(pp)
-			_, err = pp.Await(context2.Background())
+			_, err = pp.Await()
 			var outcome *validates.Outcome
 			suite.ErrorAs(err, &outcome)
 			suite.Equal(`Name: "Name" is required`, outcome.Error())
@@ -340,7 +339,7 @@ func (suite *ControllerTestSuite) TestController() {
 			_, pp, err := api.Send[*TeamData](handler, create)
 			suite.Nil(err)
 			suite.NotNil(pp)
-			_, err = pp.Await(context2.Background())
+			_, err = pp.Await()
 			suite.ErrorContains(err, "415 Unsupported Media Type")
 			var nh *miruken.NotHandledError
 			suite.ErrorAs(err, &nh)

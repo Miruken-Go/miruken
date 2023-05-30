@@ -11,7 +11,8 @@ import (
 
 type (
 	// Part represents a piece of a message.
-	// Part can also be used to provide explicit message details.
+	// Part can be used in a PartContainer or
+	// independently to control message encoding.
 	Part interface {
 		Content
 		Filename() string

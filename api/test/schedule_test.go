@@ -1,7 +1,6 @@
 package test
 
 import (
-	"context"
 	"errors"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
@@ -81,7 +80,7 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 			r, pr, err := api.Send[api.ScheduledResult](handler, sequential)
 			suite.Nil(err)
 			suite.NotNil(pr)
-			r, err = pr.Await(context.Background())
+			r, err = pr.Await()
 			suite.Nil(err)
 			suite.Len(r.Responses, 3)
 			for i, response := range r.Responses {
@@ -102,7 +101,7 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 				GetStockQuote{"MSFT"},
 				GetStockQuote{"GOOGL"},
 			)
-			s, err := ps.Await(context.Background())
+			s, err := ps.Await()
 			suite.Nil(err)
 			suite.Len(s, 3)
 			symbols := make([]string, 3)
@@ -126,7 +125,7 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 			r, pr, err := api.Send[api.ScheduledResult](handler, sequential)
 			suite.Nil(err)
 			suite.NotNil(pr)
-			r, err = pr.Await(context.Background())
+			r, err = pr.Await()
 			suite.Nil(err)
 			suite.Len(r.Responses, 2)
 			symbols := make([]string, 2)
@@ -152,7 +151,7 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 			r, pr, err := api.Send[api.ScheduledResult](handler, concurrent)
 			suite.Nil(err)
 			suite.NotNil(pr)
-			r, err = pr.Await(context.Background())
+			r, err = pr.Await()
 			suite.Nil(err)
 			suite.Len(r.Responses, 3)
 			symbols := make([]string, 3)
@@ -171,7 +170,7 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 				GetStockQuote{"MSFT"},
 				GetStockQuote{"GOOGL"},
 			)
-			s, err := ps.Await(context.Background())
+			s, err := ps.Await()
 			suite.Nil(err)
 			suite.Len(s, 3)
 			symbols := make([]string, 3)
@@ -195,7 +194,7 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 			r, pr, err := api.Send[api.ScheduledResult](handler, sequential)
 			suite.Nil(err)
 			suite.NotNil(pr)
-			r, err = pr.Await(context.Background())
+			r, err = pr.Await()
 			suite.Nil(err)
 			suite.Len(r.Responses, 3)
 			symbols := make([]string, 3)
@@ -219,7 +218,7 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 			r, pr, err := api.Send[api.ScheduledResult](handler, sequential)
 			suite.Nil(err)
 			suite.NotNil(pr)
-			r, err = pr.Await(context.Background())
+			r, err = pr.Await()
 			suite.Nil(err)
 			suite.Len(r.Responses, 3)
 			symbols := make([]string, 3)

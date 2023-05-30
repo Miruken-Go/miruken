@@ -1,7 +1,6 @@
 package miruken
 
 import (
-	"context"
 	"fmt"
 	"github.com/miruken-go/miruken/promise"
 	"math"
@@ -125,7 +124,7 @@ func (s *single) Next(
 			}
 		}()
 		if out, po, err = next.Pipe(); err == nil && po != nil {
-			out, err = po.Await(context.TODO())
+			out, err = po.Await()
 		}
 		if err != nil || len(out) == 0 {
 			entry.once = new(sync.Once)
