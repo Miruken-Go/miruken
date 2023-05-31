@@ -1,6 +1,6 @@
 package promise
 
-import "sync"
+import "context"
 
 // Deferred represents a computation that fulfills a Promise.
 type Deferred[T any] struct {
@@ -22,10 +22,14 @@ func (d Deferred[T]) Reject(err error) {
 // Defer creates a Deferred computation.
 func Defer[T any]() Deferred[T] {
 	p := &Promise[T]{
-		value: nil,
-		err:   nil,
-		ch:    make(chan struct{}),
-		once:  sync.Once{},
+		ch: make(chan struct{}),
 	}
 	return Deferred[T]{ p }
+}
+
+// DeferWithContext creates a Deferred computation in a context.
+func DeferWithContext[T any](ctx context.Context) Deferred[T] {
+	d := Defer[T]()
+	d.promise.ctx = ctx
+	return d
 }

@@ -4,11 +4,11 @@ import "reflect"
 
 func MakeCaller(fun any) (func(Handler) []reflect.Value, error) {
 	if fun == nil {
-		panic("funPtr cannot be nil")
+		panic("fun cannot be nil")
 	}
 	val := reflect.ValueOf(fun)
 	if typ := val.Type(); typ.Kind() != reflect.Func {
-		panic("funPtr is not a valid function")
+		panic("fun is not a valid function")
 	} else {
 		numArgs := typ.NumIn()
 		args    := make([]arg, numArgs)

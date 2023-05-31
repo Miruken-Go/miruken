@@ -7,11 +7,11 @@ import (
 )
 
 // This code was lifted from https://github.com/chebyrash/promise and modified
-// to provide runtime support since Go Generics offer limited visibility.
+// to provide runtime support since Go Generics offer limited inspection.
 
 // Promise represents the eventual completion (or failure) of an asynchronous operation and its resulting value
 type Promise[T any] struct {
-	value *T
+	value T
 	err   error
 	ctx   context.Context
 	ch    chan struct{}
@@ -28,11 +28,8 @@ func WithContext[T any](executor func(resolve func(T), reject func(error)), ctx 
 	}
 
 	p := &Promise[T]{
-		value:  nil,
-		err:    nil,
-		ctx:    ctx,
-		ch:     make(chan struct{}),
-		once:   sync.Once{},
+		ctx: ctx,
+		ch:  make(chan struct{}),
 	}
 
 	go func() {
@@ -65,41 +62,24 @@ func Catch[T any](p *Promise[T], reject func(err error) error) *Promise[T] {
 	}, p.ctx)
 }
 
-func (p *Promise[T]) Await() (res T, _ error) {
-	if ctx := p.ctx; ctx != nil {
-		select {
-		case <-ctx.Done():
-			return res, CanceledError{context.Cause(ctx)}
-		case <-p.ch:
-			if val := p.value; val != nil {
-				return *val, p.err
+func (p *Promise[T]) Await() (T, error) {
+	if ch := p.ch; ch != nil {
+		if ctx := p.ctx; ctx != nil {
+			select {
+			case <-ctx.Done():
+				return p.value, CanceledError{context.Cause(ctx)}
+			case <-ch:
 			}
-			return res, p.err
+		} else {
+			<-ch
 		}
-	} else {
-		<-p.ch
-		if val := p.value; val != nil {
-			return *val, p.err
-		}
-		return res, p.err
 	}
-}
-
-func Resolve[T any](value T) *Promise[T] {
-	return New[T](func(resolve func(T), reject func(error)) {
-		resolve(value)
-	})
-}
-
-func Reject[T any](err error) *Promise[T] {
-	return New[T](func(resolve func(T), reject func(error)) {
-		reject(err)
-	})
+	return p.value, p.err
 }
 
 func (p *Promise[T]) resolve(value T) {
 	p.once.Do(func() {
-		p.value = &value
+		p.value = value
 		close(p.ch)
 	})
 }
@@ -123,6 +103,16 @@ func (p *Promise[T]) handlePanic() {
 	default:
 		p.reject(fmt.Errorf("%+v", v))
 	}
+}
+
+// Resolve creates a Promise in the resolved state.
+func Resolve[T any](value T) *Promise[T] {
+	return &Promise[T]{value: value}
+}
+
+// Reject creates a Promise in the rejected state.
+func Reject[T any](err error) *Promise[T] {
+	return &Promise[T]{err: err}
 }
 
 // All resolves when all promises have resolved, or rejects immediately upon any of the promises rejecting
@@ -204,16 +194,16 @@ type CanceledError struct {
 	cause error
 }
 
+func (e CanceledError) Cause() error {
+	return e.cause
+}
+
 func (e CanceledError) Error() string {
 	if cause := e.cause; cause != nil {
 		return "promise: canceled: " + cause.Error()
 	}
 	return "promise: canceled"
 
-}
-
-func (e CanceledError) Cause() error {
-	return e.cause
 }
 
 func (e CanceledError) Unwrap() error {

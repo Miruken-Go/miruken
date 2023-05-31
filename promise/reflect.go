@@ -61,10 +61,7 @@ func (p *Promise[T]) AwaitAny() (any, error) {
 }
 
 func (p *Promise[T]) lift(result any) {
-	if p.ch == nil {
-		p.ch = make(chan struct{})
-	}
-	p.resolve(result.(T))
+	p.value = result.(T)
 }
 
 func (p *Promise[T]) coerce(
