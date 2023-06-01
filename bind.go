@@ -43,6 +43,7 @@ type (
 		Value any
 	}
 
+	// BindingParser is an extension for binding customizations.
 	BindingParser interface {
 		parse(
 			index   int,
@@ -51,6 +52,7 @@ type (
 		) (bound bool, err error)
 	}
 
+	// BindingParserFunc implements a BindingParser using a function.
 	BindingParserFunc func (
 		index   int,
 		field   reflect.StructField,
@@ -72,12 +74,17 @@ type (
 )
 
 
-// BindingGroup
+func (b BindingParserFunc) parse(
+	index   int,
+	field   reflect.StructField,
+	binding any,
+) (bound bool, err error) {
+	return b(index, field, binding)
+}
+
 
 func (BindingGroup) DefinesBindingGroup() {}
 
-
-// BindingBase
 
 func (b *BindingBase) Strict() bool {
 	return b.flags & bindingStrict == bindingStrict
@@ -95,16 +102,6 @@ func (b *BindingBase) Metadata() []any {
 	return b.metadata
 }
 
-
-// BindingParserFunc
-
-func (b BindingParserFunc) parse(
-	index   int,
-	field   reflect.StructField,
-	binding any,
-) (bound bool, err error) {
-	return b(index, field, binding)
-}
 
 type (
 	// bindingSpec captures a Binding specification.

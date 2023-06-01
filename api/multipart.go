@@ -54,10 +54,14 @@ func (m *MultipartMapper) Read(
 		header  := p.Header
 		ct      := header.Get("Content-Type")
 
+		filename := p.FileName()
+		if filename == "" {
+			filename = header.Get("Content-Filename")
+		}
 		var pb PartBuilder
 		pb.MediaType(ct).
 		   MetadataStrings(header).
-		   Filename(p.FileName())
+		   Filename(filename)
 
 		var key string
 		if key = p.FormName(); key == "" {

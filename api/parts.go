@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"io"
 	"mime"
+	"path/filepath"
 	"strings"
 )
 
@@ -94,6 +95,9 @@ func (b *PartBuilder) MetadataStrings(
 func (b *PartBuilder) Filename(
 	filename string,
 ) *PartBuilder {
+	if filename != "" {
+		filename = filepath.Base(filename)
+	}
 	b.part.filename = filename
 	return b
 }

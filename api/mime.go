@@ -17,8 +17,8 @@ type Content interface {
 }
 
 
-// ParseMediaType parses the mediaType into a
-// maps.Format suitable for mapping in the direction.
+// ParseMediaType parses the mediaType into a maps.Format suitable
+// for mapping in the requested direction.
 func ParseMediaType(
 	mediaType string,
 	direction maps.Direction,
@@ -32,8 +32,8 @@ func ParseMediaType(
 	}
 }
 
-// FormatMediaType formats the maps.Format into a
-// media type conforming to RFC 2045 and RFC 2616.
+// FormatMediaType formats the maps.Format into a media type conforming
+// to RFC 2045 and RFC 2616.
 func FormatMediaType(format *maps.Format) string {
 	if format == nil {
 		panic("format cannot be nil")
@@ -48,6 +48,7 @@ func FormatMediaType(format *maps.Format) string {
 	}
 }
 
+// NewHeader creates a mime header from the supplied key values.
 func NewHeader(
 	metadata map[string]any,
 ) textproto.MIMEHeader {
@@ -56,6 +57,7 @@ func NewHeader(
 	return header
 }
 
+// MergeHeader merges the supplied key values into the existing mime header.
 func MergeHeader(
 	header   textproto.MIMEHeader,
 	metadata map[string]any,
@@ -78,6 +80,9 @@ func MergeHeader(
 }
 
 var (
-	ToJson   = maps.To("application/json", nil)
+	// ToJson encodes a model into json format
+	ToJson = maps.To("application/json", nil)
+
+	// FromJson decodes json into a corresponding model
 	FromJson = maps.From("application/json", nil)
 )
