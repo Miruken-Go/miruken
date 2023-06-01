@@ -10,4 +10,4 @@ Core Miruken
     go test ./.../test -count=1
 
 ### Automated
-    docker run -v $(pwd):/go/src --workdir=/go/src golang:1.20 go test ./.../test
+    docker run -v $(pwd):/go/src --workdir=/go/src golang:1.20 go test ./...
