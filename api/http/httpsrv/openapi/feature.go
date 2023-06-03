@@ -128,7 +128,7 @@ func (i *Installer) BindingCreated(
 		if inType.Kind() == reflect.Ptr {
 			inType = inType.Elem()
 		}
-		if schema, inputName, created := i.generateTypeSchema(inType); created {
+		if schema, inputName, created := i.generateTypeSchema(inType, false); created {
 			requestBody := &openapi3.RequestBodyRef{
 				Value: openapi3.NewRequestBody().
 					WithDescription("Request to process").
@@ -144,7 +144,7 @@ func (i *Installer) BindingCreated(
 				if outType.Kind() == reflect.Ptr {
 					outType = outType.Elem()
 				}
-				if schema, _, _ := i.generateTypeSchema(outType); schema != nil {
+				if schema, _, _ := i.generateTypeSchema(outType, true); schema != nil {
 					response := &openapi3.ResponseRef{
 						Value: openapi3.NewResponse().
 							WithDescription("Successful Response").
@@ -188,7 +188,7 @@ func (i *Installer) DescriptorCreated(
 
 func (i *Installer) initializeDefinitions() {
 	for _, component := range i.extraComponents {
-		schema, name, created := i.generateComponentSchema(component)
+		schema, name, created := i.generateComponentSchema(component, true)
 		if created {
 			if _, ok := i.schemas[name]; !ok {
 				i.schemas[name] = schema
@@ -290,7 +290,8 @@ func (i *Installer) generateExampleJson(
 }
 
 func (i *Installer) generateTypeSchema(
-	typ reflect.Type,
+	typ    reflect.Type,
+	shared bool,
 ) (*openapi3.SchemaRef, string, bool) {
 	var component reflect.Value
 	switch typ.Kind() {
@@ -299,11 +300,12 @@ func (i *Installer) generateTypeSchema(
 	default:
 		component = reflect.Zero(typ)
 	}
-	return i.generateComponentSchema(component.Interface())
+	return i.generateComponentSchema(component.Interface(), shared)
 }
 
 func (i *Installer) generateComponentSchema(
 	component any,
+	shared    bool,
 ) (*openapi3.SchemaRef, string, bool) {
 	if miruken.IsNil(component) {
 		return nil, "", false
@@ -314,13 +316,17 @@ func (i *Installer) generateComponentSchema(
 	}
 	name := typ.Name()
 	kind := typ.Kind()
+	list := kind == reflect.Slice || kind == reflect.Array
+	var elemTyp reflect.Type
+	if list {
+		elemTyp = typ.Elem()
+		if elemTyp.Kind() == reflect.Ptr {
+			elemTyp = elemTyp.Elem()
+		}
+	}
 	if len(name) == 0 {
-		if kind == reflect.Slice {
-			elem := typ.Elem()
-			if elem.Kind() == reflect.Ptr {
-				elem = elem.Elem()
-			}
-			if name = elem.Name(); len(name) > 0 {
+		if list {
+			if name = elemTyp.Name(); len(name) > 0 {
 				name = name + "Array"
 			}
 		}
@@ -332,7 +338,10 @@ func (i *Installer) generateComponentSchema(
 		var err error
 		schema, err = i.generator.NewSchemaRefForValue(component, i.schemas)
 		if err == nil {
-			if kind == reflect.Slice || kind == reflect.Array {
+			if list {
+				if es, _, _ := i.generateTypeSchema(elemTyp, true); es != nil {
+					schema.Value.Items = es
+				}
 				schema = &openapi3.SchemaRef{
 					Value: openapi3.NewObjectSchema().
 						WithPropertyRef("@values", schema),
@@ -340,6 +349,13 @@ func (i *Installer) generateComponentSchema(
 			}
 			schema.Value.Example = component
 			i.components[typ] = schema
+			if shared {
+				i.schemas[name] = schema
+				schema = &openapi3.SchemaRef{
+					Ref:   "#/components/schemas/" + name,
+					Value: schema.Value,
+				}
+			}
 			return schema, name, true
 		}
 		return nil, "", false
@@ -350,7 +366,7 @@ func (i *Installer) generateComponentSchema(
 
 func (i *Installer) customize(
 	name   string,
-	t      reflect.Type,
+	typ    reflect.Type,
 	tag    reflect.StructTag,
 	schema *openapi3.Schema,
 ) error {
@@ -361,7 +377,7 @@ func (i *Installer) customize(
 			if sc.Type == "array" &&
 				sc.Items.Value == schema &&
 				sc.Items.Ref == "#/components/schemas/" {
-				sn := "_schema" + strconv.Itoa(len(i.schemas))
+				sn := "schema" + strconv.Itoa(len(i.schemas))
 				sc.Items.Ref = "#/components/schemas/" + sn
 				i.schemas[sn] =  &openapi3.SchemaRef{Value: schema}
 			}
