@@ -2,7 +2,6 @@ package test
 
 import (
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/constraints"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -55,7 +54,7 @@ func (s *ApiService) Work() string {
 
 
 func (s *ApiService1) Constructor(
-	_*struct{constraints.ForMe}, client *ApiClient,
+	_*struct{provides.ForMe}, client *ApiClient,
 ) {
 	s.client = client
 }
@@ -68,7 +67,7 @@ func (s *ApiService1) Work() string {
 // ApiService2
 
 func (s *ApiService2) Constructor(
-	_*struct{constraints.ForMe}, client *ApiClient,
+	_*struct{provides.ForMe}, client *ApiClient,
 ) {
 	s.client = client
 }
@@ -103,7 +102,7 @@ func (p *ApiProvider) DefaultClient(
 func (p *ApiProvider) ClientForService1(
 	_*struct{
 		provides.It
-		constraints.For[ApiService1]
+		provides.For[ApiService1]
 	  },
 ) *ApiClient {
 	return &p.client1
@@ -112,7 +111,7 @@ func (p *ApiProvider) ClientForService1(
 func (p *ApiProvider) ClientForService2(
 	_*struct{
 		provides.It
-		constraints.For[ApiService2]
+		provides.For[ApiService2]
 	  },
 ) *ApiClient {
 	return &p.client2
@@ -121,7 +120,7 @@ func (p *ApiProvider) ClientForService2(
 func (p *ApiProvider) ClientForService3(
 	_*struct{
 		provides.It
-		constraints.For[ApiService3]
+		provides.For[ApiService3]
 	  },
 ) *ApiClient {
 	return &p.def
@@ -129,7 +128,7 @@ func (p *ApiProvider) ClientForService3(
 
 func (p *ApiProvider) ApiService3(
 	_ *provides.It,
-	_*struct{constraints.ForMe}, client *ApiClient,
+	_*struct{provides.ForMe}, client *ApiClient,
 ) *ApiService3 {
 	return &ApiService3{client: client}
 }

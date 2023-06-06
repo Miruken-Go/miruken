@@ -1,8 +1,7 @@
-package constraints
+package provides
 
 import (
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/provides"
 	"reflect"
 )
 
@@ -38,13 +37,13 @@ func (f *For[T]) Satisfies(
 	if _, ok := required.(ForMe); !ok {
 		return false
 	}
-	if p, ok := callback.(*provides.It); ok {
+	if p, ok := callback.(*It); ok {
 		return f.matches(p.Parent())
 	}
 	return true
 }
 
-func (f *For[T]) matches(p *provides.It) bool {
+func (f *For[T]) matches(p *It) bool {
 	for p != nil {
 		if b := p.Binding(); b != nil {
 			if typ := b.LogicalOutputType(); typ != nil {
@@ -68,8 +67,8 @@ func (f ForMe) Required() bool {
 }
 
 func (f ForMe) Satisfies(
-	required miruken.Constraint,
-	callback miruken.Callback,
+	miruken.Constraint,
+	miruken.Callback,
 ) bool {
 	return false
 }
