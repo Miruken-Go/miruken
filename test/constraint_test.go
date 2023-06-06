@@ -178,11 +178,10 @@ func (suite *ConstraintTestSuite) SetupTest() {
 	}
 }
 
-func (suite *ConstraintTestSuite) Setup() (miruken.Handler, error) {
-	return suite.SetupWith(suite.specs...)
-}
-
-func (suite *ConstraintTestSuite) SetupWith(specs ...any) (miruken.Handler, error) {
+func (suite *ConstraintTestSuite) Setup(specs ...any) (miruken.Handler, error) {
+	if len(specs) == 0 {
+		specs = suite.specs
+	}
 	return miruken.Setup().Specs(specs...).Handler()
 }
 
@@ -203,7 +202,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 		})
 
 		suite.Run("Handler", func() {
-			handler, _ := suite.SetupWith(&NoConstraintProvider{})
+			handler, _ := suite.Setup(&NoConstraintProvider{})
 			person, _, err := miruken.Resolve[Person](handler)
 			suite.Nil(err)
 			suite.NotNil(person)

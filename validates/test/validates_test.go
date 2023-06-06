@@ -197,11 +197,10 @@ func (suite *ValidatesTestSuite) SetupTest() {
 	}
 }
 
-func (suite *ValidatesTestSuite) Setup() (miruken.Handler, error) {
-	return suite.SetupWith(suite.specs...)
-}
-
-func (suite *ValidatesTestSuite) SetupWith(specs ...any) (miruken.Handler, error) {
+func (suite *ValidatesTestSuite) Setup(specs ...any) (miruken.Handler, error) {
+	if len(specs) == 0 {
+		specs = suite.specs
+	}
 	return miruken.Setup().Specs(specs...).Handler()
 }
 

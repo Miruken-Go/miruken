@@ -17,6 +17,7 @@ import (
 	"github.com/miruken-go/miruken/validates"
 	"github.com/stretchr/testify/suite"
 	"io"
+	http2 "net/http"
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
@@ -315,6 +316,19 @@ func (suite *ControllerTestSuite) TestController() {
 			suite.Equal(3, count)
 		})
 
+		suite.Run("Pipeline", func() {
+			handler := miruken.BuildUp(
+				suite.Setup(),
+				http.Pipeline(authenticate))
+			create := api.RouteTo(CreateTeam{Name: "Tottenham"}, suite.srv.URL)
+			_, pp, err := api.Send[*TeamData](handler, create)
+			suite.Nil(err)
+			suite.NotNil(pp)
+			team, err := pp.Await()
+			suite.Nil(err)
+			suite.Equal("Tottenham", team.Name)
+		})
+
 		suite.Run("ValidationError", func() {
 			handler := suite.Setup()
 			create  := api.RouteTo(CreateTeam{}, suite.srv.URL)
@@ -349,4 +363,13 @@ func (suite *ControllerTestSuite) TestController() {
 
 func TestControllerTestSuite(t *testing.T) {
 	suite.Run(t, new(ControllerTestSuite))
+}
+
+func authenticate(
+	req      *http2.Request,
+	composer miruken.Handler,
+	next     func() (*http2.Response, error),
+)  (*http2.Response, error) {
+	req.Header.Set("Authorization", "Bearer token")
+	return next()
 }

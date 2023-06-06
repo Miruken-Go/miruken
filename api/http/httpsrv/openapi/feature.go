@@ -334,6 +334,7 @@ func (i *Installer) generateComponentSchema(
 			return nil, "", false
 		}
 	}
+	name = i.uniqueName(name)
 	if schema, ok := i.components[typ]; !ok {
 		var err error
 		schema, err = i.generator.NewSchemaRefForValue(component, i.schemas)
@@ -348,19 +349,34 @@ func (i *Installer) generateComponentSchema(
 				}
 			}
 			schema.Value.Example = component
-			i.components[typ] = schema
+			schemaRef := &openapi3.SchemaRef{
+				Ref:   "#/components/schemas/" + name,
+				Value: schema.Value,
+			}
+			i.components[typ] = schemaRef
 			if shared {
 				i.schemas[name] = schema
-				schema = &openapi3.SchemaRef{
-					Ref:   "#/components/schemas/" + name,
-					Value: schema.Value,
-				}
+				schema = schemaRef
 			}
 			return schema, name, true
 		}
 		return nil, "", false
 	} else {
 		return schema, name, false
+	}
+}
+
+func (i *Installer) uniqueName(
+	name string,
+) string {
+	id := 0
+	var next = name
+	for {
+		if _, ok := i.schemas[next]; !ok {
+			return next
+		}
+		id += 1
+		next = name + strconv.Itoa(id)
 	}
 }
 

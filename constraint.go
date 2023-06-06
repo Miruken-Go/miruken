@@ -120,6 +120,7 @@ func (q Qualifier[T]) qualifier() Qualifier[T] {
 	return q
 }
 
+
 // constraintFilter enforces constraints.
 type constraintFilter struct{}
 

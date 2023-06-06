@@ -9,7 +9,7 @@ require (
 	github.com/getkin/kin-openapi v0.117.0
 	github.com/go-logr/logr v1.2.4
 	github.com/go-playground/universal-translator v0.18.1
-	github.com/go-playground/validator/v10 v10.14.0
+	github.com/go-playground/validator/v10 v10.14.1
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/imdario/mergo v0.3.16
 	github.com/knadh/koanf v1.5.0

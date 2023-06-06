@@ -36,7 +36,7 @@ func (b *ConstructorBinding) Exported() bool {
 }
 
 func (b *ConstructorBinding) LogicalOutputType() reflect.Type {
-	return nil
+	return b.handlerType
 }
 
 func (b *ConstructorBinding) Invoke(

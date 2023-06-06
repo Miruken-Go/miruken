@@ -17,20 +17,28 @@ import (
 )
 
 type (
+	Policy func(
+		req      *http.Request,
+		composer miruken.Handler,
+		next     func() (*http.Response, error),
+	) (*http.Response, error)
+
 	// Options customize http operations.
 	Options struct {
 		Format      string
 		ProcessPath string
 		PublishPath string
-		Timeout     miruken.Option[time.Duration]
+		Pipeline    []Policy
 	}
 
 	// Router routes messages over a http transport.
 	Router struct {}
 )
 
-const defaultFormat = "application/json"
-const defaultTimeout = 30 * time.Second
+const (
+	defaultFormat = "application/json"
+	defaultTimeout = 30 * time.Second
+)
 
 func (r *Router) Route(
 	_*struct{
@@ -76,8 +84,8 @@ func (r *Router) Route(
 		}
 		req.Header.Add("Content-Type", format)
 
-		client := &http.Client{Timeout: options.Timeout.ValueOrDefault(defaultTimeout)}
-		res, err := client.Do(req)
+		res, err := r.invoke(req, composer, options.Pipeline)
+
 		if err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 			return
@@ -113,6 +121,27 @@ func (r *Router) Route(
 			resolve(msg.Payload)
 		}
 	})
+}
+
+func (r *Router) invoke(
+	req      *http.Request,
+	composer miruken.Handler,
+	pipeline []Policy,
+) (*http.Response, error) {
+	index, length := 0, len(pipeline)
+	if length == 0 {
+		return defaultHttpClient.Do(req)
+	}
+	var next func() (*http.Response, error)
+	next = func() (*http.Response, error) {
+		if index < length {
+			policy := pipeline[index]
+			index++
+			return policy(req, composer, next)
+		}
+		return defaultHttpClient.Do(req)
+	}
+	return next()
 }
 
 func (r *Router) decodeError(
@@ -158,7 +187,43 @@ func (r *Router) getResourceUri(
 }
 
 
+// Client returns a Policy to use the supplied http.Client.
+// This should be the last Policy in the pipeline.
+func Client(client *http.Client) Policy {
+	return func(
+		req *http.Request,
+		_   miruken.Handler,
+		_   func() (*http.Response, error),
+	) (*http.Response, error) {
+		return client.Do(req)
+	}
+}
+
 // Format returns a miruken.Builder requesting a specific format.
 func Format(format string) miruken.Builder {
 	return miruken.Options(Options{Format: format})
 }
+
+// Pipeline returns a miruken.Builder that registers policies to
+// apply during http request processing.
+func Pipeline(policies ...Policy) miruken.Builder {
+	return miruken.Options(Options{Pipeline: policies})
+}
+
+
+// newDefaultHttpClient creates an optimized http.Client
+// https://www.loginradius.com/blog/engineering/tune-the-go-http-client-for-high-performance/
+func newDefaultHttpClient() *http.Client {
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.MaxIdleConns        = 100
+	t.MaxConnsPerHost     = 100
+	t.MaxIdleConnsPerHost = 100
+
+	return &http.Client{
+		Timeout:   defaultTimeout,
+		Transport: t,
+	}
+}
+
+
+var defaultHttpClient = newDefaultHttpClient()

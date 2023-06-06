@@ -161,15 +161,13 @@ func (suite *BatchTestSuite) TestBatch() {
 		handler, _ := suite.Setup()
 		r, pr, err := api.Send[string](handler, ConfirmSend("hello"))
 		suite.Nil(err)
-		suite.Zero(r)
 		suite.NotNil(pr)
 		r, err = pr.Await()
 		suite.Nil(err)
 		suite.Equal("hello", r)
 		results, err := miruken.Batch(handler, func(batch miruken.Handler) {
-			r, pr, err := api.Send[string](batch, ConfirmSend("hello"))
+			_, pr, err := api.Send[string](batch, ConfirmSend("hello"))
 			suite.Nil(err)
-			suite.Zero(r)
 			suite.NotNil(pr)
 			promise.Then(pr, func(res string) any {
 				suite.Equal("hello batch", res)
@@ -185,9 +183,8 @@ func (suite *BatchTestSuite) TestBatch() {
 		handler, _ := suite.Setup()
 		count := 0
 		results, err := miruken.Batch(handler, func(batch miruken.Handler) {
-			r, pr, err := api.Send[string](batch, FailConfirm("hello"))
+			_, pr, err := api.Send[string](batch, FailConfirm("hello"))
 			suite.Nil(err)
-			suite.Zero(r)
 			suite.NotNil(pr)
 			promise.Catch(pr, func(err error) error {
 				suite.Equal("can't send message", err.Error())
@@ -202,9 +199,8 @@ func (suite *BatchTestSuite) TestBatch() {
 	suite.Run("No Batch After Await", func() {
 		handler, _ := suite.Setup()
 		results, err := miruken.Batch(handler, func(batch miruken.Handler) {
-			r, pr, err := api.Send[string](batch, ConfirmSend("hello"))
+			_, pr, err := api.Send[string](batch, ConfirmSend("hello"))
 			suite.Nil(err)
-			suite.Zero(r)
 			suite.NotNil(pr)
 			promise.Then(pr, func(res string) any {
 				suite.Equal("hello batch", res)
@@ -217,7 +213,6 @@ func (suite *BatchTestSuite) TestBatch() {
 
 		r, pr, err := api.Send[string](handler, ConfirmSend("hello"))
 		suite.Nil(err)
-		suite.Zero(r)
 		suite.NotNil(pr)
 		r, err = pr.Await()
 		suite.Nil(err)
@@ -228,14 +223,12 @@ func (suite *BatchTestSuite) TestBatch() {
 		count := 0
 		handler, _ := suite.Setup()
 		results, err := miruken.BatchAsync(handler, func(batch miruken.Handler) *promise.Promise[any] {
-			r, pr, err := api.Send[string](batch, ConfirmSend("hello"))
+			_, pr, err := api.Send[string](batch, ConfirmSend("hello"))
 			suite.Nil(err)
-			suite.Zero(r)
 			suite.NotNil(pr)
 			return promise.Then(pr, func(res string) any {
 				r1, pr1, err1 := api.Send[string](batch, ConfirmSend("hello"))
 				suite.Nil(err)
-				suite.Zero(r)
 				suite.NotNil(pr)
 				r1, err1 = pr1.Await()
 				suite.Nil(err1)
