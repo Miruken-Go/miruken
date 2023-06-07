@@ -156,15 +156,19 @@ func (s HandlerTypeSpec) Type() reflect.Type {
 }
 
 func (s HandlerTypeSpec) Name() string {
-	if typ := s.typ; typ.Kind() == reflect.Ptr {
-		return typ.Elem().Name()
-	} else {
-		return typ.Name()
+	typ := s.typ
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
 	}
+	return typ.Name()
 }
 
 func (s HandlerTypeSpec) String() string {
-	return fmt.Sprintf("HandlerTypeSpec(%v)", s.typ)
+	typ := s.typ
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
+	return fmt.Sprintf("%v in %v package", typ, typ.PkgPath())
 }
 
 func (s HandlerTypeSpec) key() any {

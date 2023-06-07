@@ -6,10 +6,18 @@ import (
 )
 
 
-// For matches dependencies against a receiver hierarchy.
-type For[T any] struct {
-	typ reflect.Type
-}
+type (
+	// For matches dependencies against a parent receiver.
+	For[T any] struct {
+		typ   reflect.Type
+		graph bool
+	}
+
+	// ForGraph matches dependencies against a receiver hierarchy.
+	ForGraph[T any] struct {
+		For[T]
+	}
+)
 
 
 // For
@@ -37,12 +45,12 @@ func (f *For[T]) Satisfies(
 		return false
 	}
 	if p, ok := callback.(*It); ok {
-		return f.matches(p.Parent())
+		return f.matches(p.Parent(), f.graph)
 	}
 	return true
 }
 
-func (f *For[T]) matches(p *It) bool {
+func (f *For[T]) matches(p *It, graph bool) bool {
 	for p != nil {
 		if b := p.Binding(); b != nil {
 			if typ := b.LogicalOutputType(); typ != nil {
@@ -52,9 +60,21 @@ func (f *For[T]) matches(p *It) bool {
 				if typ.AssignableTo(f.typ) {
 					return true
 				}
-				p = p.Parent()
+				if graph {
+					p = p.Parent()
+				} else {
+					return false
+				}
 			}
 		}
 	}
 	return false
+}
+
+
+// ForGraph
+
+func (f *ForGraph[T]) Init() error {
+	f.For.graph = true
+	return f.For.Init()
 }

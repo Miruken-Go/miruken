@@ -18,6 +18,10 @@ type (
 		Name string
 	}
 
+	ApiClientRetry struct {
+		*ApiClient
+	}
+
 	ApiService struct {
 		client *ApiClient
 	}
@@ -31,7 +35,7 @@ type (
 	}
 
 	ApiService3 struct {
-		client *ApiClient
+		client *ApiClientRetry
 	}
 
 	ApiCluster struct {
@@ -42,8 +46,18 @@ type (
 		def     ApiClient
 		client1 ApiClient
 		client2 ApiClient
+		client3 ApiClient
 	}
 )
+
+
+// ApiClientRetry
+
+func (s *ApiClientRetry) Constructor(
+	client *ApiClient,
+) {
+	s.ApiClient = client
+}
 
 
 // ApiService
@@ -109,6 +123,7 @@ func (p *ApiProvider) Constructor() {
 	p.def     = ApiClient{"default"}
 	p.client1 = ApiClient{"Client1"}
 	p.client2 = ApiClient{"Client2"}
+	p.client3 = ApiClient{"Client3"}
 }
 
 
@@ -133,25 +148,24 @@ func (p *ApiProvider) ClientForService2(
 func (p *ApiProvider) ClientForService3(
 	_*struct{
 		provides.It
-		provides.For[ApiService3]
+		provides.ForGraph[ApiService3]
 	  },
+) *ApiClient {
+	return &p.client3
+}
+
+// Methods in GO are sorted in lexicographic order and registered
+// in that order, so we prefix with Z to ensure it is last.
+func (p *ApiProvider) ZDefaultClient(
+	_ *provides.It,
 ) *ApiClient {
 	return &p.def
 }
 
 func (p *ApiProvider) ApiService3(
-	_ *provides.It, client *ApiClient,
+	_ *provides.It, client *ApiClientRetry,
 ) *ApiService3 {
 	return &ApiService3{client: client}
-}
-
-
-// Methods are sorted in lexicographic order and registered in
-// that order, so we prefix with underscore to ensure it is last.
-func (p *ApiProvider) _DefaultClient(
-	_ *provides.It,
-) *ApiClient {
-	return &p.def
 }
 
 
@@ -162,6 +176,7 @@ type ForTestSuite struct {
 
 func (suite *ForTestSuite) SetupTest() {
 	suite.specs = []any{
+		&ApiClientRetry{},
 		&ApiService{},
 		&ApiService1{},
 		&ApiService2{},
@@ -204,7 +219,7 @@ func (suite *ForTestSuite) TestFor() {
 		svc3, _, err := miruken.Resolve[*ApiService3](handler)
 		suite.Nil(err)
 		suite.NotNil(svc3)
-		suite.Equal("default for ApiService3", svc3.Work())
+		suite.Equal("Client3 for ApiService3", svc3.Work())
 	})
 
 	suite.Run("Interface", func () {
@@ -229,7 +244,7 @@ func (suite *ForTestSuite) TestFor() {
 		} else if strings.Contains(work, "ApiService2") {
 			suite.Equal("Cluster: Client2 for ApiService2", work)
 		} else if strings.Contains(work, "ApiService3") {
-			suite.Equal("Cluster: default for ApiService3", work)
+			suite.Equal("Cluster: Client3 for ApiService3", work)
 		}
 	})
 }
