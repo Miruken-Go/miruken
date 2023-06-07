@@ -27,6 +27,10 @@ func (l *LifestyleProvider) Required() bool {
 	return true
 }
 
+func (l *LifestyleProvider) Implied() bool {
+	return false
+}
+
 func (l *LifestyleProvider) AppliesTo(
 	callback Callback,
 ) bool {

@@ -6,15 +6,10 @@ import (
 )
 
 
-type (
-	// For matches dependencies against a receiver hierarchy.
-	For[T any] struct {
-		typ reflect.Type
-	}
-
-	// ForMe restricts dependencies to a receiver hierarchy.
-	ForMe struct {}
-)
+// For matches dependencies against a receiver hierarchy.
+type For[T any] struct {
+	typ reflect.Type
+}
 
 
 // For
@@ -30,11 +25,15 @@ func (f *For[T]) Required() bool {
 	return true
 }
 
+func (f *For[T]) Implied() bool {
+	return true
+}
+
 func (f *For[T]) Satisfies(
 	required miruken.Constraint,
 	callback miruken.Callback,
 ) bool {
-	if _, ok := required.(ForMe); !ok {
+	if required != nil {
 		return false
 	}
 	if p, ok := callback.(*It); ok {
@@ -57,18 +56,5 @@ func (f *For[T]) matches(p *It) bool {
 			}
 		}
 	}
-	return false
-}
-
-// ForMe
-
-func (f ForMe) Required() bool {
-	return false
-}
-
-func (f ForMe) Satisfies(
-	miruken.Constraint,
-	miruken.Callback,
-) bool {
 	return false
 }

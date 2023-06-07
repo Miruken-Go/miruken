@@ -12,7 +12,15 @@ import (
 type (
 	// Constraint manages BindingMetadata assertions.
 	Constraint interface {
+		// Required determines if Constraint must be satisfied.
+		// if it is not required, it will accept Callback's without it.
 		Required() bool
+
+		// Implied determines if Constraint can be satisfied with just Callback data.
+		Implied() bool
+
+		// Satisfies checks if the required Constraint is satisfied.
+		// if implied, nil will be passed for `required` Constraint parameter.
 		Satisfies(required Constraint, callback Callback) bool
 	}
 
@@ -31,6 +39,10 @@ func (n *Named) Name() string {
 }
 
 func (n *Named) Required() bool {
+	return false
+}
+
+func (n *Named) Implied() bool {
 	return false
 }
 
@@ -58,6 +70,10 @@ type (
 )
 
 func (m *Metadata) Required() bool {
+	return false
+}
+
+func (m *Metadata) Implied() bool {
 	return false
 }
 
@@ -111,6 +127,10 @@ func (q Qualifier[T]) Required() bool {
 	return false
 }
 
+func (q Qualifier[T]) Implied() bool {
+	return false
+}
+
 func (q Qualifier[T]) Satisfies(required Constraint, _ Callback) bool {
 	_, ok := required.(qualifierOwner[T])
 	return ok
@@ -134,23 +154,31 @@ func (c *constraintFilter) Next(
 	provider FilterProvider,
 )  ([]any, *promise.Promise[[]any], error) {
 	if cp, ok := provider.(ConstraintSource); ok {
+		callback    := ctx.Callback()
 		constraints := cp.Constraints()
 		required    := ctx.Callback().Constraints()
 		if len(required) == 0 {
+			// if no required input constraints
+			//   implied receiver constraint must be satisfied or
+			//   receiver constraint must not be required
 			for _, c := range constraints {
-				if c.Required() {
+				if c.Implied() {
+					if !c.Satisfies(nil, callback) {
+						return next.Abort()
+					}
+				} else if c.Required() {
 					return next.Abort()
 				}
 			}
 		} else if len(constraints) == 0 {
+			// reject if required input constraints, but no receiver constraints.
 			return next.Abort()
 		} else {
-			callback := ctx.Callback()
 			var matched map[Constraint]struct{}
 			Loop:
 			for _, rc := range required {
 				for _, c := range constraints {
-					if c.Satisfies(rc, callback) {
+					if !c.Implied() && c.Satisfies(rc, callback) {
 						if c.Required() {
 							if matched == nil {
 								matched = make(map[Constraint]struct{})
@@ -162,8 +190,14 @@ func (c *constraintFilter) Next(
 				}
 				return next.Abort()
 			}
+			// Otherwise, every input constraint must be satisfied by at lease one
+			// receiver constraint, and every implied constraint must be satisfied.
 			for _, c := range constraints {
-				if c.Required() {
+				if c.Implied() {
+					if !c.Satisfies(nil, callback) {
+						return next.Abort()
+					}
+				} else if c.Required() {
 					if _, ok := matched[c]; !ok {
 						return next.Abort()
 					}

@@ -4,6 +4,8 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
+	"math/rand"
+	"strings"
 	"testing"
 )
 
@@ -32,6 +34,10 @@ type (
 		client *ApiClient
 	}
 
+	ApiCluster struct {
+		workers []Worker
+	}
+
 	ApiProvider struct {
 		def     ApiClient
 		client1 ApiClient
@@ -53,9 +59,9 @@ func (s *ApiService) Work() string {
 }
 
 
-func (s *ApiService1) Constructor(
-	_*struct{provides.ForMe}, client *ApiClient,
-) {
+// ApiService1
+
+func (s *ApiService1) Constructor(client *ApiClient) {
 	s.client = client
 }
 
@@ -66,9 +72,7 @@ func (s *ApiService1) Work() string {
 
 // ApiService2
 
-func (s *ApiService2) Constructor(
-	_*struct{provides.ForMe}, client *ApiClient,
-) {
+func (s *ApiService2) Constructor(client *ApiClient) {
 	s.client = client
 }
 
@@ -84,18 +88,27 @@ func (s *ApiService3) Work() string {
 }
 
 
+// ApiCluster
+
+func (c *ApiCluster) Constructor(workers []Worker) {
+	c.workers = workers
+}
+
+func (c *ApiCluster) Work() string {
+	if len(c.workers) == 0 {
+		return ""
+	}
+	next := rand.Intn(len(c.workers))
+	return "Cluster: " + c.workers[next].Work()
+}
+
+
 // ApiProvider
 
 func (p *ApiProvider) Constructor() {
 	p.def     = ApiClient{"default"}
 	p.client1 = ApiClient{"Client1"}
 	p.client2 = ApiClient{"Client2"}
-}
-
-func (p *ApiProvider) DefaultClient(
-	_ *provides.It,
-) *ApiClient {
-	return &p.def
 }
 
 
@@ -127,10 +140,18 @@ func (p *ApiProvider) ClientForService3(
 }
 
 func (p *ApiProvider) ApiService3(
-	_ *provides.It,
-	_*struct{provides.ForMe}, client *ApiClient,
+	_ *provides.It, client *ApiClient,
 ) *ApiService3 {
 	return &ApiService3{client: client}
+}
+
+
+// Methods are sorted in lexicographic order and registered in
+// that order, so we prefix with underscore to ensure it is last.
+func (p *ApiProvider) _DefaultClient(
+	_ *provides.It,
+) *ApiClient {
+	return &p.def
 }
 
 
@@ -144,6 +165,7 @@ func (suite *ForTestSuite) SetupTest() {
 		&ApiService{},
 		&ApiService1{},
 		&ApiService2{},
+		&ApiCluster{},
 		&ApiProvider{},
 	}
 }
@@ -155,7 +177,7 @@ func (suite *ForTestSuite) Setup(specs...any) (miruken.Handler, error) {
 	return miruken.Setup().Specs(specs...).Handler()
 }
 
-func (suite *ForTestSuite) TestFrom() {
+func (suite *ForTestSuite) TestFor() {
 	suite.Run("Default", func () {
 		handler, _ := suite.Setup()
 		svc1, _, err := miruken.Resolve[*ApiService](handler)
@@ -191,6 +213,24 @@ func (suite *ForTestSuite) TestFrom() {
 		suite.Nil(err)
 		suite.NotNil(wkr)
 		suite.Equal("Client2 for ApiService2", wkr.Work())
+	})
+
+	suite.Run("Hierarchy", func () {
+		handler, _ := suite.Setup()
+		cluster, _, err := miruken.Resolve[*ApiCluster](handler)
+		suite.Nil(err)
+		suite.NotNil(cluster)
+		work := cluster.Work()
+		suite.True(strings.HasPrefix(work, "Cluster: "))
+		if strings.HasSuffix(work, "ApiService") {
+			suite.Equal("Cluster: default for ApiService", work)
+		} else if strings.Contains(work, "ApiService1") {
+			suite.Equal("Cluster: Client1 for ApiService1", work)
+		} else if strings.Contains(work, "ApiService2") {
+			suite.Equal("Cluster: Client2 for ApiService2", work)
+		} else if strings.Contains(work, "ApiService3") {
+			suite.Equal("Cluster: default for ApiService3", work)
+		}
 	})
 }
 

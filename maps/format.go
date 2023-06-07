@@ -60,6 +60,10 @@ func (f *Format) Required() bool {
 	return true
 }
 
+func (f *Format) Implied() bool {
+	return false
+}
+
 func (f *Format) InitWithTag(tag reflect.StructTag) error {
 	if to, ok := tag.Lookup("to"); ok {
 		f.direction = DirectionTo

@@ -76,6 +76,10 @@ func (g *Group) Required() bool {
 	return true
 }
 
+func (g *Group) Implied() bool {
+	return false
+}
+
 func (g *Group) InitWithTag(tag reflect.StructTag) error {
 	if name, ok := tag.Lookup("name"); ok {
 		g.groups = make(map[any]struct{})

@@ -30,6 +30,10 @@ func (l *Load) Required() bool {
 	return true
 }
 
+func (l *Load) Implied() bool {
+	return false
+}
+
 func (l *Load) InitWithTag(tag reflect.StructTag) error {
 	if path, ok := tag.Lookup("path"); ok && len(strings.TrimSpace(path)) > 0 {
 		parts := strings.Split(path, ",")
