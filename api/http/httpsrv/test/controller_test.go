@@ -7,7 +7,7 @@ import (
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/http"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
-	"github.com/miruken-go/miruken/api/json/jsonstd"
+	"github.com/miruken-go/miruken/api/json/stdjson"
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/either"
@@ -138,7 +138,7 @@ type ControllerTestSuite struct {
 
 func (suite *ControllerTestSuite) Setup(specs ...any) *context.Context {
 	handler, _ := miruken.Setup(
-		TestFeature, http.Feature(), jsonstd.Feature()).
+		TestFeature, http.Feature(), stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
 		Specs(specs...).
 		Handler()
@@ -147,7 +147,7 @@ func (suite *ControllerTestSuite) Setup(specs ...any) *context.Context {
 
 func (suite *ControllerTestSuite) SetupTest() {
 	handler, _ := miruken.Setup(
-		TestFeature, httpsrv.Feature(), jsonstd.Feature()).
+		TestFeature, httpsrv.Feature(), stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
 		Handler()
 	suite.srv = httptest.NewServer(httpsrv.Handler(handler))

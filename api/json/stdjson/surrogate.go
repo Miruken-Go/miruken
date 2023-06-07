@@ -1,4 +1,4 @@
-package jsonstd
+package stdjson
 
 import "github.com/miruken-go/miruken/creates"
 
@@ -8,11 +8,11 @@ type SurrogateMapper struct {}
 
 func (m *SurrogateMapper) New(
 	_*struct{
-		creates.It `key:"jsonstd.ScheduledResult"`
+		creates.It `key:"stdjson.ScheduledResult"`
 	  }, create *creates.It,
 ) any {
 	switch create.Key() {
-	case "jsonstd.ScheduledResult":
+	case "stdjson.ScheduledResult":
 		return new(ScheduledResult)
 	}
 	return nil

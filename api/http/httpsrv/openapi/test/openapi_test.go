@@ -8,7 +8,7 @@ import (
 	"github.com/miruken-go/miruken/api/http"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
 	"github.com/miruken-go/miruken/api/http/httpsrv/openapi"
-	"github.com/miruken-go/miruken/api/json/jsonstd"
+	"github.com/miruken-go/miruken/api/json/stdjson"
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
@@ -100,7 +100,7 @@ type OpenApiTestSuite struct {
 
 func (suite *OpenApiTestSuite) Setup(specs ...any) *context.Context {
 	handler, _ := miruken.Setup(
-		TestFeature, http.Feature(), jsonstd.Feature()).
+		TestFeature, http.Feature(), stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
 		Specs(specs...).
 		Handler()
@@ -110,7 +110,7 @@ func (suite *OpenApiTestSuite) Setup(specs ...any) *context.Context {
 func (suite *OpenApiTestSuite) SetupTest() {
 	suite.openapi = openapi.Feature()
 	handler, _ := miruken.Setup(
-		TestFeature, jsonstd.Feature(), suite.openapi).
+		TestFeature, stdjson.Feature(), suite.openapi).
 		Specs(&api.GoPolymorphism{}).
 		Handler()
 	suite.srv = httptest.NewServer(httpsrv.Handler(handler))

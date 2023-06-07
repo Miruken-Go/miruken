@@ -9,7 +9,7 @@ import (
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
 	json2 "github.com/miruken-go/miruken/api/json"
-	"github.com/miruken-go/miruken/api/json/jsonstd"
+	"github.com/miruken-go/miruken/api/json/stdjson"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/maps"
 	"reflect"
@@ -450,8 +450,8 @@ func Feature(config ...func(installer *Installer)) *Installer {
 		surrogates: map[reflect.Type]any{
 			miruken.TypeOf[api.ConcurrentBatch](): json2.Concurrent{},
 			miruken.TypeOf[api.SequentialBatch](): json2.Sequential{},
-			miruken.TypeOf[api.ScheduledResult](): jsonstd.ScheduledResult{
-				jsonstd.Either[error, any]{
+			miruken.TypeOf[api.ScheduledResult](): stdjson.ScheduledResult{
+				stdjson.Either[error, any]{
 					Left:  false,
 					Value: json.RawMessage("\"success\""),
 				},

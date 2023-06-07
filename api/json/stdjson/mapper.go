@@ -1,4 +1,4 @@
-package jsonstd
+package stdjson
 
 import (
 	"bytes"

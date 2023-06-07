@@ -52,7 +52,7 @@ func (r *Router) Route(
 	ctx miruken.HandleContext,
 ) *promise.Promise[any] {
 	return promise.New(func(resolve func(any), reject func(error)) {
-		uri, err := r.getResourceUri(routed, &options, &ctx)
+		uri, err := r.resourceUri(routed, &options, &ctx)
 		if err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 			return
@@ -170,7 +170,7 @@ func (r *Router) decodeError(
 	return nil
 }
 
-func (r *Router) getResourceUri(
+func (r *Router) resourceUri(
 	routed  api.Routed,
 	options *Options,
 	ctx     *miruken.HandleContext,

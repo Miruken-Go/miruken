@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
-	"github.com/miruken-go/miruken/api/json/jsonstd"
+	"github.com/miruken-go/miruken/api/json/stdjson"
 	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/stretchr/testify/suite"
@@ -71,20 +71,20 @@ func (m *TypeIdMapper) CreateTeam(
 	return new(TeamData)
 }
 
-type JsonStdTestSuite struct {
+type StdJsonTestSuite struct {
 	suite.Suite
 }
 
-func (suite *JsonStdTestSuite) Setup() miruken.Handler {
+func (suite *StdJsonTestSuite) Setup() miruken.Handler {
 	handler, _ := miruken.Setup(
 		TestFeature,
-		jsonstd.Feature()).
+		stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
 		Handler()
 	return handler
 }
 
-func (suite *JsonStdTestSuite) TestJson() {
+func (suite *StdJsonTestSuite) TestJson() {
 	suite.Run("It", func () {
 		handler := suite.Setup()
 
@@ -145,7 +145,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 					38,
 				}
 				b, _, _, err := maps.Out[[]byte](
-					miruken.BuildUp(handler, miruken.Options(jsonstd.Options{Indent: "  "})),
+					miruken.BuildUp(handler, miruken.Options(stdjson.Options{Indent: "  "})),
 					data, api.ToJson)
 				suite.Nil(err)
 				suite.Equal("{\n  \"Name\": \"Sarah Conner\",\n  \"Age\": 38\n}", string(b))
@@ -172,7 +172,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 					},
 				}
 				b, _, _, err := maps.Out[[]byte](
-					miruken.BuildUp(handler, jsonstd.CamelCase),
+					miruken.BuildUp(handler, stdjson.CamelCase),
 					data, api.ToJson)
 				suite.Nil(err)
 				suite.Equal("{\"id\":9,\"name\":\"Breakaway\",\"players\":[{\"id\":1,\"name\":\"Sean Rose\"},{\"id\":4,\"name\":\"Mark Kingston\"},{\"id\":8,\"name\":\"Michael Binder\"}]}", string(b))
@@ -270,7 +270,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				b, _, _, err := maps.Out[[]byte](
 					miruken.BuildUp(handler,
 						api.Polymorphic,
-						miruken.Options(jsonstd.Options{Prefix: "abc", Indent:"def"})),
+						miruken.Options(stdjson.Options{Prefix: "abc", Indent:"def"})),
 					data, api.ToJson)
 				suite.Nil(err)
 				suite.Equal("{\nabcdef\"@type\": \"test.TeamData\",\nabcdef\"Id\": 9,\nabcdef\"Name\": \"Breakaway\",\nabcdef\"Players\": [\nabcdefdef{\nabcdefdefdef\"Id\": 1,\nabcdefdefdef\"Name\": \"Sean Rose\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 4,\nabcdefdefdef\"Name\": \"Mark Kingston\"\nabcdefdef},\nabcdefdef{\nabcdefdefdef\"Id\": 8,\nabcdefdefdef\"Name\": \"Michael Binder\"\nabcdefdef}\nabcdef]\nabc}", string(b))
@@ -302,7 +302,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 					Name: "Liverpool",
 				}
 				b, _, _, err := maps.Out[[]byte](
-					miruken.BuildUp(handler, api.Polymorphic, jsonstd.CamelCase),
+					miruken.BuildUp(handler, api.Polymorphic, stdjson.CamelCase),
 					data, api.ToJson)
 				suite.Nil(err)
 				suite.Equal("{\"@type\":\"test.TeamData\",\"id\":14,\"name\":\"Liverpool\",\"players\":null}", string(b))
@@ -359,7 +359,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				var b bytes.Buffer
 				writer := io.Writer(&b)
 				_, _, err := maps.Into(
-					miruken.BuildUp(handler, miruken.Options(jsonstd.Options{Indent: "  "})),
+					miruken.BuildUp(handler, miruken.Options(stdjson.Options{Indent: "  "})),
 					data, &writer, api.ToJson)
 				suite.Nil(err)
 				suite.Equal("{\n  \"Name\": \"James Webb\",\n  \"Age\": 85\n}\n", b.String())
@@ -378,7 +378,7 @@ func (suite *JsonStdTestSuite) TestJson() {
 				var b bytes.Buffer
 				writer := io.Writer(&b)
 				_, _, err := maps.Into(
-					miruken.BuildUp(handler, jsonstd.CamelCase),
+					miruken.BuildUp(handler, stdjson.CamelCase),
 					data, &writer, api.ToJson)
 				suite.Nil(err)
 				suite.Equal("{\"id\":15,\"name\":\"Breakaway\",\"players\":[{\"id\":1,\"name\":\"Sean Rose\"},{\"id\":4,\"name\":\"Mark Kingston\"},{\"id\":8,\"name\":\"Michael Binder\"}]}\n", b.String())
@@ -607,6 +607,6 @@ func (suite *JsonStdTestSuite) TestJson() {
 	})
 }
 
-func TestJsonStdTestSuite(t *testing.T) {
-	suite.Run(t, new(JsonStdTestSuite))
+func TestStdJsonTestSuite(t *testing.T) {
+	suite.Run(t, new(StdJsonTestSuite))
 }
