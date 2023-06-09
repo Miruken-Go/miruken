@@ -126,6 +126,8 @@ type (
 
 	// HandlerSpec creates a HandlerDescriptor.
 	HandlerSpec interface {
+		fmt.Stringer
+		PkgPath() string
 		key() any
 		suppress() bool
 		newHandlerDescriptor(
@@ -163,12 +165,16 @@ func (s HandlerTypeSpec) Name() string {
 	return typ.Name()
 }
 
-func (s HandlerTypeSpec) String() string {
+func (s HandlerTypeSpec) PkgPath() string {
 	typ := s.typ
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
 	}
-	return fmt.Sprintf("%v in %v package", typ, typ.PkgPath())
+	return typ.PkgPath()
+}
+
+func (s HandlerTypeSpec) String() string {
+	return fmt.Sprintf("%v in %v package", s.typ, s.PkgPath())
 }
 
 func (s HandlerTypeSpec) key() any {
@@ -272,6 +278,10 @@ func (s HandlerFuncSpec) Func() reflect.Value {
 
 func (s HandlerFuncSpec) String() string {
 	return fmt.Sprintf("HandlerFuncSpec(%v)", s.fun)
+}
+
+func (s HandlerFuncSpec) PkgPath() string {
+	return ""
 }
 
 func (s HandlerFuncSpec) key() any {

@@ -8,11 +8,31 @@ import (
 	"sync"
 )
 
-func Handler(api *openapi3.T, enableCors bool) http.HandlerFunc {
+func Handler(docs map[string]*openapi3.T, enableCors bool) http.HandlerFunc {
 	mux := &sync.Mutex{}
 	byHostAndScheme := map[string]openapi3.T{}
 
 	return func(w http.ResponseWriter, req *http.Request) {
+		var doc *openapi3.T
+		mod := req.URL.Query().Get("mod")
+		if mod == "" {
+			if len(docs) > 1 {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			for _, doc = range docs {
+				break
+			}
+		} else {
+			mod, _ = url.QueryUnescape(mod)
+			doc = docs[mod]
+		}
+
+		if doc == nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 
 		if enableCors {
@@ -38,11 +58,11 @@ func Handler(api *openapi3.T, enableCors bool) http.HandlerFunc {
 			scheme = "http"
 		}
 
-		hostAndScheme := req.Host + ":" + scheme
+		hostAndScheme := mod + "#" + req.Host + ":" + scheme
 		mux.Lock()
 		v, ok := byHostAndScheme[hostAndScheme]
 		if !ok {
-			v = *api
+			v = *doc
 			uri := url.URL{
 				Scheme: scheme,
 				Host:   req.Host,

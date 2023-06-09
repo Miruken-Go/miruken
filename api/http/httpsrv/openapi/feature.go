@@ -12,78 +12,42 @@ import (
 	"github.com/miruken-go/miruken/api/json/stdjson"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/maps"
+	"path/filepath"
 	"reflect"
+	"runtime/debug"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 )
 
-// Installer configures openapi support.
-type Installer struct {
-	policy          miruken.Policy
-	schemas         openapi3.Schemas
-	requestBodies   openapi3.RequestBodies
-	responses       openapi3.Responses
-	paths           openapi3.Paths
-	generator       *openapi3gen.Generator
-	components      map[reflect.Type]*openapi3.SchemaRef
-	extraComponents []any
-	surrogates      map[reflect.Type]any
-}
+type (
+	// Installer configures openapi support.
+	Installer struct {
+		base            openapi3.T
+		policy          miruken.Policy
+		extraComponents []any
+		surrogates      map[reflect.Type]any
+		moduleApis      map[string]*moduleApi
+		moduleDocs      map[string]*openapi3.T
+		modules         []*debug.Module
+	}
 
-func (i *Installer) Merge(docs *openapi3.T)  {
-	if docs == nil {
-		panic("docs cannot be nil")
+	moduleApi struct {
+		module        *debug.Module
+		schemas       openapi3.Schemas
+		requestBodies openapi3.RequestBodies
+		responses     openapi3.Responses
+		paths         openapi3.Paths
+		generator     *openapi3gen.Generator
+		components    map[reflect.Type]*openapi3.SchemaRef
 	}
-	components := docs.Components
-	if components == nil {
-		components = new(openapi3.Components)
-		docs.Components = components
-	}
-	if schemas := i.schemas; len(schemas) > 0 {
-		if components.Schemas == nil {
-			components.Schemas = make(openapi3.Schemas)
-		}
-		for name, schema := range i.schemas {
-			if name == "" {
-				continue
-			}
-			if _, ok := components.Schemas[name]; !ok {
-				components.Schemas[name] = schema
-			}
-		}
-	}
-	if requestBodies := i.requestBodies; len(requestBodies) > 0 {
-		if components.RequestBodies == nil {
-			components.RequestBodies = make(openapi3.RequestBodies)
-		}
-		for name, reqBody := range i.requestBodies {
-			if _, ok := components.RequestBodies[name]; !ok {
-				components.RequestBodies[name] = reqBody
-			}
-		}
-	}
-	if responses := i.responses; len(responses) > 0 {
-		if components.Responses == nil {
-			components.Responses = make(openapi3.Responses)
-		}
-		for name, response := range i.responses {
-			if _, ok := components.Responses[name]; !ok {
-				components.Responses[name] = response
-			}
-		}
-	}
-	if paths := i.paths; len(paths) > 0 {
-		if docs.Paths == nil {
-			docs.Paths = make(openapi3.Paths)
-		}
-		for name, path := range i.paths {
-			if _, ok := docs.Paths[name]; !ok {
-				docs.Paths[name] = path
-			}
-		}
-	}
+)
+
+
+func (i *Installer) Docs() map[string]*openapi3.T {
+	return i.moduleDocs
 }
 
 func (i *Installer) DependsOn() []miruken.Feature {
@@ -93,17 +57,17 @@ func (i *Installer) DependsOn() []miruken.Feature {
 func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
 		var h handles.It
-		i.policy        = h.Policy()
-		i.schemas       = make(openapi3.Schemas)
-		i.requestBodies = make(openapi3.RequestBodies)
-		i.responses     = make(openapi3.Responses)
-		i.paths         = make(openapi3.Paths)
-		i.components = make(map[reflect.Type]*openapi3.SchemaRef)
-		i.generator     = openapi3gen.NewGenerator(
-			openapi3gen.SchemaCustomizer(i.customize),
-			openapi3gen.UseAllExportedFields())
-		i.initializeDefinitions()
+		i.policy = h.Policy()
+		i.moduleApis = make(map[string]*moduleApi)
 		setup.Observers(i)
+
+		if bi, ok := debug.ReadBuildInfo(); ok {
+			if i.modules = bi.Deps; i.modules != nil {
+				sort.Slice(i.modules, func(j, k int) bool {
+					return i.modules[j].Path > i.modules[k].Path
+				})
+			}
+		}
 	}
 	return nil
 }
@@ -112,7 +76,77 @@ func (i *Installer) AfterInstall(
 	_ *miruken.SetupBuilder,
 	handler miruken.Handler,
 ) error {
-	i.generateExampleJson(miruken.BuildUp(handler, api.Polymorphic))
+	for _, ma := range i.moduleApis {
+		i.generateExampleJson(ma, miruken.BuildUp(handler, api.Polymorphic))
+	}
+	base := i.base
+	base.OpenAPI = "3.0.0"
+	if info := base.Info; info == nil {
+		base.Info = &openapi3.Info{Version: "0.0.0"}
+	} else {
+		base.Info.Version = "0.0.0"
+	}
+	i.moduleDocs = make(map[string]*openapi3.T, len(i.moduleApis))
+	for path, ma := range i.moduleApis {
+		doc := base
+		info := *doc.Info
+		info.Title = info.Title + " (" + filepath.Base(path) + ")"
+		if mod := ma.module; mod != nil {
+			info.Version = mod.Version
+		}
+		doc.Info = &info
+		components := doc.Components
+		if components == nil {
+			components = new(openapi3.Components)
+			doc.Components = components
+		}
+		if schemas := ma.schemas; len(schemas) > 0 {
+			if components.Schemas == nil {
+				components.Schemas = make(openapi3.Schemas)
+			}
+			for name, schema := range ma.schemas {
+				if name == "" {
+					continue
+				}
+				if _, ok := components.Schemas[name]; !ok {
+					components.Schemas[name] = schema
+				}
+			}
+		}
+		if requestBodies := ma.requestBodies; len(requestBodies) > 0 {
+			if components.RequestBodies == nil {
+				components.RequestBodies = make(openapi3.RequestBodies)
+			}
+			for name, reqBody := range ma.requestBodies {
+				if _, ok := components.RequestBodies[name]; !ok {
+					components.RequestBodies[name] = reqBody
+				}
+			}
+		}
+		if responses := ma.responses; len(responses) > 0 {
+			if components.Responses == nil {
+				components.Responses = make(openapi3.Responses)
+			}
+			for name, response := range ma.responses {
+				if _, ok := components.Responses[name]; !ok {
+					components.Responses[name] = response
+				}
+			}
+		}
+		if paths := ma.paths; len(paths) > 0 {
+			if doc.Paths == nil {
+				doc.Paths = make(openapi3.Paths)
+			}
+			for name, path := range ma.paths {
+				if _, ok := doc.Paths[name]; !ok {
+					doc.Paths[name] = path
+				}
+			}
+		}
+		i.moduleDocs[path] = &doc
+	}
+	i.moduleApis = nil
+	i.modules    = nil
 	return nil
 }
 
@@ -128,7 +162,9 @@ func (i *Installer) BindingCreated(
 		if inType.Kind() == reflect.Ptr {
 			inType = inType.Elem()
 		}
-		if schema, inputName, created := i.generateTypeSchema(inType, false); created {
+		spec := descriptor.HandlerSpec()
+		ma   := i.moduleApi(spec.PkgPath())
+		if schema, inputName, created := i.generateTypeSchema(ma, inType, false); created {
 			requestBody := &openapi3.RequestBodyRef{
 				Value: openapi3.NewRequestBody().
 					WithDescription("Request to process").
@@ -137,14 +173,14 @@ func (i *Installer) BindingCreated(
 						WithPropertyRef("payload", schema)),
 				}
 			requestName := inputName+"Request"
-			i.requestBodies[requestName] = requestBody
+			ma.requestBodies[requestName] = requestBody
 
 			responseName := "NoResponse"
 			if outType := binding.LogicalOutputType(); outType != nil {
 				if outType.Kind() == reflect.Ptr {
 					outType = outType.Elem()
 				}
-				if schema, _, _ := i.generateTypeSchema(outType, true); schema != nil {
+				if schema, _, _ := i.generateTypeSchema(ma, outType, true); schema != nil {
 					response := &openapi3.ResponseRef{
 						Value: openapi3.NewResponse().
 							WithDescription("Successful Response").
@@ -152,13 +188,13 @@ func (i *Installer) BindingCreated(
 								WithPropertyRef("payload", schema))),
 					}
 					responseName = inputName + "Response"
-					i.responses[responseName] = response
+					ma.responses[responseName] = response
 				}
 			}
 			path := &openapi3.PathItem{
 				Post: &openapi3.Operation{
 					OperationID: inputName,
-					Description: fmt.Sprintf("Handled by %s", descriptor.HandlerSpec()),
+					Description: fmt.Sprintf("Handled by %s", spec),
 					RequestBody: &openapi3.RequestBodyRef{
 						Ref: "#/components/requestBodies/"+requestName,
 					},
@@ -176,7 +212,7 @@ func (i *Installer) BindingCreated(
 					Tags: []string{inType.PkgPath()},
 				},
 			}
-			i.paths["/process/"+strings.ToLower(inputName)] = path
+			ma.paths["/process/"+strings.ToLower(inputName)] = path
 		}
 	}
 }
@@ -186,22 +222,22 @@ func (i *Installer) DescriptorCreated(
 ) {
 }
 
-func (i *Installer) initializeDefinitions() {
+func (i *Installer) initializeDefinitions(ma *moduleApi) {
 	for _, component := range i.extraComponents {
-		schema, name, created := i.generateComponentSchema(component, true)
+		schema, name, created := i.generateComponentSchema(ma, component, true)
 		if created {
-			if _, ok := i.schemas[name]; !ok {
-				i.schemas[name] = schema
+			if _, ok := ma.schemas[name]; !ok {
+				ma.schemas[name] = schema
 			}
 		}
 	}
-	i.responses["NoResponse"] = &openapi3.ResponseRef{
+	ma.responses["NoResponse"] = &openapi3.ResponseRef{
 		Value: openapi3.NewResponse().
 			WithDescription("Empty Response").
 			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
 				WithProperty("payload", openapi3.NewObjectSchema()))),
 	}
-	i.responses["ValidationError"] =  &openapi3.ResponseRef{
+	ma.responses["ValidationError"] =  &openapi3.ResponseRef{
 		Value: openapi3.NewResponse().
 			WithDescription("Validation Error").
 			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
@@ -209,7 +245,7 @@ func (i *Installer) initializeDefinitions() {
 					Ref: "#/components/schemas/Outcome",
 				}))),
 	}
-	i.responses["GenericError"] =  &openapi3.ResponseRef{
+	ma.responses["GenericError"] =  &openapi3.ResponseRef{
 		Value: openapi3.NewResponse().
 			WithDescription("Oops ... something went wrong").
 			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
@@ -225,7 +261,7 @@ func (i *Installer) initializeDefinitions() {
 				WithProperty("payload", openapi3.NewObjectSchema())),
 	}
 	tags := []string{miruken.TypeOf[api.Message]().PkgPath()}
-	i.paths["/process"] = &openapi3.PathItem{
+	ma.paths["/process"] = &openapi3.PathItem{
 		Post: &openapi3.Operation{
 			OperationID: "process",
 			RequestBody: payload,
@@ -243,7 +279,7 @@ func (i *Installer) initializeDefinitions() {
 			Tags: tags,
 		},
 	}
-	i.paths["/publish"] = &openapi3.PathItem{
+	ma.paths["/publish"] = &openapi3.PathItem{
 		Post: &openapi3.Operation{
 			OperationID: "publish",
 			RequestBody: payload,
@@ -263,10 +299,49 @@ func (i *Installer) initializeDefinitions() {
 	}
 }
 
+func (i *Installer) moduleApi(
+	pkgPath string,
+) *moduleApi {
+	if pkgPath == "" {
+		return nil
+	}
+	var module *debug.Module
+	for _, mod := range i.modules {
+		if strings.HasPrefix(pkgPath, mod.Path) {
+			module = mod
+			break
+		}
+	}
+	var path string
+	if module == nil {
+		path = "anonymous"
+	} else {
+		path = module.Path
+	}
+	ma, ok := i.moduleApis[path]
+	if !ok {
+		ma = &moduleApi{
+			module:        module,
+			schemas:       make(openapi3.Schemas),
+			requestBodies: make(openapi3.RequestBodies),
+			responses:     make(openapi3.Responses),
+			paths:         make(openapi3.Paths),
+			components:    make(map[reflect.Type]*openapi3.SchemaRef),
+		}
+		ma.generator = openapi3gen.NewGenerator(
+			openapi3gen.SchemaCustomizer(ma.customize),
+			openapi3gen.UseAllExportedFields())
+		i.initializeDefinitions(ma)
+		i.moduleApis[path] = ma
+	}
+	return ma
+}
+
 func (i *Installer) generateExampleJson(
+	ma      *moduleApi,
 	handler miruken.Handler,
 ) {
-	for _, schema := range i.components {
+	for _, schema := range ma.components {
 		if example := schema.Value.Example; !miruken.IsNil(example) {
 			if b, _, _, err := maps.Out[[]byte](handler, example, api.ToJson); err == nil {
 				var js map[string]any
@@ -290,6 +365,7 @@ func (i *Installer) generateExampleJson(
 }
 
 func (i *Installer) generateTypeSchema(
+	ma      *moduleApi,
 	typ    reflect.Type,
 	shared bool,
 ) (*openapi3.SchemaRef, string, bool) {
@@ -300,10 +376,11 @@ func (i *Installer) generateTypeSchema(
 	default:
 		component = reflect.Zero(typ)
 	}
-	return i.generateComponentSchema(component.Interface(), shared)
+	return i.generateComponentSchema(ma, component.Interface(), shared)
 }
 
 func (i *Installer) generateComponentSchema(
+	ma        *moduleApi,
 	component any,
 	shared    bool,
 ) (*openapi3.SchemaRef, string, bool) {
@@ -334,13 +411,13 @@ func (i *Installer) generateComponentSchema(
 			return nil, "", false
 		}
 	}
-	name = i.uniqueName(name)
-	if schema, ok := i.components[typ]; !ok {
+	name = i.uniqueName(ma, name)
+	if schema, ok := ma.components[typ]; !ok {
 		var err error
-		schema, err = i.generator.NewSchemaRefForValue(component, i.schemas)
+		schema, err = ma.generator.NewSchemaRefForValue(component, ma.schemas)
 		if err == nil {
 			if list {
-				if es, _, _ := i.generateTypeSchema(elemTyp, true); es != nil {
+				if es, _, _ := i.generateTypeSchema(ma, elemTyp, true); es != nil {
 					schema.Value.Items = es
 				}
 				schema = &openapi3.SchemaRef{
@@ -353,9 +430,9 @@ func (i *Installer) generateComponentSchema(
 				Ref:   "#/components/schemas/" + name,
 				Value: schema.Value,
 			}
-			i.components[typ] = schemaRef
+			ma.components[typ] = schemaRef
 			if shared {
-				i.schemas[name] = schema
+				ma.schemas[name] = schema
 				schema = schemaRef
 			}
 			return schema, name, true
@@ -367,12 +444,13 @@ func (i *Installer) generateComponentSchema(
 }
 
 func (i *Installer) uniqueName(
+	ma   *moduleApi,
 	name string,
 ) string {
 	id := 0
 	var next = name
 	for {
-		if _, ok := i.schemas[next]; !ok {
+		if _, ok := ma.schemas[next]; !ok {
 			return next
 		}
 		id += 1
@@ -380,7 +458,7 @@ func (i *Installer) uniqueName(
 	}
 }
 
-func (i *Installer) customize(
+func (ma *moduleApi) customize(
 	name   string,
 	typ    reflect.Type,
 	tag    reflect.StructTag,
@@ -393,9 +471,9 @@ func (i *Installer) customize(
 			if sc.Type == "array" &&
 				sc.Items.Value == schema &&
 				sc.Items.Ref == "#/components/schemas/" {
-				sn := "schema" + strconv.Itoa(len(i.schemas))
+				sn := "schema" + strconv.Itoa(len(ma.schemas))
 				sc.Items.Ref = "#/components/schemas/" + sn
-				i.schemas[sn] =  &openapi3.SchemaRef{Value: schema}
+				ma.schemas[sn] =  &openapi3.SchemaRef{Value: schema}
 			}
 			camel := camelcase(key)
 			if camel != key {
@@ -432,8 +510,12 @@ func Surrogates(surrogates map[reflect.Type]any) func(*Installer) {
 }
 
 // Feature configures http server support
-func Feature(config ...func(installer *Installer)) *Installer {
+func Feature(
+	base   openapi3.T,
+	config ...func(installer *Installer),
+) *Installer {
 	installer := &Installer{
+		base: base,
 		extraComponents: []any{
 			json2.Outcome{
 				{

@@ -6,7 +6,7 @@ require (
 	github.com/Rican7/conjson v0.1.0
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/bearbin/go-age v0.0.0-20210220235509-f0fa00c278ce
-	github.com/getkin/kin-openapi v0.117.0
+	github.com/getkin/kin-openapi v0.118.0
 	github.com/go-logr/logr v1.2.4
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.14.1
