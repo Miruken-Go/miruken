@@ -144,11 +144,11 @@ func (q Qualifier[T]) qualifier() Qualifier[T] {
 // constraintFilter enforces constraints.
 type constraintFilter struct{}
 
-func (f *constraintFilter) Order() int {
+func (f constraintFilter) Order() int {
 	return FilterStage
 }
 
-func (f *constraintFilter) Next(
+func (f constraintFilter) Next(
 	next     Next,
 	ctx      HandleContext,
 	provider FilterProvider,
@@ -208,7 +208,7 @@ func (f *constraintFilter) Next(
 	return next.Pipe()
 }
 
-var _constraintFilter = []Filter{&constraintFilter{}}
+var _constraintFilter = []Filter{constraintFilter{}}
 
 // ConstraintProvider is a FilterProvider for constraints.
 type ConstraintProvider struct {

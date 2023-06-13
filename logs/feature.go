@@ -1,4 +1,4 @@
-package log
+package logs
 
 import (
 	"github.com/go-logr/logr"
@@ -19,7 +19,7 @@ func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
 		setup.Specs(&Factory{}).
 			  Handlers(&Factory{v.root}).
-			  Filters(&Provider{v.verbosity})
+			  Filters(&Emit{v.verbosity})
 	}
 	return nil
 }

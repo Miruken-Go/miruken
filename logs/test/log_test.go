@@ -5,7 +5,7 @@ import (
 	"github.com/go-logr/logr/testr"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
-	"github.com/miruken-go/miruken/log"
+	"github.com/miruken-go/miruken/logs"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
@@ -58,7 +58,7 @@ type LogTestSuite struct {
 func (suite *LogTestSuite) TestLogging() {
 	suite.Run("Build", func() {
 		handler, _ := miruken.Setup(
-			log.Feature(testr.New(suite.T())),
+			logs.Feature(testr.New(suite.T())),
 		).Handler()
 		logger, _, err:= provides.Type[logr.Logger](handler)
 		suite.Nil(err)
@@ -67,7 +67,7 @@ func (suite *LogTestSuite) TestLogging() {
 
 	suite.Run("verbosity", func() {
 		handler, _ := miruken.Setup(
-			log.Feature(
+			logs.Feature(
 				testr.NewWithOptions(suite.T(), testr.Options{Verbosity: 1}),
 			),
 		).Handler()
@@ -78,7 +78,7 @@ func (suite *LogTestSuite) TestLogging() {
 
 	suite.Run("CtorDependency", func() {
 		handler, _ := miruken.Setup(
-			log.Feature(testr.New(suite.T()))).
+			logs.Feature(testr.New(suite.T()))).
 			Specs(&Service{}).
 			Handler()
 		svc, _, err := provides.Type[*Service](handler)
@@ -88,7 +88,7 @@ func (suite *LogTestSuite) TestLogging() {
 
 	suite.Run("MethodDependency", func() {
 		handler, _ := miruken.Setup(
-			log.Feature(testr.NewWithOptions(suite.T(), testr.Options{
+			logs.Feature(testr.NewWithOptions(suite.T(), testr.Options{
 				LogTimestamp: true,
 				Verbosity:    1,
 			}))).
@@ -104,7 +104,7 @@ func (suite *LogTestSuite) TestLogging() {
 
 	suite.Run("MethodDependencyAsync", func() {
 		handler, _ := miruken.Setup(
-			log.Feature(testr.NewWithOptions(suite.T(), testr.Options{
+			logs.Feature(testr.NewWithOptions(suite.T(), testr.Options{
 				LogTimestamp: true,
 				Verbosity:    1,
 			}))).
@@ -120,10 +120,10 @@ func (suite *LogTestSuite) TestLogging() {
 
 	suite.Run("Suppressed", func() {
 		handler, _ := miruken.Setup(
-			log.Feature(testr.NewWithOptions(suite.T(), testr.Options{
+			logs.Feature(testr.NewWithOptions(suite.T(), testr.Options{
 				LogTimestamp: true,
 				Verbosity:    1,
-			}), log.Verbosity(2))).
+			}), logs.Verbosity(2))).
 			Specs(&Service{}).
 			Handler()
 		next, _, err := handles.Request[Command](handler, Command(2))

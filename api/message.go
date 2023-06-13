@@ -18,7 +18,7 @@ type (
 		Original(composer miruken.Handler) (any, error)
 	}
 
-	// Options provide options for controlling api messaging.
+	// Options control api message processing.
 	Options struct {
 		Polymorphism   miruken.Option[Polymorphism]
 		TypeInfoFormat string

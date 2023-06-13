@@ -19,7 +19,7 @@ type (
 		Route   string
 	}
 
-	// Routes is a FilterProvider of routesFilter.
+	// Routes is a FilterProvider for routing.
 	Routes struct {
 		schemes []string
 	}

@@ -23,9 +23,9 @@ type (
 		Validator
 	}
 
-	// Rules express the validation behavior explicitly
+	// Rules express the validation constraints explicitly
 	// without depending on validation struct tags.
-	Rules []struct{ Type any; Rules map[string]string }
+	Rules []struct{ Type any; Constraints map[string]string }
 
 	// validator performs default tag based validation.
 	validator struct { Validator }
@@ -55,7 +55,7 @@ func (v *Validator) ConstructWithRules(
 	}
 
 	for _, rule := range rules {
-		validate.RegisterStructValidationMapRules(rule.Rules, rule.Type)
+		validate.RegisterStructValidationMapRules(rule.Constraints, rule.Type)
 	}
 
 	v.validate   = validate

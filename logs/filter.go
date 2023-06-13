@@ -1,4 +1,4 @@
-package log
+package logs
 
 import (
 	"fmt"
@@ -12,8 +12,8 @@ import (
 )
 
 type (
-	// Provider is a FilterProvider for logging.
-	Provider struct {
+	// Emit is a FilterProvider for logging.
+	Emit struct {
 		verbosity int
 	}
 
@@ -23,28 +23,28 @@ type (
 
 const durationFormat = "15:04:05.000000"  // microseconds
 
-// Provider
+// Emit
 
-func (l *Provider) InitWithTag(tag reflect.StructTag) error {
-	if log, ok := tag.Lookup("log"); ok {
-		_, err := fmt.Sscanf(log, "verbosity=%d", &l.verbosity)
+func (e *Emit) InitWithTag(tag reflect.StructTag) error {
+	if log, ok := tag.Lookup("logs"); ok {
+		_, err := fmt.Sscanf(log, "verbosity=%d", &e.verbosity)
 		return err
 	}
 	return nil
 }
 
-func (l *Provider) Required() bool {
+func (e *Emit) Required() bool {
 	return false
 }
 
-func (l *Provider) AppliesTo(
+func (e *Emit) AppliesTo(
 	callback miruken.Callback,
 ) bool {
 	_, ok := callback.(*handles.It)
 	return ok
 }
 
-func (l *Provider) Filters(
+func (e *Emit) Filters(
 	binding  miruken.Binding,
 	callback any,
 	composer miruken.Handler,
@@ -63,12 +63,12 @@ func (f filter) Next(
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  (out []any, pout *promise.Promise[[]any], err error) {
-	if lp, ok := provider.(*Provider); ok {
+	if emit, ok := provider.(*Emit); ok {
 		logger, _, re := provides.Type[logr.Logger](ctx.Composer())
 		if re != nil {
 			return next.Pipe()
 		}
-		if logger = logger.V(lp.verbosity); !logger.Enabled() {
+		if logger = logger.V(emit.verbosity); !logger.Enabled() {
 			return next.Pipe()
 		}
 		logger = logger.WithName(fmt.Sprintf("%T", ctx.Handler()))

@@ -13,7 +13,7 @@ func (v *Installer) Output() {
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&_featureTag) {
-		setup.Filters(&Provider{v.output})
+		setup.Filters(&Constraints{v.output})
 	}
 	return nil
 }

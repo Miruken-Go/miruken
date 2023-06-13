@@ -8,8 +8,8 @@ import (
 )
 
 type (
-	// Provider is a FilterProvider for validation.
-	Provider struct {
+	// Constraints is a FilterProvider for validation.
+	Constraints struct {
 		validateOutput bool
 	}
 
@@ -19,27 +19,27 @@ type (
 )
 
 
-// Provider
+// Constraints
 
-func (p *Provider) InitWithTag(tag reflect.StructTag) error {
+func (p *Constraints) InitWithTag(tag reflect.StructTag) error {
 	if v, ok := tag.Lookup("validates"); ok {
 		p.validateOutput = v == "output"
 	}
 	return nil
 }
 
-func (p *Provider) Required() bool {
+func (p *Constraints) Required() bool {
 	return false
 }
 
-func (p *Provider) AppliesTo(
+func (p *Constraints) AppliesTo(
 	callback miruken.Callback,
 ) bool {
 	h, ok := callback.(*handles.It)
 	return ok && !miruken.IsNil(h.Source())
 }
 
-func (p *Provider) Filters(
+func (p *Constraints) Filters(
 	binding  miruken.Binding,
 	callback any,
 	composer miruken.Handler,
@@ -59,7 +59,7 @@ func (f filter) Next(
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  (out []any, pout *promise.Promise[[]any], err error) {
-	if vp, ok := provider.(*Provider); ok {
+	if cp, ok := provider.(*Constraints); ok {
 		callback := ctx.Callback()
 		composer := ctx.Composer()
 		outcomeIn, poi, errIn := Source(composer, callback.Source())
@@ -73,7 +73,7 @@ func (f filter) Next(
 				return nil, nil, outcomeIn
 			}
 			// perform the next step in the pipeline
-			if out, pout, err = next.Pipe(); !(err == nil && vp.validateOutput) {
+			if out, pout, err = next.Pipe(); !(err == nil && cp.validateOutput) {
 				// if error or skip output validation, return output
 				return
 			} else if pout == nil {
@@ -134,7 +134,7 @@ func (f filter) Next(
 			}
 			oo := next.PipeAwait()
 			// validates output if requested and available
-			if vp.validateOutput && len(oo) > 0 && !miruken.IsNil(oo[0]) {
+			if cp.validateOutput && len(oo) > 0 && !miruken.IsNil(oo[0]) {
 				outcomeOut, poo, errOut := Source(composer, oo[0])
 				if errOut != nil {
 					// error validating output

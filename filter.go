@@ -12,7 +12,7 @@ import (
 const (
 	FilterStage              = 0
 	FilterStageLogging       = 10
-	FilterStateAuthorization = 30
+	FilterStageAuthorization = 30
 	FilterStageValidation    = 50
 )
 

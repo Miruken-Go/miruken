@@ -22,6 +22,7 @@ type (
 	Strict = miruken.Strict
 )
 
+
 func (v *It) Source() any {
 	return v.source
 }
@@ -137,51 +138,51 @@ func Groups(groups ...any) miruken.Constraint {
 // Builder builds It callbacks.
 type Builder struct {
 	miruken.CallbackBuilder
-	src any
+	source any
 }
 
-func (b *Builder) Source(
-	src any,
+func (b *Builder) ForSource(
+	source any,
 ) *Builder {
-	if miruken.IsNil(src) {
+	if miruken.IsNil(source) {
 		panic("source cannot be nil")
 	}
-	b.src = src
+	b.source = source
 	return b
 }
 
 func (b *Builder) New() *It {
 	return &It{
 		CallbackBase: b.CallbackBase(),
-		source:       b.src,
+		source:       b.source,
 	}
 }
 
-// Source performs all validations on `src`.
+// Source performs all validations on `source`.
 func Source(
 	handler     miruken.Handler,
-	src         any,
+	source      any,
 	constraints ...any,
 ) (o *Outcome, po *promise.Promise[*Outcome], err error) {
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder Builder
-	builder.Source(src).
+	builder.ForSource(source).
 			WithConstraints(constraints...)
-	validates := builder.New()
-	if result := handler.Handle(validates, true, nil); result.IsError() {
+	val := builder.New()
+	if result := handler.Handle(val, true, nil); result.IsError() {
 		err = result.Error()
 	} else if !result.Handled() {
-		o = validates.Outcome()
-		setValidationOutcome(src, o)
-	} else if _, pv := validates.Result(false); pv == nil {
-		o = validates.Outcome()
-		setValidationOutcome(src, o)
+		o = val.Outcome()
+		setValidationOutcome(source, o)
+	} else if _, pv := val.Result(false); pv == nil {
+		o = val.Outcome()
+		setValidationOutcome(source, o)
 	} else {
 		po = promise.Then(pv, func(any) *Outcome {
-			outcome := validates.Outcome()
-			setValidationOutcome(src, outcome)
+			outcome := val.Outcome()
+			setValidationOutcome(source, outcome)
 			return outcome
 		})
 	}
@@ -189,10 +190,10 @@ func Source(
 }
 
 func setValidationOutcome(
-	src     any,
+	source  any,
 	outcome *Outcome,
 ) {
-	if v, ok := src.(interface {
+	if v, ok := source.(interface {
 		SetValidationOutcome(*Outcome)
 	}); ok {
 		v.SetValidationOutcome(outcome)
