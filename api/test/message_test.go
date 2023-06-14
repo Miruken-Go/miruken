@@ -114,11 +114,10 @@ func (suite *MessageTestSuite) TestMessage() {
 	suite.Run("Send", func() {
 		handler := suite.Setup()
 		launch  := Launch{Missile: "Patriot"}
-		code, pc, err := api.Send[string](handler, launch)
+		_, pc, err := api.Send[string](handler, launch)
 		suite.Nil(err)
-		suite.Empty(code)
 		suite.NotNil(pc)
-		code, err = pc.Await()
+		code, err := pc.Await()
 		suite.Nil(err)
 		suite.NotEmpty(code)
 	})

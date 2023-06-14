@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/promise"
-	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/security"
 	"reflect"
 )
@@ -13,9 +12,7 @@ type (
 	// It authorizes callbacks contravariantly.
 	It struct {
 		miruken.CallbackBase
-		key     any
-		source  any
-		subject security.Subject
+		action  any
 	}
 
 	// Options control the authorization process.
@@ -26,19 +23,11 @@ type (
 
 
 func (a *It) Source() any {
-	return a.source
+	return a.action
 }
 
 func (a *It) Key() any {
-	if key := a.key; reflect.ValueOf(key).IsZero() {
-		return reflect.TypeOf(a.source)
-	} else {
-		return key
-	}
-}
-
-func (a *It) Subject() security.Subject {
-	return a.subject
+	return reflect.TypeOf(a.action)
 }
 
 func (a *It) Policy() miruken.Policy {
@@ -54,35 +43,24 @@ func (a *It) Dispatch(
 }
 
 func (a *It) String() string {
-	return fmt.Sprintf("authorizes %+v", a.source)
+	return fmt.Sprintf("authorizes %+v", a.action)
 }
 
 
 // Builder builds It callbacks.
 type Builder struct {
 	miruken.CallbackBuilder
-	key     any
-	source  any
+	action  any
 	subject security.Subject
 }
 
-func (b *Builder) WithKey(
-	key any,
+func (b *Builder) ForAction(
+	action any,
 ) *Builder {
-	if miruken.IsNil(key) {
-		panic("key cannot be nil")
+	if miruken.IsNil(action) {
+		panic("action cannot be nil")
 	}
-	b.key = key
-	return b
-}
-
-func (b *Builder) ForSource(
-	source any,
-) *Builder {
-	if miruken.IsNil(source) {
-		panic("source cannot be nil")
-	}
-	b.source = source
+	b.action = action
 	return b
 }
 
@@ -99,18 +77,15 @@ func (b *Builder) WithSubject(
 func (b *Builder) New() *It {
 	return &It{
 		CallbackBase: b.CallbackBase(),
-		key:          b.key,
-		source:       b.source,
-		subject:      b.subject,
+		action:       b.action,
 	}
 }
 
 
-// Source performs authorization on `source`.
-func Source(
-	handler     miruken.Handler,
-	source      any,
-	subject     security.Subject,
+// Action performs authorization on `action`.
+func Action(
+	handler miruken.Handler,
+	action  any,
 	constraints ...any,
 ) (bool, *promise.Promise[bool], error) {
 	if miruken.IsNil(handler) {
@@ -118,13 +93,8 @@ func Source(
 	}
 	var options Options
 	miruken.GetOptions(handler, &options)
-	if subject != nil {
-		handler = miruken.BuildUp(handler, provides.With(subject))
-	} else if options.RequirePolicy {
-		return false, nil, nil
-	}
 	var builder Builder
-	builder.ForSource(source).
+	builder.ForAction(action).
 		    WithConstraints(constraints...)
 	auth := builder.New()
 	if result := handler.Handle(auth, true, nil); result.IsError() {

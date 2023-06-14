@@ -495,7 +495,7 @@ func camelcase(name string) string {
 }
 
 // ExtraComponents provides additional components to include schemas for.
-func ExtraComponents(components ... any) func(*Installer) {
+func ExtraComponents(components ...any) func(*Installer) {
 	return func(installer *Installer) {
 		installer.extraComponents = append(installer.extraComponents, components...)
 	}
@@ -514,7 +514,7 @@ func Surrogates(surrogates map[reflect.Type]any) func(*Installer) {
 // Feature configures http server support
 func Feature(
 	base   openapi3.T,
-	config ...func(installer *Installer),
+	config ...func(*Installer),
 ) *Installer {
 	installer := &Installer{
 		base: base,

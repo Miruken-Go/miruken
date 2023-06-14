@@ -28,6 +28,10 @@ func (p *Constraints) InitWithTag(tag reflect.StructTag) error {
 	return nil
 }
 
+func (p *Constraints) ValidateOutput() bool {
+	return p.validateOutput
+}
+
 func (p *Constraints) Required() bool {
 	return false
 }
@@ -62,7 +66,7 @@ func (f filter) Next(
 	if cp, ok := provider.(*Constraints); ok {
 		callback := ctx.Callback()
 		composer := ctx.Composer()
-		outcomeIn, poi, errIn := Source(composer, callback.Source())
+		outcomeIn, poi, errIn := Input(composer, callback.Source())
 		if errIn != nil {
 			// error validating input
 			return nil, nil, errIn
@@ -79,7 +83,7 @@ func (f filter) Next(
 			} else if pout == nil {
 				// validates output if available
 				if len(out) > 0 && !miruken.IsNil(out[0]) {
-					outcomeOut, poo, errOut := Source(composer, out[0])
+					outcomeOut, poo, errOut := Input(composer, out[0])
 					if errOut != nil {
 						// error validating so return
 						return nil, nil, errOut
@@ -106,7 +110,7 @@ func (f filter) Next(
 				// asynchronous output validation
 				return nil, promise.Then(pout, func(oo []any) []any {
 					if len(oo) > 0 && !miruken.IsNil(oo[0]) {
-						outcomeOut, poo, errOut := Source(composer, oo[0])
+						outcomeOut, poo, errOut := Input(composer, oo[0])
 						if errOut != nil {
 							// error validating input
 							panic(errOut)
@@ -135,7 +139,7 @@ func (f filter) Next(
 			oo := next.PipeAwait()
 			// validates output if requested and available
 			if cp.validateOutput && len(oo) > 0 && !miruken.IsNil(oo[0]) {
-				outcomeOut, poo, errOut := Source(composer, oo[0])
+				outcomeOut, poo, errOut := Input(composer, oo[0])
 				if errOut != nil {
 					// error validating output
 					panic(errOut)

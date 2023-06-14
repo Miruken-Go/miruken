@@ -1,27 +1,55 @@
 package security
 
+import (
+	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/slices"
+)
+
 type (
-	// Principal represents an identity of a Subject.
-	// e.g. UserId, Username, Account or Role
-	Principal interface {
-		// Name returns the name of this Principal.
-		Name() string
+	// Role represents a certain level of authorization.
+	Role struct {
+		Name string
 	}
 
-	// Role represents a certain level of authorization and
-	// correspond to one or more privileges in a system.
-	Role struct {
-		name string
+	// Group organizes users having common capabilities.
+	Group struct {
+		Name string
 	}
+
+	system struct {}
 )
 
 
-func (r Role) Name() string {
-	return r.name
+// HasAllPrincipals return true if the subject possess all principals.
+func HasAllPrincipals(subject Subject, ps ...any) bool {
+	if miruken.IsNil(subject) {
+		panic("subject cannot be nil")
+	}
+	sp := subject.Principals()
+	for _, p := range ps {
+		if !slices.Contains(sp, p) {
+			return false
+		}
+	}
+	return true
+}
+
+// HasAnyPrincipals return true if the subject possess any principals.
+func HasAnyPrincipals(subject Subject, ps ...any) bool {
+	if miruken.IsNil(subject) {
+		panic("subject cannot be nil")
+	}
+	sp := subject.Principals()
+	for _, p := range ps {
+		if slices.Contains(sp, p) {
+			return true
+		}
+	}
+	return true
 }
 
 
-// NewRole returns a new Role with `name`.
-func NewRole(name string) Role {
-	return Role{name}
-}
+// System defines a singleton principal that can be used
+// to bypass security checks.
+// e.g. internal service to service interactions
+var System = system{}

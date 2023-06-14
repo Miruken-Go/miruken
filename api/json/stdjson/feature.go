@@ -21,7 +21,7 @@ func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	return nil
 }
 
-func Feature(config ...func(installer *Installer)) miruken.Feature {
+func Feature(config ...func(*Installer)) miruken.Feature {
 	installer := &Installer{}
 	for _, configure := range config {
 		if configure != nil {
