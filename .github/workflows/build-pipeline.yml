@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  build pipeline:
+  build-pipeline:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
