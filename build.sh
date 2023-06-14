@@ -10,6 +10,6 @@ if [[ $(git tag -l "$TAG") ]];
         echo "Tag already created"
     else
         echo "Tagging the release"
-        git tag -a $TAG -m "Tagged by build pipeline"
-        git push origin $TAG
+        git -c "user.name=buildpipeline" -c "user.email=mirukenjs@gmail.com" tag -a $TAG -m "Tagged by build pipeline"
+        git -c "user.name=buildpipeline" -c "user.email=mirukenjs@gmail.com" push origin $TAG
 fi;
