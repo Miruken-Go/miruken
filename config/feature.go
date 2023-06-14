@@ -31,7 +31,7 @@ func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 // using the supplied configuration Provider.
 func Feature(
 	provider Provider,
-	config ...func(installer *Installer),
+	config ...func(*Installer),
 ) miruken.Feature {
 	if miruken.IsNil(provider) {
 		panic("provider cannot be nil")

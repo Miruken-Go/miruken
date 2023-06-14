@@ -140,7 +140,7 @@ func validateContravariantFunc(
 	args[0]  = spec.arg
 	index   := 1
 
-	// ForSource argument must be present if spec
+	// Source argument must be present if spec
 	if len(args) > 1 {
 		if arg := funType.In(1+skip); arg.AssignableTo(callbackType) {
 			args[1] = CallbackArg{}

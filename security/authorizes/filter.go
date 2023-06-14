@@ -15,12 +15,13 @@ type (
 		policy string
 	}
 
-	// filter authorizes input against the current security.Subject.
+	// filter controls access to actions using policies
+	// satisfied by the privileges of a security.Subject.
 	filter struct {}
 )
 
 
-// Access
+// Action
 
 func (a *Access) InitWithTag(tag reflect.StructTag) error {
 	if policy, ok := tag.Lookup("policy"); ok {

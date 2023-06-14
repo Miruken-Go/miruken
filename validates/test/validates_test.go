@@ -204,6 +204,15 @@ func (suite *ValidatesTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	return miruken.Setup().Specs(specs...).Handler()
 }
 
+type (
+	Group struct {
+		Name string
+	}
+
+	Role struct {
+		Name string
+	}
+)
 func (suite *ValidatesTestSuite) TestValidation() {
 	suite.Run("Outcome", func () {
 		suite.Run("Root Errors", func() {
@@ -285,7 +294,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 			handler, _ := suite.Setup()
 			player := Player{DOB:  time.Date(2007, time.June,
 				14, 13, 26, 00, 0, time.Local) }
-			outcome, _, err := validates.Source(handler, &player)
+			outcome, _, err := validates.Input(handler, &player)
 			suite.Nil(err)
 			suite.NotNil(outcome)
 			suite.False(outcome.Valid())
@@ -302,7 +311,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 				DOB:       time.Date(2007, time.June, 14,
 					13, 26, 00, 0, time.Local),
 			}
-			outcome, _, err := validates.Source(handler, &player, validates.Groups("Recreational"))
+			outcome, _, err := validates.Input(handler, &player, validates.Groups("Recreational"))
 			suite.Nil(err)
 			suite.NotNil(outcome)
 			suite.False(outcome.Valid())
