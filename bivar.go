@@ -23,6 +23,13 @@ type (
 	}
 )
 
+
+var (
+	ErrBivMissingCallback = errors.New("bivariant: missing callback argument")
+	ErrBivMissingReturn   = errors.New("bivariant: must have a return value")
+)
+
+
 func (p *BivariantPolicy) VariantKey(
 	key any,
 ) (variant bool, unknown bool) {
@@ -115,6 +122,7 @@ func (p *BivariantPolicy) NewFuncBinding(
 	}
 }
 
+
 func validateBivariantFunc(
 	funType reflect.Type,
 	spec    *bindingSpec,
@@ -206,8 +214,3 @@ func validateBivariantReturn(
 	spec.setLogicalOutputType(returnType)
 	return returnType, nil
 }
-
-var (
-	ErrBivMissingCallback = errors.New("bivariant: missing callback argument")
-	ErrBivMissingReturn   = errors.New("bivariant: must have a return value")
-)

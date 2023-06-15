@@ -111,6 +111,5 @@ func Action(
 }
 
 
-var (
-	policy miruken.Policy = &miruken.ContravariantPolicy{}
-)
+var policy miruken.Policy = &miruken.ContravariantPolicy{}
+

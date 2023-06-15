@@ -13,6 +13,13 @@ type ContravariantPolicy struct {
 	FilteredScope
 }
 
+
+var (
+	ErrConResultsExceeded = errors.New("contravariant: cannot accept more than 2 results")
+	ErrConMissingCallback = errors.New("contravariant: missing callback argument")
+)
+
+
 func (p *ContravariantPolicy) VariantKey(
 	key any,
 ) (variant bool, unknown bool) {
@@ -128,6 +135,7 @@ func (p *ContravariantPolicy) NewFuncBinding(
 	}
 }
 
+
 func validateContravariantFunc(
 	funType reflect.Type,
 	spec    *bindingSpec,
@@ -194,8 +202,3 @@ func validateContravariantFunc(
 	}
 	return
 }
-
-var (
-	ErrConResultsExceeded = errors.New("contravariant: cannot accept more than 2 results")
-	ErrConMissingCallback = errors.New("contravariant: missing callback argument")
-)

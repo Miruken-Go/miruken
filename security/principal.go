@@ -20,6 +20,12 @@ type (
 )
 
 
+// System defines a singleton principal that can be used
+// to bypass security checks.
+// e.g. internal service to service interactions
+var System = system{}
+
+
 // HasAllPrincipals return true if the subject possess all principals.
 func HasAllPrincipals(subject Subject, ps ...any) bool {
 	if miruken.IsNil(subject) {
@@ -47,9 +53,3 @@ func HasAnyPrincipals(subject Subject, ps ...any) bool {
 	}
 	return true
 }
-
-
-// System defines a singleton principal that can be used
-// to bypass security checks.
-// e.g. internal service to service interactions
-var System = system{}

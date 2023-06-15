@@ -21,6 +21,8 @@ type (
 	accessDenied struct{}
 )
 
+var ErrAccessDenied = accessDenied{}
+
 
 // Access
 
@@ -111,7 +113,4 @@ func (f filter) DynNext(
 	return next.Abort()
 }
 
-var (
-	ErrAccessDenied = accessDenied{}
-	filters = []miruken.Filter{filter{}}
-)
+var filters = []miruken.Filter{filter{}}

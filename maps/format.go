@@ -40,6 +40,12 @@ const (
 )
 
 
+var (
+	ErrInvalidFormat          = errors.New("invalid format tag")
+	ErrEmptyFormatIdentifier  = errors.New("empty format name")
+)
+
+
 func (f *Format) Name() string {
 	return f.name
 }
@@ -219,6 +225,7 @@ func (f *Format) parse(format string) error {
 	return nil
 }
 
+
 // To maps to a format.
 func To(format string, params map[string]string) *Format {
 	f := &Format{direction: DirectionTo, params: params}
@@ -236,8 +243,3 @@ func From(format string, params map[string]string) *Format {
 	}
 	return f
 }
-
-var (
-	ErrInvalidFormat          = errors.New("invalid format tag")
-	ErrEmptyFormatIdentifier  = errors.New("empty format name")
-)

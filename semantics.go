@@ -1,6 +1,17 @@
 package miruken
 
-type SemanticFlags uint8
+type (
+	// SemanticFlags enumerates semantic options.
+	SemanticFlags uint8
+
+	// CallbackSemantics captures semantic options.
+	CallbackSemantics struct {
+		Composition
+		options   SemanticFlags
+		specified SemanticFlags
+	}
+)
+
 
 const (
 	SemanticNone      SemanticFlags = 0
@@ -9,12 +20,13 @@ const (
 	SemanticNotify  = SemanticBroadcast | SemanticBestEffort
 )
 
-// CallbackSemantics captures semantic options
-type CallbackSemantics struct {
-	Composition
-	options   SemanticFlags
-	specified SemanticFlags
-}
+
+var (
+	Broadcast  = CallWith(SemanticBroadcast)
+	BestEffort = CallWith(SemanticBestEffort)
+	Notify     = CallWith(SemanticNotify)
+)
+
 
 func (c *CallbackSemantics) CanInfer() bool {
 	return false
@@ -107,6 +119,7 @@ func (c *callSemantics) Handle(
 	return c.Handler.Handle(callback, greedy, composer)
 }
 
+
 func GetSemantics(handler Handler) *CallbackSemantics {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
@@ -127,9 +140,3 @@ func CallWith(semantics SemanticFlags) Builder {
 		return &callSemantics{handler, options}
 	})
 }
-
-var (
-	Broadcast  = CallWith(SemanticBroadcast)
-	BestEffort = CallWith(SemanticBestEffort)
-	Notify     = CallWith(SemanticNotify)
-)

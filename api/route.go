@@ -47,6 +47,8 @@ type (
 )
 
 
+var ErrMissingResponse = errors.New("missing batch response")
+
 // Routes
 
 func (r *Routes) InitWithTag(tag reflect.StructTag) error {
@@ -244,7 +246,4 @@ func RouteTo(message any, route string) Routed {
 	return Routed{message, route}
 }
 
-var (
-	ErrMissingResponse = errors.New("missing batch response")
-	routesFilterSlice  = []miruken.Filter{routesFilter{}}
-)
+var routesFilterSlice  = []miruken.Filter{routesFilter{}}
