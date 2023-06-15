@@ -97,7 +97,7 @@ func Action(
 	builder.ForAction(action).
 		    WithConstraints(constraints...)
 	auth := builder.New()
-	if result := handler.Handle(auth, true, nil); result.IsError() {
+	if result := handler.Handle(auth, false, nil); result.IsError() {
 		return false, nil, result.Error()
 	} else if !result.Handled() {
 		return !options.RequirePolicy, nil, nil

@@ -4,6 +4,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/constraints"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/security"
 	"github.com/miruken-go/miruken/security/authorizes"
@@ -46,9 +47,9 @@ func (t *TransferFundsAccessPolicy) AuthorizeTransferFast(
 		constraints.Named `name:"fast"`
 	  }, transfer TransferFunds,
 	subject security.Subject,
-) bool {
-	return transfer.Amount < 1000 &&
-		security.HasAllPrincipals(subject, security.Role{Name: "owner"})
+) *promise.Promise[bool] {
+	return promise.Resolve(transfer.Amount < 1000 &&
+		security.HasAllPrincipals(subject, security.Role{Name: "owner"}))
 }
 
 // Account
@@ -139,13 +140,18 @@ func (suite *AuthorizesTestSuite) TestAuthorizes() {
 			transfer := TransferFunds{Amount: 500}
 			subject  := security.NewSubject()
 			handler = miruken.BuildUp(handler, provides.With(subject))
-			grant, _, err := authorizes.Action(handler, transfer, "fast")
+			g, gp, err := authorizes.Action(handler, transfer, "fast")
 			suite.Nil(err)
-			suite.False(grant)
+			suite.NotNil(gp)
+			g, err = gp.Await()
+			suite.False(g)
+			suite.Nil(err)
 			subject.AddPrincipals(security.Role{Name: "owner"})
-			grant, _, err = authorizes.Action(handler, transfer, "fast")
+			g, gp, err = authorizes.Action(handler, transfer, "fast")
 			suite.Nil(err)
-			suite.True(grant)
+			suite.NotNil(gp)
+			g, err = gp.Await()
+			suite.True(g)
 		})
 
 		suite.Run("Filter", func() {
