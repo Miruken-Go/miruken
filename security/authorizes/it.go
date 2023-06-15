@@ -84,15 +84,15 @@ func (b *Builder) New() *It {
 
 // Action performs authorization on `action`.
 func Action(
-	handler miruken.Handler,
-	action  any,
+	handler     miruken.Handler,
+	action      any,
 	constraints ...any,
 ) (bool, *promise.Promise[bool], error) {
 	if miruken.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
-	if miruken.IsNil(subject) {
-		panic("subject cannot be nil")
+	if miruken.IsNil(action) {
+		panic("action cannot be nil")
 	}
 	var options Options
 	miruken.GetOptions(handler, &options)
