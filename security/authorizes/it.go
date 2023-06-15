@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/promise"
-	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/security"
 	"reflect"
 )
@@ -13,9 +12,7 @@ type (
 	// It authorizes callbacks contravariantly.
 	It struct {
 		miruken.CallbackBase
-		key     any
 		action  any
-		subject security.Subject
 	}
 
 	// Options control the authorization process.
@@ -25,20 +22,12 @@ type (
 )
 
 
-func (a *It) Action() any {
+func (a *It) Source() any {
 	return a.action
 }
 
 func (a *It) Key() any {
-	if key := a.key; reflect.ValueOf(key).IsZero() {
-		return reflect.TypeOf(a.action)
-	} else {
-		return key
-	}
-}
-
-func (a *It) Subject() security.Subject {
-	return a.subject
+	return reflect.TypeOf(a.action)
 }
 
 func (a *It) Policy() miruken.Policy {
@@ -61,19 +50,8 @@ func (a *It) String() string {
 // Builder builds It callbacks.
 type Builder struct {
 	miruken.CallbackBuilder
-	key     any
 	action  any
 	subject security.Subject
-}
-
-func (b *Builder) WithKey(
-	key any,
-) *Builder {
-	if miruken.IsNil(key) {
-		panic("key cannot be nil")
-	}
-	b.key = key
-	return b
 }
 
 func (b *Builder) ForAction(
@@ -99,18 +77,15 @@ func (b *Builder) WithSubject(
 func (b *Builder) New() *It {
 	return &It{
 		CallbackBase: b.CallbackBase(),
-		key:          b.key,
 		action:       b.action,
-		subject:      b.subject,
 	}
 }
 
 
-// Input performs authorization on `action`.
-func Input(
-	handler     miruken.Handler,
-	action      any,
-	subject     security.Subject,
+// Action performs authorization on `action`.
+func Action(
+	handler miruken.Handler,
+	action  any,
 	constraints ...any,
 ) (bool, *promise.Promise[bool], error) {
 	if miruken.IsNil(handler) {
@@ -123,11 +98,9 @@ func Input(
 	miruken.GetOptions(handler, &options)
 	var builder Builder
 	builder.ForAction(action).
-		    WithSubject(subject).
 		    WithConstraints(constraints...)
 	auth := builder.New()
-	handler = miruken.BuildUp(handler, provides.With(subject))
-	if result := handler.Handle(auth, true, nil); result.IsError() {
+	if result := handler.Handle(auth, false, nil); result.IsError() {
 		return false, nil, result.Error()
 	} else if !result.Handled() {
 		return !options.RequirePolicy, nil, nil
@@ -141,6 +114,5 @@ func Input(
 }
 
 
-var (
-	policy miruken.Policy = &miruken.ContravariantPolicy{}
-)
+var policy miruken.Policy = &miruken.ContravariantPolicy{}
+

@@ -31,11 +31,27 @@ type (
 	}
 )
 
+
 const (
 	PolymorphismNone Polymorphism = 0
 	PolymorphismRoot Polymorphism = 1 << iota
 )
 
+
+var (
+	// Polymorphic instructs type information to be included.
+	Polymorphic = miruken.Options(Options{
+		Polymorphism: miruken.Set(PolymorphismRoot),
+	})
+
+	// NoPolymorphism instructs type information to be suppressed.
+	NoPolymorphism = miruken.Options(Options{
+		Polymorphism: miruken.Set(PolymorphismNone),
+	})
+
+	// ToTypeInfo formats a value into corresponding type information.
+	ToTypeInfo = maps.To("type:info", nil)
+)
 
 // TypeInfo uses package and name to generate type metadata.
 func (m *GoPolymorphism) TypeInfo(
@@ -142,19 +158,6 @@ func (e *UnknownTypeIdError) Unwrap() error {
 
 
 var (
-	// Polymorphic instructs type information to be included.
-	Polymorphic = miruken.Options(Options{
-		Polymorphism: miruken.Set(PolymorphismRoot),
-	})
-
-	// NoPolymorphism instructs type information to be suppressed.
-	NoPolymorphism = miruken.Options(Options{
-		Polymorphism: miruken.Set(PolymorphismNone),
-	})
-
-	// ToTypeInfo formats a value into corresponding type information.
-	ToTypeInfo = maps.To("type:info", nil)
-
 	staticTypeMap = map[string]any{
 		"bool":           new(bool),
 		"int":            new(int),

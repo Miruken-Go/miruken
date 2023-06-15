@@ -28,6 +28,10 @@ func (p *Constraints) InitWithTag(tag reflect.StructTag) error {
 	return nil
 }
 
+func (p *Constraints) ValidateOutput() bool {
+	return p.validateOutput
+}
+
 func (p *Constraints) Required() bool {
 	return false
 }

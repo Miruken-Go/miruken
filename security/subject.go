@@ -21,7 +21,7 @@ type (
 		AddCredentials(cs ...any)
 	}
 
-	subject struct {
+	mutableSubject struct {
 		principals  []any
 		credentials []any
 	}
@@ -34,15 +34,15 @@ type (
 
 // Subject
 
-func (s *subject) Principals() []any {
+func (s *mutableSubject) Principals() []any {
 	return s.principals
 }
 
-func (s *subject) Credentials() []any {
+func (s *mutableSubject) Credentials() []any {
 	return s.credentials
 }
 
-func (s *subject) AddPrincipals(ps ...any) {
+func (s *mutableSubject) AddPrincipals(ps ...any) {
 	for _, p := range ps {
 		if !slices.Contains(s.principals, p) {
 			s.principals = append(s.principals, p)
@@ -50,7 +50,7 @@ func (s *subject) AddPrincipals(ps ...any) {
 	}
 }
 
-func (s *subject) AddCredentials(cs ...any) {
+func (s *mutableSubject) AddCredentials(cs ...any) {
 	for _, c := range cs {
 		if !slices.Contains(s.credentials, c) {
 			s.credentials = append(s.credentials, c)
@@ -94,7 +94,7 @@ func Credentials(cs ...any) func(Subject) {
 
 // NewSubject creates a new Subject with optional principals and credentials.
 func NewSubject(config ...func(Subject)) Subject {
-	sub := &subject{}
+	sub := &mutableSubject{}
 	for _, configure := range config {
 		if configure != nil {
 			configure(sub)

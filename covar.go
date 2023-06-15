@@ -13,6 +13,13 @@ type CovariantPolicy struct {
 	FilteredScope
 }
 
+
+var (
+	ErrCovResultsExceeded = errors.New("covariant: cannot accept more than 2 results")
+	ErrCovMissingReturn   = errors.New("covariant: must have a return value")
+)
+
+
 func (p *CovariantPolicy) VariantKey(
 	key any,
 ) (variant bool, unknown bool) {
@@ -131,6 +138,7 @@ func (p *CovariantPolicy) NewFuncBinding(
 	}
 }
 
+
 func validateCovariantFunc(
 	funType reflect.Type,
 	spec    *bindingSpec,
@@ -207,8 +215,3 @@ func validateCovariantReturn(
 	spec.setLogicalOutputType(returnType)
 	return key, nil
 }
-
-var (
-	ErrCovResultsExceeded = errors.New("covariant: cannot accept more than 2 results")
-	ErrCovMissingReturn   = errors.New("covariant: must have a return value")
-)

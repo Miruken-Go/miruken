@@ -46,6 +46,12 @@ type (
 	fromScope struct {}
 )
 
+
+// From constrains resolution to a handler with scoped lifestyle.
+// This is used to suppress resolving implied values available through a Context.
+var From miruken.Qualifier[fromScope]
+
+
 func (s *scoped) InitWithTag(tag reflect.StructTag) error {
 	if scoped, ok := tag.Lookup("scoped"); ok {
 		s.rooted = scoped == "rooted"
@@ -215,7 +221,5 @@ func (s *scopedFilter) tryDispose(instance any) {
 	}
 }
 
-var (
-	From miruken.Qualifier[fromScope]
-	contextType = miruken.TypeOf[*Context]()
-)
+
+var contextType = miruken.TypeOf[*Context]()

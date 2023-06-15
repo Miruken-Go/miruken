@@ -25,6 +25,19 @@ type (
 	Mapper struct{}
 )
 
+
+var (
+	// CamelCase directs the json encoding of keys to use camelcase notation.
+	CamelCase = miruken.Options(Options{
+		Transformers: []transform.Transformer{
+			transform.OnlyForDirection(
+				transform.Marshal,
+				transform.CamelCaseKeys(false)),
+		},
+	})
+)
+
+
 func (m *Mapper) ToJson(
 	_*struct{
 		maps.Format `to:"application/json"`
@@ -212,14 +225,3 @@ func (t *transformer) MarshalJSON() ([]byte, error) {
 func (t *transformer) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, conjson.NewUnmarshaler(t.v, t.trans...))
 }
-
-var (
-	// CamelCase directs the json encoding of keys to use camelcase notation.
-	CamelCase = miruken.Options(Options{
-		Transformers: []transform.Transformer{
-			transform.OnlyForDirection(
-				transform.Marshal,
-				transform.CamelCaseKeys(false)),
-		},
-	})
-)

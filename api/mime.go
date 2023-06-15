@@ -17,6 +17,15 @@ type Content interface {
 }
 
 
+var (
+	// ToJson encodes a model into json format
+	ToJson = maps.To("application/json", nil)
+
+	// FromJson decodes json into a corresponding model
+	FromJson = maps.From("application/json", nil)
+)
+
+
 // ParseMediaType parses the mediaType into a maps.Format suitable
 // for mapping in the requested direction.
 func ParseMediaType(
@@ -78,11 +87,3 @@ func MergeHeader(
 		}
 	}
 }
-
-var (
-	// ToJson encodes a model into json format
-	ToJson = maps.To("application/json", nil)
-
-	// FromJson decodes json into a corresponding model
-	FromJson = maps.From("application/json", nil)
-)

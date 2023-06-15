@@ -289,7 +289,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 		})
 	})
 
-	suite.Run("Build", func () {
+	suite.Run("Validate", func () {
 		suite.Run("Default", func() {
 			handler, _ := suite.Setup()
 			player := Player{DOB:  time.Date(2007, time.June,
@@ -321,12 +321,12 @@ func (suite *ValidatesTestSuite) TestValidation() {
 		})
 	})
 
-	suite.Run("ValidateFilter", func () {
+	suite.Run("Filter", func () {
 		handler, _ := miruken.Setup(
 			validates.Feature(validates.Output)).
 			Specs(suite.specs...).
 			Handler()
-		suite.Run("Build Command", func() {
+		suite.Run("Accepts Command", func() {
 			create := CreateTeam{TeamAction{ Team: Team{
 				Name: "Liverpool",
 				Coach: Coach{

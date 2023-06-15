@@ -319,6 +319,7 @@ func (b *CallbackBuilder) WithConstraints(
 ) *CallbackBuilder {
 	for _, constraint := range constraints {
 		switch c := constraint.(type) {
+		case nil:
 		case string:
 			n := Named(c)
 			b.constraints = append(b.constraints, &n)
