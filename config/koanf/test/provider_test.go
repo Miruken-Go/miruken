@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/json"
+	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/config"
@@ -11,6 +12,8 @@ import (
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
+	"os"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -90,37 +93,44 @@ func (r *Repository) LoadCustomer(
 
 type ProviderTestSuite struct {
 	suite.Suite
+	specs []any
 }
 
-func (suite *ProviderTestSuite) TestProvider() {
+func (suite *ProviderTestSuite) SetupTest() {
+	suite.specs = []any{
+	}
+}
+
+func (suite *ProviderTestSuite) Setup(specs ...any) (miruken.Handler, error) {
+	if len(specs) == 0 {
+		specs = suite.specs
+	}
 	var k = koanf.New(".")
 	err := k.Load(file.Provider("../../test/configs/appconfig.json"), json.Parser())
 	suite.Nil(err)
+	return miruken.Setup(config.Feature(koanfp.P(k))).
+		Specs(specs...).Handler()
+}
 
+func (suite *ProviderTestSuite) TestProvider() {
 	suite.Run("Load", func() {
 		suite.Run("Resolve", func() {
-			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
+			handler, _ := suite.Setup()
 			cfg, _, err := provides.Type[AppConfig](handler, new(config.Load))
 			suite.Nil(err)
 			suite.Equal("develop", cfg.Env)
-			suite.Len(cfg.Databases, 1)
+			suite.Len(cfg.Databases, 2)
 		})
 
 		suite.Run("Constructor", func() {
-			handler, _ := miruken.Setup(
-				config.Feature(koanfp.P(k))).
-				Specs(&EventStore{}).
-				Handler()
+			handler, _ := suite.Setup(&EventStore{})
 			es, _, err := provides.Type[*EventStore](handler)
 			suite.Nil(err)
 			suite.Equal("develop", es.Env())
 		})
 
 		suite.Run("Method", func() {
-			handler, _ := miruken.Setup(
-				config.Feature(koanfp.P(k))).
-				Specs(&Gateway{}, &EventStore{}).
-				Handler()
+			handler, _ := suite.Setup(&Gateway{}, &EventStore{})
 			_, err := handles.Command(handler, CreateCustomer{})
 			suite.Nil(err)
 		})
@@ -132,7 +142,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 				EventStoreUrl string
 				CustomerUrl   string
 			}
-			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
+			handler, _ := suite.Setup()
 			cfg, _, err := provides.Type[UrlConfig](handler, &config.Load{Path: "services"})
 			suite.Nil(err)
 			suite.Equal("http://gateway/events", cfg.EventStoreUrl)
@@ -144,7 +154,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 				EventStoreUrl string `path:"services.eventStoreUrl"`
 				CustomerUrl   string `path:"services.customerUrl"`
 			}
-			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
+			handler, _ := suite.Setup()
 			cfg, _, err := provides.Type[UrlConfig](handler, &config.Load{Flat: true})
 			suite.Nil(err)
 			suite.Equal("http://gateway/events", cfg.EventStoreUrl)
@@ -152,12 +162,107 @@ func (suite *ProviderTestSuite) TestProvider() {
 		})
 
 		suite.Run("Method", func() {
-			handler, _ := miruken.Setup(
-				config.Feature(koanfp.P(k))).
-				Specs(&Repository{}).
-				Handler()
+			handler, _ := suite.Setup(&Repository{})
 			_, err := handles.Command(handler, LoadCustomer{})
 			suite.Nil(err)
+		})
+	})
+
+	suite.Run("Env", func() {
+		_ = os.Setenv("Miruken_Env", "local")
+		_ = os.Setenv("Miruken_Services_EventStoreUrl", "http://gateway/events")
+		_ = os.Setenv("Miruken_Services_CustomerUrl", "http://gateway/customer")
+		_ = os.Setenv("Miruken_Databases_0_Name", "mongo")
+		_ = os.Setenv("Miruken_Databases_0_ConnectionString", "mongodb://mongodb0.example.com:27017")
+		_ = os.Setenv("Miruken_Databases_0_Timeout", "5h30m40s")
+		_ = os.Setenv("Miruken_Databases_1_Name", "sql")
+		_ = os.Setenv("Miruken_Databases_1_ConnectionString", "Server=localhost;Database=Customers;User Id=user")
+		_ = os.Setenv("Miruken_Databases_1_Timeout", "1h10m20s")
+		var k = koanf.New(".")
+		err := k.Load(env.Provider("Miruken", "_", nil), nil,
+			koanf.WithMergeFunc(koanfp.Merge))
+		suite.Nil(err)
+		handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
+
+		suite.Run("Resolve", func() {
+			cfg, _, err := provides.Type[AppConfig](handler, &config.Load{Path: "Miruken"})
+			suite.Nil(err)
+			suite.Equal("local", cfg.Env)
+			suite.Equal("http://gateway/events", cfg.Services.EventStoreUrl)
+			suite.Equal("http://gateway/customer", cfg.Services.CustomerUrl)
+			suite.Len(cfg.Databases, 2)
+		})
+	})
+
+	suite.Run("Slices", func() {
+		suite.Run("Nothing", func() {
+			m := map[string]any{
+				"Name": "John",
+			}
+			s, ok := koanfp.ConvertSlices(m)
+			suite.Nil(s)
+			suite.False(ok)
+		})
+
+		suite.Run("Nothing", func() {
+			m := map[string]any{
+				"Name": "John",
+			}
+			s, ok := koanfp.ConvertSlices(m)
+			suite.False(ok)
+			suite.Nil(s)
+		})
+
+		suite.Run("Simple", func() {
+			m := map[string]any{
+				"0": 12,
+				"2": 22,
+				"1": 37,
+			}
+			s, ok := koanfp.ConvertSlices(m)
+			suite.True(ok)
+			suite.NotNil(s)
+			suite.Equal([]any{12,37,22}, s)
+		})
+
+		suite.Run("Sparse", func() {
+			m := map[string]any{
+				"10": 42,
+				"6":  19,
+				"15": 100,
+			}
+			s, ok := koanfp.ConvertSlices(m)
+			sv := reflect.ValueOf(s)
+			suite.True(ok)
+			suite.NotNil(s)
+			suite.Equal(16, sv.Len())
+			suite.Equal(42, sv.Index(10).Interface().(int))
+			suite.Equal(19, sv.Index(6).Interface().(int))
+			suite.Equal(100, sv.Index(15).Interface().(int))
+		})
+
+		suite.Run("Nested", func() {
+			m := map[string]any{
+				"Databases": map[string]any{
+					"0": map[string]any{
+						"Name": "mongo",
+					},
+					"1": map[string]any{
+						"Name": "sql",
+					},
+					"2": map[string]any{
+						"Name": "postgres",
+					},
+				},
+			}
+			s, ok := koanfp.ConvertSlices(m)
+			suite.False(ok)
+			suite.Nil(s)
+			suite.Equal([]any{
+				map[string]any{"Name": "mongo"},
+				map[string]any{"Name": "sql"},
+				map[string]any{"Name": "postgres"},
+			}, m["Databases"])
 		})
 	})
 }

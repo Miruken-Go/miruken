@@ -13,6 +13,7 @@ type (
 			handlerType  reflect.Type,
 			constructor *reflect.Method,
 			spec        *bindingSpec,
+			key         any,
 		) (Binding, error)
 	}
 
@@ -20,10 +21,14 @@ type (
 	ConstructorBinding struct {
 		BindingBase
 		handlerType reflect.Type
+		key         any
 	}
 )
 
 func (b *ConstructorBinding) Key() any {
+	if key := b.key; key != nil {
+		return key
+	}
 	return b.handlerType
 }
 
@@ -64,10 +69,11 @@ func (b *ConstructorBinding) Invoke(
 }
 
 func newConstructorBinding(
-	handlerType   reflect.Type,
+	handlerType  reflect.Type,
 	constructor  *reflect.Method,
 	spec         *bindingSpec,
-	explicitSpec  bool,
+	key          any,
+	explicitSpec bool,
 ) (binding *ConstructorBinding, err error) {
 	binding = &ConstructorBinding{
 		BindingBase{
@@ -76,6 +82,7 @@ func newConstructorBinding(
 			spec.metadata,
 		},
 		handlerType,
+		key,
 	}
 	if constructor != nil {
 		startIndex := 0

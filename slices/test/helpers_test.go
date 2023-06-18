@@ -66,6 +66,11 @@ func (suite *HelperTestSuite) TestHelper() {
 		suite.Equal("55", result)
 	})
 
+	suite.Run("Remove", func() {
+		result := slices.Remove([]string{"car1", "car2", "bus1", "bus2"}, "bus1", "car1")
+		suite.ElementsMatch([]string{"car2", "bus2"}, result)
+	})
+
 	suite.Run("First", func() {
 		first, ok := slices.First([]int{1, 2, 3})
 		suite.Equal(1, first)

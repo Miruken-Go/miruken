@@ -1,0 +1,10 @@
+{
+  "login": {
+    "flow1": [{
+      "key": "module1",
+      "options": {
+        "debug": true
+      }
+    }]
+  }
+}

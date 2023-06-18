@@ -220,8 +220,10 @@ func coerceToPtr(
 
 // New creates a new T and optionally initializes it.
 func New[T any]() *T {
-	var t = new(T)
-	var a any = t
+	var (
+		t = new(T)
+		a any = t
+	)
 	if init, ok := a.(interface {
 		Init() error
 	}); ok {

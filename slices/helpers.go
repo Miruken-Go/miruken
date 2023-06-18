@@ -139,6 +139,23 @@ func Reduce[IN, OUT any](
 	return out
 }
 
+// Remove removes all items from the slice in place.
+func Remove[IN comparable](in []IN, items ...IN) []IN {
+	for _, item := range items {
+		if len(in) == 0 {
+			return in
+		}
+		for ii, s := range in {
+			if s == item {
+				in[ii] = in[len(in)-1]
+				in     = in[:len(in)-1]
+				break
+			}
+		}
+	}
+	return in
+}
+
 // First returns the First element (or zero value if empty) and bool if exists.
 func First[IN any](in []IN) (IN, bool) {
 	if len(in) > 0 {

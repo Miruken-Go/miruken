@@ -121,8 +121,9 @@ func (c *createsPolicy) NewConstructorBinding(
 	handlerType reflect.Type,
 	constructor *reflect.Method,
 	spec        *bindingSpec,
+	key         any,
 ) (binding Binding, err error) {
-	return newConstructorBinding(handlerType, constructor, spec, spec != nil)
+	return newConstructorBinding(handlerType, constructor, spec, key, spec != nil)
 }
 
 var createsPolicyInstance Policy = &createsPolicy{}

@@ -8,6 +8,7 @@ import (
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/security"
 	"github.com/miruken-go/miruken/security/authorizes"
+	"github.com/miruken-go/miruken/security/principal"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -38,7 +39,7 @@ func (t *TransferFundsAccessPolicy) AuthorizeTransfer(
 	if amount := transfer.Amount; amount < 10000 {
 		return true
 	}
-	return security.HasAllPrincipals(subject, security.Role{Name: "manager"})
+	return principal.All(subject, principal.Role("manager"))
 }
 
 func (t *TransferFundsAccessPolicy) AuthorizeTransferFast(
@@ -49,7 +50,7 @@ func (t *TransferFundsAccessPolicy) AuthorizeTransferFast(
 	subject security.Subject,
 ) *promise.Promise[bool] {
 	return promise.Resolve(transfer.Amount < 1000 &&
-		security.HasAllPrincipals(subject, security.Role{Name: "owner"}))
+		principal.All(subject, principal.Role("owner")))
 }
 
 // Account
@@ -128,7 +129,7 @@ func (suite *AuthorizesTestSuite) TestAuthorizes() {
 			handler, _ := suite.Setup()
 			transfer := TransferFunds{Amount: 1000000}
 			subject  := security.NewSubject(
-				security.Principals(security.Role{Name: "manager"}))
+				security.WithPrincipals(principal.Role("manager")))
 			handler = miruken.BuildUp(handler, provides.With(subject))
 			grant, _, err := authorizes.Action(handler, transfer)
 			suite.Nil(err)
@@ -146,7 +147,7 @@ func (suite *AuthorizesTestSuite) TestAuthorizes() {
 			g, err = gp.Await()
 			suite.False(g)
 			suite.Nil(err)
-			subject.AddPrincipals(security.Role{Name: "owner"})
+			subject.AddPrincipals(principal.Role("owner"))
 			g, gp, err = authorizes.Action(handler, transfer, "fast")
 			suite.Nil(err)
 			suite.NotNil(gp)
@@ -175,7 +176,7 @@ func (suite *AuthorizesTestSuite) TestAuthorizes() {
 				handler, _ := suite.Setup()
 				transfer := TransferFunds{Amount: 20000}
 				subject  := security.NewSubject(
-					security.Principals(security.Role{Name: "manager"}))
+					security.WithPrincipals(principal.Role("manager")))
 				handler = miruken.BuildUp(handler, provides.With(subject))
 				balance, _, err := handles.Request[int](handler, transfer)
 				suite.Nil(err)

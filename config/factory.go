@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/constraints"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/slices"
@@ -13,7 +14,7 @@ import (
 type (
 	// Factory of configurations using assigned Provider.
 	Factory struct {
-		provider Provider
+		Provider
 	}
 
 	// Load restricts resolutions to configurations only.
@@ -54,7 +55,8 @@ func (l *Load) Satisfies(required miruken.Constraint, _ miruken.Callback) bool {
 // NewConfiguration return a new configuration instance
 // populated by the assigned Provider.
 func (f *Factory) NewConfiguration(
-	_*struct{provides.Single; Load}, p *provides.It,
+	_*struct{
+		provides.Single; args.Strict; Load}, p *provides.It,
 ) (any, error) {
 	if typ, ok := p.Key().(reflect.Type); ok {
 		var out any
@@ -70,7 +72,7 @@ func (f *Factory) NewConfiguration(
 			path = load.Path
 			flat = load.Flat
 		}
-		if err := f.provider.Unmarshal(path, flat, out); err != nil {
+		if err := f.Unmarshal(path, flat, out); err != nil {
 			return nil, fmt.Errorf("config: %w", err)
 		}
 		if !ptr {

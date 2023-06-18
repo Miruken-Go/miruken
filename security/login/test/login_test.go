@@ -1,0 +1,292 @@
+package test
+
+import (
+	"errors"
+	"fmt"
+	"github.com/knadh/koanf"
+	"github.com/knadh/koanf/parsers/json"
+	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/config"
+	koanfp "github.com/miruken-go/miruken/config/koanf"
+	"github.com/miruken-go/miruken/creates"
+	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/provides"
+	"github.com/miruken-go/miruken/security"
+	"github.com/miruken-go/miruken/security/login"
+	"github.com/miruken-go/miruken/security/login/callback"
+	"github.com/miruken-go/miruken/security/principal"
+	"github.com/stretchr/testify/suite"
+	"os"
+	"strconv"
+	"testing"
+)
+
+type (
+	MyCallbackHandler struct {
+		name     string
+		password []byte
+	}
+
+	MyLoginModule struct {
+		user  principal.User
+		debug bool
+	}
+)
+
+
+// MyCallbackHandler
+
+func (h *MyCallbackHandler) Handle(
+	c        any,
+	greedy   bool,
+	composer miruken.Handler,
+) miruken.HandleResult {
+	switch cb := c.(type) {
+	case *callback.Name:
+		cb.SetName(h.name)
+	case *callback.Password:
+		cb.SetPassword(h.password)
+	default:
+		return miruken.NotHandled
+	}
+	return miruken.Handled
+}
+
+
+// MyLoginModule
+
+func (l *MyLoginModule) Constructor(
+	_*struct{creates.It `key:"my"`},
+) {
+}
+
+func (l *MyLoginModule) Init(opts map[string]any) error {
+	switch d := opts["debug"].(type) {
+	case nil:
+	case bool:
+		l.debug = d
+	case string:
+		if debug, err := strconv.ParseBool(d); err != nil {
+			return err
+		} else {
+			l.debug = debug
+		}
+	default:
+		return fmt.Errorf(`unrecognized "debug" option: %v`, d)
+	}
+	return nil
+}
+
+func (l *MyLoginModule) Login(
+	subject security.Subject,
+	handler miruken.Handler,
+) (*promise.Promise[any], error) {
+	name := callback.NewName("user name: ", "")
+	result := handler.Handle(name, false, nil)
+	if !result.Handled() {
+		return nil, errors.New("username unavailable")
+	} else if name.Name() != "test" {
+		return nil, errors.New("incorrect username")
+	}
+
+	password := callback.NewPassword("password: ", false)
+	result = handler.Handle(password, false, nil)
+	if !result.Handled() {
+		return nil, errors.New("password unavailable")
+	} else if string(password.Password()) != "password" {
+		return nil, errors.New("incorrect password")
+	}
+
+	if l.debug {
+		fmt.Println("\t[MyLoginModule]", "username:", name.Name())
+		fmt.Println("\t[MyLoginModule]", "password:", string(password.Password()))
+	}
+
+	l.user = principal.User(name.Name())
+	subject.AddPrincipals(l.user)
+
+	return nil, nil
+}
+
+func (l *MyLoginModule) Logout(
+	subject security.Subject,
+	handler miruken.Handler,
+) (*promise.Promise[any], error) {
+	subject.RemovePrincipals(l.user)
+	return nil, nil
+}
+
+
+type LoginTestSuite struct {
+	suite.Suite
+	specs []any
+}
+
+func (suite *LoginTestSuite) SetupTest() {
+	suite.specs = []any{
+		&MyLoginModule{},
+	}
+}
+
+func (suite *LoginTestSuite) Setup(specs ...any) (miruken.Handler, error) {
+	if len(specs) == 0 {
+		specs = suite.specs
+	}
+	return miruken.Setup().Specs(specs...).Handler()
+}
+
+func (suite *LoginTestSuite) TestLogin() {
+	suite.Run("Login", func() {
+		suite.Run("Succeed", func() {
+			handler, _ := suite.Setup()
+			ctx := login.New(login.ModuleEntry{Key: "my", Options: map[string]any{
+				"debug": true,
+			}})
+			ch := &MyCallbackHandler{"test", []byte("password")}
+			ps := ctx.Login(miruken.AddHandlers(handler, ch))
+			suite.NotNil(ps)
+			sub, err := ps.Await()
+			suite.Nil(err)
+			suite.NotNil(sub)
+			suite.True(principal.All(sub, principal.User("test")))
+		})
+
+		suite.Run("Fail", func() {
+			handler, _ := suite.Setup()
+			ctx := login.New(login.ModuleEntry{Key: "my"})
+			ch  := &MyCallbackHandler{"user", []byte("1234")}
+			ps  := ctx.Login(miruken.AddHandlers(handler, ch))
+			suite.NotNil(ps)
+			sub, err := ps.Await()
+			suite.NotNil(err)
+			suite.Nil(sub)
+			var le login.Error
+			suite.ErrorAs(err, &le)
+			suite.Equal("login failed: incorrect username", le.Error())
+		})
+
+		suite.Run("No Modules", func() {
+			defer func() {
+				if r := recover(); r != nil {
+					suite.Equal("login: at least one module is required", r)
+				}
+			}()
+			login.New()
+		})
+	})
+
+	suite.Run("Logout", func() {
+		suite.Run("Succeed", func() {
+			handler, _ := suite.Setup()
+			ctx := login.New(login.ModuleEntry{Key: "my", Options: map[string]any{
+				"debug": true,
+			}})
+			ch := &MyCallbackHandler{"test", []byte("password")}
+			ps := ctx.Login(miruken.AddHandlers(handler, ch))
+			suite.NotNil(ps)
+			sub, err := ps.Await()
+			suite.Nil(err)
+			suite.NotNil(sub)
+			suite.True(principal.All(sub, principal.User("test")))
+
+			ps = ctx.Logout(handler)
+			suite.NotNil(ps)
+			sub, err = ps.Await()
+			suite.Nil(err)
+			suite.NotNil(sub)
+			suite.Empty(sub.Principals())
+		})
+
+		suite.Run("Login Required", func() {
+			handler, _ := suite.Setup()
+			ctx := login.New(login.ModuleEntry{Key: "my", Options: map[string]any{
+				"debug": true,
+			}})
+			ps := ctx.Logout(handler)
+			suite.NotNil(ps)
+			_, err := ps.Await()
+			suite.NotNil(err)
+			var le login.Error
+			suite.ErrorAs(err, &le)
+			suite.Equal(`login failed: login must succeed first`, le.Error())
+		})
+	})
+
+	suite.Run("Configuration", func() {
+		suite.Run("File", func() {
+			var k = koanf.New(".")
+			err := k.Load(file.Provider("./login.json"), json.Parser())
+			suite.Nil(err)
+			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
+			cfg, _, err := provides.Type[login.Configuration](handler, &config.Load{Path: "login"})
+			suite.Nil(err)
+			suite.NotNil(cfg)
+			suite.Len(cfg, 1)
+			suite.NotNil(cfg["flow1"])
+			suite.Len(cfg["flow1"], 1)
+			suite.Equal("module1", cfg["flow1"][0].Key)
+			suite.Equal(map[string]any{
+				"debug": true,
+			}, cfg["flow1"][0].Options)
+
+			f, _, err := provides.Type[login.Flow](handler, &config.Load{Path: "login.flow1"})
+			suite.Nil(err)
+			suite.NotNil(f)
+			suite.Equal("module1", f[0].Key)
+			suite.Equal(map[string]any{
+				"debug": true,
+			}, f[0].Options)
+		})
+
+		suite.Run("Env", func() {
+			var k = koanf.New(".")
+			_ = os.Setenv("Login_Flow1_0_Key", "module1")
+			_ = os.Setenv("Login_Flow1_0_Options_Debug", "true")
+			err := k.Load(env.Provider("Login", "_", nil), nil,
+				koanf.WithMergeFunc(koanfp.Merge))
+			suite.Nil(err)
+			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
+			cfg, _, err := provides.Type[login.Configuration](handler, &config.Load{Path: "Login"})
+			suite.Nil(err)
+			suite.NotNil(cfg)
+			suite.Len(cfg, 1)
+			suite.NotNil(cfg["Flow1"])
+			suite.Len(cfg["Flow1"], 1)
+			suite.Equal("module1", cfg["Flow1"][0].Key)
+			suite.Equal(map[string]any{
+				"Debug": "true",
+			}, cfg["Flow1"][0].Options)
+
+			f, _, err := provides.Type[login.Flow](handler, &config.Load{Path: "Login.Flow1"})
+			suite.Nil(err)
+			suite.NotNil(f)
+			suite.Equal("module1", f[0].Key)
+			suite.Equal(map[string]any{
+				"Debug": "true",
+			}, f[0].Options)
+		})
+
+		suite.Run("No Modules", func() {
+			var k = koanf.New(".")
+			err := k.Load(env.Provider("Login", "_", nil), nil,
+				koanf.WithMergeFunc(koanfp.Merge))
+			suite.Nil(err)
+			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
+			ctx := login.NewFlow("login.flow")
+			ps := ctx.Login(handler)
+			suite.NotNil(ps)
+			sub, err := ps.Await()
+			suite.NotNil(err)
+			suite.Nil(sub)
+			var le login.Error
+			suite.ErrorAs(err, &le)
+			suite.Equal(`login failed: no modules defined in flow "login.flow"`, le.Error())
+		})
+	})
+}
+
+func TestLoginTestSuite(t *testing.T) {
+	suite.Run(t, new(LoginTestSuite))
+}

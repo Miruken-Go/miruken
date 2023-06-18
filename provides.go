@@ -225,6 +225,7 @@ func (p *providesPolicy) NewConstructorBinding(
 	handlerType reflect.Type,
 	constructor *reflect.Method,
 	spec        *bindingSpec,
+	key         any,
 ) (binding Binding, err error) {
 	explicitSpec := spec != nil
 	if !explicitSpec {
@@ -236,7 +237,7 @@ func (p *providesPolicy) NewConstructorBinding(
 			filters: []FilterProvider{single},
 		}
 	}
-	return newConstructorBinding(handlerType, constructor, spec, explicitSpec)
+	return newConstructorBinding(handlerType, constructor, spec, key, explicitSpec)
 }
 
 var providesPolicyInstance Policy = &providesPolicy{}

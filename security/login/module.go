@@ -1,0 +1,26 @@
+package login
+
+import (
+	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/security"
+)
+
+// Module provides the extensibility hook for a particular type of authentication.
+// e.g. username/password, token
+type Module interface {
+	// Login authenticates the subject.
+	// It can use the supplied handler to prompt for
+	// information such as username or password.
+	Login(
+		subject security.Subject,
+		handler miruken.Handler,
+	) (*promise.Promise[any], error)
+
+	// Logout logs out the subject by remove principals
+	// and/or credentials from the subject.
+	Logout(
+		subject security.Subject,
+		handler miruken.Handler,
+	) (*promise.Promise[any], error)
+}

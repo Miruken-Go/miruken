@@ -10,21 +10,32 @@ type (
 		// e.g. UserId, Username, Group or Role
 		Principals() []any
 
-		// Credentials return security-related attributes of this Subject.
+		// Credentials return security attributes of this Subject.
 		// e.g. passwords, certificates, claims
 		Credentials() []any
 
-		// AddPrincipals adds the principals if not present.
+		// AddPrincipals adds any new principals to this Subject.
 		AddPrincipals(ps ...any)
 
-		// AddCredentials add credentials if not present.
+		// AddCredentials add any new credentials to this Subject.
 		AddCredentials(cs ...any)
+
+		// RemovePrincipals remove the principals from this Subject.
+		RemovePrincipals(ps ...any)
+
+		// RemoveCredentials remove the credentials from this Subject.
+		RemoveCredentials(cs ...any)
 	}
+
+	// SubjectOption allows configuration of new Subject.
+	SubjectOption func(subject Subject)
 
 	mutableSubject struct {
 		principals  []any
 		credentials []any
 	}
+
+	system struct {}
 
 	systemSubject struct{
 		principals []any
@@ -50,12 +61,20 @@ func (s *mutableSubject) AddPrincipals(ps ...any) {
 	}
 }
 
+func (s *mutableSubject) RemovePrincipals(ps ...any) {
+	s.principals = slices.Remove(s.principals, ps...)
+}
+
 func (s *mutableSubject) AddCredentials(cs ...any) {
 	for _, c := range cs {
 		if !slices.Contains(s.credentials, c) {
 			s.credentials = append(s.credentials, c)
 		}
 	}
+}
+
+func (s *mutableSubject) RemoveCredentials(cs ...any) {
+	s.credentials = slices.Remove(s.credentials, cs...)
 }
 
 
@@ -77,31 +96,47 @@ func (s systemSubject) AddCredentials(cs ...any) {
 	panic("system subject is immutable")
 }
 
+func (s systemSubject) removePrincipals(ps ...any) {
+	panic("system subject is immutable")
+}
 
-// Principals configures a Subject with initial principals.
-func Principals(ps ...any) func(Subject) {
+func (s systemSubject) RemoveCredentials(cs ...any) {
+	panic("system subject is immutable")
+}
+
+
+// WithPrincipals configures a Subject with initial principals.
+func WithPrincipals(ps ...any) SubjectOption {
 	return func(sub Subject) {
 		sub.AddPrincipals(ps...)
 	}
 }
 
-// Credentials configures a Subject with initial credentials.
-func Credentials(cs ...any) func(Subject) {
+// WithCredentials configures a Subject with initial credentials.
+func WithCredentials(cs ...any) SubjectOption {
 	return func(sub Subject) {
 		sub.AddCredentials(cs...)
 	}
 }
 
 // NewSubject creates a new Subject with optional principals and credentials.
-func NewSubject(config ...func(Subject)) Subject {
+func NewSubject(opts ...SubjectOption) Subject {
 	sub := &mutableSubject{}
-	for _, configure := range config {
-		if configure != nil {
-			configure(sub)
+	for _, opt := range opts {
+		if opt != nil {
+			opt(sub)
 		}
 	}
 	return sub
 }
 
 
-var SystemSubject = systemSubject{[]any{System}}
+var (
+	// System defines a singleton principal that can be used
+	// to bypass security checks.
+	// e.g. internal service to service interactions
+	System = system{}
+
+	// SystemSubject is a singleton Subject used to bypass security.
+	SystemSubject = systemSubject{[]any{System}}
+)

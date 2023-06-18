@@ -227,7 +227,7 @@ func (s HandlerTypeSpec) newHandlerDescriptor(
 	for _, ctorPk := range ctorPolicies {
 		policy := ctorPk.policy
 		if binder, ok := policy.(ConstructorBinder); ok {
-			if ctor, err := binder.NewConstructorBinding(typ, constructor, ctorSpec); err == nil {
+			if ctor, err := binder.NewConstructorBinding(typ, constructor, ctorSpec, ctorPk.key); err == nil {
 				for _, observer := range observers {
 					observer.BindingCreated(policy, descriptor, ctor)
 				}

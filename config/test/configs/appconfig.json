@@ -4,7 +4,11 @@
       "name": "mongo",
       "connectionString": "mongodb://mongodb0.example.com:27017",
       "timeout": "5h30m40s"
-    }],
+    },{
+      "name": "sql",
+      "connectionString": "Server=localhost;Database=Customers;User Id=user",
+      "timeout": "1h10m20s"
+  }],
   "services": {
     "eventStoreUrl": "http://gateway/events",
     "customerUrl": "http://gateway/customer"
