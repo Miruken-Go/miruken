@@ -159,7 +159,7 @@ func GetOptions(handler Handler, target any) bool {
 		options.options = tv.Interface()
 	case reflect.Ptr:
 		if optType.Elem().Kind() != reflect.Struct {
-			panic(fmt.Sprintf("options: %v is not a **struct", optType))
+			panic(fmt.Sprintf("options: %v is not a *struct or **struct", optType))
 		}
 		created = true
 		if value := reflect.Indirect(tv); value.IsNil() {

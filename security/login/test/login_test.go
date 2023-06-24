@@ -242,9 +242,9 @@ func (suite *LoginTestSuite) TestLogin() {
 
 		suite.Run("Env", func() {
 			var k = koanf.New(".")
-			_ = os.Setenv("Login_Flow1_0_Key", "module1")
-			_ = os.Setenv("Login_Flow1_0_Options_Debug", "true")
-			err := k.Load(env.Provider("Login", "_", nil), nil,
+			_ = os.Setenv("Login__Flow1__0__Key", "module1")
+			_ = os.Setenv("Login__Flow1__0__Options__Debug", "true")
+			err := k.Load(env.Provider("Login", "__", nil), nil,
 				koanf.WithMergeFunc(koanfp.Merge))
 			suite.Nil(err)
 			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
@@ -270,7 +270,7 @@ func (suite *LoginTestSuite) TestLogin() {
 
 		suite.Run("No Modules", func() {
 			var k = koanf.New(".")
-			err := k.Load(env.Provider("Login", "_", nil), nil,
+			err := k.Load(env.Provider("Login", "__", nil), nil,
 				koanf.WithMergeFunc(koanfp.Merge))
 			suite.Nil(err)
 			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()

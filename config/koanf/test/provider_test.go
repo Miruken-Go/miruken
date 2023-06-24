@@ -169,17 +169,17 @@ func (suite *ProviderTestSuite) TestProvider() {
 	})
 
 	suite.Run("Env", func() {
-		_ = os.Setenv("Miruken_Env", "local")
-		_ = os.Setenv("Miruken_Services_EventStoreUrl", "http://gateway/events")
-		_ = os.Setenv("Miruken_Services_CustomerUrl", "http://gateway/customer")
-		_ = os.Setenv("Miruken_Databases_0_Name", "mongo")
-		_ = os.Setenv("Miruken_Databases_0_ConnectionString", "mongodb://mongodb0.example.com:27017")
-		_ = os.Setenv("Miruken_Databases_0_Timeout", "5h30m40s")
-		_ = os.Setenv("Miruken_Databases_1_Name", "sql")
-		_ = os.Setenv("Miruken_Databases_1_ConnectionString", "Server=localhost;Database=Customers;User Id=user")
-		_ = os.Setenv("Miruken_Databases_1_Timeout", "1h10m20s")
+		_ = os.Setenv("Miruken__Env", "local")
+		_ = os.Setenv("Miruken__Services__EventStoreUrl", "http://gateway/events")
+		_ = os.Setenv("Miruken__Services__CustomerUrl", "http://gateway/customer")
+		_ = os.Setenv("Miruken__Databases__0__Name", "mongo")
+		_ = os.Setenv("Miruken__Databases__0__ConnectionString", "mongodb://mongodb0.example.com:27017")
+		_ = os.Setenv("Miruken__Databases__0__Timeout", "5h30m40s")
+		_ = os.Setenv("Miruken__Databases__1__Name", "sql")
+		_ = os.Setenv("Miruken__Databases__1__ConnectionString", "Server=localhost;Database=Customers;User Id=user")
+		_ = os.Setenv("Miruken__Databases__1__Timeout", "1h10m20s")
 		var k = koanf.New(".")
-		err := k.Load(env.Provider("Miruken", "_", nil), nil,
+		err := k.Load(env.Provider("Miruken", "__", nil), nil,
 			koanf.WithMergeFunc(koanfp.Merge))
 		suite.Nil(err)
 		handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
