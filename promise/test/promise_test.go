@@ -196,6 +196,22 @@ func TestPromise_Cancel(t *testing.T) {
 	require.Nil(t, val)
 }
 
+func TestPromise_Foo(t *testing.T) {
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Minute*10))
+	p1 := promise.WithContext(func(resolve func(any), reject func(error)) {
+		resolve("craig")
+	}, ctx)
+	val, err := p1.Await()
+	require.Nil(t, err)
+	require.Equal(t, "craig", val)
+
+	cancel()
+
+	val, err = p1.Await()
+	require.Nil(t, err)
+	require.Equal(t, "craig", val)
+}
+
 func TestPromise_Timeout(t *testing.T) {
 	p1 := promise.New(func(resolve func(any), reject func(error)) {
 		resolve("Hello")

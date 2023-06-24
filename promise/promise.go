@@ -67,7 +67,7 @@ func (p *Promise[T]) Await() (T, error) {
 		if ctx := p.ctx; ctx != nil {
 			select {
 			case <-ctx.Done():
-				return p.value, CanceledError{context.Cause(ctx)}
+				p.reject(CanceledError{context.Cause(ctx)})
 			case <-ch:
 			}
 		} else {

@@ -1,8 +1,8 @@
 package miruken
 
 import (
+	"dario.cat/mergo"
 	"fmt"
-	"github.com/imdario/mergo"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
