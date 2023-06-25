@@ -141,7 +141,7 @@ func (suite *LoginTestSuite) TestLogin() {
 	suite.Run("Login", func() {
 		suite.Run("Succeed", func() {
 			handler, _ := suite.Setup()
-			ctx := login.New(login.ModuleEntry{Key: "my", Options: map[string]any{
+			ctx := login.New(login.ModuleEntry{Module: "my", Options: map[string]any{
 				"debug": true,
 			}})
 			ch := &MyCallbackHandler{"test", []byte("password")}
@@ -155,7 +155,7 @@ func (suite *LoginTestSuite) TestLogin() {
 
 		suite.Run("Fail", func() {
 			handler, _ := suite.Setup()
-			ctx := login.New(login.ModuleEntry{Key: "my"})
+			ctx := login.New(login.ModuleEntry{Module: "my"})
 			ch  := &MyCallbackHandler{"user", []byte("1234")}
 			ps  := ctx.Login(miruken.AddHandlers(handler, ch))
 			suite.NotNil(ps)
@@ -180,7 +180,7 @@ func (suite *LoginTestSuite) TestLogin() {
 	suite.Run("Logout", func() {
 		suite.Run("Succeed", func() {
 			handler, _ := suite.Setup()
-			ctx := login.New(login.ModuleEntry{Key: "my", Options: map[string]any{
+			ctx := login.New(login.ModuleEntry{Module: "my", Options: map[string]any{
 				"debug": true,
 			}})
 			ch := &MyCallbackHandler{"test", []byte("password")}
@@ -201,7 +201,7 @@ func (suite *LoginTestSuite) TestLogin() {
 
 		suite.Run("Login Required", func() {
 			handler, _ := suite.Setup()
-			ctx := login.New(login.ModuleEntry{Key: "my", Options: map[string]any{
+			ctx := login.New(login.ModuleEntry{Module: "my", Options: map[string]any{
 				"debug": true,
 			}})
 			ps := ctx.Logout(handler)
@@ -226,7 +226,7 @@ func (suite *LoginTestSuite) TestLogin() {
 			suite.Len(cfg, 1)
 			suite.NotNil(cfg["flow1"])
 			suite.Len(cfg["flow1"], 1)
-			suite.Equal("module1", cfg["flow1"][0].Key)
+			suite.Equal("module1", cfg["flow1"][0].Module)
 			suite.Equal(map[string]any{
 				"debug": true,
 			}, cfg["flow1"][0].Options)
@@ -234,7 +234,7 @@ func (suite *LoginTestSuite) TestLogin() {
 			f, _, err := provides.Type[login.Flow](handler, &config.Load{Path: "login.flow1"})
 			suite.Nil(err)
 			suite.NotNil(f)
-			suite.Equal("module1", f[0].Key)
+			suite.Equal("module1", f[0].Module)
 			suite.Equal(map[string]any{
 				"debug": true,
 			}, f[0].Options)
@@ -242,7 +242,7 @@ func (suite *LoginTestSuite) TestLogin() {
 
 		suite.Run("Env", func() {
 			var k = koanf.New(".")
-			_ = os.Setenv("Login__Flow1__0__Key", "module1")
+			_ = os.Setenv("Login__Flow1__0__Module", "module1")
 			_ = os.Setenv("Login__Flow1__0__Options__Debug", "true")
 			err := k.Load(env.Provider("Login", "__", nil), nil,
 				koanf.WithMergeFunc(koanfp.Merge))
@@ -254,7 +254,7 @@ func (suite *LoginTestSuite) TestLogin() {
 			suite.Len(cfg, 1)
 			suite.NotNil(cfg["Flow1"])
 			suite.Len(cfg["Flow1"], 1)
-			suite.Equal("module1", cfg["Flow1"][0].Key)
+			suite.Equal("module1", cfg["Flow1"][0].Module)
 			suite.Equal(map[string]any{
 				"Debug": "true",
 			}, cfg["Flow1"][0].Options)
@@ -262,7 +262,7 @@ func (suite *LoginTestSuite) TestLogin() {
 			f, _, err := provides.Type[login.Flow](handler, &config.Load{Path: "Login.Flow1"})
 			suite.Nil(err)
 			suite.NotNil(f)
-			suite.Equal("module1", f[0].Key)
+			suite.Equal("module1", f[0].Module)
 			suite.Equal(map[string]any{
 				"Debug": "true",
 			}, f[0].Options)

@@ -119,7 +119,7 @@ func (c *Context) loadModules(
 	modules := make([]Module, len(c.entries), len(c.entries))
 
 	for i, entry := range c.entries {
-		m, mp, err := creates.Key[Module](handler, entry.Key)
+		m, mp, err := creates.Key[Module](handler, entry.Module)
 		if err != nil {
 			return err
 		} else if mp != nil {

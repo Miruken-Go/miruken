@@ -207,6 +207,12 @@ func (i *Installer) BindingCreated(
 						"422": &openapi3.ResponseRef{
 							Ref: "#/components/responses/ValidationError",
 						},
+						"401": &openapi3.ResponseRef{
+							Ref: "#/components/responses/UnauthorizedError",
+						},
+						"403": &openapi3.ResponseRef{
+							Ref: "#/components/responses/ForbiddenError",
+						},
 						"500": &openapi3.ResponseRef{
 							Ref: "#/components/responses/GenericError",
 						},
@@ -239,7 +245,15 @@ func (i *Installer) initializeDefinitions(ap *apiProfile) {
 			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
 				WithProperty("payload", openapi3.NewObjectSchema()))),
 	}
-	ap.responses["ValidationError"] =  &openapi3.ResponseRef{
+	ap.responses["UnauthorizedError"] = &openapi3.ResponseRef{
+		Value: openapi3.NewResponse().
+			WithDescription("Unauthorized"),
+	}
+	ap.responses["ForbiddenError"] = &openapi3.ResponseRef{
+		Value: openapi3.NewResponse().
+			WithDescription("Forbidden"),
+	}
+	ap.responses["ValidationError"] = &openapi3.ResponseRef{
 		Value: openapi3.NewResponse().
 			WithDescription("Validation Error").
 			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
@@ -247,7 +261,7 @@ func (i *Installer) initializeDefinitions(ap *apiProfile) {
 					Ref: "#/components/schemas/Outcome",
 				}))),
 	}
-	ap.responses["GenericError"] =  &openapi3.ResponseRef{
+	ap.responses["GenericError"] = &openapi3.ResponseRef{
 		Value: openapi3.NewResponse().
 			WithDescription("Oops ... something went wrong").
 			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
@@ -273,6 +287,12 @@ func (i *Installer) initializeDefinitions(ap *apiProfile) {
 				},
 				"422": &openapi3.ResponseRef{
 					Ref: "#/components/responses/ValidationError",
+				},
+				"401": &openapi3.ResponseRef{
+					Ref: "#/components/responses/UnauthorizedError",
+				},
+				"403": &openapi3.ResponseRef{
+					Ref: "#/components/responses/ForbiddenError",
 				},
 				"500": &openapi3.ResponseRef{
 					Ref: "#/components/responses/GenericError",

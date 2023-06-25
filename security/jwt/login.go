@@ -55,7 +55,7 @@ func (l *LoginModule) Init(opts map[string]any) error {
 		}
 	}
 	if l.jwksUrl == "" {
-		return errors.New("missing JWKSUrl option")
+		return errors.New("missing JwksUrl option")
 	}
 	return nil
 }
@@ -91,6 +91,7 @@ func (l *LoginModule) Login(
 			subject.AddPrincipals(l.id)
 		}
 		subject.AddCredentials(l.token)
+		l.addScopes(subject, claims)
 	} else {
 		return nil, ErrInvalidToken
 	}
@@ -108,4 +109,18 @@ func (l *LoginModule) Logout(
 		subject.RemovePrincipals(scope)
 	}
 	return nil, nil
+}
+
+func (l *LoginModule) addScopes(
+	subject security.Subject,
+	claims jwt.MapClaims,
+) {
+	if scp, ok := claims["scp"]; ok {
+		scopes := strings.Split(scp.(string), " ")
+		l.scopes = make([]Scope, len(scopes))
+		for i, scope := range scopes {
+			l.scopes[i] = Scope(scope)
+			subject.AddPrincipals(l.scopes[i])
+		}
+	}
 }

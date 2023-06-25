@@ -4,7 +4,7 @@ type (
 	// ModuleEntry defines a single module in the
 	// login Configuration.
 	ModuleEntry struct {
-		Key     string
+		Module  string
 		Options map[string]any
 	}
 
