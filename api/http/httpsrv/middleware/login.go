@@ -1,7 +1,8 @@
-package httpsrv
+package middleware
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/api/http/httpsrv"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/security/login"
 	"github.com/miruken-go/miruken/security/login/callback"
@@ -10,9 +11,9 @@ import (
 )
 
 type (
-	// Authenticate provides Middleware to authenticate
+	// Login provides Middleware to authenticate
 	// a http request for the given login flow.
-	Authenticate struct {
+	Login struct {
 		Flow string
 	}
 
@@ -35,16 +36,16 @@ func (h *callbackHandler) Handle(
 }
 
 
-func (a *Authenticate) ServeHTTP(
+func (l *Login) ServeHTTP(
 	w http.ResponseWriter,
 	r *http.Request,
 	h miruken.Handler,
-	m Middleware,
+	m httpsrv.Middleware,
 	n func(handler miruken.Handler),
 ) {
 	auth := r.Header.Get("Authorization")
 	// if no 'Authorization' header is present, skip authentication.
-	// handlers requiring a security.Subject will not execute.
+	// handlers requiring l security.Subject will not execute.
 	if auth != "" {
 		token := strings.Split(auth, "Bearer ")
 		if len(token) != 2 {
@@ -52,8 +53,8 @@ func (a *Authenticate) ServeHTTP(
 			http.Error(w, "401 malformed token", http.StatusUnauthorized)
 			return
 		}
-		flow := a.Flow
-		if ma, ok := m.(*Authenticate); ok {
+		flow := l.Flow
+		if ma, ok := m.(*Login); ok {
 			if ma.Flow != "" {
 				flow = ma.Flow
 			}

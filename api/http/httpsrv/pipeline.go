@@ -73,7 +73,8 @@ func Pipeline(
 						w.WriteHeader(http.StatusInternalServerError)
 						return
 					}
-				} else if mm == nil {
+				}
+				if mm == nil {
 					mm = m
 				}
 				mm.ServeHTTP(w, r, h, m, next)
