@@ -138,6 +138,9 @@ func (c *Context) loadModules(
 // NewFlow creates a Context from the configured flow.
 // `flow` is used as the path into the application configuration.
 func NewFlow(flow string) *Context {
+	if flow == "" {
+		panic("login: flow cannot be empty")
+	}
 	return &Context{flow: flow}
 }
 

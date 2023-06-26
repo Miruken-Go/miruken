@@ -10,6 +10,8 @@ type (
 	Builder interface {
 		BuildUp(handler Handler) Handler
 	}
+
+	// BuilderFunc promotes a function to Builder.
 	BuilderFunc func(Handler) Handler
 )
 

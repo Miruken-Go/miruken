@@ -8,7 +8,6 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/args"
-	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/slices"
@@ -20,43 +19,39 @@ import (
 	"strings"
 )
 
-// ApiHandler is an http.Handler for processing api requests.
+// ApiHandler is an http.Handler for processing api requests over http.
 type ApiHandler struct {
-	ctx    *context.Context
 	logger logr.Logger
 }
 
-func (h *ApiHandler) Constructor(
-	_*struct{provides.It; context.Lifestyle},
+
+func (a *ApiHandler) Constructor(
 	_*struct{args.Optional}, logger logr.Logger,
-	ctx *context.Context,
 ) {
-	if logger == h.logger {
-		h.logger = logr.Discard()
+	if logger == a.logger {
+		a.logger = logr.Discard()
 	} else {
-		h.logger = logger
+		a.logger = logger
 	}
-	h.ctx = ctx
 }
 
-func (h *ApiHandler) ServeHTTP(
+func (a *ApiHandler) ServeHTTP(
 	w http.ResponseWriter,
 	r *http.Request,
+	h miruken.Handler,
 ) {
-	defer h.handlePanic(w)
+	defer a.handlePanic(w)
 
-	accepted, from, publish := h.acceptRequest(w, r)
+	accepted, from, publish := a.acceptRequest(w, r)
 	if !accepted {
 		return
 	}
 
-	child := h.ctx.NewChild()
-	defer child.Dispose()
-	handler := miruken.BuildUp(child, api.Polymorphic, provides.With(r.Context()))
+	h = miruken.BuildUp(h, api.Polymorphic, provides.With(r.Context()))
 
-	msg, _, _, err := maps.Out[api.Message](handler, r.Body, from)
+	msg, _, _, err := maps.Out[api.Message](h, r.Body, from)
 	if err != nil {
-		h.encodeError(err, http.StatusUnsupportedMediaType, w, handler)
+		a.encodeError(err, http.StatusUnsupportedMediaType, w, h)
 		return
 	}
 
@@ -71,33 +66,33 @@ func (h *ApiHandler) ServeHTTP(
 			http.Error(w, "400 missing content body", http.StatusBadRequest)
 			return
 		}
-		handler = miruken.BuildUp(handler, provides.With(c))
+		h = miruken.BuildUp(h, provides.With(c))
 	}
 
 	if publish {
-		if pv, err := api.Publish(handler, payload); err != nil {
-			h.encodeError(err, 0, w, handler)
+		if pv, err := api.Publish(h, payload); err != nil {
+			a.encodeError(err, 0, w, h)
 		} else if pv == nil {
-			h.encodeResult(nil, r, w, handler)
+			a.encodeResult(nil, r, w, h)
 		} else if _, err = pv.Await(); err == nil {
-			h.encodeResult(nil, r, w, handler)
+			a.encodeResult(nil, r, w, h)
 		} else {
-			h.encodeError(err, 0, w, handler)
+			a.encodeError(err, 0, w, h)
 		}
 	} else {
-		if res, pr, err := api.Send[any](handler, payload); err != nil {
-			h.encodeError(err, 0, w, handler)
+		if res, pr, err := api.Send[any](h, payload); err != nil {
+			a.encodeError(err, 0, w, h)
 		} else if pr == nil {
-			h.encodeResult(res, r, w, handler)
+			a.encodeResult(res, r, w, h)
 		} else if res, err = pr.Await(); err == nil {
-			h.encodeResult(res, r, w, handler)
+			a.encodeResult(res, r, w, h)
 		} else {
-			h.encodeError(err, 0, w, handler)
+			a.encodeError(err, 0, w, h)
 		}
 	}
 }
 
-func (h *ApiHandler) acceptRequest(
+func (a *ApiHandler) acceptRequest(
 	w http.ResponseWriter,
 	r *http.Request,
 ) (accepted bool, format *maps.Format, publish bool) {
@@ -129,7 +124,7 @@ func (h *ApiHandler) acceptRequest(
 	return
 }
 
-func (h *ApiHandler) encodeResult(
+func (a *ApiHandler) encodeResult(
 	result  any,
 	r       *http.Request,
 	w       http.ResponseWriter,
@@ -146,7 +141,7 @@ func (h *ApiHandler) encodeResult(
 				result = content.Body()
 			}
 		} else {
-			h.encodeError(err, 0, w, handler)
+			a.encodeError(err, 0, w, handler)
 			return
 		}
 		api.MergeHeader(textproto.MIMEHeader(header), content.Metadata())
@@ -164,7 +159,7 @@ func (h *ApiHandler) encodeResult(
 		header.Set("Content-Type", format.Name())
 		out := io.Writer(w)
 		if _, _, err := maps.Into(handler, msg, &out, format); err != nil {
-			h.encodeError(err, http.StatusNotAcceptable, w, handler)
+			a.encodeError(err, http.StatusNotAcceptable, w, handler)
 		}
 	} else {
 		for i, format := range formats {
@@ -182,18 +177,18 @@ func (h *ApiHandler) encodeResult(
 				}
 				header.Set("Content-Type", contentType)
 				if _, err := w.Write(b.Bytes()); err != nil {
-					h.logger.Error(err, "unable to write response")
+					a.logger.Error(err, "unable to write response")
 					w.WriteHeader(http.StatusInternalServerError)
 				}
 				break
 			} else if i == len(formats)-1 {
-				h.encodeError(err, http.StatusNotAcceptable, w, handler)
+				a.encodeError(err, http.StatusNotAcceptable, w, handler)
 			}
 		}
 	}
 }
 
-func (h *ApiHandler) encodeError(
+func (a *ApiHandler) encodeError(
 	err                  error,
 	notHandledStatusCode int,
 	w                    http.ResponseWriter,
@@ -236,14 +231,14 @@ func formatAccept(a accept.Accept) *maps.Format {
 	return maps.To(sb.String(), a.Extensions)
 }
 
-func (h *ApiHandler) handlePanic(w http.ResponseWriter) {
+func (a *ApiHandler) handlePanic(w http.ResponseWriter) {
 	if r := recover(); r != nil {
 		err, _ := r.(error)
 		buf := make([]byte, 2048)
 		n := runtime.Stack(buf, false)
 		buf = buf[:n]
 		msg := fmt.Sprintf("%v", r)
-		h.logger.Error(err, "recovering from http panic", "stack", string(buf))
+		a.logger.Error(err, "recovering from http panic", "stack", string(buf))
 		http.Error(w, msg, http.StatusInternalServerError)
 	}
 }

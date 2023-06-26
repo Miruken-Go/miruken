@@ -150,7 +150,7 @@ func (suite *ControllerTestSuite) SetupTest() {
 		TestFeature, httpsrv.Feature(), stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
 		Handler()
-	suite.srv = httptest.NewServer(httpsrv.Handler(handler))
+	suite.srv = httptest.NewServer(httpsrv.Pipeline(handler))
 }
 
 func (suite *ControllerTestSuite) TearDownTest() {

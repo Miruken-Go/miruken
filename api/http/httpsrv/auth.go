@@ -1,8 +1,8 @@
 package httpsrv
 
 import (
-	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/security/login"
 	"github.com/miruken-go/miruken/security/login/callback"
 	"net/http"
@@ -10,10 +10,10 @@ import (
 )
 
 type (
-	authenticate struct {
-		flow    string
-		handler miruken.Handler
-		next    http.Handler
+	// Authenticate provides Middleware to authenticate
+	// a http request for the given login flow.
+	Authenticate struct {
+		Flow string
 	}
 
 	callbackHandler struct {
@@ -35,11 +35,16 @@ func (h *callbackHandler) Handle(
 }
 
 
-func (l *authenticate) ServeHTTP(
+func (a *Authenticate) ServeHTTP(
 	w http.ResponseWriter,
 	r *http.Request,
+	h miruken.Handler,
+	m Middleware,
+	n func(handler miruken.Handler),
 ) {
 	auth := r.Header.Get("Authorization")
+	// if no 'Authorization' header is present, skip authentication.
+	// handlers requiring a security.Subject will not execute.
 	if auth != "" {
 		token := strings.Split(auth, "Bearer ")
 		if len(token) != 2 {
@@ -47,33 +52,23 @@ func (l *authenticate) ServeHTTP(
 			http.Error(w, "401 malformed token", http.StatusUnauthorized)
 			return
 		}
-		ctx := login.NewFlow(l.flow)
+		flow := a.Flow
+		if ma, ok := m.(*Authenticate); ok {
+			if ma.Flow != "" {
+				flow = ma.Flow
+			}
+		}
+		ctx := login.NewFlow(flow)
 		ch  := &callbackHandler{token[1]}
-		ps  := ctx.Login(miruken.AddHandlers(l.handler, ch))
+		ps  := ctx.Login(miruken.AddHandlers(h, ch))
 		if sub, err := ps.Await(); err != nil {
 			w.Header().Set("WWW-Authenticate", "Bearer")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		} else {
-			fmt.Println(sub)
+			h = miruken.BuildUp(h, provides.With(sub))
 		}
 	}
-	l.next.ServeHTTP(w, r)
+	n(h)
 }
 
-func Authenticate(
-	next    http.Handler,
-	flow    string,
-	handler miruken.Handler,
-) http.Handler {
-	if miruken.IsNil(handler) {
-		panic("next cannot be nil")
-	}
-	if flow == "" {
-		panic("flow cannot be empty")
-	}
-	if miruken.IsNil(handler) {
-		panic("handler cannot be nil")
-	}
-	return &authenticate{flow, handler, next}
-}
