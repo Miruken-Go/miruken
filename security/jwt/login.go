@@ -35,9 +35,10 @@ type (
 )
 
 var (
-	ErrMissingToken = errors.New("missing security token")
-	ErrEmptyToken   = errors.New("empty security token")
-	ErrInvalidToken = errors.New("invalid security token")
+	ErrMissingToken  = errors.New("missing security token")
+	ErrEmptyToken    = errors.New("empty security token")
+	ErrInvalidToken  = errors.New("invalid security token")
+	ErrInvalidClaims = errors.New("invalid security claims")
 )
 
 
@@ -63,28 +64,30 @@ func (l *LoginModule) Init(opts map[string]any) error {
 func (l *LoginModule) Login(
 	subject security.Subject,
 	handler miruken.Handler,
-) (*promise.Promise[any], error) {
+) error {
 	name := callback.NewName("prompt", "")
 	result := handler.Handle(name, false, nil)
 	if !result.Handled() {
-		return nil, ErrMissingToken
+		return ErrMissingToken
 	}
 	tokenStr := name.Name()
 	if tokenStr == "" {
-		return nil, ErrEmptyToken
+		return ErrEmptyToken
 	}
 
 	keyfunc, err := l.jwks.At(l.jwksUrl).Await()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	token, err := jwt.Parse(tokenStr, keyfunc)
 	if err != nil {
-		return nil, err
+		return err
+	} else if !token.Valid {
+		return ErrInvalidToken
 	}
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		l.token = token
 		if sub, err := claims.GetSubject(); err != nil && sub != "" {
 			l.id = principal.Id(sub)
@@ -93,22 +96,22 @@ func (l *LoginModule) Login(
 		subject.AddCredentials(l.token)
 		l.addScopes(subject, claims)
 	} else {
-		return nil, ErrInvalidToken
+		return ErrInvalidClaims
 	}
 
-	return nil, nil
+	return nil
 }
 
 func (l *LoginModule) Logout(
 	subject security.Subject,
 	handler miruken.Handler,
-) (*promise.Promise[any], error) {
+) error {
 	subject.RemovePrincipals(l.id)
 	subject.RemoveCredentials(l.token)
 	for _, scope := range l.scopes {
 		subject.RemovePrincipals(scope)
 	}
-	return nil, nil
+	return nil
 }
 
 func (l *LoginModule) addScopes(

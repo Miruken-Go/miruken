@@ -2,7 +2,6 @@ package login
 
 import (
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/security"
 )
 
@@ -15,12 +14,12 @@ type Module interface {
 	Login(
 		subject security.Subject,
 		handler miruken.Handler,
-	) (*promise.Promise[any], error)
+	) error
 
 	// Logout logs out the subject by remove principals
 	// and/or credentials from the subject.
 	Logout(
 		subject security.Subject,
 		handler miruken.Handler,
-	) (*promise.Promise[any], error)
+	) error
 }

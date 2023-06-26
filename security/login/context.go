@@ -61,15 +61,10 @@ func (c *Context) Login(
 
 	return promise.New(func(resolve func(security.Subject), reject func(error)) {
 		for _, mod := range c.modules {
-			pm, err := mod.Login(subject, handler)
+			err := mod.Login(subject, handler)
 			if err != nil {
 				reject(Error{err})
 				return
-			} else if pm != nil {
-				if _, err = pm.Await(); err != nil {
-					reject(Error{err})
-					return
-				}
 			}
 		}
 		c.subject = subject
@@ -88,15 +83,10 @@ func (c *Context) Logout(
 	}
 	return promise.New(func(resolve func(security.Subject), reject func(error)) {
 		for _, mod := range c.modules {
-			pm, err := mod.Logout(subject, handler)
+			err := mod.Logout(subject, handler)
 			if err != nil {
 				reject(Error{err})
 				return
-			} else if pm != nil {
-				if _, err = pm.Await(); err != nil {
-					reject(Error{err})
-					return
-				}
 			}
 		}
 		resolve(c.subject)
@@ -110,9 +100,8 @@ func (c *Context) loadModules(
 		f, _, err := provides.Type[Flow](handler, &config.Load{Path: flow})
 		if err != nil {
 			return err
-		}
-		if len(f) == 0 {
-			return fmt.Errorf("no modules defined in flow %q", flow)
+		} else if len(f) == 0 {
+			return fmt.Errorf("no modules found in flow %q", flow)
 		}
 		c.entries = f
 	}

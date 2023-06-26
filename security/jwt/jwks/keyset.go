@@ -11,15 +11,15 @@ import (
 )
 
 type (
-	// Fetch retrieves JWKS (Json Web Key Set) using keyfunc module.
-	Fetch struct {
+	// KeySet manages JWKS (Json Web Key Set) using keyfunc module.
+	KeySet struct {
 		at   map[string]jwt.Keyfunc
 		lock sync.RWMutex
 	}
 )
 
 
-func (f *Fetch) Constructor(
+func (f *KeySet) Constructor(
 	_*struct{
 		provides.It
 		provides.Single
@@ -28,7 +28,7 @@ func (f *Fetch) Constructor(
 	f.at = make( map[string]jwt.Keyfunc)
 }
 
-func (f *Fetch) At(
+func (f *KeySet) At(
 	jwksURL string,
 ) *promise.Promise[jwt.Keyfunc] {
 	if jwksURL == "" {
@@ -57,7 +57,7 @@ func (f *Fetch) At(
 	})
 }
 
-func (f *Fetch) From(
+func (f *KeySet) From(
 	jwksJSON json.RawMessage,
 ) (jwt.Keyfunc, error) {
 	jwks, err := keyfunc.NewJSON(jwksJSON)

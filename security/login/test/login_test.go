@@ -11,7 +11,6 @@ import (
 	"github.com/miruken-go/miruken/config"
 	koanfp "github.com/miruken-go/miruken/config/koanf"
 	"github.com/miruken-go/miruken/creates"
-	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/security"
 	"github.com/miruken-go/miruken/security/login"
@@ -82,21 +81,21 @@ func (l *MyLoginModule) Init(opts map[string]any) error {
 func (l *MyLoginModule) Login(
 	subject security.Subject,
 	handler miruken.Handler,
-) (*promise.Promise[any], error) {
+) error {
 	name := callback.NewName("user name: ", "")
 	result := handler.Handle(name, false, nil)
 	if !result.Handled() {
-		return nil, errors.New("username unavailable")
+		return errors.New("username unavailable")
 	} else if name.Name() != "test" {
-		return nil, errors.New("incorrect username")
+		return errors.New("incorrect username")
 	}
 
 	password := callback.NewPassword("password: ", false)
 	result = handler.Handle(password, false, nil)
 	if !result.Handled() {
-		return nil, errors.New("password unavailable")
+		return errors.New("password unavailable")
 	} else if string(password.Password()) != "password" {
-		return nil, errors.New("incorrect password")
+		return errors.New("incorrect password")
 	}
 
 	if l.debug {
@@ -107,15 +106,15 @@ func (l *MyLoginModule) Login(
 	l.user = principal.User(name.Name())
 	subject.AddPrincipals(l.user)
 
-	return nil, nil
+	return nil
 }
 
 func (l *MyLoginModule) Logout(
 	subject security.Subject,
 	handler miruken.Handler,
-) (*promise.Promise[any], error) {
+) error {
 	subject.RemovePrincipals(l.user)
-	return nil, nil
+	return nil
 }
 
 
@@ -282,7 +281,7 @@ func (suite *LoginTestSuite) TestLogin() {
 			suite.Nil(sub)
 			var le login.Error
 			suite.ErrorAs(err, &le)
-			suite.Equal(`login failed: no modules defined in flow "login.flow"`, le.Error())
+			suite.Equal(`login failed: no modules found in flow "login.flow"`, le.Error())
 		})
 	})
 }

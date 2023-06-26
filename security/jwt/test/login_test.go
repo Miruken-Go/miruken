@@ -54,6 +54,9 @@ func (suite *LoginTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 
 func (suite *LoginTestSuite) TestLogin() {
 	suite.Run("Login", func() {
+		if testing.Short() {
+			suite.T().Skip("skipping test in short mode.")
+		}
 		handler, _ := suite.Setup()
 		ctx := login.New(login.ModuleEntry{Module: "jwt", Options: map[string]any{
 			"JWKSUrl": "https://teamsrvdevcraig.b2clogin.com/teamsrvdevcraig.onmicrosoft.com/b2c_1_signin/discovery/v2.0/keys",

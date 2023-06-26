@@ -7,7 +7,7 @@ type Installer struct {}
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
-		setup.Specs(&Fetch{})
+		setup.Specs(&KeySet{})
 	}
 	return nil
 }

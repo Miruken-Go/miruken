@@ -248,23 +248,5 @@ func (h *ApiHandler) handlePanic(w http.ResponseWriter) {
 	}
 }
 
-// Handler returns a http.Handler for processing api calls
-// bound to the given miruken.Handler.
-func Handler(handler miruken.Handler) http.Handler {
-	if _, ok := handler.(*context.Context); !ok {
-		handler = context.New(handler)
-	}
-	h, cp, err := provides.Type[*ApiHandler](handler)
-	if err != nil {
-		panic(err)
-	}
-	if cp != nil {
-		if h, err = cp.Await(); err != nil {
-			panic(err)
-		}
-	}
-	return h
-}
-
 
 var toStatusCode = maps.To("http:status-code", nil)
