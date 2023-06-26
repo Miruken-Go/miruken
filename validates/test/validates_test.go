@@ -294,7 +294,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 			handler, _ := suite.Setup()
 			player := Player{DOB:  time.Date(2007, time.June,
 				14, 13, 26, 00, 0, time.Local) }
-			outcome, _, err := validates.Input(handler, &player)
+			outcome, _, err := validates.Constraints(handler, &player)
 			suite.Nil(err)
 			suite.NotNil(outcome)
 			suite.False(outcome.Valid())
@@ -311,7 +311,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 				DOB:       time.Date(2007, time.June, 14,
 					13, 26, 00, 0, time.Local),
 			}
-			outcome, _, err := validates.Input(handler, &player, validates.Groups("Recreational"))
+			outcome, _, err := validates.Constraints(handler, &player, validates.Groups("Recreational"))
 			suite.Nil(err)
 			suite.NotNil(outcome)
 			suite.False(outcome.Valid())

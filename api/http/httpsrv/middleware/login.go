@@ -45,7 +45,7 @@ func (l *Login) ServeHTTP(
 ) {
 	auth := r.Header.Get("Authorization")
 	// if no 'Authorization' header is present, skip authentication.
-	// handlers requiring l security.Subject will not execute.
+	// handlers requiring a security.Subject will not execute.
 	if auth != "" {
 		token := strings.Split(auth, "Bearer ")
 		if len(token) != 2 {

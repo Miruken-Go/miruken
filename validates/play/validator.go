@@ -36,7 +36,7 @@ type (
 
 func (v *Validator) Constructor(
 	validate *play.Validate,
-	_ *struct{args.Optional}, translator ut.Translator,
+	_*struct{args.Optional}, translator ut.Translator,
 ) {
 	v.validate   = validate
 	v.translator = translator

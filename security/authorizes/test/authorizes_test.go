@@ -58,7 +58,7 @@ func (t *TransferFundsAccessPolicy) AuthorizeTransferFast(
 func (a *Account) Transfer(
 	_*struct {
 		handles.It
-		authorizes.Access
+		authorizes.Required
 	  }, transfer TransferFunds,
 ) Money {
 	a.Balance += transfer.Amount
@@ -91,7 +91,7 @@ func (suite *AuthorizesTestSuite) TestAuthorizes() {
 			handler, _ := miruken.Setup().Handler()
 			transfer := TransferFunds{Amount: 1000}
 			handler = miruken.BuildUp(handler, provides.With(security.NewSubject()))
-			grant, _, err := authorizes.Action(handler, transfer)
+			grant, _, err := authorizes.Access(handler, transfer)
 			suite.Nil(err)
 			suite.True(grant)
 		})
@@ -102,7 +102,7 @@ func (suite *AuthorizesTestSuite) TestAuthorizes() {
 				provides.With(security.NewSubject()),
 				miruken.Options(authorizes.Options{RequirePolicy: true}))
 			transfer := TransferFunds{Amount: 1000}
-			grant, _, err := authorizes.Action(handler, transfer)
+			grant, _, err := authorizes.Access(handler, transfer)
 			suite.Nil(err)
 			suite.False(grant)
 		})
@@ -111,7 +111,7 @@ func (suite *AuthorizesTestSuite) TestAuthorizes() {
 			handler, _ := suite.Setup()
 			transfer := TransferFunds{Amount: 1000}
 			handler = miruken.BuildUp(handler, provides.With(security.NewSubject()))
-			grant, _, err := authorizes.Action(handler, transfer)
+			grant, _, err := authorizes.Access(handler, transfer)
 			suite.Nil(err)
 			suite.True(grant)
 		})
@@ -120,7 +120,7 @@ func (suite *AuthorizesTestSuite) TestAuthorizes() {
 			handler, _ := suite.Setup()
 			transfer := TransferFunds{Amount: 1000000}
 			handler = miruken.BuildUp(handler, provides.With(security.NewSubject()))
-			grant, _, err := authorizes.Action(handler, transfer)
+			grant, _, err := authorizes.Access(handler, transfer)
 			suite.Nil(err)
 			suite.False(grant)
 		})
@@ -131,7 +131,7 @@ func (suite *AuthorizesTestSuite) TestAuthorizes() {
 			subject  := security.NewSubject(
 				security.WithPrincipals(principal.Role("manager")))
 			handler = miruken.BuildUp(handler, provides.With(subject))
-			grant, _, err := authorizes.Action(handler, transfer)
+			grant, _, err := authorizes.Access(handler, transfer)
 			suite.Nil(err)
 			suite.True(grant)
 		})
@@ -141,14 +141,14 @@ func (suite *AuthorizesTestSuite) TestAuthorizes() {
 			transfer := TransferFunds{Amount: 500}
 			subject  := security.NewSubject()
 			handler = miruken.BuildUp(handler, provides.With(subject))
-			g, gp, err := authorizes.Action(handler, transfer, "fast")
+			g, gp, err := authorizes.Access(handler, transfer, "fast")
 			suite.Nil(err)
 			suite.NotNil(gp)
 			g, err = gp.Await()
 			suite.False(g)
 			suite.Nil(err)
 			subject.AddPrincipals(principal.Role("owner"))
-			g, gp, err = authorizes.Action(handler, transfer, "fast")
+			g, gp, err = authorizes.Access(handler, transfer, "fast")
 			suite.Nil(err)
 			suite.NotNil(gp)
 			g, err = gp.Await()

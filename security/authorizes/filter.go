@@ -9,8 +9,8 @@ import (
 )
 
 type (
-	// Access is a FilterProvider for authorization.
-	Access struct {
+	// Required is a FilterProvider for authorization.
+	Required struct {
 		policy any
 	}
 
@@ -21,34 +21,35 @@ type (
 	accessDenied struct{}
 )
 
+// ErrAccessDenied indicates authorization failed.
 var ErrAccessDenied = accessDenied{}
 
 
-// Action
+// Required
 
-func (a *Access) InitWithTag(tag reflect.StructTag) error {
+func (r *Required) InitWithTag(tag reflect.StructTag) error {
 	if policy, ok := tag.Lookup("policy"); ok {
-		a.policy = policy
+		r.policy = policy
 	}
 	return nil
 }
 
-func (a *Access) Policy() any {
-	return a.policy
+func (r *Required) Policy() any {
+	return r.policy
 }
 
-func (a *Access) Required() bool {
+func (r *Required) Required() bool {
 	return true
 }
 
-func (a *Access) AppliesTo(
+func (r *Required) AppliesTo(
 	callback miruken.Callback,
 ) bool {
 	_, ok := callback.(*handles.It)
 	return ok
 }
 
-func (a *Access) Filters(
+func (r *Required) Filters(
 	binding  miruken.Binding,
 	callback any,
 	composer miruken.Handler,
@@ -84,11 +85,11 @@ func (f filter) DynNext(
 	provider miruken.FilterProvider,
 	subject  security.Subject,
 )  (out []any, pout *promise.Promise[[]any], err error) {
-	if ap, ok := provider.(*Access); ok {
+	if ap, ok := provider.(*Required); ok {
 		callback := ctx.Callback()
 		composer := ctx.Composer()
 		// perform authorization check
-		g, pg, err := Action(composer, callback.Source(), ap.policy)
+		g, pg, err := Access(composer, callback.Source(), ap.policy)
 		if err != nil {
 			// error performing authorization
 			return nil, nil, err

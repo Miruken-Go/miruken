@@ -158,8 +158,8 @@ func (b *Builder) New() *It {
 	}
 }
 
-// Input performs all validations on `source`.
-func Input(
+// Constraints performs all validations on `source`.
+func Constraints(
 	handler     miruken.Handler,
 	source      any,
 	constraints ...any,

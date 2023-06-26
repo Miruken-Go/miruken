@@ -81,9 +81,8 @@ func (b *Builder) New() *It {
 	}
 }
 
-
-// Action performs authorization on `action`.
-func Action(
+// Access performs authorization on `action`.
+func Access(
 	handler     miruken.Handler,
 	action      any,
 	constraints ...any,

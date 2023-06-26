@@ -75,7 +75,7 @@ type UserHandler struct {
 // CreateUserIntegrity
 
 func (v *CreateUserIntegrity) Constructor(
-	_ *struct{args.Optional}, translator ut.Translator,
+	_*struct{args.Optional}, translator ut.Translator,
 ) error {
 	return v.ConstructWithRules(
 		play.Rules{
