@@ -7,7 +7,7 @@ import (
 )
 
 // All return true if the subject possess all principals.
-func All(subject security.Subject, ps ...any) bool {
+func All(subject security.Subject, ps ...security.Principal) bool {
 	if miruken.IsNil(subject) {
 		panic("subject cannot be nil")
 	}
@@ -21,7 +21,7 @@ func All(subject security.Subject, ps ...any) bool {
 }
 
 // Any return true if the subject possess any principals.
-func Any(subject security.Subject, ps ...any) bool {
+func Any(subject security.Subject, ps ...security.Principal) bool {
 	if miruken.IsNil(subject) {
 		panic("subject cannot be nil")
 	}
@@ -31,5 +31,5 @@ func Any(subject security.Subject, ps ...any) bool {
 			return true
 		}
 	}
-	return true
+	return false
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/maps"
+	"github.com/miruken-go/miruken/security/authorizes"
 	"github.com/miruken-go/miruken/validates"
 	"net/http"
 )
@@ -37,6 +38,15 @@ func (s *StatusCodeMapper) Validation(
 	  }, _ *validates.Outcome,
 ) int {
 	return http.StatusUnprocessableEntity
+}
+
+func (s *StatusCodeMapper) Authorization(
+	_*struct{
+		maps.It
+		maps.Format `to:"http:status-code"`
+	  }, _ *authorizes.AccessDeniedError,
+) int {
+	return http.StatusUnauthorized
 }
 
 func (s *StatusCodeMapper) JsonSyntax(

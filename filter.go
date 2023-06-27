@@ -16,6 +16,7 @@ const (
 	FilterStageValidation    = 50
 )
 
+
 type (
 	// Next advances to the next step in a pipeline.
 	Next func (
@@ -62,6 +63,7 @@ type (
 		providers []FilterProvider
 	}
 )
+
 
 func (n Next) Pipe() ([]any, *promise.Promise[[]any], error) {
 	return mergeOutput(n(nil, true))
@@ -118,6 +120,7 @@ func (n Next) Fail(err error) ([]any, *promise.Promise[[]any], error) {
 	return nil, nil, err
 }
 
+
 type (
 	// filterSpec describes a Filter.
 	filterSpec struct {
@@ -131,6 +134,7 @@ type (
 		spec filterSpec
 	}
 )
+
 
 func (f *filterSpecProvider) Required() bool {
 	return f.spec.required
@@ -182,6 +186,7 @@ func NewFilterInstanceProvider(
 ) *FilterInstanceProvider {
 	return &FilterInstanceProvider{filters, required}
 }
+
 
 func (f *FilteredScope) Filters() []FilterProvider {
 	return f.providers
@@ -259,11 +264,13 @@ func ProvideFilters(providers ...FilterProvider) Builder {
 	})
 }
 
+
 // providedFilter models a Filter and its FilterProvider.
 type providedFilter struct {
 	filter   Filter
 	provider FilterProvider
 }
+
 
 func orderedFilters(
 	handler   Handler,
@@ -352,14 +359,11 @@ func orderedFilters(
 	return allFilters, nil
 }
 
-type CompletePipelineFunc func(
-	HandleContext,
-) ([]any, *promise.Promise[[]any], error)
 
 func pipeline(
 	ctx      HandleContext,
 	filters  []providedFilter,
-	complete CompletePipelineFunc,
+	complete func(HandleContext) ([]any, *promise.Promise[[]any], error),
 ) (results []any, pr *promise.Promise[[]any], err error) {
 	index, length := 0, len(filters)
 	var next Next
@@ -384,45 +388,29 @@ func pipeline(
 	return next(ctx.Composer(), true)
 }
 
+
+type nextBinding struct {
+	method reflect.Method
+	args   []arg
+}
+
+func (n *nextBinding) invoke(
+	ctx      HandleContext,
+	initArgs ...any,
+) ([]any, *promise.Promise[[]any], error) {
+	return callFunc(n.method.Func, ctx, n.args, initArgs...)
+}
+
+
 func DynNext(
 	filter   Filter,
 	next     Next,
 	ctx      HandleContext,
 	provider FilterProvider,
 )  (out []any, po *promise.Promise[[]any], err error) {
-	typ := reflect.TypeOf(filter)
-	dynNextLock.RLock()
-	binding := dynNextBindingMap[typ]
-	dynNextLock.RUnlock()
-	if binding == nil {
-		dynNextLock.Lock()
-		defer dynNextLock.Unlock()
-		if binding = dynNextBindingMap[typ]; binding == nil {
-			if dynNext, ok := typ.MethodByName("DynNext"); !ok {
-				goto Invalid
-			} else if dynNextType := dynNext.Type;
-				dynNextType.NumIn() < 4 || dynNextType.NumOut() < 3 {
-				goto Invalid
-			} else if dynNextType.In(1) != reflect.TypeOf(next) ||
-				dynNextType.In(2) != handleCtxType ||
-				dynNextType.In(3) != filterProviderType ||
-				dynNextType.Out(0) != anySliceType ||
-				dynNextType.Out(1) != promiseAnySliceType ||
-				dynNextType.Out(2) != errorType {
-				goto Invalid
-			} else {
-				numArgs := dynNextType.NumIn()
-				args := make([]arg, numArgs-4) // skip receiver
-				if inv := buildDependencies(dynNextType, 4, numArgs, args, 0); inv != nil {
-					err = fmt.Errorf("DynNext: %w", inv)
-				}
-				if err != nil {
-					return nil, nil, &MethodBindingError{dynNext, err}
-				}
-				binding = &nextBinding{dynNext, args}
-				dynNextBindingMap[typ] = binding
-			}
-		}
+	var binding *nextBinding
+	if binding, err = getNextBinding(reflect.TypeOf(filter)); err != nil {
+		return
 	}
 	if out, po, err = binding.invoke(ctx, filter, next, ctx, provider); err != nil {
 		return
@@ -442,27 +430,53 @@ func DynNext(
 		})
 	}
 	return
-
-	Invalid:
-		return nil, nil, fmt.Errorf(
-			"filter %v requires a method DynNext(Next, HandleContext, FilterProvider, ...)",
-			typ)
 }
 
-type nextBinding struct {
-	method reflect.Method
-	args   []arg
-}
-
-func (n *nextBinding) invoke(
-	ctx      HandleContext,
-	initArgs ...any,
-) ([]any, *promise.Promise[[]any], error) {
-	return callFunc(n.method.Func, ctx, n.args, initArgs...)
+func getNextBinding(typ reflect.Type) (*nextBinding, error) {
+	dynNextLock.RLock()
+	binding := dynNextBindingMap[typ]
+	dynNextLock.RUnlock()
+	if binding == nil {
+		dynNextLock.Lock()
+		defer dynNextLock.Unlock()
+		if binding = dynNextBindingMap[typ]; binding == nil {
+			if dynNext, ok := typ.MethodByName("DynNext"); !ok {
+				goto Invalid
+			} else if dynNextType := dynNext.Type;
+				dynNextType.NumIn() < 4 || dynNextType.NumOut() < 3 {
+				goto Invalid
+			} else if dynNextType.In(1) != nextType ||
+				dynNextType.In(2) != handleCtxType ||
+				dynNextType.In(3) != filterProviderType ||
+				dynNextType.Out(0) != anySliceType ||
+				dynNextType.Out(1) != promiseAnySliceType ||
+				dynNextType.Out(2) != errorType {
+				goto Invalid
+			} else {
+				var err error
+				numArgs := dynNextType.NumIn()
+				args := make([]arg, numArgs-4) // skip receiver
+				if inv := buildDependencies(dynNextType, 4, numArgs, args, 0); inv != nil {
+					err = fmt.Errorf("DynNext: %w", inv)
+				}
+				if err != nil {
+					return nil, &MethodBindingError{dynNext, err}
+				}
+				binding = &nextBinding{dynNext, args}
+				dynNextBindingMap[typ] = binding
+			}
+		}
+	}
+	return binding, nil
+Invalid:
+	return nil, fmt.Errorf(
+		"filter %v requires a method DynNext(Next, HandleContext, FilterProvider, ...)",
+		typ)
 }
 
 var (
 	dynNextLock sync.RWMutex
+	nextType            = TypeOf[Next]()
 	dynNextBindingMap   = make(map[reflect.Type]*nextBinding)
 	filterProviderType  = TypeOf[FilterProvider]()
 	promiseAnySliceType = TypeOf[*promise.Promise[[]any]]()

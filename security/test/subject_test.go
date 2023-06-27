@@ -4,13 +4,19 @@ import (
 	"github.com/miruken-go/miruken/security"
 	"github.com/miruken-go/miruken/security/principal"
 	"github.com/stretchr/testify/suite"
+	"strconv"
 	"testing"
 )
 
 type (
-	UserId   int32
+	UserId   int
 	Password string
 )
+
+
+func (u UserId) Name() string {
+	return strconv.Itoa(int(u))
+}
 
 type SubjectTestSuite struct {
 	suite.Suite
@@ -23,7 +29,7 @@ func (suite *SubjectTestSuite) TestSubject() {
 	})
 
 	suite.Run("NewWithPrincipals", func() {
-		ps := []any{UserId(2), principal.Group("Users"),
+		ps := []security.Principal{UserId(2), principal.Group("Users"),
 			principal.Role("Billing")}
 		sub := security.NewSubject(security.WithPrincipals(ps...))
 		suite.NotNil(sub)
@@ -31,7 +37,7 @@ func (suite *SubjectTestSuite) TestSubject() {
 	})
 
 	suite.Run("AddPrincipals", func() {
-		ps := []any{UserId(2), principal.Group("Users"),
+		ps := []security.Principal{UserId(2), principal.Group("Users"),
 			principal.Role("Billing")}
 		sub := security.NewSubject()
 		sub.AddPrincipals(ps...)
@@ -39,7 +45,7 @@ func (suite *SubjectTestSuite) TestSubject() {
 	})
 
 	suite.Run("DistinctPrincipals", func() {
-		ps := []any{UserId(2), principal.Group("Users"),
+		ps := []security.Principal{UserId(2), principal.Group("Users"),
 			principal.Role("Billing")}
 		sub := security.NewSubject(security.WithPrincipals(ps...))
 		suite.Len(sub.Principals(), 3)
@@ -50,7 +56,7 @@ func (suite *SubjectTestSuite) TestSubject() {
 	})
 
 	suite.Run("RemovePrincipals", func() {
-		ps := []any{UserId(2), principal.Group("Users"),
+		ps := []security.Principal{UserId(2), principal.Group("Users"),
 			principal.Role("Billing")}
 		sub := security.NewSubject(security.WithPrincipals(ps...))
 		sub.RemovePrincipals(principal.Role("Billing"))
@@ -91,7 +97,7 @@ func (suite *SubjectTestSuite) TestSubject() {
 			sys := security.SystemSubject
 			suite.NotNil(sys)
 			suite.Nil(sys.Credentials())
-			suite.Equal([]any{security.System}, sys.Principals())
+			suite.Equal([]security.Principal{security.System}, sys.Principals())
 		})
 
 		suite.Run("ImmutablePrincipals", func() {

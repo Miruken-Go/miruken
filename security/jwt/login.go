@@ -10,6 +10,7 @@ import (
 	"github.com/miruken-go/miruken/security"
 	"github.com/miruken-go/miruken/security/login/callback"
 	"github.com/miruken-go/miruken/security/principal"
+	"reflect"
 	"strings"
 )
 
@@ -40,6 +41,22 @@ var (
 	ErrInvalidToken  = errors.New("invalid security token")
 	ErrInvalidClaims = errors.New("invalid security claims")
 )
+
+//goland:noinspection GoMixedReceiverTypes
+func (s Scope) Name() string {
+	return string(s)
+}
+
+//goland:noinspection GoMixedReceiverTypes
+func (s *Scope) InitWithTag(tag reflect.StructTag) error {
+	if name, ok := tag.Lookup("name"); ok {
+		if name == "" {
+			return errors.New("scope name is required")
+		}
+		*s = Scope(name)
+	}
+	return nil
+}
 
 
 func (l *LoginModule) Constructor(

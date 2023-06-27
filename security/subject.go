@@ -2,26 +2,31 @@ package security
 
 import "github.com/miruken-go/miruken/slices"
 
-// Subject is any entity that requests access to a resource.
-// e.g. Process, Machine, Service or User
 type (
+	// Principal identifies a Subject.
+	Principal interface {
+		Name() string
+	}
+
+	// Subject is any entity that requests access to a resource.
+	// e.g. Process, Machine, Service or User
 	Subject interface {
 		// Principals return the identities of this Subject.
 		// e.g. UserId, Username, Group or Role
-		Principals() []any
+		Principals() []Principal
 
 		// Credentials return security attributes of this Subject.
 		// e.g. passwords, certificates, claims
 		Credentials() []any
 
 		// AddPrincipals adds any new principals to this Subject.
-		AddPrincipals(ps ...any)
+		AddPrincipals(ps ...Principal)
 
 		// AddCredentials add any new credentials to this Subject.
 		AddCredentials(cs ...any)
 
 		// RemovePrincipals remove the principals from this Subject.
-		RemovePrincipals(ps ...any)
+		RemovePrincipals(ps ...Principal)
 
 		// RemoveCredentials remove the credentials from this Subject.
 		RemoveCredentials(cs ...any)
@@ -31,21 +36,21 @@ type (
 	SubjectOption func(subject Subject)
 
 	mutableSubject struct {
-		principals  []any
+		principals  []Principal
 		credentials []any
 	}
 
 	system struct {}
 
 	systemSubject struct{
-		principals []any
+		principals []Principal
 	}
 )
 
 
 // Subject
 
-func (s *mutableSubject) Principals() []any {
+func (s *mutableSubject) Principals() []Principal {
 	return s.principals
 }
 
@@ -53,7 +58,7 @@ func (s *mutableSubject) Credentials() []any {
 	return s.credentials
 }
 
-func (s *mutableSubject) AddPrincipals(ps ...any) {
+func (s *mutableSubject) AddPrincipals(ps ...Principal) {
 	for _, p := range ps {
 		if !slices.Contains(s.principals, p) {
 			s.principals = append(s.principals, p)
@@ -61,7 +66,7 @@ func (s *mutableSubject) AddPrincipals(ps ...any) {
 	}
 }
 
-func (s *mutableSubject) RemovePrincipals(ps ...any) {
+func (s *mutableSubject) RemovePrincipals(ps ...Principal) {
 	s.principals = slices.Remove(s.principals, ps...)
 }
 
@@ -78,9 +83,16 @@ func (s *mutableSubject) RemoveCredentials(cs ...any) {
 }
 
 
+// system
+
+func (s system) Name() string {
+	return "system"
+}
+
+
 // systemSubject
 
-func (s systemSubject) Principals() []any {
+func (s systemSubject) Principals() []Principal {
 	return s.principals
 }
 
@@ -88,7 +100,7 @@ func (s systemSubject) Credentials() []any {
 	return nil
 }
 
-func (s systemSubject) AddPrincipals(ps ...any) {
+func (s systemSubject) AddPrincipals(ps ...Principal) {
 	panic("system subject is immutable")
 }
 
@@ -96,7 +108,7 @@ func (s systemSubject) AddCredentials(cs ...any) {
 	panic("system subject is immutable")
 }
 
-func (s systemSubject) removePrincipals(ps ...any) {
+func (s systemSubject) removePrincipals(ps ...Principal) {
 	panic("system subject is immutable")
 }
 
@@ -106,7 +118,7 @@ func (s systemSubject) RemoveCredentials(cs ...any) {
 
 
 // WithPrincipals configures a Subject with initial principals.
-func WithPrincipals(ps ...any) SubjectOption {
+func WithPrincipals(ps ...Principal) SubjectOption {
 	return func(sub Subject) {
 		sub.AddPrincipals(ps...)
 	}
@@ -138,5 +150,5 @@ var (
 	System = system{}
 
 	// SystemSubject is a singleton Subject used to bypass security.
-	SystemSubject = systemSubject{[]any{System}}
+	SystemSubject = systemSubject{[]Principal{System}}
 )
