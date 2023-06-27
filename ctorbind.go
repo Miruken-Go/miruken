@@ -25,6 +25,7 @@ type (
 	}
 )
 
+
 func (b *ConstructorBinding) Key() any {
 	if key := b.key; key != nil {
 		return key

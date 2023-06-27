@@ -125,6 +125,7 @@ func (f filter) DynNext(
 	return next.Abort()
 }
 
+
 func checkBindingPrincipals(
 	binding miruken.Binding,
 	subject security.Subject,

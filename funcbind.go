@@ -33,6 +33,7 @@ type (
 	}
 )
 
+
 func (b *FuncBinding) Key() any {
 	return b.key
 }
@@ -63,6 +64,7 @@ func (e *FuncBindingError) Error() string {
 func (e *FuncBindingError) Unwrap() error {
 	return e.reason
 }
+
 
 // callFunc calls the function stored in the fun argument.
 // Provides resolves the args input and appends them to the initArgs

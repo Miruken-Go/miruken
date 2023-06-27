@@ -7,6 +7,7 @@ type Password struct {
 	password []byte
 }
 
+
 func (p *Password) Prompt() string {
 	return p.prompt
 }
@@ -28,6 +29,7 @@ func (p *Password) ClearPassword() {
 		p.password[i] = 0
 	}
 }
+
 
 func NewPassword(prompt string, display bool) *Password {
 	return &Password{prompt: prompt, display: display}

@@ -32,6 +32,7 @@ type (
 	}
 )
 
+
 func (b *MethodBinding) Key() any {
 	return b.key
 }
@@ -61,6 +62,7 @@ func (b *MethodBinding) Invoke(
 func (b *MethodBinding) Method() reflect.Method {
 	return b.method
 }
+
 
 // MethodBindingError
 

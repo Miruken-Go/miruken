@@ -40,13 +40,13 @@ func (s *StatusCodeMapper) Validation(
 	return http.StatusUnprocessableEntity
 }
 
-func (s *StatusCodeMapper) Authorization(
+func (s *StatusCodeMapper) AccessDenied(
 	_*struct{
 		maps.It
 		maps.Format `to:"http:status-code"`
 	  }, _ *authorizes.AccessDeniedError,
 ) int {
-	return http.StatusUnauthorized
+	return http.StatusForbidden
 }
 
 func (s *StatusCodeMapper) JsonSyntax(

@@ -10,29 +10,10 @@ import (
 	"strings"
 )
 
-type (
-	// Login provides Middleware to authenticate
-	// a http request for the given login flow.
-	Login struct {
-		Flow string
-	}
-
-	callbackHandler struct {
-		token string
-	}
-)
-
-
-func (h *callbackHandler) Handle(
-	c        any,
-	greedy   bool,
-	composer miruken.Handler,
-) miruken.HandleResult {
-	if n, ok := c.(*callback.Name); ok {
-		n.SetName(h.token)
-		return miruken.Handled
-	}
-	return miruken.NotHandled
+// Login provides Middleware to authenticate
+// a http request for a given login flow.
+type Login struct {
+	Flow string
 }
 
 
@@ -50,7 +31,7 @@ func (l *Login) ServeHTTP(
 		token := strings.Split(auth, "Bearer ")
 		if len(token) != 2 {
 			w.Header().Set("WWW-Authenticate", "Bearer")
-			http.Error(w, "401 malformed token", http.StatusUnauthorized)
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 		flow := l.Flow
@@ -60,7 +41,7 @@ func (l *Login) ServeHTTP(
 			}
 		}
 		ctx := login.NewFlow(flow)
-		ch  := &callbackHandler{token[1]}
+		ch  := callback.NameHandler{Name: token[1]}
 		ps  := ctx.Login(miruken.AddHandlers(h, ch))
 		if sub, err := ps.Await(); err != nil {
 			w.Header().Set("WWW-Authenticate", "Bearer")
