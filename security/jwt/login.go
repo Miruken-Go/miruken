@@ -128,12 +128,13 @@ func (l *LoginModule) Logout(
 	for _, scope := range l.scopes {
 		subject.RemovePrincipals(scope)
 	}
+	l.token = nil
 	return nil
 }
 
 func (l *LoginModule) addScopes(
 	subject security.Subject,
-	claims jwt.MapClaims,
+	claims  jwt.MapClaims,
 ) {
 	if scp, ok := claims["scp"]; ok {
 		scopes := strings.Split(scp.(string), " ")

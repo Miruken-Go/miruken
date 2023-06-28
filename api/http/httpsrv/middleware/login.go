@@ -40,7 +40,7 @@ func (l *Login) ServeHTTP(
 				flow = ma.Flow
 			}
 		}
-		ctx := login.NewFlow(flow)
+		ctx := login.New(flow)
 		ch  := callback.NameHandler{Name: token[1]}
 		ps  := ctx.Login(miruken.AddHandlers(h, ch))
 		if sub, err := ps.Await(); err != nil {

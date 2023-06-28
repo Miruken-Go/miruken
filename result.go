@@ -9,6 +9,7 @@ var (
 	NotHandledAndStop = HandleResult{false, true,  nil}
 )
 
+
 type (
 	// HandleResult describes the result of an operation.
 	HandleResult struct {
@@ -20,6 +21,7 @@ type (
 	// HandleResultBlock provides another HandleResult.
 	HandleResultBlock func() HandleResult
 )
+
 
 func (r HandleResult) Handled() bool {
 	return r.handled
@@ -194,6 +196,7 @@ func (r HandleResult) AndBlock(other HandleResult) HandleResult {
 		}
 	}
 }
+
 
 func combineErrors(r1 HandleResult, r2 HandleResult) error {
 	if e1, e2 := r1.err, r2.err; e1 != nil && e2 != nil {

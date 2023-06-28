@@ -4,19 +4,40 @@ import (
 	"fmt"
 )
 
-// Handler is the uniform metaphor for processing.
-type Handler interface {
-	Handle(
-		callback any,
-		greedy   bool,
-		composer Handler,
-	) HandleResult
-}
+type (
+	// Handler is the uniform metaphor for processing.
+	Handler interface {
+		Handle(
+			callback any,
+			greedy   bool,
+			composer Handler,
+		) HandleResult
+	}
 
-// handlerAdapter adapts an ordinary type to a Handler.
-type handlerAdapter struct {
-	handler any
-}
+	// NotHandledError reports a failed callback.
+	NotHandledError struct {
+		Callback any
+	}
+
+	// RejectedError reports a rejected callback.
+	RejectedError struct {
+		Callback any
+	}
+
+	// CanceledError reports a canceled operation.
+ 	CanceledError struct {
+		Message string
+		Reason  error
+	}
+
+	// handlerAdapter adapts an ordinary type to a Handler.
+	handlerAdapter struct {
+		handler any
+	}
+)
+
+
+// handlerAdapter
 
 func (h handlerAdapter) Handle(
 	callback any,
@@ -35,29 +56,22 @@ func ToHandler(handler any) Handler {
 	}
 }
 
-// NotHandledError reports a failed callback.
-type NotHandledError struct {
-	Callback any
-}
+
+// NotHandledError
 
 func (e *NotHandledError) Error() string {
 	return fmt.Sprintf("unhandled \"%T\"", e.Callback)
 }
 
-// RejectedError reports a rejected callback.
-type RejectedError struct {
-	Callback any
-}
+
+// RejectedError
 
 func (e *RejectedError) Error() string {
 	return fmt.Sprintf("callback \"%T\" was rejected", e.Callback)
 }
 
-// CanceledError reports a canceled operation.
-type CanceledError struct {
-	Message string
-	Reason  error
-}
+
+// CanceledError
 
 func (e *CanceledError) Error() string {
 	if IsNil(e.Reason) {
@@ -69,6 +83,7 @@ func (e *CanceledError) Error() string {
 func (e *CanceledError) Unwrap() error {
 	return e.Reason
 }
+
 
 func DispatchCallback(
 	handler  any,

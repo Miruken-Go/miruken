@@ -32,6 +32,8 @@ type (
 		user  principal.User
 		debug bool
 	}
+
+	FailLoginModule struct {}
 )
 
 
@@ -118,6 +120,28 @@ func (l *MyLoginModule) Logout(
 }
 
 
+// FailLoginModule
+
+func (l *FailLoginModule) Constructor(
+	_*struct{creates.It `key:"fail"`},
+) {
+}
+
+func (l *FailLoginModule) Login(
+	subject security.Subject,
+	handler miruken.Handler,
+) error {
+	return errors.New("idp not responding")
+}
+
+func (l *FailLoginModule) Logout(
+	subject security.Subject,
+	handler miruken.Handler,
+) error {
+	return nil
+}
+
+
 type LoginTestSuite struct {
 	suite.Suite
 	specs []any
@@ -126,6 +150,7 @@ type LoginTestSuite struct {
 func (suite *LoginTestSuite) SetupTest() {
 	suite.specs = []any{
 		&MyLoginModule{},
+		&FailLoginModule{},
 	}
 }
 
@@ -140,9 +165,9 @@ func (suite *LoginTestSuite) TestLogin() {
 	suite.Run("Login", func() {
 		suite.Run("Succeed", func() {
 			handler, _ := suite.Setup()
-			ctx := login.New(login.ModuleEntry{Module: "my", Options: map[string]any{
-				"debug": true,
-			}})
+			ctx := login.NewFlow(login.Flow{
+				{Module: "my", Options: map[string]any{"debug": true}},
+			})
 			ch := &MyCallbackHandler{"test", []byte("password")}
 			ps := ctx.Login(miruken.AddHandlers(handler, ch))
 			suite.NotNil(ps)
@@ -154,7 +179,7 @@ func (suite *LoginTestSuite) TestLogin() {
 
 		suite.Run("Fail", func() {
 			handler, _ := suite.Setup()
-			ctx := login.New(login.ModuleEntry{Module: "my"})
+			ctx := login.NewFlow(login.Flow{{Module: "my"}})
 			ch  := &MyCallbackHandler{"user", []byte("1234")}
 			ps  := ctx.Login(miruken.AddHandlers(handler, ch))
 			suite.NotNil(ps)
@@ -166,22 +191,36 @@ func (suite *LoginTestSuite) TestLogin() {
 			suite.Equal("login failed: incorrect username", le.Error())
 		})
 
+		suite.Run("Recover", func() {
+			handler, _ := suite.Setup()
+			ctx := login.NewFlow(login.Flow{{Module: "my"}, {Module: "fail"}})
+			ch := &MyCallbackHandler{"test", []byte("password")}
+			ps  := ctx.Login(miruken.AddHandlers(handler, ch))
+			suite.NotNil(ps)
+			sub, err := ps.Await()
+			suite.NotNil(err)
+			suite.Nil(sub)
+			var le login.Error
+			suite.ErrorAs(err, &le)
+			suite.Equal("login failed: idp not responding", le.Error())
+		})
+
 		suite.Run("No Modules", func() {
 			defer func() {
 				if r := recover(); r != nil {
 					suite.Equal("login: at least one module is required", r)
 				}
 			}()
-			login.New()
+			login.NewFlow(login.Flow{})
 		})
 	})
 
 	suite.Run("Logout", func() {
 		suite.Run("Succeed", func() {
 			handler, _ := suite.Setup()
-			ctx := login.New(login.ModuleEntry{Module: "my", Options: map[string]any{
-				"debug": true,
-			}})
+			ctx := login.NewFlow(login.Flow{
+				{Module: "my", Options: map[string]any{"debug": true}},
+			})
 			ch := &MyCallbackHandler{"test", []byte("password")}
 			ps := ctx.Login(miruken.AddHandlers(handler, ch))
 			suite.NotNil(ps)
@@ -200,9 +239,9 @@ func (suite *LoginTestSuite) TestLogin() {
 
 		suite.Run("Login Required", func() {
 			handler, _ := suite.Setup()
-			ctx := login.New(login.ModuleEntry{Module: "my", Options: map[string]any{
-				"debug": true,
-			}})
+			ctx := login.NewFlow(login.Flow{
+				{Module: "my", Options: map[string]any{"debug": true}},
+			})
 			ps := ctx.Logout(handler)
 			suite.NotNil(ps)
 			_, err := ps.Await()
@@ -273,7 +312,7 @@ func (suite *LoginTestSuite) TestLogin() {
 				koanf.WithMergeFunc(koanfp.Merge))
 			suite.Nil(err)
 			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
-			ctx := login.NewFlow("login.flow")
+			ctx := login.New("login.flow")
 			ps := ctx.Login(handler)
 			suite.NotNil(ps)
 			sub, err := ps.Await()

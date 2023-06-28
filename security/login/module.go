@@ -5,8 +5,8 @@ import (
 	"github.com/miruken-go/miruken/security"
 )
 
-// Module provides the extensibility hook for a particular type of authentication.
-// e.g. username/password, token
+// Module is responsible for implementing an authentication strategy.
+// e.g. basic username/password, oauth token
 type Module interface {
 	// Login authenticates the subject.
 	// It can use the supplied handler to prompt for

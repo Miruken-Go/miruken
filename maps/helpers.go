@@ -12,3 +12,16 @@ func Keys[K comparable, V any](m map[K]V) []K {
 	}
 	return r
 }
+
+// Values returns the values of the map m in a slice.
+// The values will be returned in an unpredictable order.
+// This function has two type parameters, K and V.
+// Map keys must be comparable, so key has the predeclared
+// constraint comparable. Map values can be any type.
+func Values[M ~map[K]V, K comparable, V any](m M) []V {
+	r := make([]V, 0, len(m))
+	for _, v := range m {
+		r = append(r, v)
+	}
+	return r
+}

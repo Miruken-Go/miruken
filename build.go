@@ -15,45 +15,11 @@ type (
 	BuilderFunc func(Handler) Handler
 )
 
+
 func (f BuilderFunc) BuildUp(
 	handler Handler,
 ) Handler { return f(handler) }
 
-func composeBuilder2(builder1, builder2 Builder) Builder {
-	if builder1 == nil {
-		return builder2
-	} else if builder2 == nil {
-		return builder1
-	}
-	return BuilderFunc(func(handler Handler) Handler {
-		return builder1.BuildUp(builder2.BuildUp(handler))
-	})
-}
-
-func ComposeBuilders(builder Builder, builders ...Builder) Builder {
-	switch len(builders) {
-	case 0: return builder
-	case 1: return composeBuilder2(builder, builders[0])
-	default:
-		for _, b := range builders {
-			builder = composeBuilder2(builder, b)
-		}
-		return builder
-	}
-}
-
-func PipeBuilders(builder Builder, builders ...Builder) Builder {
-	switch len(builders) {
-	case 0: return builder
-	case 1: return composeBuilder2(builders[0], builder)
-	default:
-		b := builders[len(builders)-1]
-		for i := len(builders)-2; i >= 0; i-- {
-			b = composeBuilder2(b, builders[i])
-		}
-		return composeBuilder2(b, builder)
-	}
-}
 
 func BuildUp(handler Handler, builders ...Builder) Handler {
 	for _, b := range builders {
@@ -84,6 +50,43 @@ func AddHandlers(
 	}
 }
 
+func ComposeBuilders(builder Builder, builders ...Builder) Builder {
+	switch len(builders) {
+	case 0: return builder
+	case 1: return composeBuilder2(builder, builders[0])
+	default:
+		for _, b := range builders {
+			builder = composeBuilder2(builder, b)
+		}
+		return builder
+	}
+}
+
+func PipeBuilders(builder Builder, builders ...Builder) Builder {
+	switch len(builders) {
+	case 0: return builder
+	case 1: return composeBuilder2(builders[0], builder)
+	default:
+		b := builders[len(builders)-1]
+		for i := len(builders)-2; i >= 0; i-- {
+			b = composeBuilder2(b, builders[i])
+		}
+		return composeBuilder2(b, builder)
+	}
+}
+
+func composeBuilder2(builder1, builder2 Builder) Builder {
+	if builder1 == nil {
+		return builder2
+	} else if builder2 == nil {
+		return builder1
+	}
+	return BuilderFunc(func(handler Handler) Handler {
+		return builder1.BuildUp(builder2.BuildUp(handler))
+	})
+}
+
+
 // withHandler composes two Handlers.
 type withHandler struct {
 	Handler
@@ -106,6 +109,7 @@ func (w *withHandler) Handle(
 }
 
 func (w *withHandler) SuppressDispatch() {}
+
 
 // withHandlers composes any number of Handlers.
 type withHandlers struct {
@@ -137,6 +141,7 @@ func (w *withHandlers) Handle(
 }
 
 func (w *withHandlers) SuppressDispatch() {}
+
 
 // MutableHandlers manages any number of Handlers.
 type MutableHandlers struct {
@@ -231,6 +236,7 @@ func (m *MutableHandlers) Handle(
 
 func (m *MutableHandlers) SuppressDispatch() {}
 
+
 type (
 	// ProceedFunc calls the next filter in the pipeline.
 	ProceedFunc func() HandleResult
@@ -284,6 +290,7 @@ func Reentrant(filter FilterFunc) BuilderFunc {
 		return &filterHandler{handler, filter, true}
 	}
 }
+
 
 func tryInitializeComposer(
 	incoming *Handler,

@@ -14,8 +14,8 @@ import (
 type (
 	// Context coordinates the entire login process.
 	Context struct {
-		flow    string
-		entries []ModuleEntry
+		flow    Flow
+		path    string
 		modules []Module
 		subject security.Subject
 	}
@@ -53,16 +53,25 @@ func (c *Context) Login(
 		panic("handler cannot be nil")
 	}
 
-	if err := c.loadModules(handler); err != nil {
+	// Already authenticated?
+	if !miruken.IsNil(c.subject) {
+		return promise.Resolve(c.subject)
+	}
+
+	// Initialize flow modules
+	if err := c.initFlow(handler); err != nil {
 		return promise.Reject[security.Subject](Error{err})
 	}
 
-	subject := security.NewSubject()
-
 	return promise.New(func(resolve func(security.Subject), reject func(error)) {
-		for _, mod := range c.modules {
+		subject := security.NewSubject()
+		for i, mod := range c.modules {
 			err := mod.Login(subject, handler)
 			if err != nil {
+				for ii := i-1; ii >= 0; ii-- {
+					// clear successful modules
+					_ = c.modules[ii].Logout(subject, handler)
+				}
 				reject(Error{err})
 				return
 			}
@@ -93,21 +102,24 @@ func (c *Context) Logout(
 	})
 }
 
-func (c *Context) loadModules(
+func (c *Context) initFlow(
 	handler miruken.Handler,
 ) error {
-	if flow := c.flow; flow != "" {
+	if c.modules != nil {
+		return nil
+	}
+	if flow := c.path; flow != "" {
 		f, _, err := provides.Type[Flow](handler, &config.Load{Path: flow})
 		if err != nil {
 			return err
 		} else if len(f) == 0 {
 			return fmt.Errorf("no modules found in flow %q", flow)
 		}
-		c.entries = f
+		c.flow = f
 	}
-	modules := make([]Module, len(c.entries), len(c.entries))
+	modules := make([]Module, len(c.flow), len(c.flow))
 
-	for i, entry := range c.entries {
+	for i, entry := range c.flow {
 		m, mp, err := creates.Key[Module](handler, entry.Module)
 		if err != nil {
 			return err
@@ -135,19 +147,19 @@ func (c *Context) loadModules(
 }
 
 
-// NewFlow creates a Context from the configured flow.
+// New creates a Context from the configured flow path.
 // `flow` is used as the path into the application configuration.
-func NewFlow(flow string) *Context {
+func New(flow string) *Context {
 	if flow == "" {
-		panic("login: flow cannot be empty")
+		panic("login: path cannot be empty")
 	}
-	return &Context{flow: flow}
+	return &Context{path: flow}
 }
 
-// New creates a Context from the supplied module entries.
-func New(modules ...ModuleEntry) *Context {
-	if len(modules) == 0 {
+// NewFlow creates a Context from the supplied flow entries.
+func NewFlow(flow Flow) *Context {
+	if len(flow) == 0 {
 		panic("login: at least one module is required")
 	}
-	return &Context{entries: modules}
+	return &Context{flow: flow}
 }
