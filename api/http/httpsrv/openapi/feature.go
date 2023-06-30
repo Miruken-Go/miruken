@@ -247,11 +247,15 @@ func (i *Installer) initializeDefinitions(ap *apiProfile) {
 	}
 	ap.responses["UnauthorizedError"] = &openapi3.ResponseRef{
 		Value: openapi3.NewResponse().
-			WithDescription("Unauthorized"),
+			WithDescription("Unauthorized").
+			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
+				WithProperty("payload", openapi3.NewObjectSchema()))),
 	}
 	ap.responses["ForbiddenError"] = &openapi3.ResponseRef{
 		Value: openapi3.NewResponse().
-			WithDescription("Forbidden"),
+			WithDescription("Forbidden").
+			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
+				WithProperty("payload", openapi3.NewObjectSchema()))),
 	}
 	ap.responses["ValidationError"] = &openapi3.ResponseRef{
 		Value: openapi3.NewResponse().

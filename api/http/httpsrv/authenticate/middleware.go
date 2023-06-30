@@ -105,23 +105,23 @@ func (a *Authentication) ServeHTTP(
 		}
 	}
 
-	var statusCode int
+	// Generate challenge for all flows.
 	for _, flow := range flows {
-		statusCode = flow.scheme.Challenge(w, r, nil)
+		flow.scheme.Challenge(w, r, nil)
 	}
-	w.WriteHeader(statusCode)
+	w.WriteHeader(http.StatusUnauthorized)
 }
 
 
-// WithFlowRef returns new authentication middleware for the
-// supplied login flow reference.
+// WithFlowRef returns new authentication middleware with
+// the initial login flow reference.
 func WithFlowRef(flow string) *FlowBuilder {
 	auth := &Authentication{}
 	return auth.FlowRef(flow)
 }
 
-// WithFlow returns new authentication middleware for the
-// supplied login flow.
+// WithFlow returns new authentication middleware with
+// the initial login flow definition.
 func WithFlow(flow login.Flow) *FlowBuilder {
 	auth := &Authentication{}
 	return auth.Flow(flow)
