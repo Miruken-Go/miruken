@@ -15,7 +15,7 @@ type (
 	// Context coordinates the entire login process.
 	Context struct {
 		flow    Flow
-		path    string
+		flowRef string
 		modules []Module
 		subject security.Subject
 	}
@@ -108,12 +108,12 @@ func (c *Context) initFlow(
 	if c.modules != nil {
 		return nil
 	}
-	if flow := c.path; flow != "" {
-		f, _, err := provides.Type[Flow](handler, &config.Load{Path: flow})
+	if flowRef := c.flowRef; flowRef != "" {
+		f, _, err := provides.Type[Flow](handler, &config.Load{Path: flowRef})
 		if err != nil {
 			return err
 		} else if len(f) == 0 {
-			return fmt.Errorf("no modules found in flow %q", flow)
+			return fmt.Errorf("no modules found in flow %q", flowRef)
 		}
 		c.flow = f
 	}
@@ -147,13 +147,13 @@ func (c *Context) initFlow(
 }
 
 
-// New creates a Context from the configured flow path.
+// New creates a Context from the configured flow reference.
 // `flow` is used as the path into the application configuration.
 func New(flow string) *Context {
 	if flow == "" {
-		panic("login: path cannot be empty")
+		panic("login: flow cannot be empty")
 	}
-	return &Context{path: flow}
+	return &Context{flowRef: flow}
 }
 
 // NewFlow creates a Context from the supplied flow entries.

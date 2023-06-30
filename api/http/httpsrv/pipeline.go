@@ -16,7 +16,7 @@ type (
 			r *http.Request,
 			h miruken.Handler,
 			m Middleware,
-			n func(handler miruken.Handler),
+			n func(miruken.Handler),
 		)
 	}
 
@@ -26,7 +26,7 @@ type (
 		r *http.Request,
 		h miruken.Handler,
 		m Middleware,
-		n func(handler miruken.Handler),
+		n func(miruken.Handler),
 	)
 )
 
@@ -36,7 +36,7 @@ func (f MiddlewareFunc) ServeHTTP(
 	r *http.Request,
 	h miruken.Handler,
 	m Middleware,
-	n func(handler miruken.Handler),
+	n func(miruken.Handler),
 ) { f(w, r, h, m, n) }
 
 
