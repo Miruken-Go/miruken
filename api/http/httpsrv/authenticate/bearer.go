@@ -29,23 +29,18 @@ func (b Bearer) Challenge(
 	r   *http.Request,
 	err error,
 ) int {
-	h := "Bearer"
-	if realm := b.Realm; realm != "" {
-		h = "Bearer realm=\"" + realm + "\""
-	}
-	w.Header().Set("WWW-Authenticate", h)
+	WriteWWWAuthenticateHeader(w,"Bearer", b.Realm, nil, err)
 	return http.StatusUnauthorized
 }
 
-func (b Bearer) Forbid(
-	w   http.ResponseWriter,
-	r   *http.Request,
-	err error,
-) {
-	w.WriteHeader(http.StatusForbidden)
-}
 
-
+// Bearer configures an authentication flow to use `Bearer` tokens.
 func (b *FlowBuilder) Bearer() *Authentication {
 	return b.Scheme(Bearer{})
+}
+
+// BearerInRealm configures an authentication flow to use `Bearer` tokens
+// in the supplied realm.
+func (b *FlowBuilder) BearerInRealm(realm string) *Authentication {
+	return b.Scheme(Bearer{realm})
 }

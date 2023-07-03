@@ -453,13 +453,10 @@ func getNextBinding(typ reflect.Type) (*nextBinding, error) {
 				dynNextType.Out(2) != errorType {
 				goto Invalid
 			} else {
-				var err error
 				numArgs := dynNextType.NumIn()
-				args := make([]arg, numArgs-4) // skip receiver
-				if inv := buildDependencies(dynNextType, 4, numArgs, args, 0); inv != nil {
-					err = fmt.Errorf("DynNext: %w", inv)
-				}
-				if err != nil {
+				args    := make([]arg, numArgs-4) // skip receiver
+				if err := buildDependencies(dynNextType, 4, numArgs, args, 0); err != nil {
+					err = fmt.Errorf("DynNext: %w", err)
 					return nil, &MethodBindingError{dynNext, err}
 				}
 				binding = &nextBinding{dynNext, args}

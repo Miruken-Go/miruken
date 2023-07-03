@@ -67,9 +67,9 @@ func (e *FuncBindingError) Unwrap() error {
 
 
 // callFunc calls the function stored in the fun argument.
-// Provides resolves the args input and appends them to the initArgs
+// resolves the args input and appends them to the initArgs
 // to supply the input arguments to the function.
-// Provides returns the output results slice and/or and error if not
+// returns the output results slice and/or and error if not
 // asynchronous or a promise to the output results.
 func callFunc(
 	fun      reflect.Value,
@@ -90,9 +90,9 @@ func callFunc(
 }
 
 // callFuncWithArgs calls the function stored in the fun argument.
-// Provides combines the initArgs and resolvedArgs to supply the input
+// combines the initArgs and resolvedArgs to supply the input
 // arguments to the function.
-// Provides returns the output results slice.
+// returns the output results slice.
 func callFuncWithArgs(
 	fun          reflect.Value,
 	initArgs     []any,

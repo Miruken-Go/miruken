@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/security/login"
 	"net/http"
+	"strings"
 )
 
 type (
@@ -13,7 +14,6 @@ type (
 	Scheme interface {
 		Accept(r *http.Request) (miruken.Handler, error, bool)
 		Challenge(w http.ResponseWriter, r *http.Request, err error) int
-		Forbid(w http.ResponseWriter, r *http.Request, err error)
 	}
 
 	// Authentication applies login flows to authenticate requests.
@@ -62,10 +62,10 @@ func (a *Authentication) Flow(flow login.Flow) *FlowBuilder {
 func (a *Authentication) ServeHTTP(
 	w http.ResponseWriter,
 	r *http.Request,
-	h miruken.Handler,
 	m httpsrv.Middleware,
+	h miruken.Handler,
 	n func(miruken.Handler),
-) {
+) error {
 	// Merge explicit flows.
 	flows := a.flows
 	if ma, ok := m.(*Authentication); ok {
@@ -78,15 +78,16 @@ func (a *Authentication) ServeHTTP(
 	// handlers requiring a security.Subject will not execute.
 	if len(flows) == 0 {
 		n(h)
-		return
+		return nil
 	}
 
 	for _, flow := range flows {
-		if ch, err, ok := flow.scheme.Accept(r); ok {
+		scheme := flow.scheme
+		if ch, err, ok := scheme.Accept(r); ok {
 			if err != nil {
-				statusCode := flow.scheme.Challenge(w, r, err)
+				statusCode := scheme.Challenge(w, r, err)
 				w.WriteHeader(statusCode)
-				return
+				return nil
 			}
 			var ctx *login.Context
 			if flow.flow != nil {
@@ -96,12 +97,12 @@ func (a *Authentication) ServeHTTP(
 			}
 			ps := ctx.Login(miruken.AddHandlers(h, ch))
 			if sub, err := ps.Await(); err == nil {
-				n(miruken.BuildUp(h, provides.With(sub)))
+				n(miruken.BuildUp(h, provides.With(sub, scheme)))
 			} else {
-				statusCode := flow.scheme.Challenge(w, r, err)
+				statusCode := scheme.Challenge(w, r, err)
 				w.WriteHeader(statusCode)
 			}
-			return
+			return nil
 		}
 	}
 
@@ -110,18 +111,71 @@ func (a *Authentication) ServeHTTP(
 		flow.scheme.Challenge(w, r, nil)
 	}
 	w.WriteHeader(http.StatusUnauthorized)
+	return nil
 }
 
 
-// WithFlowRef returns new authentication middleware with
-// the initial login flow reference.
+// WriteWWWAuthenticateHeader writes the `WWW-Authenticate`
+// http response header for the supplied scheme.
+func WriteWWWAuthenticateHeader(
+	w      http.ResponseWriter,
+	scheme string,
+	realm  string,
+	params map[string]string,
+	err    error,
+) {
+	if scheme == "" {
+		panic("scheme is required")
+	}
+	var h strings.Builder
+	h.WriteString(scheme)
+	if realm != "" {
+		h.WriteString(" realm=\"")
+		h.WriteString(realm)
+		h.WriteString("\"")
+	}
+	for k,v := range params {
+		if h.Len() > len(scheme) {
+			h.WriteString(",")
+		}
+		h.WriteString(" ")
+		h.WriteString(k)
+		h.WriteString("=\"")
+		h.WriteString(v)
+		h.WriteString("\"")
+	}
+	if _, ok := params["error_description"]; !ok {
+		if err != nil {
+			if h.Len() > len(scheme) {
+				h.WriteString(",")
+			}
+			var errDesc string
+			switch e := err.(type) {
+			case login.Error:
+				errDesc = e.Cause.Error()
+			default:
+				errDesc = e.Error()
+			}
+			if errDesc != "" {
+				h.WriteString(" error_description=\"")
+				h.WriteString(errDesc)
+				h.WriteString("\"")
+			}
+		}
+	}
+	w.Header().Add("WWW-Authenticate", h.String())
+}
+
+
+// WithFlowRef starts a new authentication flow builder
+// with a reference to a login flow.
 func WithFlowRef(flow string) *FlowBuilder {
 	auth := &Authentication{}
 	return auth.FlowRef(flow)
 }
 
-// WithFlow returns new authentication middleware with
-// the initial login flow definition.
+// WithFlow starts a new authentication flow builder
+// with the definition of a login flow.
 func WithFlow(flow login.Flow) *FlowBuilder {
 	auth := &Authentication{}
 	return auth.Flow(flow)

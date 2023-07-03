@@ -766,7 +766,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 			defer func() {
 				if r := recover(); r != nil {
 					if err, ok := r.(*miruken.MethodBindingError); ok {
-						suite.Equal("RequiredDependency", err.Method().Name)
+						suite.Equal("RequiredDependency", err.Method.Name)
 					} else {
 						suite.Fail("Expected MethodBindingError")
 					}
@@ -890,7 +890,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 					if err, ok := r.(*miruken.HandlerDescriptorError); ok {
 						suite.Equal(
 							"1 error occurred:\n\t* unrecognized transactional mode \"suppress\"\n\n",
-							err.Reason.Error())
+							err.Cause.Error())
 						return
 					}
 					suite.Fail("Expected HandlerDescriptorError")
@@ -1129,8 +1129,8 @@ func (suite *HandlesTestSuite) TestHandles() {
 			if r := recover(); r != nil {
 				if err, ok := r.(*miruken.HandlerDescriptorError); ok {
 					var errMethod *miruken.MethodBindingError
-					for reason := errors.Unwrap(err.Reason);
-						errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
+					for cause := errors.Unwrap(err.Cause);
+						errors.As(cause, &errMethod); cause = errors.Unwrap(cause) {
 						failures++
 					}
 					suite.Equal(7, failures)

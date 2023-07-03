@@ -17,11 +17,12 @@ import (
 type (
 	// LoginModule authenticates a subject from a JWT (JSON Web Token).
 	LoginModule struct {
-		token   *jwt.Token
-		id      principal.Id
-		scopes  []Scope
-		jwksUrl string
-		jwks    KeySet
+		jwksUrl  string
+		jwksJson json.RawMessage
+		token    *jwt.Token
+		id       principal.Id
+		scopes   []Scope
+		jwks     KeySet
 	}
 
 	// KeySet provides JWKS (JSON Web Key Sets) to verify JWT signatures.
@@ -35,12 +36,14 @@ type (
 	Scope string
 )
 
+
 var (
 	ErrMissingToken  = errors.New("missing security token")
 	ErrEmptyToken    = errors.New("empty security token")
 	ErrInvalidToken  = errors.New("invalid security token")
 	ErrInvalidClaims = errors.New("invalid security claims")
 )
+
 
 //goland:noinspection GoMixedReceiverTypes
 func (s Scope) Name() string {
@@ -60,20 +63,40 @@ func (s *Scope) InitWithTag(tag reflect.StructTag) error {
 
 
 func (l *LoginModule) Constructor(
-	_*struct{creates.It `key:"jwt"`}, jwks KeySet,
+	_*struct{creates.It `key:"login.jwt"`}, jwks KeySet,
 ) {
 	l.jwks = jwks
 }
 
 func (l *LoginModule) Init(opts map[string]any) error {
 	for k,opt := range opts {
-		switch strings.ToUpper(k) {
-		case "JWKSURL":
-			l.jwksUrl = opt.(string)
+		switch strings.ToLower(k) {
+		case "jwks":
+			if jwks, ok := opt.(map[string]any); !ok {
+				return errors.New("invalid jwks option")
+			} else {
+				for jk,jv := range jwks {
+					switch strings.ToLower(jk) {
+					case "url":
+						if url, ok := jv.(string); !ok {
+							return errors.New("invalid jwks.url option")
+						} else {
+							l.jwksUrl = url
+						}
+					case "keys":
+						keys := map[string]any{"keys": jv}
+						if js, err := json.Marshal(keys); err != nil {
+							return err
+						} else {
+							l.jwksJson = js
+						}
+					}
+				}
+			}
 		}
 	}
-	if l.jwksUrl == "" {
-		return errors.New("missing JwksUrl option")
+	if (l.jwksUrl == "") == (len(l.jwksJson) == 0) {
+		return errors.New("option jwks.url or jwks.keys is required")
 	}
 	return nil
 }
@@ -92,12 +115,12 @@ func (l *LoginModule) Login(
 		return ErrEmptyToken
 	}
 
-	keyfunc, err := l.jwks.At(l.jwksUrl).Await()
+	keys, err := l.keys()
 	if err != nil {
 		return err
 	}
 
-	token, err := jwt.Parse(tokenStr, keyfunc)
+	token, err := jwt.Parse(tokenStr, keys)
 	if err != nil {
 		return err
 	} else if !token.Valid {
@@ -130,6 +153,15 @@ func (l *LoginModule) Logout(
 	}
 	l.token = nil
 	return nil
+}
+
+func (l *LoginModule) keys() (k jwt.Keyfunc, err error) {
+	if ks := l.jwksJson; len(ks) > 0 {
+		k, err = l.jwks.From(ks)
+	} else {
+		k, err = l.jwks.At(l.jwksUrl).Await()
+	}
+	return
 }
 
 func (l *LoginModule) addScopes(

@@ -27,7 +27,7 @@ type (
 	// UnknownTypeIdError reports an invalid type discriminator.
 	UnknownTypeIdError struct {
 		TypeId string
-		Reason error
+		Cause error
 	}
 )
 
@@ -149,11 +149,11 @@ func (m *GoPolymorphism) Dynamic(
 
 
 func (e *UnknownTypeIdError) Error() string {
-	return fmt.Sprintf("unknown type id %q: %s", e.TypeId, e.Reason.Error())
+	return fmt.Sprintf("unknown type id %q: %s", e.TypeId, e.Cause.Error())
 }
 
 func (e *UnknownTypeIdError) Unwrap() error {
-	return e.Reason
+	return e.Cause
 }
 
 

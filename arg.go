@@ -176,15 +176,16 @@ func (d DependencyArg) resolve(
 	if typ == handleCtxType {
 		return reflect.ValueOf(ctx), nil, nil
 	}
-	callback := ctx.Callback()
-	if val := reflect.ValueOf(callback); val.Type().AssignableTo(typ) {
-		return val, nil, nil
-	} else if typ.AssignableTo(callbackType) {
-		return reflect.Zero(typ), nil, nil
-	}
-	if src := callback.Source(); src != nil {
-		if val := reflect.ValueOf(src); val.Type().AssignableTo(typ) {
+	if callback := ctx.Callback(); callback != nil {
+		if val := reflect.ValueOf(callback); val.Type().AssignableTo(typ) {
 			return val, nil, nil
+		} else if typ.AssignableTo(callbackType) {
+			return reflect.Zero(typ), nil, nil
+		}
+		if src := callback.Source(); src != nil {
+			if val := reflect.ValueOf(src); val.Type().AssignableTo(typ) {
+				return val, nil, nil
+			}
 		}
 	}
 	var resolver DependencyResolver = &defaultResolver
@@ -354,30 +355,6 @@ var dependencyParsers = []BindingParser{
 	BindingParserFunc(parseConstraints),
 }
 
-func buildDependency(
-	argType reflect.Type,
-) (arg DependencyArg, err error) {
-	if anyType.AssignableTo(argType) {
-		return arg, fmt.Errorf(
-			"type %v cannot be used As a dependency",
-			anyType)
-	}
-	// Is it a *struct arg binding?
-	if argType.Kind() != reflect.Ptr {
-		return arg, nil
-	}
-	argType = argType.Elem()
-	if argType.Kind() == reflect.Struct &&
-		argType.Name() == "" {  // anonymous
-		spec := &dependencySpec{}
-		if err = parseBinding(argType, spec, dependencyParsers); err != nil {
-			return arg, err
-		}
-		arg.spec = spec
-	}
-	return arg, err
-}
-
 func buildDependencies(
 	funTyp     reflect.Type,
 	startIndex int,
@@ -431,6 +408,30 @@ func buildDependencies(
 			"missing dependency at index %v", endIndex))
 	}
 	return invalid
+}
+
+func buildDependency(
+	argType reflect.Type,
+) (arg DependencyArg, err error) {
+	if anyType.AssignableTo(argType) {
+		return arg, fmt.Errorf(
+			"type %v cannot be used As a dependency",
+			anyType)
+	}
+	// Is it a *struct arg binding?
+	if argType.Kind() != reflect.Ptr {
+		return arg, nil
+	}
+	argType = argType.Elem()
+	if argType.Kind() == reflect.Struct &&
+		argType.Name() == "" {  // anonymous
+		spec := &dependencySpec{}
+		if err = parseBinding(argType, spec, dependencyParsers); err != nil {
+			return arg, err
+		}
+		arg.spec = spec
+	}
+	return arg, err
 }
 
 func parseResolver(

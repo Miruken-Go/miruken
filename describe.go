@@ -148,8 +148,8 @@ type (
 
 	// HandlerDescriptorError reports a failed HandlerDescriptor.
 	HandlerDescriptorError struct {
-		spec   HandlerSpec
-		Reason error
+		Spec  HandlerSpec
+		Cause error
 	}
 )
 
@@ -331,16 +331,12 @@ func (s HandlerFuncSpec) newHandlerDescriptor(
 	return descriptor, nil
 }
 
-func (e *HandlerDescriptorError) HandlerSpec() HandlerSpec {
-	return e.spec
-}
-
 func (e *HandlerDescriptorError) Error() string {
-	return fmt.Sprintf("invalid handler: %v reason: %v", e.spec, e.Reason)
+	return fmt.Sprintf("invalid handler: %v cause: %v", e.Spec, e.Cause)
 }
 
 func (e *HandlerDescriptorError) Unwrap() error {
-	return e.Reason
+	return e.Cause
 }
 
 func (d *HandlerDescriptor) HandlerSpec() HandlerSpec {

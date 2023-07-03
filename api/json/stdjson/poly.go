@@ -174,7 +174,7 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("empty type id for field %q", field)
 	} else {
 		if v, _, err := creates.Key[any](c.composer, typeId); err != nil {
-			return &api.UnknownTypeIdError{TypeId: typeId, Reason: err}
+			return &api.UnknownTypeIdError{TypeId: typeId, Cause: err}
 		} else {
 			vm := v
 			for _, field = range KnownValuesFields {

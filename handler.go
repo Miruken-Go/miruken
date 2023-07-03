@@ -27,7 +27,7 @@ type (
 	// CanceledError reports a canceled operation.
  	CanceledError struct {
 		Message string
-		Reason  error
+		Cause   error
 	}
 
 	// handlerAdapter adapts an ordinary type to a Handler.
@@ -74,14 +74,14 @@ func (e *RejectedError) Error() string {
 // CanceledError
 
 func (e *CanceledError) Error() string {
-	if IsNil(e.Reason) {
+	if IsNil(e.Cause) {
 		return e.Message
 	}
-	return fmt.Sprintf("%v: %s", e.Message, e.Reason.Error())
+	return fmt.Sprintf("%v: %s", e.Message, e.Cause.Error())
 }
 
 func (e *CanceledError) Unwrap() error {
-	return e.Reason
+	return e.Cause
 }
 
 

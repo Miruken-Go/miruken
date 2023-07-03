@@ -563,8 +563,8 @@ func (suite *ProvidesTestSuite) TestProvides() {
 			if r := recover(); r != nil {
 				if err, ok := r.(*miruken.HandlerDescriptorError); ok {
 					var errMethod *miruken.MethodBindingError
-					for reason := errors.Unwrap(err.Reason);
-						errors.As(reason, &errMethod); reason = errors.Unwrap(reason) {
+					for cause := errors.Unwrap(err.Cause);
+						errors.As(cause, &errMethod); cause = errors.Unwrap(cause) {
 						failures++
 					}
 					suite.Equal(6, failures)

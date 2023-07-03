@@ -27,8 +27,8 @@ type (
 
 	// MethodBindingError reports a failed method binding.
 	MethodBindingError struct {
-		method reflect.Method
-		reason error
+		Method reflect.Method
+		Cause  error
 	}
 )
 
@@ -66,14 +66,10 @@ func (b *MethodBinding) Method() reflect.Method {
 
 // MethodBindingError
 
-func (e *MethodBindingError) Method() reflect.Method {
-	return e.method
-}
-
 func (e *MethodBindingError) Error() string {
-	return fmt.Sprintf("invalid method %v: %v", e.method.Name, e.reason)
+	return fmt.Sprintf("invalid method %v: %v", e.Method.Name, e.Cause)
 }
 
 func (e *MethodBindingError) Unwrap() error {
-	return e.reason
+	return e.Cause
 }

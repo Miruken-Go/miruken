@@ -1,12 +1,20 @@
 package miruken
 
-import "reflect"
+import (
+	"github.com/miruken-go/miruken/promise"
+	"reflect"
+)
 
-func MakeCaller(fun any) (func(Handler) []reflect.Value, error) {
+type CallerFunc func(Handler, ...any) ([]any, *promise.Promise[[]any], error)
+
+func MakeCaller(fun any) (CallerFunc, error) {
 	if fun == nil {
 		panic("fun cannot be nil")
 	}
-	val := reflect.ValueOf(fun)
+	val, ok := fun.(reflect.Value)
+	if !ok {
+		val = reflect.ValueOf(fun)
+	}
 	if typ := val.Type(); typ.Kind() != reflect.Func {
 		panic("fun is not a valid function")
 	} else {
@@ -15,8 +23,9 @@ func MakeCaller(fun any) (func(Handler) []reflect.Value, error) {
 		if err := buildDependencies(typ, 0, numArgs, args, 0); err != nil {
 			return nil, err
 		}
-		return func(handler Handler) []reflect.Value {
-			return nil
+		return func(handler Handler, initArgs ...any) ([]any, *promise.Promise[[]any], error) {
+			ctx := HandleContext{composer: handler}
+			return callFunc(val, ctx, args[len(initArgs):], initArgs...)
 		}, nil
 	}
 }
