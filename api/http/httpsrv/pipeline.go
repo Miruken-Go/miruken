@@ -1,11 +1,12 @@
 package httpsrv
 
 import (
+	context2 "context"
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/provides"
-	"github.com/prometheus/common/log"
+	"google.golang.org/appengine/log"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -171,7 +172,7 @@ func handlePanic(w http.ResponseWriter) {
 		buf := make([]byte, 2048)
 		n := runtime.Stack(buf, false)
 		buf = buf[:n]
-		log.Errorf("recovering from http panic: %v\n%s", r, string(buf))
+		log.Errorf(context2.Background(),"recovering from http panic: %v\n%s", r, string(buf))
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
