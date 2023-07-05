@@ -11,6 +11,9 @@ type (
 	// Subject is any entity that requests access to a resource.
 	// e.g. Process, Machine, Service or User
 	Subject interface {
+		// Authenticated returns true if this Subject is authenticated.
+		Authenticated() bool
+
 		// Principals return the identities of this Subject.
 		// e.g. UserId, Username, Group or Role
 		Principals() []Principal
@@ -49,6 +52,10 @@ type (
 
 
 // Subject
+
+func (s *mutableSubject) Authenticated() bool {
+	return len(s.principals) > 0 || len(s.credentials) > 0
+}
 
 func (s *mutableSubject) Principals() []Principal {
 	return s.principals
@@ -91,6 +98,10 @@ func (s system) Name() string {
 
 
 // systemSubject
+
+func (s systemSubject) Authenticated() bool {
+	return false
+}
 
 func (s systemSubject) Principals() []Principal {
 	return s.principals

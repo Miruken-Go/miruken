@@ -4,6 +4,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
 	"github.com/miruken-go/miruken/provides"
+	"github.com/miruken-go/miruken/security"
 	"github.com/miruken-go/miruken/security/login"
 	"net/http"
 	"strings"
@@ -74,13 +75,6 @@ func (a *Authentication) ServeHTTP(
 		}
 	}
 
-	// Skip authentication if no flows configured.
-	// handlers requiring a security.Subject will not execute.
-	if len(flows) == 0 {
-		n(h)
-		return nil
-	}
-
 	for _, flow := range flows {
 		scheme := flow.scheme
 		if ch, err, ok := scheme.Accept(r); ok {
@@ -97,7 +91,8 @@ func (a *Authentication) ServeHTTP(
 			}
 			ps := ctx.Login(miruken.AddHandlers(h, ch))
 			if sub, err := ps.Await(); err == nil {
-				n(miruken.BuildUp(h, provides.With(sub, scheme)))
+				sub.AddCredentials(scheme)
+				n(miruken.BuildUp(h, provides.With(sub)))
 			} else {
 				statusCode := scheme.Challenge(w, r, err)
 				w.WriteHeader(statusCode)
@@ -106,11 +101,8 @@ func (a *Authentication) ServeHTTP(
 		}
 	}
 
-	// Generate challenge for all flows.
-	for _, flow := range flows {
-		flow.scheme.Challenge(w, r, nil)
-	}
-	w.WriteHeader(http.StatusUnauthorized)
+	// Provide an unauthenticated subject.
+	n(miruken.BuildUp(h, provides.With(security.NewSubject())))
 	return nil
 }
 

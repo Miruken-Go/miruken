@@ -317,13 +317,13 @@ func resolveArgs(
 		if a, pa, err := arg.resolve(typ, ctx); err != nil {
 			return nil, nil, &UnresolvedArgError{arg, err}
 		} else if pa == nil {
-			if arg.flags() &bindingAsync == bindingAsync {
+			if arg.flags() & bindingAsync == bindingAsync {
 				// Not a promise so lift
 				resolved[i] = reflect.ValueOf(promise.Lift(typ, a.Interface()))
 			} else {
 				resolved[i] = a
 			}
-		} else if arg.flags() &bindingAsync == bindingAsync {
+		} else if arg.flags() & bindingAsync == bindingAsync {
 			// Already a promise so coerce
 			resolved[i] = reflect.ValueOf(
 				promise.CoerceType(typ, pa.Then(func(v any) any {

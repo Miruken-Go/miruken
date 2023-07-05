@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/maps"
+	"github.com/miruken-go/miruken/security"
 	"github.com/miruken-go/miruken/security/authorizes"
 	"github.com/miruken-go/miruken/validates"
 	"net/http"
@@ -45,7 +47,11 @@ func (s *StatusCodeMapper) AccessDenied(
 		maps.It
 		maps.Format `to:"http:status-code"`
 	  }, _ *authorizes.AccessDeniedError,
+	_*struct{args.Optional}, subject security.Subject,
 ) int {
+	if miruken.IsNil(subject) || !subject.Authenticated() {
+		return http.StatusUnauthorized
+	}
 	return http.StatusForbidden
 }
 
