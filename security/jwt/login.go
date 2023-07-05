@@ -17,7 +17,7 @@ import (
 type (
 	// LoginModule authenticates a subject from a JWT (JSON Web Token).
 	LoginModule struct {
-		jwksUrl  string
+		jwksUri  string
 		jwksJson json.RawMessage
 		token    *jwt.Token
 		id       principal.Id
@@ -27,7 +27,7 @@ type (
 
 	// KeySet provides JWKS (JSON Web Key Sets) to verify JWT signatures.
 	KeySet interface {
-		At(jwksURL string) *promise.Promise[jwt.Keyfunc]
+		At(jwksURI string) *promise.Promise[jwt.Keyfunc]
 		From(jwksJSON json.RawMessage) (jwt.Keyfunc, error)
 	}
 
@@ -77,11 +77,11 @@ func (l *LoginModule) Init(opts map[string]any) error {
 			} else {
 				for jk,jv := range jwks {
 					switch strings.ToLower(jk) {
-					case "url":
-						if url, ok := jv.(string); !ok {
-							return errors.New("invalid jwks.url option")
+					case "uri":
+						if uri, ok := jv.(string); !ok {
+							return errors.New("invalid jwks.uri option")
 						} else {
-							l.jwksUrl = url
+							l.jwksUri = uri
 						}
 					case "keys":
 						keys := map[string]any{"keys": jv}
@@ -95,8 +95,8 @@ func (l *LoginModule) Init(opts map[string]any) error {
 			}
 		}
 	}
-	if (l.jwksUrl == "") == (len(l.jwksJson) == 0) {
-		return errors.New("option jwks.url or jwks.keys is required")
+	if (l.jwksUri == "") == (len(l.jwksJson) == 0) {
+		return errors.New("option jwks.uri or jwks.keys is required")
 	}
 	return nil
 }
@@ -159,7 +159,7 @@ func (l *LoginModule) keys() (k jwt.Keyfunc, err error) {
 	if ks := l.jwksJson; len(ks) > 0 {
 		k, err = l.jwks.From(ks)
 	} else {
-		k, err = l.jwks.At(l.jwksUrl).Await()
+		k, err = l.jwks.At(l.jwksUri).Await()
 	}
 	return
 }

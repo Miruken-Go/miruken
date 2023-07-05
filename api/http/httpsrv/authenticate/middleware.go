@@ -37,7 +37,7 @@ type (
 
 func (b *FlowBuilder) Scheme(scheme Scheme) *Authentication {
 	if miruken.IsNil(scheme) {
-		panic("schema cannot be nil")
+		panic("scheme cannot be nil")
 	}
 	b.flow.scheme = scheme
 	b.a.flows = append(b.a.flows, b.flow)

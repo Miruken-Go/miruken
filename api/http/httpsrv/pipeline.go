@@ -1,7 +1,6 @@
 package httpsrv
 
 import (
-	context2 "context"
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/context"
@@ -117,7 +116,7 @@ func Pipeline(
 		ctx = context.New(handler)
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer handlePanic(w)
+		defer handlePanic(w, r)
 
 		child := ctx.NewChild()
 		defer child.Dispose()
@@ -167,12 +166,12 @@ func Pipeline(
 	})
 }
 
-func handlePanic(w http.ResponseWriter) {
-	if r := recover(); r != nil {
+func handlePanic(w http.ResponseWriter, r *http.Request) {
+	if rc := recover(); rc != nil {
 		buf := make([]byte, 2048)
-		n := runtime.Stack(buf, false)
+		n   := runtime.Stack(buf, false)
 		buf = buf[:n]
-		log.Errorf(context2.Background(),"recovering from http panic: %v\n%s", r, string(buf))
+		log.Errorf(r.Context(),"recovering from http panic: %v\n%s", rc, string(buf))
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }

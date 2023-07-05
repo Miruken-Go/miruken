@@ -29,28 +29,28 @@ func (f *KeySet) Constructor(
 }
 
 func (f *KeySet) At(
-	jwksURL string,
+	jwksURI string,
 ) *promise.Promise[jwt.Keyfunc] {
-	if jwksURL == "" {
-		panic("jwksURL cannot be empty")
+	if jwksURI == "" {
+		panic("jwksURI cannot be empty")
 	}
 	f.lock.RLock()
-	if fn, ok := f.at[jwksURL]; ok {
+	if fn, ok := f.at[jwksURI]; ok {
 		return promise.Resolve(fn)
 	}
 	f.lock.RUnlock()
 
 	return promise.New(func(resolve func(jwt.Keyfunc), reject func(error)) {
-		jwks, err := keyfunc.Get(jwksURL, getOptions)
+		jwks, err := keyfunc.Get(jwksURI, getOptions)
 		if err != nil {
 			reject(err)
 		} else {
 			f.lock.Lock()
 			defer f.lock.Unlock()
-			if fn, ok := f.at[jwksURL]; ok {
+			if fn, ok := f.at[jwksURI]; ok {
 				resolve(fn)
 			} else {
-				f.at[jwksURL] = jwks.Keyfunc
+				f.at[jwksURI] = jwks.Keyfunc
 				resolve(jwks.Keyfunc)
 			}
 		}
