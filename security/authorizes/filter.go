@@ -23,7 +23,7 @@ type (
 
 	// filter controls access to actions using policies
 	// satisfied by the privileges of a security.Subject.
-	filter struct {}
+	filter struct { miruken.LateFilter }
 )
 
 
@@ -73,15 +73,7 @@ func (f filter) Order() int {
 	return miruken.FilterStageAuthorization
 }
 
-func (f filter) Next(
-	next     miruken.Next,
-	ctx      miruken.HandleContext,
-	provider miruken.FilterProvider,
-)  (out []any, pout *promise.Promise[[]any], err error) {
-	return miruken.DynNext(f, next, ctx, provider)
-}
-
-func (f filter) DynNext(
+func (f filter) LateNext(
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,

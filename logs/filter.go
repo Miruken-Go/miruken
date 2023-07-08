@@ -59,6 +59,7 @@ func (f filter) Order() int {
 }
 
 func (f filter) Next(
+	_        miruken.Filter,
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,

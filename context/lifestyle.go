@@ -72,6 +72,7 @@ type scopedFilter struct {
 }
 
 func (s *scopedFilter) Next(
+	_        miruken.Filter,
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,

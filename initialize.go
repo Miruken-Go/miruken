@@ -18,6 +18,7 @@ func (i *initializer) Order() int {
 }
 
 func (i *initializer) Next(
+	_        Filter,
 	next     Next,
 	ctx      HandleContext,
 	provider FilterProvider,

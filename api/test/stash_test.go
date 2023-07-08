@@ -40,6 +40,7 @@ func (c *CancelOrderFilter) Order() int {
 }
 
 func (c *CancelOrderFilter) Next(
+	_        miruken.Filter,
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,

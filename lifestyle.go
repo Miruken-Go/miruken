@@ -89,6 +89,7 @@ func (s *Single) Init() error {
 }
 
 func (s *single) Next(
+	_        Filter,
 	next     Next,
 	ctx      HandleContext,
 	provider FilterProvider,

@@ -1,4 +1,4 @@
-package authenticate
+package auth
 
 import (
 	"github.com/miruken-go/miruken"
@@ -39,8 +39,8 @@ func (b *FlowBuilder) Bearer() *Authentication {
 	return b.Scheme(Bearer{})
 }
 
-// BearerInRealm configures an authentication flow to use `Bearer` tokens
-// in the supplied realm.
+// BearerInRealm configures an authentication flow to use `Bearer`
+// tokens in the supplied realm.
 func (b *FlowBuilder) BearerInRealm(realm string) *Authentication {
 	return b.Scheme(Bearer{realm})
 }

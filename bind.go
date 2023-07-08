@@ -122,6 +122,12 @@ type (
 		cache   map[reflect.Type]Policy
 		parsers []BindingParser
 	}
+
+	// policyKey binds a Policy to a key for lookup.
+	policyKey struct {
+		policy Policy
+		key    any
+	}
 )
 
 const (

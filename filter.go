@@ -28,6 +28,7 @@ type (
 	Filter interface {
 		Order() int
 		Next(
+			f        Filter,
 			next     Next,
 			ctx      HandleContext,
 			provider FilterProvider,
@@ -49,6 +50,10 @@ type (
 		filters  []Filter
 		required bool
 	}
+
+	// LateFilter provides a late binding adapter
+	// for Filter's with custom dependencies.
+	LateFilter struct {}
 
 	// Filtered is a container of Filters.
 	Filtered interface {
@@ -379,8 +384,9 @@ func pipeline(
 		}
 		if index < length {
 			pf := filters[index]
+			f  := pf.filter
 			index++
-			return pf.filter.Next(next, ctx, pf.provider)
+			return f.Next(f, next, ctx, pf.provider)
 		}
 		return complete(ctx)
 	}
@@ -390,29 +396,51 @@ func pipeline(
 
 
 type nextBinding struct {
-	method reflect.Method
-	args   []arg
+	method  reflect.Method
+	ctxIdx  int
+	provIdx int
+	args    []arg
 }
 
 func (n *nextBinding) invoke(
+	filter   Filter,
 	ctx      HandleContext,
-	initArgs ...any,
+	next     Next,
+	provider FilterProvider,
 ) ([]any, *promise.Promise[[]any], error) {
+	initArgs := []any{filter, next}
+	for i := 2; i <= 3; i++ {
+		if n.ctxIdx == i {
+			initArgs = append(initArgs, ctx)
+		} else if n.provIdx == i {
+			initArgs = append(initArgs, provider)
+		}
+	}
 	return callFunc(n.method.Func, ctx, n.args, initArgs...)
 }
 
 
-func DynNext(
+func (l LateFilter) Next(
+	f        Filter,
+	next     Next,
+	ctx      HandleContext,
+	provider FilterProvider,
+)  ([]any, *promise.Promise[[]any], error) {
+	return lateNext(f, next, ctx, provider)
+}
+
+
+func lateNext(
 	filter   Filter,
 	next     Next,
 	ctx      HandleContext,
 	provider FilterProvider,
 )  (out []any, po *promise.Promise[[]any], err error) {
 	var binding *nextBinding
-	if binding, err = getNextBinding(reflect.TypeOf(filter)); err != nil {
+	if binding, err = getLateNext(filter); err != nil {
 		return
 	}
-	if out, po, err = binding.invoke(ctx, filter, next, ctx, provider); err != nil {
+	if out, po, err = binding.invoke(filter, ctx, next, provider); err != nil {
 		return
 	} else if po == nil {
 		po,  _ = out[1].(*promise.Promise[[]any])
@@ -432,49 +460,70 @@ func DynNext(
 	return
 }
 
-func getNextBinding(typ reflect.Type) (*nextBinding, error) {
-	dynNextLock.RLock()
-	binding := dynNextBindingMap[typ]
-	dynNextLock.RUnlock()
+func getLateNext(
+	filter  Filter,
+) (*nextBinding, error) {
+	lateNextLock.RLock()
+	typ := reflect.TypeOf(filter)
+	binding := lateNextMap[typ]
+	lateNextLock.RUnlock()
 	if binding == nil {
-		dynNextLock.Lock()
-		defer dynNextLock.Unlock()
-		if binding = dynNextBindingMap[typ]; binding == nil {
-			if dynNext, ok := typ.MethodByName("DynNext"); !ok {
+		lateNextLock.Lock()
+		defer lateNextLock.Unlock()
+		if binding = lateNextMap[typ]; binding == nil {
+			if lateNext, ok := typ.MethodByName("LateNext"); !ok {
 				goto Invalid
-			} else if dynNextType := dynNext.Type;
-				dynNextType.NumIn() < 4 || dynNextType.NumOut() < 3 {
+			} else if lateNextType := lateNext.Type;
+				lateNextType.NumIn() < 2 || lateNextType.NumOut() < 3 {
 				goto Invalid
-			} else if dynNextType.In(1) != nextType ||
-				dynNextType.In(2) != handleCtxType ||
-				dynNextType.In(3) != filterProviderType ||
-				dynNextType.Out(0) != anySliceType ||
-				dynNextType.Out(1) != promiseAnySliceType ||
-				dynNextType.Out(2) != errorType {
+			} else if lateNextType.In(1) != nextType ||
+				lateNextType.Out(0) != anySliceType ||
+				lateNextType.Out(1) != promiseAnySliceType ||
+				lateNextType.Out(2) != errorType {
 				goto Invalid
 			} else {
-				numArgs := dynNextType.NumIn()
-				args    := make([]arg, numArgs-4) // skip receiver
-				if err := buildDependencies(dynNextType, 4, numArgs, args, 0); err != nil {
-					err = fmt.Errorf("DynNext: %w", err)
-					return nil, &MethodBindingError{dynNext, err}
+				skip    := 2 // skip receiver
+				numArgs := lateNextType.NumIn()
+				binding = &nextBinding{method: lateNext}
+				for i := 2; i < 4 && i < numArgs; i++ {
+					if lateNextType.In(i) == handleCtxType {
+						if binding.ctxIdx > 0 {
+							return nil, &MethodBindingError{lateNext,
+								fmt.Errorf("duplicate HandleContext arg at index %v and %v", binding.ctxIdx, i)}
+						}
+						binding.ctxIdx = i
+						skip++
+					} else if lateNextType.In(i) == filterProviderType {
+						if binding.provIdx > 0 {
+							return nil, &MethodBindingError{lateNext,
+								fmt.Errorf("duplicate FilterProvider arg at index %v and %v", binding.provIdx, i)}
+						}
+						binding.provIdx = i
+						skip++
+					}
 				}
-				binding = &nextBinding{dynNext, args}
-				dynNextBindingMap[typ] = binding
+				args := make([]arg, numArgs-skip)
+				if err := buildDependencies(lateNextType, skip, numArgs, args, 0); err != nil {
+					err = fmt.Errorf("LateNext: %w", err)
+					return nil, &MethodBindingError{lateNext, err}
+				}
+				binding.args = args
+				lateNextMap[typ] = binding
 			}
 		}
 	}
-	return binding, nil
+	if binding != nil {
+		return binding, nil
+	}
 Invalid:
-	return nil, fmt.Errorf(
-		"filter %v requires a method DynNext(Next, HandleContext, FilterProvider, ...)",
-		typ)
+	return nil, fmt.Errorf(`late filter %v has no matching "LateNext" method`, typ)
 }
 
+
 var (
-	dynNextLock sync.RWMutex
+	lateNextLock sync.RWMutex
 	nextType            = TypeOf[Next]()
-	dynNextBindingMap   = make(map[reflect.Type]*nextBinding)
+	lateNextMap         = make(map[reflect.Type]*nextBinding)
 	filterProviderType  = TypeOf[FilterProvider]()
 	promiseAnySliceType = TypeOf[*promise.Promise[[]any]]()
 )

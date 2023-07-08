@@ -125,6 +125,7 @@ func (r routesFilter) Order() int {
 }
 
 func (r routesFilter) Next(
+	_        miruken.Filter,
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,

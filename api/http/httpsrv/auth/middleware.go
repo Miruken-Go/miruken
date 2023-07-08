@@ -1,4 +1,4 @@
-package authenticate
+package auth
 
 import (
 	"github.com/miruken-go/miruken"
@@ -17,7 +17,7 @@ type (
 		Challenge(w http.ResponseWriter, r *http.Request, err error) int
 	}
 
-	// Authentication applies login flows to authenticate requests.
+	// Authentication applies login flows to auth requests.
 	Authentication struct {
 		flows []flowSpec
 	}

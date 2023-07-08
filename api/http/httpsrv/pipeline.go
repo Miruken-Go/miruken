@@ -5,7 +5,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/provides"
-	"google.golang.org/appengine/log"
+	"github.com/prometheus/common/log"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -44,7 +44,7 @@ func (f MiddlewareFunc) ServeHTTP(
 ) error { return f(w, r, m, h, n) }
 
 
-func DynServeHTTP(
+func LateServeHTTP(
 	m Middleware,
 	w http.ResponseWriter,
 	r *http.Request,
@@ -52,7 +52,7 @@ func DynServeHTTP(
 	h miruken.Handler,
 	n func(miruken.Handler),
 ) error {
-	if binding, err := getServeHTTPBinding(reflect.TypeOf(m)); err != nil {
+	if binding, err := getLateServeHTTP(reflect.TypeOf(m)); err != nil {
 		return err
 	} else {
 		_, pr, err := binding(h, m, w, r, p, h, n)
@@ -63,37 +63,37 @@ func DynServeHTTP(
 	}
 }
 
-func getServeHTTPBinding(typ reflect.Type) (miruken.CallerFunc, error) {
-	dynMiddlewareLock.RLock()
-	binding := dynMiddlewareMap[typ]
-	dynMiddlewareLock.RUnlock()
+func getLateServeHTTP(typ reflect.Type) (miruken.CallerFunc, error) {
+	lateMiddlewareLock.RLock()
+	binding := lateMiddlewareMap[typ]
+	lateMiddlewareLock.RUnlock()
 	if binding == nil {
-		dynMiddlewareLock.Lock()
-		defer dynMiddlewareLock.Unlock()
-		if binding = dynMiddlewareMap[typ]; binding == nil {
-			if dynServeHTTP, ok := typ.MethodByName("DynServeHTTP"); !ok {
+		lateMiddlewareLock.Lock()
+		defer lateMiddlewareLock.Unlock()
+		if binding = lateMiddlewareMap[typ]; binding == nil {
+			if lateServeHTTP, ok := typ.MethodByName("LateServeHTTP"); !ok {
 				goto Invalid
-			} else if dynNextType := dynServeHTTP.Type;
-				dynNextType.NumIn() < middlewareFuncType.NumIn() ||
-					dynNextType.NumOut() < middlewareFuncType.NumOut() {
+			} else if lateNextType := lateServeHTTP.Type;
+				lateNextType.NumIn() < middlewareFuncType.NumIn() ||
+					lateNextType.NumOut() < middlewareFuncType.NumOut() {
 				goto Invalid
 			} else {
 				for i := 0; i < middlewareFuncType.NumIn(); i++ {
-					if dynNextType.In(i+1) != middlewareFuncType.In(i) {
+					if lateNextType.In(i+1) != middlewareFuncType.In(i) {
 						goto Invalid
 					}
 				}
 				for i := 0; i < middlewareFuncType.NumOut(); i++ {
-					if dynNextType.Out(i) != middlewareFuncType.Out(i) {
+					if lateNextType.Out(i) != middlewareFuncType.Out(i) {
 						goto Invalid
 					}
 				}
-				caller, err := miruken.MakeCaller(dynServeHTTP.Func)
+				caller, err := miruken.MakeCaller(lateServeHTTP.Func)
 				if err != nil {
-					err = fmt.Errorf("DynServeHTTP: %w", err)
-					return nil, &miruken.MethodBindingError{Method: dynServeHTTP, Cause: err}
+					err = fmt.Errorf("LateServeHTTP: %w", err)
+					return nil, &miruken.MethodBindingError{Method: lateServeHTTP, Cause: err}
 				}
-				dynMiddlewareMap[typ] = caller
+				lateMiddlewareMap[typ] = caller
 				binding = caller
 			}
 		}
@@ -101,7 +101,7 @@ func getServeHTTPBinding(typ reflect.Type) (miruken.CallerFunc, error) {
 	return binding, nil
 Invalid:
 	return nil, fmt.Errorf(
-		"middleware %v missing valid DynServeHTTP(...) method", typ)
+		`middleware %v missing valid "LateServeHTTP" method`, typ)
 }
 
 
@@ -171,14 +171,14 @@ func handlePanic(w http.ResponseWriter, r *http.Request) {
 		buf := make([]byte, 2048)
 		n   := runtime.Stack(buf, false)
 		buf = buf[:n]
-		log.Errorf(r.Context(),"recovering from http panic: %v\n%s", rc, string(buf))
+		log.Errorf("recovering from http panic: %v\n%s", rc, string(buf))
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
 
 
 var (
-	dynMiddlewareLock sync.RWMutex
+	lateMiddlewareLock sync.RWMutex
 	middlewareFuncType = miruken.TypeOf[MiddlewareFunc]()
-	dynMiddlewareMap   = make(map[reflect.Type]miruken.CallerFunc)
+	lateMiddlewareMap  = make(map[reflect.Type]miruken.CallerFunc)
 )

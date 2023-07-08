@@ -149,6 +149,7 @@ func (f constraintFilter) Order() int {
 }
 
 func (f constraintFilter) Next(
+	_        Filter,
 	next     Next,
 	ctx      HandleContext,
 	provider FilterProvider,

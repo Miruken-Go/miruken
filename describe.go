@@ -1,120 +1,12 @@
 package miruken
 
 import (
-	"container/list"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"sync"
 )
-
-type (
-	// policyBindings maintains Binding's for a Policy.
-	policyBindings struct {
-		policy    Policy
-		variant   list.List
-		index     map[any]*list.Element
-		invariant map[any][]Binding
-	}
-
-	// policyBindingsMap maps Policy's to policyBindings.
-	policyBindingsMap map[Policy]*policyBindings
-)
-
-func (p *policyBindings) insert(binding Binding) {
-	key := binding.Key()
-	if variant, unknown := p.policy.VariantKey(key); variant {
-		indexedElem := p.index[key]
-		if unknown {
-			elem := p.variant.PushBack(binding)
-			if indexedElem == nil {
-				p.index[key] = elem
-			}
-			return
-		}
-		insert := indexedElem
-		if insert == nil {
-			insert = p.variant.Front()
-		}
-		for insert != nil && !p.policy.Less(binding, insert.Value.(Binding)) {
-			insert = insert.Next()
-		}
-		var elem *list.Element
-		if insert != nil {
-			elem = p.variant.InsertBefore(binding, insert)
-		} else {
-			elem = p.variant.PushBack(binding)
-		}
-		if indexedElem == nil {
-			p.index[key] = elem
-		}
-	} else {
-		if p.invariant == nil {
-			p.invariant = make(map[any][]Binding)
-			p.invariant[key] = []Binding{binding}
-		} else {
-			bindings := append(p.invariant[key], binding)
-			p.invariant[key] = bindings
-		}
-	}
-}
-
-func (p *policyBindings) reduce(
-	key     any,
-	reducer BindingReducer,
-) (result HandleResult) {
-	if reducer == nil {
-		panic("reducer cannot be nil")
-	}
-	done := false
-	result = NotHandled
-	// Check variant keys (reflect.Type)
-	if variant, _ := p.policy.VariantKey(key); variant {
-		elem := p.index[key]
-		if elem == nil {
-			elem = p.variant.Front()
-		}
-		for elem != nil {
-			if result, done = reducer(elem.Value.(Binding), result); done {
-				break
-			}
-			elem = elem.Next()
-		}
-		return result
-	// Check invariant keys (string)
-	} else if p.invariant != nil {
-		if bs := p.invariant[key]; bs != nil {
-			for _, b := range bs {
-				if result, done = reducer(b, result); done {
-					return result
-				}
-			}
-		}
-	}
-	// Check unknown keys (any)
-	if unk := p.index[anyType]; unk != nil {
-		for unk != nil {
-			if result, done = reducer(unk.Value.(Binding), result); done {
-				break
-			}
-			unk = unk.Next()
-		}
-	}
-	return result
-}
-
-func (p policyBindingsMap) forPolicy(policy Policy) *policyBindings {
-	bindings, found := p[policy]
-	if !found {
-		bindings = &policyBindings{
-			policy: policy,
-			index:  make(map[any]*list.Element),
-		}
-		p[policy] = bindings
-	}
-	return bindings
-}
 
 type (
 	// HandlerDescriptor manages Handler Binding's.
@@ -152,6 +44,7 @@ type (
 		Cause error
 	}
 )
+
 
 func (s HandlerTypeSpec) Type() reflect.Type {
 	return s.typ
@@ -402,18 +295,18 @@ func (d *HandlerDescriptor) Dispatch(
 				var pout *promise.Promise[[]any]
 				var err  error
 				ctx := HandleContext{
-					handler,
-					callback,
-					binding,
-					composer,
-					greedy,
+					handler:  handler,
+					callback: callback,
+					binding:  binding,
+					composer: composer,
+					greedy:   greedy,
 				}
 				if len(filters) == 0 {
-					out, pout, err = binding.Invoke(ctx)
+					out, pout, err = applySideEffects(binding, &ctx)
 				} else {
 					out, pout, err = pipeline(ctx, filters,
 						func(ctx HandleContext) ([]any, *promise.Promise[[]any], error) {
-							return binding.Invoke(ctx)
+							return applySideEffects(binding, &ctx)
 					})
 				}
 				if err == nil {
@@ -447,6 +340,20 @@ func (d *HandlerDescriptor) Dispatch(
 	}
 	return NotHandled
 }
+
+func applySideEffects(
+    binding Binding,
+	ctx     *HandleContext,
+) ([]any, *promise.Promise[[]any], error) {
+	out, pout, err := binding.Invoke(*ctx)
+	if len(out) > 0 {
+		if se, ok := out[0].(SideEffect); ok {
+			return se.Apply(se, *ctx)
+		}
+	}
+	return out, pout, err
+}
+
 
 type (
 	// HandlerDescriptorProvider returns HandlerDescriptor's.

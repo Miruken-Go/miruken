@@ -1,4 +1,4 @@
-package authenticate
+package auth
 
 import (
 	"github.com/miruken-go/miruken"

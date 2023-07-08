@@ -1,7 +1,7 @@
 package miruken
 
 type (
-	// HandlerAxis extends Handler with traversal.
+	// HandlerAxis extends Handler with traversal behavior.
 	HandlerAxis interface {
 		Handler
 		HandleAxis(

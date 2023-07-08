@@ -391,6 +391,28 @@ func (suite *ContextTestSuite) TestContext() {
 			suite.Same(data, resolve)
 		})
 
+		suite.Run("DescendantsReverse", func() {
+			data := &ContextObserver{}
+			root := context.New()
+			root.NewChild()
+			child2 := root.NewChild()
+			child3 := root.NewChild()
+			grandChild := child3.NewChild()
+			grandChild.Store(data)
+			resolve, _, err := provides.Type[*ContextObserver](miruken.BuildUp(grandChild, miruken.DescendantReverseAxis))
+			suite.Nil(err)
+			suite.Nil(resolve)
+			resolve, _, err = provides.Type[*ContextObserver](miruken.BuildUp(child2, miruken.DescendantReverseAxis))
+			suite.Nil(err)
+			suite.Nil(resolve)
+			resolve, _, err = provides.Type[*ContextObserver](miruken.BuildUp(child3, miruken.DescendantReverseAxis))
+			suite.Nil(err)
+			suite.Same(data, resolve)
+			resolve, _, err = provides.Type[*ContextObserver](miruken.BuildUp(root, miruken.DescendantReverseAxis))
+			suite.Nil(err)
+			suite.Same(data, resolve)
+		})
+
 		suite.Run("DescendantsOrSelf", func() {
 			data := &ContextObserver{}
 			root := context.New()
@@ -409,6 +431,28 @@ func (suite *ContextTestSuite) TestContext() {
 			suite.Nil(err)
 			suite.Same(data, resolve)
 			resolve, _, err = provides.Type[*ContextObserver](miruken.BuildUp(root, miruken.SelfOrDescendantAxis))
+			suite.Nil(err)
+			suite.Same(data, resolve)
+		})
+
+		suite.Run("DescendantsOrSelfReverse", func() {
+			data := &ContextObserver{}
+			root := context.New()
+			root.NewChild()
+			child2 := root.NewChild()
+			child3 := root.NewChild()
+			grandChild := child3.NewChild()
+			grandChild.Store(data)
+			resolve, _, err := provides.Type[*ContextObserver](miruken.BuildUp(child2, miruken.SelfOrDescendantReverseAxis))
+			suite.Nil(err)
+			suite.Nil(resolve)
+			resolve, _, err = provides.Type[*ContextObserver](miruken.BuildUp(grandChild, miruken.SelfOrDescendantReverseAxis))
+			suite.Nil(err)
+			suite.Same(data, resolve)
+			resolve, _, err = provides.Type[*ContextObserver](miruken.BuildUp(child3, miruken.SelfOrDescendantReverseAxis))
+			suite.Nil(err)
+			suite.Same(data, resolve)
+			resolve, _, err = provides.Type[*ContextObserver](miruken.BuildUp(root, miruken.SelfOrDescendantReverseAxis))
 			suite.Nil(err)
 			suite.Same(data, resolve)
 		})

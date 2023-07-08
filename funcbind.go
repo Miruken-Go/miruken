@@ -106,8 +106,7 @@ func callFuncWithArgs(
 	for i, aa := range resolvedArgs {
 		in[initCount + i] = aa
 	}
-	return slices.Map[reflect.Value, any](fun.Call(in),
-		func(v reflect.Value) any { return v.Interface() })
+	return slices.Map[reflect.Value, any](fun.Call(in), reflect.Value.Interface)
 }
 
 // mergeOutput analyzes the standard function return values and

@@ -12,20 +12,23 @@ import (
 	"testing"
 )
 
-type Captured interface {
-	Handled() int
-	IncHandled(howMany int)
-	Composer() miruken.Handler
-	SetComposer(composer miruken.Handler)
-	Filters()  []miruken.Filter
-	AddFilters(filters ...miruken.Filter)
-}
+type (
+	Captured interface {
+		Handled() int
+		IncHandled(howMany int)
+		Composer() miruken.Handler
+		SetComposer(composer miruken.Handler)
+		Filters()  []miruken.Filter
+		AddFilters(filters ...miruken.Filter)
+	}
 
-type Capture struct {
-	handled  int
-	composer miruken.Handler
-	filters  []miruken.Filter
-}
+	Capture struct {
+		handled  int
+		composer miruken.Handler
+		filters  []miruken.Filter
+	}
+)
+
 
 func (c *Capture) Handled() int {
 	return c.handled
@@ -51,31 +54,41 @@ func (c *Capture) AddFilters(filters ...miruken.Filter) {
 	c.filters = append(c.filters, filters...)
 }
 
+
 type (
 	FooC        struct { Capture }
 	SpecialFooC struct { FooC }
 	BarC        struct { Capture }
 	BooC        struct { Capture }
 	BeeC        struct { Capture }
+
+	Logging interface {
+		Log(msg string)
+	}
+
+	ConsoleLogger struct{}
 )
 
-type Logging interface {
-	Log(msg string)
-}
 
-type ConsoleLogger struct{}
 func (c *ConsoleLogger) Log(msg string) {
 	fmt.Println(msg)
 }
 
-// NullFilter test filter
-type NullFilter struct {}
+
+type (
+	NullFilter struct {}
+	LogFilter struct { miruken.LateFilter }
+	ExceptionFilter struct {}
+	AbortFilter struct {}
+)
+
 
 func (n *NullFilter) Order() int {
 	return math.MaxInt32
 }
 
 func (n *NullFilter) Next(
+	_        miruken.Filter,
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
@@ -86,26 +99,15 @@ func (n *NullFilter) Next(
 	return next.Pipe()
 }
 
-// LogFilter test filter
-type LogFilter struct {}
 
 func (l *LogFilter) Order() int {
 	return 1
 }
 
-func (l *LogFilter) Next(
-	next     miruken.Next,
-	ctx      miruken.HandleContext,
-	provider miruken.FilterProvider,
-)  ([]any, *promise.Promise[[]any], error) {
-	return miruken.DynNext(l, next, ctx, provider)
-}
-
-func (l *LogFilter) DynNext(
-	next     miruken.Next,
-	ctx      miruken.HandleContext,
-	provider miruken.FilterProvider,
-	logging  Logging,
+func (l *LogFilter) LateNext(
+	next    miruken.Next,
+	ctx     miruken.HandleContext,
+	logging Logging,
 )  ([]any, *promise.Promise[[]any], error) {
 	captured := extractCaptured(ctx.Callback())
 	logging.Log(
@@ -116,14 +118,13 @@ func (l *LogFilter) DynNext(
 	return next.Pipe()
 }
 
-// ExceptionFilter test filter
-type ExceptionFilter struct {}
 
 func (e *ExceptionFilter) Order() int {
 	return 2
 }
 
 func (e *ExceptionFilter) Next(
+	_        miruken.Filter,
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
@@ -141,14 +142,13 @@ func (e *ExceptionFilter) Next(
 	}
 }
 
-// AbortFilter test filter
-type AbortFilter struct {}
 
 func (a *AbortFilter) Order() int {
 	return 0
 }
 
 func (a *AbortFilter) Next(
+	_        miruken.Filter,
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
@@ -159,6 +159,7 @@ func (a *AbortFilter) Next(
 	}
 	return next.Pipe()
 }
+
 
 func extractCaptured(callback miruken.Callback) Captured {
 	switch cb := callback.Source().(type) {
@@ -172,14 +173,19 @@ func extractCaptured(callback miruken.Callback) Captured {
 	return nil
 }
 
-// FilteringHandler test handler
-type FilteringHandler struct {}
 
-func (f FilteringHandler) Order() int {
+type (
+	FilteringHandler struct {}
+	SpecialFilteringHandler struct {}
+	SingletonHandler struct{}
+)
+
+
+func (h FilteringHandler) Order() int {
 	return 10
 }
 
-func (f FilteringHandler) HandleBar(
+func (h FilteringHandler) HandleBar(
 	_*struct{
 		handles.It
 		NullFilter
@@ -191,7 +197,7 @@ func (f FilteringHandler) HandleBar(
 	bar.IncHandled(1)
 }
 
-func (f FilteringHandler) HandleBee(
+func (h FilteringHandler) HandleBee(
 	_*struct{
 		handles.It
 		miruken.SkipFilters
@@ -202,7 +208,7 @@ func (f FilteringHandler) HandleBee(
 	bee.IncHandled(3)
 }
 
-func (f FilteringHandler) HandleStuff(
+func (h FilteringHandler) HandleStuff(
 	_ *handles.It, callback any,
 ) {
 	if bar, ok := callback.(*BarC); ok {
@@ -210,20 +216,19 @@ func (f FilteringHandler) HandleStuff(
 	}
 }
 
-func (f FilteringHandler) Next(
+func (h FilteringHandler) Next(
+	_        miruken.Filter,
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  ([]any, *promise.Promise[[]any], error) {
 	if bar, ok := ctx.Callback().Source().(*BarC); ok {
-		bar.AddFilters(f)
+		bar.AddFilters(h)
 		bar.IncHandled(1)
 	}
 	return next.Pipe()
 }
 
-// SpecialFilteringHandler test handler
-type SpecialFilteringHandler struct {}
 
 func (s SpecialFilteringHandler) HandleFoo(
 	_*struct{
@@ -245,9 +250,6 @@ func (s SpecialFilteringHandler) RemoveBoo(
 ) {
 }
 
-// SingletonHandler test handler
-
-type SingletonHandler struct{}
 
 func (s *SingletonHandler) Constructor(
 	_*struct{
@@ -267,13 +269,15 @@ func (s *SingletonHandler) HandleBar(
 	bar.IncHandled(3)
 }
 
-// SingletonErrorHandler test handler
 
 var errorCount = 0
 
-type SingletonErrorHandler struct {
-	count int
-}
+type (
+	SingletonErrorHandler struct {
+		count int
+	}
+	BadHandler struct{}
+)
 
 func (s *SingletonErrorHandler) Constructor(
 	_*struct{
@@ -297,9 +301,6 @@ func (s *SingletonErrorHandler) HandleBee(
 	bee.IncHandled(3)
 }
 
-// BadHandler test handler
-
-type BadHandler struct{}
 
 func (b BadHandler) HandleBar(
 	_*struct{
@@ -309,6 +310,7 @@ func (b BadHandler) HandleBar(
 	bar *BarC,
 ) {
 }
+
 
 type FilterTestSuite struct {
 	suite.Suite
@@ -344,8 +346,8 @@ func (suite *FilterTestSuite) TestFilters() {
 				Providers:   []miruken.FilterProvider{provider},
 				SkipFilters: miruken.Set(true),
 			}
-			other    := miruken.FilterOptions{}
-			other2   := miruken.FilterOptions{
+			other  := miruken.FilterOptions{}
+			other2 := miruken.FilterOptions{
 				Providers:   []miruken.FilterProvider{provider},
 				SkipFilters: miruken.Set(false),
 			}
@@ -360,8 +362,8 @@ func (suite *FilterTestSuite) TestFilters() {
 
 	suite.Run("Create Pipeline", func () {
 		handler, _ := suite.Setup()
-		bar     := new(BarC)
-		result  := handler.Handle(bar, false, nil)
+		bar    := new(BarC)
+		result := handler.Handle(bar, false, nil)
 		suite.False(result.IsError())
 		suite.Equal(miruken.Handled, result)
 		suite.Equal(2, bar.Handled())
@@ -404,6 +406,21 @@ func (suite *FilterTestSuite) TestFilters() {
 			suite.Equal(2, len(bar.Filters()))
 			suite.IsType(&ExceptionFilter{}, bar.Filters()[0])
 			suite.IsType(FilteringHandler{}, bar.Filters()[1])
+		})
+
+		suite.Run("Override", func() {
+			handler, _ := suite.Setup()
+			handler  = miruken.BuildUp(handler, miruken.DisableFilters, miruken.EnableFilters)
+			bar     := new(BarC)
+			result  := handler.Handle(bar, false, nil)
+			suite.False(result.IsError())
+			suite.Equal(miruken.Handled, result)
+			suite.Equal(2, bar.Handled())
+			suite.Equal(4, len(bar.Filters()))
+			suite.IsType(&LogFilter{}, bar.Filters()[0])
+			suite.IsType(&ExceptionFilter{}, bar.Filters()[1])
+			suite.IsType(FilteringHandler{}, bar.Filters()[2])
+			suite.IsType(&NullFilter{}, bar.Filters()[3])
 		})
 	})
 
