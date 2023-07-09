@@ -346,7 +346,7 @@ func applySideEffects(
 	ctx     *HandleContext,
 ) ([]any, *promise.Promise[[]any], error) {
 	out, pout, err := binding.Invoke(*ctx)
-	if len(out) > 0 {
+	if err != nil && len(out) > 0 {
 		if se, ok := out[0].(SideEffect); ok {
 			return se.Apply(se, *ctx)
 		}

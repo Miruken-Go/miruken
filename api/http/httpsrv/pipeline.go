@@ -5,7 +5,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/provides"
-	"github.com/prometheus/common/log"
+	"log"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -171,7 +171,7 @@ func handlePanic(w http.ResponseWriter, r *http.Request) {
 		buf := make([]byte, 2048)
 		n   := runtime.Stack(buf, false)
 		buf = buf[:n]
-		log.Errorf("recovering from http panic: %v\n%s", rc, string(buf))
+		log.Printf("recovering from http panic: %v\n%s", rc, string(buf))
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }

@@ -421,12 +421,12 @@ func (n *nextBinding) invoke(
 
 
 func (l LateFilter) Next(
-	f        Filter,
+	filter   Filter,
 	next     Next,
 	ctx      HandleContext,
 	provider FilterProvider,
 )  ([]any, *promise.Promise[[]any], error) {
-	return lateNext(f, next, ctx, provider)
+	return lateNext(filter, next, ctx, provider)
 }
 
 
@@ -516,7 +516,7 @@ func getLateNext(
 		return binding, nil
 	}
 Invalid:
-	return nil, fmt.Errorf(`late filter %v has no matching "LateNext" method`, typ)
+	return nil, fmt.Errorf(`filter: %v has no matching "LateNext" method`, typ)
 }
 
 

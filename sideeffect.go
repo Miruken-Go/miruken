@@ -32,22 +32,22 @@ type (
 
 
 func (l LateSideEffect) Apply(
-	s        SideEffect,
-	ctx      HandleContext,
+	sideEffect SideEffect,
+	ctx        HandleContext,
 )  ([]any, *promise.Promise[[]any], error) {
-	return lateApply(s, ctx)
+	return lateApply(sideEffect, ctx)
 }
 
 
 func lateApply(
-	s   SideEffect,
-	ctx HandleContext,
+	sideEffect SideEffect,
+	ctx        HandleContext,
 )  (out []any, po *promise.Promise[[]any], err error) {
 	var binding *applyBinding
-	if binding, err = getLateApply(s); err != nil {
+	if binding, err = getLateApply(sideEffect); err != nil {
 		return
 	}
-	if out, po, err = binding.invoke(s, ctx); err != nil {
+	if out, po, err = binding.invoke(sideEffect, ctx); err != nil {
 		return
 	} else if po == nil {
 		po,  _ = out[1].(*promise.Promise[[]any])
@@ -69,10 +69,10 @@ func lateApply(
 
 
 func getLateApply(
-	s SideEffect,
+	sideEffect SideEffect,
 ) (*applyBinding, error) {
 	lateApplyLock.RLock()
-	typ := reflect.TypeOf(s)
+	typ := reflect.TypeOf(sideEffect)
 	binding := lateApplyMap[typ]
 	lateApplyLock.RUnlock()
 	if binding == nil {
@@ -116,7 +116,7 @@ func getLateApply(
 		return binding, nil
 	}
 Invalid:
-	return nil, fmt.Errorf(`late side-effect %v has no matching "LateApply" method`, typ)
+	return nil, fmt.Errorf(`side-effect: %v has no matching "LateApply" method`, typ)
 }
 
 func (a *applyBinding) invoke(
