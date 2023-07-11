@@ -56,7 +56,7 @@ func (t *TransferFundsAccessPolicy) AuthorizeTransferFast(
 // Account
 
 func (a *Account) Transfer(
-	_*struct {
+	_*struct{
 		handles.It
 		authorizes.Required
 	  }, transfer TransferFunds,

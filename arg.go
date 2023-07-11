@@ -229,8 +229,8 @@ func (r *defaultDependencyResolver) Resolve(
 		builder.WithConstraints(spec.constraints...)
 	}
 	provides := builder.New()
-	if result, pr, inv := provides.Resolve(ctx.composer, many); inv != nil {
-		err = fmt.Errorf("arg: unable to resolve dependency %v: %w", typ, inv)
+	if result, pr, err2 := provides.Resolve(ctx.composer, many); err2 != nil {
+		err = fmt.Errorf("arg: unable to resolve dependency %v: %w", typ, err2)
 	} else if pr == nil {
 		if many {
 			v = reflect.New(typ).Elem()
@@ -304,12 +304,16 @@ func (e *UnresolvedArgError) Unwrap() error {
 	return e.Reason
 }
 
-func resolveArgs(
-	funType   reflect.Type,
-	fromIndex int,
+func resolveFuncArgs(
+	fun       reflect.Value,
 	args      []arg,
+	fromIndex int,
 	ctx       HandleContext,
 ) ([]reflect.Value, *promise.Promise[[]reflect.Value], error) {
+	if len(args) == 0 {
+		return nil, nil, nil
+	}
+	funType := fun.Type()
 	var promises []*promise.Promise[struct{}]
 	resolved := make([]reflect.Value, len(args))
 	for i, arg := range args {

@@ -90,7 +90,6 @@ func getLateServeHTTP(typ reflect.Type) (miruken.CallerFunc, error) {
 				}
 				caller, err := miruken.MakeCaller(lateServeHTTP.Func)
 				if err != nil {
-					err = fmt.Errorf("LateServeHTTP: %w", err)
 					return nil, &miruken.MethodBindingError{Method: lateServeHTTP, Cause: err}
 				}
 				lateMiddlewareMap[typ] = caller
@@ -101,7 +100,7 @@ func getLateServeHTTP(typ reflect.Type) (miruken.CallerFunc, error) {
 	return binding, nil
 Invalid:
 	return nil, fmt.Errorf(
-		`middleware %v missing valid "LateServeHTTP" method`, typ)
+		`middleware: %v missing valid "LateServeHTTP" method`, typ)
 }
 
 

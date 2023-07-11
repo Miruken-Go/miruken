@@ -16,7 +16,7 @@ type (
 	internal interface {
 		Reflect
 		lift(result any)
-		coerce(promise *Promise[any])
+		coerce(promise Reflect)
 	}
 )
 
@@ -65,13 +65,17 @@ func (p *Promise[T]) lift(result any) {
 }
 
 func (p *Promise[T]) coerce(
-	promise *Promise[any],
+	promise Reflect,
 ) {
 	if p.ch == nil {
 		p.ch = make(chan struct{})
 	}
 	promise.Then(func(result any) any {
-		p.resolve(result.(T))
+		var t T
+		if result != nil {
+			t = result.(T)
+		}
+		p.resolve(t)
 		return nil
 	}).Catch(func(err error) error {
 		p.reject(err)
@@ -88,10 +92,7 @@ func Inspect(typ reflect.Type) (reflect.Type, bool) {
 }
 
 func Lift(typ reflect.Type, result any) Reflect {
-	if typ.Kind() != reflect.Ptr {
-		panic("typ must be a promise")
-	}
-	if !typ.Implements(reflectType) {
+	if typ.Kind() != reflect.Ptr || !typ.Implements(reflectType) {
 		panic("typ must be a promise")
 	}
 	promise := reflect.New(typ.Elem()).Interface().(internal)
@@ -100,16 +101,21 @@ func Lift(typ reflect.Type, result any) Reflect {
 }
 
 func Coerce[T any](
-	promise *Promise[any],
+	promise Reflect,
 ) *Promise[T] {
-	return Then(promise, func(data any) T {
-		return data.(T)
+	return Then(promise.Then(func(data any) any {
+		return data
+	}), func(data any) (t T) {
+		if data != nil {
+			t = data.(T)
+		}
+		return t
 	})
 }
 
 func CoerceType(
 	typ     reflect.Type,
-	promise *Promise[any],
+	promise Reflect,
 ) Reflect {
 	if typ.Kind() != reflect.Ptr ||  !typ.Implements(reflectType) {
 		panic("typ must be a promise")

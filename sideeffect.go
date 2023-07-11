@@ -16,7 +16,7 @@ type (
 		Apply(
 			s   SideEffect,
 			ctx HandleContext,
-		) ([]any, *promise.Promise[[]any], error)
+		) (promise.Reflect, error)
 	}
 
 	// LateSideEffect provides a late binding adapter
@@ -34,7 +34,7 @@ type (
 func (l LateSideEffect) Apply(
 	sideEffect SideEffect,
 	ctx        HandleContext,
-)  ([]any, *promise.Promise[[]any], error) {
+)  (promise.Reflect, error) {
 	return lateApply(sideEffect, ctx)
 }
 
@@ -42,29 +42,12 @@ func (l LateSideEffect) Apply(
 func lateApply(
 	sideEffect SideEffect,
 	ctx        HandleContext,
-)  (out []any, po *promise.Promise[[]any], err error) {
+)  (p promise.Reflect, err error) {
 	var binding *applyBinding
 	if binding, err = getLateApply(sideEffect); err != nil {
 		return
 	}
-	if out, po, err = binding.invoke(sideEffect, ctx); err != nil {
-		return
-	} else if po == nil {
-		po,  _ = out[1].(*promise.Promise[[]any])
-		err, _ = out[2].(error)
-		out, _ = out[0].([]any)
-	} else {
-		po = promise.Then(po, func(o []any) []any {
-			if err, ok := o[2].(error); ok {
-				panic(err)
-			} else if ro, ok := o[0].([]any); ok {
-				return ro
-			} else {
-				return nil
-			}
-		})
-	}
-	return
+	return binding.invoke(sideEffect, ctx)
 }
 
 
@@ -82,11 +65,10 @@ func getLateApply(
 			if lateApply, ok := typ.MethodByName("LateApply"); !ok {
 				goto Invalid
 			} else if lateApplyType := lateApply.Type;
-				lateApplyType.NumIn() < 1 || lateApplyType.NumOut() < 3 {
+				lateApplyType.NumIn() < 1 || lateApplyType.NumOut() < 2 {
 				goto Invalid
-			} else if lateApplyType.Out(0) != anySliceType ||
-				lateApplyType.Out(1) != promiseAnySliceType ||
-				lateApplyType.Out(2) != errorType {
+			} else if !lateApplyType.Out(0).AssignableTo(promiseReflectType) ||
+				lateApplyType.Out(1) != errorType {
 				goto Invalid
 			} else {
 				skip    := 1 // skip receiver
@@ -96,7 +78,8 @@ func getLateApply(
 					if lateApplyType.In(i) == handleCtxType {
 						if binding.ctxIdx > 0 {
 							return nil, &MethodBindingError{lateApply,
-								fmt.Errorf("duplicate HandleContext arg at index %v and %v", binding.ctxIdx, i)}
+								fmt.Errorf("side-effect: %v duplicate HandleContext arg at index %v and %v",
+									typ, binding.ctxIdx, i)}
 						}
 						binding.ctxIdx = i
 						skip++
@@ -104,7 +87,7 @@ func getLateApply(
 				}
 				args := make([]arg, numArgs-skip)
 				if err := buildDependencies(lateApplyType, skip, numArgs, args, 0); err != nil {
-					err = fmt.Errorf("LateApply: %w", err)
+					err = fmt.Errorf("side-effect: %v \"LateApply\": %w", typ, err)
 					return nil, &MethodBindingError{lateApply, err}
 				}
 				binding.args = args
@@ -122,16 +105,45 @@ Invalid:
 func (a *applyBinding) invoke(
 	s   SideEffect,
 	ctx HandleContext,
-) ([]any, *promise.Promise[[]any], error) {
+) (promise.Reflect, error) {
 	initArgs := []any{s}
 	if a.ctxIdx == 1 {
 		initArgs = append(initArgs, ctx)
 	}
-	return callFunc(a.method.Func, ctx, a.args, initArgs...)
+	fun := a.method.Func
+	fromIndex := len(initArgs)
+	ra, pa, err := resolveFuncArgs(fun, a.args, fromIndex, ctx)
+	if err != nil {
+		return nil, err
+	} else if pa == nil {
+		out := callFuncWithArgs(fun, ra, initArgs)
+		if oe, ok := out[1].(error); ok {
+			return nil, oe
+		} else if po, ok := out[0].(promise.Reflect); ok {
+			return po, nil
+		}
+		return nil, nil
+	} else {
+		return promise.Then(pa, func(ra []reflect.Value) any {
+			out := callFuncWithArgs(fun, ra, initArgs)
+			if oe, ok := out[1].(error); ok {
+				panic(oe)
+			} else if po, ok := out[0].(promise.Reflect); ok {
+				if oa, oe := po.AwaitAny(); oe != nil {
+					panic(oe)
+				} else {
+					return oa
+				}
+			}
+			return nil
+		}), nil
+	}
 }
 
 
 var (
 	lateApplyLock sync.RWMutex
-	lateApplyMap = make(map[reflect.Type]*applyBinding)
+	lateApplyMap       = make(map[reflect.Type]*applyBinding)
+	promiseReflectType = TypeOf[promise.Reflect]()
+	sideEffectType     = TypeOf[SideEffect]()
 )

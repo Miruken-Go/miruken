@@ -146,6 +146,7 @@ func validateCovariantFunc(
 	skip    int,
 ) (args []arg, ck any, err error) {
 	numArgs := funType.NumIn()
+	numOut  := funType.NumOut()
 	args     = make([]arg, numArgs-skip)
 	args[0]  = spec.arg
 
@@ -153,65 +154,47 @@ func validateCovariantFunc(
 		err = fmt.Errorf("covariant: %w", err)
 	}
 
-	switch funType.NumOut() {
-	case 0:
-		err = multierror.Append(err, ErrCovMissingReturn)
-	case 1:
-		if key, inv := validateCovariantReturn(funType.Out(0), spec, key, false); inv != nil {
-			err = multierror.Append(err, inv)
-		} else {
-			ck = key
-		}
-	case 2:
-		if key, inv := validateCovariantReturn(funType.Out(0), spec, key, true); inv != nil {
-			err = multierror.Append(err, inv)
-		} else {
-			ck = key
-		}
-		switch funType.Out(1) {
-		case errorType, handleResType: break
-		default:
+	resIdx := -1
+
+	for i := 0; i < numOut; i++ {
+		out := funType.Out(i)
+		if out.AssignableTo(errorType) {
+			if i != numOut-1 {
+				err = multierror.Append(err, fmt.Errorf(
+					"covariant: error return found at index %v must be last", i))
+			}
+		} else if out.AssignableTo(handleResType) {
+			if i != numOut-1 {
+				err = multierror.Append(err, fmt.Errorf(
+					"covariant: HandleResult return found at index %v must be last", i))
+			}
+		} else if out.AssignableTo(sideEffectType) {
+			// ignore side-effects
+		} else if resIdx >= 0 {
 			err = multierror.Append(err, fmt.Errorf(
-				"covariant: when two return values, second must be %v or %v",
-				errorType, handleResType))
+				"covariant: effective return at index %v conflicts with index %v", resIdx, i))
+		} else {
+			resIdx = i
+			if key == nil {
+				if lt, ok := promise.Inspect(out); ok {
+					spec.flags = spec.flags | bindingAsync
+					out = lt
+				}
+				if spec.flags & bindingStrict != bindingStrict {
+					switch out.Kind() {
+					case reflect.Slice, reflect.Array:
+						out = out.Elem()
+					}
+				}
+				key = out
+			}
+			ck  = key
+			spec.setLogicalOutputType(out)
 		}
-	default:
-		err = multierror.Append(err, fmt.Errorf(
-			"covariant: at most two return values allowed and second must be %v or %v",
-			errorType, handleResType))
+	}
+
+	if resIdx < 0 {
+		err = multierror.Append(err, ErrCovMissingReturn)
 	}
 	return
-}
-
-func validateCovariantReturn(
-	returnType reflect.Type,
-	spec       *bindingSpec,
-	key        any,
-	allowErr   bool,
-) (any, error) {
-	switch returnType {
-	case errorType:
-		if !allowErr {
-			return nil, fmt.Errorf(
-				"covariant: primary return value must not be %v", errorType)
-		}
-	case handleResType:
-		return nil, fmt.Errorf(
-			"covariant: primary return value must not be %v", handleResType)
-	}
-	if key == nil {
-		if lt, ok := promise.Inspect(returnType); ok {
-			spec.flags = spec.flags | bindingAsync
-			returnType = lt
-		}
-		if spec.flags & bindingStrict != bindingStrict {
-			switch returnType.Kind() {
-			case reflect.Slice, reflect.Array:
-				returnType = returnType.Elem()
-			}
-		}
-		key = returnType
-	}
-	spec.setLogicalOutputType(returnType)
-	return key, nil
 }

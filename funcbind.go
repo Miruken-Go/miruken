@@ -67,9 +67,9 @@ func (e *FuncBindingError) Unwrap() error {
 
 
 // callFunc calls the function stored in the fun argument.
-// resolves the args input and appends them to the initArgs
+// Resolves the input args and appends them to the initArgs
 // to supply the input arguments to the function.
-// returns the output results slice and/or and error if not
+// Returns the output results slice and/or and error if not
 // asynchronous or a promise to the output results.
 func callFunc(
 	fun      reflect.Value,
@@ -77,34 +77,32 @@ func callFunc(
 	args     []arg,
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
-	fromIndex := len(initArgs)
-	if resolvedArgs, pa, err := resolveArgs(fun.Type(), fromIndex, args, ctx); err != nil {
+	ra, pa, err := resolveFuncArgs(fun, args, len(initArgs), ctx)
+	if err != nil {
 		return nil, nil, err
 	} else if pa == nil {
-		return callFuncWithArgs(fun, initArgs, resolvedArgs), nil, nil
-	} else {
-		return nil, promise.Then(pa, func(ra []reflect.Value) []any {
-			return callFuncWithArgs(fun, initArgs, ra)
-		}), nil
+		return callFuncWithArgs(fun, ra, initArgs), nil, nil
 	}
+	return nil, promise.Then(pa, func(ra []reflect.Value) []any {
+		return callFuncWithArgs(fun, ra, initArgs)
+	}), nil
 }
 
 // callFuncWithArgs calls the function stored in the fun argument.
-// combines the initArgs and resolvedArgs to supply the input
-// arguments to the function.
-// returns the output results slice.
+// Combines the initial ands resolved args as the function input.
+// Returns the output results slice.
 func callFuncWithArgs(
-	fun          reflect.Value,
-	initArgs     []any,
-	resolvedArgs []reflect.Value,
+	fun      reflect.Value,
+	ra       []reflect.Value,
+	initArgs []any,
 ) []any {
-	initCount := len(initArgs)
-	in := make([]reflect.Value, len(initArgs) + len(resolvedArgs))
+	cnt := len(initArgs)
+	in  := make([]reflect.Value, len(initArgs) + len(ra))
 	for i, ia := range initArgs {
 		in[i] = reflect.ValueOf(ia)
 	}
-	for i, aa := range resolvedArgs {
-		in[initCount + i] = aa
+	for i, aa := range ra {
+		in[cnt+ i] = aa
 	}
 	return slices.Map[reflect.Value, any](fun.Call(in), reflect.Value.Interface)
 }
@@ -116,9 +114,9 @@ func callFuncWithArgs(
 //   - last output is an error, return it immediately
 //   - first output is a promise, resolve and replace the
 //     first output element
-// Otherwise, if asynchronous (2nd  output is promise), resolve
-// and repeat steps above.
-// Provides returns the normalized output.
+// Otherwise, if asynchronous (2nd output is promise),
+// resolve and repeat steps above.
+// Returns the normalized output.
 func mergeOutput(
 	out  []any,
 	pout *promise.Promise[[]any],

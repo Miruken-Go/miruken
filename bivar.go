@@ -130,14 +130,13 @@ func validateBivariantFunc(
 	skip    int,
 ) (args []arg, dk any, err error) {
 	numArgs := funType.NumIn()
+	numOut  := funType.NumOut()
 	args     = make([]arg, numArgs-skip)
 	args[0]  = spec.arg
 	dk       = key
 	in      := anyType
 	out     := anyType
 	index   := 1
-
-	var inv error
 
 	// Callback argument must be present if spec
 	if len(args) > 1 {
@@ -152,39 +151,47 @@ func validateBivariantFunc(
 		err = ErrBivMissingCallback
 	}
 
-	if inv := buildDependencies(funType, index+skip, numArgs, args, index); inv != nil {
-		err = multierror.Append(err, fmt.Errorf("bivariant: %w", inv))
+	if err2 := buildDependencies(funType, index+skip, numArgs, args, index); err2 != nil {
+		err = multierror.Append(err, fmt.Errorf("bivariant: %w", err2))
 	}
 
-	switch funType.NumOut() {
-	case 0:
-		err = multierror.Append(err, ErrBivMissingReturn)
-	case 1:
-		if out, inv = validateBivariantReturn(funType.Out(0), spec, false); inv != nil {
-			err = multierror.Append(err, inv)
-		}
-	case 2:
-		if out, inv = validateBivariantReturn(funType.Out(0), spec, true); inv != nil {
-			err = multierror.Append(err, inv)
-		}
-		switch funType.Out(1) {
-		case errorType, handleResType: break
-		default:
+	resIdx := -1
+
+	for i := 0; i < numOut; i++ {
+		oo := funType.Out(i)
+		if oo.AssignableTo(errorType) {
+			if i != numOut-1 {
+				err = multierror.Append(err, fmt.Errorf(
+					"bivariant: error return found at index %v must be last", i))
+			}
+		} else if oo.AssignableTo(handleResType) {
+			if i != numOut-1 {
+				err = multierror.Append(err, fmt.Errorf(
+					"bivariant: HandleResult return found at index %v must be last", i))
+			}
+		} else if oo.AssignableTo(sideEffectType) {
+			// ignore side-effects
+		} else if resIdx >= 0 {
 			err = multierror.Append(err, fmt.Errorf(
-				"bivariant: when two return values, second must be %v or %v",
-				errorType, handleResType))
+				"bivariant: effective return at index %v conflicts with index %v", resIdx, i))
+		} else {
+			out = oo
+			resIdx = i
+			if lt, ok := promise.Inspect(out); ok {
+				spec.flags = spec.flags | bindingAsync
+				out = lt
+			}
+			spec.setLogicalOutputType(out)
 		}
-	default:
-		err = multierror.Append(err, fmt.Errorf(
-			"bivariant: at most two return values allowed and second must be %v or %v",
-			errorType, handleResType))
+	}
+
+	if resIdx < 0 {
+		err = multierror.Append(err, ErrBivMissingReturn)
 	}
 
 	if err != nil {
 		return nil, dk, err
-	}
-
-	if dk == nil {
+	} else if dk == nil {
 		dk = DiKey{ In: in, Out: out }
 	} else if _, ok := dk.(DiKey); !ok {
 		dk = DiKey{ In: dk, Out: out }
@@ -192,25 +199,3 @@ func validateBivariantFunc(
 	return
 }
 
-func validateBivariantReturn(
-	returnType reflect.Type,
-	spec       *bindingSpec,
-	allowErr   bool,
-) (reflect.Type, error) {
-	switch returnType {
-	case errorType:
-		if !allowErr {
-			return nil, fmt.Errorf(
-				"bivariant: primary return value must not be %v", errorType)
-		}
-	case handleResType:
-		return nil, fmt.Errorf(
-			"bivariant: primary return value must not be %v", handleResType)
-	}
-	if lt, ok := promise.Inspect(returnType); ok {
-		spec.flags = spec.flags | bindingAsync
-		returnType = lt
-	}
-	spec.setLogicalOutputType(returnType)
-	return returnType, nil
-}

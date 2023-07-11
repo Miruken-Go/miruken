@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken/promise"
 	"math"
+	"reflect"
 	"sync"
 )
 
@@ -25,10 +26,6 @@ func (l *Lifestyle) Order() int {
 
 func (l *LifestyleProvider) Required() bool {
 	return true
-}
-
-func (l *LifestyleProvider) Implied() bool {
-	return false
 }
 
 func (l *LifestyleProvider) AppliesTo(
@@ -107,8 +104,21 @@ func (s *single) Next(
 		s.lock.Lock()
 		if keys := s.keys; keys != nil {
 			if entry = keys[key]; entry == nil {
-				entry     = &singleEntry{once: new(sync.Once)}
-				keys[key] = entry
+				if typ, ok := key.(reflect.Type); ok {
+					for _,v := range keys {
+						if instance := v.instance; len(instance) > 0 {
+							if o := instance[0]; o != nil && reflect.TypeOf(o).AssignableTo(typ) {
+								entry = v
+								keys[key] = v
+								break
+							}
+						}
+					}
+				}
+				if entry == nil {
+					entry = &singleEntry{once: new(sync.Once)}
+					keys[key] = entry
+				}
 			}
 		} else {
 			entry  = &singleEntry{once: new(sync.Once)}

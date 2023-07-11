@@ -144,6 +144,7 @@ func validateContravariantFunc(
 ) (args []arg, ck any, err error) {
 	ck       = key
 	numArgs := funType.NumIn()
+	numOut  := funType.NumOut()
 	args     = make([]arg, numArgs-skip)
 	args[0]  = spec.arg
 	index   := 1
@@ -168,37 +169,37 @@ func validateContravariantFunc(
 		ck = anyType
 	}
 
-	if inv := buildDependencies(funType, index+skip, numArgs, args, index); inv != nil {
-		err = multierror.Append(err, fmt.Errorf("contravariant: %w", inv))
+	if err2 := buildDependencies(funType, index+skip, numArgs, args, index); err2 != nil {
+		err = multierror.Append(err, fmt.Errorf("contravariant: %w", err2))
 	}
 
-	switch funType.NumOut() {
-	case 0: break
-	case 1:
-		rt := funType.Out(0)
-		if lt, ok := promise.Inspect(rt); ok {
-			spec.flags = spec.flags | bindingAsync
-			rt = lt
-		}
-		spec.setLogicalOutputType(rt)
-	case 2:
-		rt := funType.Out(0)
-		if lt, ok := promise.Inspect(rt); ok {
-			spec.flags = spec.flags | bindingAsync
-			rt = lt
-		}
-		spec.setLogicalOutputType(rt)
-		switch funType.Out(1) {
-		case errorType, handleResType: break
-		default:
+	resIdx := -1
+
+	for i := 0; i < numOut; i++ {
+		out := funType.Out(i)
+		if out.AssignableTo(errorType) {
+			if i != numOut-1 {
+				err = multierror.Append(err, fmt.Errorf(
+					"contravariant: error return found at index %v must be last", i))
+			}
+		} else if out.AssignableTo(handleResType) {
+			if i != numOut-1 {
+				err = multierror.Append(err, fmt.Errorf(
+					"contravariant: HandleResult return found at index %v must be last", i))
+			}
+		} else if out.AssignableTo(sideEffectType) {
+			// ignore side-effects
+		} else if resIdx >= 0 {
 			err = multierror.Append(err, fmt.Errorf(
-				"contravariant: when two return values, second must be %v or %v",
-				errorType, handleResType))
+				"contravariant: effective return at index %v conflicts with index %v", resIdx, i))
+		} else {
+			resIdx = i
+			if lt, ok := promise.Inspect(out); ok {
+				spec.flags = spec.flags | bindingAsync
+				out = lt
+			}
+			spec.setLogicalOutputType(out)
 		}
-	default:
-		err = multierror.Append(err, fmt.Errorf(
-			"contravariant: at most two return values allowed and second must be %v or %v",
-			errorType, handleResType))
 	}
 	return
 }

@@ -489,14 +489,16 @@ func getLateNext(
 					if lateNextType.In(i) == handleCtxType {
 						if binding.ctxIdx > 0 {
 							return nil, &MethodBindingError{lateNext,
-								fmt.Errorf("duplicate HandleContext arg at index %v and %v", binding.ctxIdx, i)}
+								fmt.Errorf("filter: %v has duplicate HandleContext arg at index %v and %v",
+									typ, binding.ctxIdx, i)}
 						}
 						binding.ctxIdx = i
 						skip++
 					} else if lateNextType.In(i) == filterProviderType {
 						if binding.provIdx > 0 {
 							return nil, &MethodBindingError{lateNext,
-								fmt.Errorf("duplicate FilterProvider arg at index %v and %v", binding.provIdx, i)}
+								fmt.Errorf("filter: %v has duplicate FilterProvider arg at index %v and %v",
+									typ, binding.provIdx, i)}
 						}
 						binding.provIdx = i
 						skip++
@@ -504,7 +506,7 @@ func getLateNext(
 				}
 				args := make([]arg, numArgs-skip)
 				if err := buildDependencies(lateNextType, skip, numArgs, args, 0); err != nil {
-					err = fmt.Errorf("LateNext: %w", err)
+					err = fmt.Errorf("filter: %v \"LateNext\": %w", typ, err)
 					return nil, &MethodBindingError{lateNext, err}
 				}
 				binding.args = args

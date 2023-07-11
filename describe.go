@@ -344,14 +344,65 @@ func (d *HandlerDescriptor) Dispatch(
 func applySideEffects(
     binding Binding,
 	ctx     *HandleContext,
-) ([]any, *promise.Promise[[]any], error) {
-	out, pout, err := binding.Invoke(*ctx)
-	if err != nil && len(out) > 0 {
-		if se, ok := out[0].(SideEffect); ok {
-			return se.Apply(se, *ctx)
-		}
+) (out []any, pout *promise.Promise[[]any], err error) {
+	out, pout, err = binding.Invoke(*ctx)
+	if err != nil {
+		return
+	} else if pout != nil {
+		pout = promise.Then(pout, func(oo []any) []any {
+			oo, _, err = processSideEffects(oo, ctx, true)
+			if err != nil {
+				panic(err)
+			}
+			return oo
+		})
+	} else if len(out) > 0 {
+		out, pout, err = processSideEffects(out, ctx, false)
 	}
-	return out, pout, err
+	return
+}
+
+func processSideEffects(
+	out   []any,
+	ctx   *HandleContext,
+	await bool,
+) ([]any, *promise.Promise[[]any], error) {
+	temp := out[:0]
+	var ps []*promise.Promise[any]
+	for _, o := range out {
+		if se, ok := o.(SideEffect); ok {
+			if p, err := se.Apply(se, *ctx); err != nil {
+				return nil, nil, err
+			} else if p != nil {
+				ps = append(ps, p.Then(func(data any) any { return data }))
+			}
+		} else {
+			temp = append(temp, o)
+		}
+		out = temp
+	}
+	switch len(ps) {
+	case 0:
+		return out, nil, nil
+	case 1:
+		x := ps[0]
+		if await {
+			if _, err := x.Await(); err != nil {
+				return nil, nil, err
+			}
+			return out, nil, nil
+		}
+		return nil, promise.Then(x, func(any) []any { return out }), nil
+	default:
+		x := promise.All(ps...)
+		if await {
+			if _, err := x.Await(); err != nil {
+				return nil, nil, err
+			}
+			return out, nil, nil
+		}
+		return nil, promise.Then(x, func([]any) []any { return out }), nil
+	}
 }
 
 

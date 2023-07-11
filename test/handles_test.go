@@ -169,7 +169,7 @@ func (h *EverythingImplicitHandler) HandleEverything(
 type EverythingSpecHandler struct{}
 
 func (h *EverythingSpecHandler) HandleEverything(
-	_*struct { handles.It }, callback any,
+	_*struct{handles.It}, callback any,
 ) miruken.HandleResult {
 	switch cb := callback.(type) {
 	case *Baz:
@@ -509,7 +509,7 @@ func (t *Transactional) InitWithTag(tag reflect.StructTag) error {
 type MetadataHandler struct{}
 
 func (m *MetadataHandler) HandleFoo(
-	_*struct {
+	_*struct{
 		handles.It
 		Transactional `mode:"requiresNew"`
 	  }, foo *Foo,
@@ -525,7 +525,7 @@ func (m *MetadataHandler) HandleFoo(
 }
 
 func (m *MetadataHandler) HandleBar(
-	_*struct {
+	_*struct{
 		handles.It
 		handles.Strict
 	    Anonymous
@@ -541,7 +541,7 @@ func (m *MetadataHandler) HandleBar(
 type MetadataInvalidHandler struct{}
 
 func (m *MetadataInvalidHandler) HandleFoo(
-	_*struct {
+	_*struct{
 		handles.It
 		Transactional `mode:"suppress"`
 	  }) {

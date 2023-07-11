@@ -204,9 +204,7 @@ func (b *batchRouter) CompleteBatch(
 			return err
 		}))
 	}
-	return nil, promise.All(complete...).Then(func(data any) any {
-		return data
-	}), nil
+	return nil, promise.Coerce[any](promise.All(complete...)), nil
 }
 
 func (b *batchRouter) batch(

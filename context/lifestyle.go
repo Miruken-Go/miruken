@@ -116,8 +116,21 @@ func (s *scopedFilter) Next(
 		if cache := s.cache; cache != nil {
 			if keys := cache[context]; keys != nil {
 				if entry = keys[key]; entry == nil {
-					entry     = &scopedEntry{once: new(sync.Once)}
-					keys[key] = entry
+					if typ, ok := key.(reflect.Type); ok {
+						for _,v := range keys {
+							if instance := v.instance; len(instance) > 0 {
+								if o := instance[0]; o != nil && reflect.TypeOf(o).AssignableTo(typ) {
+									entry = v
+									keys[key] = v
+									break
+								}
+							}
+						}
+					}
+					if entry == nil {
+						entry = &scopedEntry{once: new(sync.Once)}
+						keys[key] = entry
+					}
 				}
 			} else {
 				entry = &scopedEntry{once: new(sync.Once)}

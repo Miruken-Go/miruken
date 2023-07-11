@@ -14,7 +14,7 @@ import (
 type KeyFactory struct {}
 
 func (f *KeyFactory) Create(
-	_*struct {
+	_*struct{
 	    creates.It
 		_ creates.It `key:"foo"`
 	  },
@@ -30,7 +30,7 @@ type MultiKeyFactory struct {
 }
 
 func (f *MultiKeyFactory) Create(
-	_*struct {
+	_*struct{
 		provides.Single
 		_ creates.It  `key:"foo"`
 		_ creates.It  `key:"bar"`
