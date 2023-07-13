@@ -12,8 +12,8 @@ if [[ $(git tag -l "$TAG") ]];
         echo "Tagging the release"
         git -c "user.name=buildpipeline" -c "user.email=mirukenjs@gmail.com" tag -a $TAG -m "Tagged by build pipeline"
         git -c "user.name=buildpipeline" -c "user.email=mirukenjs@gmail.com" push origin $TAG
-fi;
 
-gh workflow run update-team-api-dependencies.yml \
-    --repo https://github.com/Miruken-Go/demo.microservice \
-    -f mirukenVersion=$TAG                                 \
+        gh workflow run update-team-api-dependencies.yml \
+            --repo https://github.com/Miruken-Go/demo.microservice \
+            -f mirukenVersion=$TAG                                 \
+fi;
