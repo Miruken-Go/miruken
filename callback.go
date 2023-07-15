@@ -149,7 +149,7 @@ func (c *CallbackBase) AddResult(
 		return NotHandled
 	}
 	accept := c.accept
-	if pr, ok := result.(promise.Reflect); ok {
+	if pr, ok := result.(promise.Reflect); ok && !IsNil(pr) {
 		// To avoid locking the results, promises are added to
 		// the results and promises list.  When resolved, the
 		// result is replaced at the same position.  A special
@@ -248,7 +248,7 @@ func (c *CallbackBase) includeResult(
 	if IsNil(result) {
 		return NotHandled
 	}
-	if pr, ok := result.(promise.Reflect); ok {
+	if pr, ok := result.(promise.Reflect); ok && !IsNil(pr) {
 		pp := pr.Then(func(res any) any {
 			if !(strict || IsNil(res)) {
 				// Squash list into expando result
@@ -349,7 +349,7 @@ func unwrapResult(result any) any {
 	if result == nil {
 		return nil
 	}
-	if pr, ok := result.(promise.Reflect); ok {
+	if pr, ok := result.(promise.Reflect); ok && !IsNil(pr) {
 		if r, err := pr.AwaitAny(); err != nil {
 			panic(err)
 		} else {

@@ -28,7 +28,8 @@ type (
 	Filter interface {
 		Order() int
 		Next(
-			f        Filter,
+			// self is provided to accommodate late bindings
+			self     Filter,
 			next     Next,
 			ctx      HandleContext,
 			provider FilterProvider,
@@ -421,12 +422,12 @@ func (n *nextBinding) invoke(
 
 
 func (l LateFilter) Next(
-	filter   Filter,
+	self     Filter,
 	next     Next,
 	ctx      HandleContext,
 	provider FilterProvider,
 )  ([]any, *promise.Promise[[]any], error) {
-	return lateNext(filter, next, ctx, provider)
+	return lateNext(self, next, ctx, provider)
 }
 
 

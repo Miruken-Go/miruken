@@ -39,6 +39,7 @@ type (
 	}
 )
 
+
 // batch
 
 func (b *batch) ShouldBatch(tag any) bool {
@@ -70,6 +71,7 @@ func (b *batch) Complete(
 func (b *noBatch) CanBatch() bool {
 	return false
 }
+
 
 // batchHandler
 
@@ -181,6 +183,7 @@ func Batch(
 	configure(batch)
 	return batch.Complete()
 }
+
 
 func BatchAsync[T any](
 	handler   Handler,

@@ -107,10 +107,12 @@ func (s *single) Next(
 				if typ, ok := key.(reflect.Type); ok {
 					for _,v := range keys {
 						if instance := v.instance; len(instance) > 0 {
-							if o := instance[0]; o != nil && reflect.TypeOf(o).AssignableTo(typ) {
-								entry = v
-								keys[key] = v
-								break
+							if o := instance[0]; o != nil {
+								if ot := reflect.TypeOf(o); ot.AssignableTo(typ) {
+									entry     = v
+									keys[key] = v
+									break
+								}
 							}
 						}
 					}
@@ -150,4 +152,3 @@ func (s *single) Next(
 
 	return entry.instance, nil, err
 }
-

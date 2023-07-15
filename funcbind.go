@@ -131,7 +131,7 @@ func mergeOutput(
 			// if function error (last output), fail early
 			if e, ok := out[len(out)-1].(error); ok {
 				return nil, nil, e
-			} else if pf, ok := out[0].(promise.Reflect); ok {
+			} else if pf, ok := out[0].(promise.Reflect); ok && !IsNil(pf) {
 				// if first output is a promise. resolve and replace
 				return nil, promise.Coerce[[]any](
 					pf.Then(func(first any) any {
@@ -150,7 +150,7 @@ func mergeOutput(
 			// if function error, panic
 			if e, ok := oo[len(oo)-1].(error); ok {
 				panic(e)
-			} else if pf, ok := oo[0].(promise.Reflect); ok {
+			} else if pf, ok := oo[0].(promise.Reflect); ok && !IsNil(pf) {
 				// if first output is a promise. await and replace
 				if first, err := pf.AwaitAny(); err != nil {
 					panic(err)
@@ -184,7 +184,7 @@ func mergeOutputAwait(
 			// if function error (last output), panic
 			if err, ok := out[len(out)-1].(error); ok {
 				panic(err)
-			} else if pf, ok := out[0].(promise.Reflect); ok {
+			} else if pf, ok := out[0].(promise.Reflect); ok && !IsNil(pf) {
 				// if first output is a promise. await and replace
 				if first, err := pf.AwaitAny(); err != nil {
 					panic(err)
@@ -205,7 +205,7 @@ func mergeOutputAwait(
 		// if function error (last output), panic
 		if err, ok := oo[len(oo)-1].(error); ok {
 			panic(err)
-		} else if pf, ok := oo[0].(promise.Reflect); ok {
+		} else if pf, ok := oo[0].(promise.Reflect); ok && !IsNil(pf) {
 			// if first output is a promise. await and replace
 			if first, err := pf.AwaitAny(); err != nil {
 				panic(err)

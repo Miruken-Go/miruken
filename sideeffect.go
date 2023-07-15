@@ -14,8 +14,9 @@ type (
 	// with external entities i.e. databases and files
 	SideEffect interface {
 		Apply(
-			s   SideEffect,
-			ctx HandleContext,
+			// self is provided to accommodate late bindings
+			self SideEffect,
+			ctx  HandleContext,
 		) (promise.Reflect, error)
 	}
 
@@ -32,10 +33,10 @@ type (
 
 
 func (l LateSideEffect) Apply(
-	sideEffect SideEffect,
-	ctx        HandleContext,
+	self SideEffect,
+	ctx  HandleContext,
 )  (promise.Reflect, error) {
-	return lateApply(sideEffect, ctx)
+	return lateApply(self, ctx)
 }
 
 
@@ -119,7 +120,7 @@ func (a *applyBinding) invoke(
 		out := callFuncWithArgs(fun, ra, initArgs)
 		if oe, ok := out[1].(error); ok {
 			return nil, oe
-		} else if po, ok := out[0].(promise.Reflect); ok {
+		} else if po, ok := out[0].(promise.Reflect); ok && !IsNil(po) {
 			return po, nil
 		}
 		return nil, nil
@@ -128,7 +129,7 @@ func (a *applyBinding) invoke(
 			out := callFuncWithArgs(fun, ra, initArgs)
 			if oe, ok := out[1].(error); ok {
 				panic(oe)
-			} else if po, ok := out[0].(promise.Reflect); ok {
+			} else if po, ok := out[0].(promise.Reflect); ok && !IsNil(po) {
 				if oa, oe := po.AwaitAny(); oe != nil {
 					panic(oe)
 				} else {

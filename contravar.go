@@ -180,18 +180,18 @@ func validateContravariantFunc(
 		if out.AssignableTo(errorType) {
 			if i != numOut-1 {
 				err = multierror.Append(err, fmt.Errorf(
-					"contravariant: error return found at index %v must be last", i))
+					"contravariant: error found at index %v must be last return", i))
 			}
 		} else if out.AssignableTo(handleResType) {
 			if i != numOut-1 {
 				err = multierror.Append(err, fmt.Errorf(
-					"contravariant: HandleResult return found at index %v must be last", i))
+					"contravariant: HandleResult found at index %v must be last return", i))
 			}
 		} else if out.AssignableTo(sideEffectType) {
 			// ignore side-effects
 		} else if resIdx >= 0 {
 			err = multierror.Append(err, fmt.Errorf(
-				"contravariant: effective return at index %v conflicts with index %v", resIdx, i))
+				"contravariant: effective return at index %v conflicts with index %v", i, resIdx))
 		} else {
 			resIdx = i
 			if lt, ok := promise.Inspect(out); ok {

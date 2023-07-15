@@ -7,14 +7,49 @@ import (
 	"reflect"
 )
 
-// arg models a parameter of a method.
-type arg interface {
-	flags() bindingFlags
-	resolve(
-		typ reflect.Type,
-		ctx HandleContext,
-	) (reflect.Value, *promise.Promise[reflect.Value], error)
+type (
+	// HandleContext contain all the information about handling a Callback.
+	HandleContext struct {
+		handler  any
+		callback Callback
+		binding  Binding
+		composer Handler
+		greedy   bool
+	}
+
+	// arg models a parameter of a Handler method.
+	arg interface {
+		flags() bindingFlags
+		resolve(
+			typ reflect.Type,
+			ctx HandleContext,
+		) (reflect.Value, *promise.Promise[reflect.Value], error)
+	}
+)
+
+
+// HandleContext
+
+func (h HandleContext) Handler() any {
+	return h.handler
 }
+
+func (h HandleContext) Callback() Callback {
+	return h.callback
+}
+
+func (h HandleContext) Binding() Binding {
+	return h.binding
+}
+
+func (h HandleContext) Composer() Handler {
+	return h.composer
+}
+
+func (h HandleContext) Greedy() bool {
+	return h.greedy
+}
+
 
 // zeroArg returns the Zero value of the argument type.
 type zeroArg struct {}
@@ -261,34 +296,6 @@ func (r *defaultDependencyResolver) Resolve(
 	return
 }
 
-// HandleContext contain all the information about handling a Callback.
-type HandleContext struct {
-	handler  any
-	callback Callback
-	binding  Binding
-	composer Handler
-	greedy   bool
-}
-
-func (h HandleContext) Handler() any {
-	return h.handler
-}
-
-func (h HandleContext) Callback() Callback {
-	return h.callback
-}
-
-func (h HandleContext) Binding() Binding {
-	return h.binding
-}
-
-func (h HandleContext) Composer() Handler {
-	return h.composer
-}
-
-func (h HandleContext) Greedy() bool {
-	return h.greedy
-}
 
 // UnresolvedArgError reports a failed resolve an arg.
 type UnresolvedArgError struct {
