@@ -28,7 +28,7 @@ type (
 	Filter interface {
 		Order() int
 		Next(
-			// self is provided to accommodate late bindings
+			// self provided to facilitate late bindings
 			self     Filter,
 			next     Next,
 			ctx      HandleContext,
@@ -519,7 +519,7 @@ func getLateNext(
 		return binding, nil
 	}
 Invalid:
-	return nil, fmt.Errorf(`filter: %v has no matching "LateNext" method`, typ)
+	return nil, fmt.Errorf(`filter: %v has no valid "LateNext" method`, typ)
 }
 
 

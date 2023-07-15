@@ -14,7 +14,7 @@ type (
 	// with external entities i.e. databases and files
 	SideEffect interface {
 		Apply(
-			// self is provided to accommodate late bindings
+			// self provided to facilitate late bindings
 			self SideEffect,
 			ctx  HandleContext,
 		) (promise.Reflect, error)
@@ -27,6 +27,8 @@ type (
 	applyBinding struct {
 		method reflect.Method
 		ctxIdx int
+		prIdx  int
+		errIdx int
 		args   []arg
 	}
 )
@@ -66,15 +68,31 @@ func getLateApply(
 			if lateApply, ok := typ.MethodByName("LateApply"); !ok {
 				goto Invalid
 			} else if lateApplyType := lateApply.Type;
-				lateApplyType.NumIn() < 1 || lateApplyType.NumOut() < 2 {
-				goto Invalid
-			} else if !lateApplyType.Out(0).AssignableTo(promiseReflectType) ||
-				lateApplyType.Out(1) != errorType {
+				lateApplyType.NumIn() < 1 || lateApplyType.NumOut() > 2 {
 				goto Invalid
 			} else {
+				// Output can be promise, error or both with error last
+				prIdx, errIdx := -1, -1
+				numOut := lateApplyType.NumOut()
+				for i := 0; i < numOut; i++ {
+					out := lateApplyType.Out(i)
+					if out.AssignableTo(promiseReflectType) {
+						if i != 0 {
+							goto Invalid
+						}
+						prIdx = i
+					} else if out.AssignableTo(errorType) {
+						if i != numOut-1 {
+							goto Invalid
+						}
+						errIdx = i
+					} else {
+						goto Invalid
+					}
+				}
 				skip    := 1 // skip receiver
 				numArgs := lateApplyType.NumIn()
-				binding = &applyBinding{method: lateApply}
+				binding = &applyBinding{method: lateApply, prIdx: prIdx, errIdx: errIdx}
 				for i := 1; i < 2 && i < numArgs; i++ {
 					if lateApplyType.In(i) == handleCtxType {
 						if binding.ctxIdx > 0 {
@@ -100,7 +118,7 @@ func getLateApply(
 		return binding, nil
 	}
 Invalid:
-	return nil, fmt.Errorf(`side-effect: %v has no matching "LateApply" method`, typ)
+	return nil, fmt.Errorf(`side-effect: %v has no valid "LateApply" method`, typ)
 }
 
 func (a *applyBinding) invoke(
@@ -118,22 +136,32 @@ func (a *applyBinding) invoke(
 		return nil, err
 	} else if pa == nil {
 		out := callFuncWithArgs(fun, ra, initArgs)
-		if oe, ok := out[1].(error); ok {
-			return nil, oe
-		} else if po, ok := out[0].(promise.Reflect); ok && !IsNil(po) {
-			return po, nil
+		if errIdx := a.errIdx; errIdx >= 0 {
+			if oe, ok := out[errIdx].(error); ok && oe != nil {
+				return nil, oe
+			}
+		}
+		if prIdx := a.prIdx; prIdx >= 0 {
+			if po, ok := out[prIdx].(promise.Reflect); ok && !IsNil(po) {
+				return po, nil
+			}
 		}
 		return nil, nil
 	} else {
 		return promise.Then(pa, func(ra []reflect.Value) any {
 			out := callFuncWithArgs(fun, ra, initArgs)
-			if oe, ok := out[1].(error); ok {
-				panic(oe)
-			} else if po, ok := out[0].(promise.Reflect); ok && !IsNil(po) {
-				if oa, oe := po.AwaitAny(); oe != nil {
+			if errIdx := a.errIdx; errIdx >= 0 {
+				if oe, ok := out[errIdx].(error); ok && oe != nil {
 					panic(oe)
-				} else {
-					return oa
+				}
+			}
+			if prIdx := a.prIdx; prIdx >= 0 {
+				if po, ok := out[prIdx].(promise.Reflect); ok && !IsNil(po) {
+					if oa, oe := po.AwaitAny(); oe != nil {
+						panic(oe)
+					} else {
+						return oa
+					}
 				}
 			}
 			return nil

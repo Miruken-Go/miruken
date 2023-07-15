@@ -111,8 +111,8 @@ func (m *MailerStub) SendMail(to string, msg string) error {
 
 func (s SendMail) LateApply(
 	mailer Mailer,
-) (promise.Reflect, error) {
-	return nil, mailer.SendMail(s.To, s.Msg)
+) error {
+	return mailer.SendMail(s.To, s.Msg)
 }
 
 
