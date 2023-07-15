@@ -48,6 +48,21 @@ func IsStruct(val any) bool {
 	return v.Kind() == reflect.Struct
 }
 
+
+// New creates a new T and optionally initializes it.
+func New[T any]() *T {
+	var (
+		t = new(T)
+		a any = t
+	)
+	if init, ok := a.(objInit); ok {
+		if err := init.Init(); err != nil {
+			panic("init: " + err.Error())
+		}
+	}
+	return t
+}
+
 // TargetValue validates the interface contains a
 // non-nil typed pointer and return reflect.Value.
 func TargetValue(target any) reflect.Value {
@@ -218,48 +233,46 @@ func coerceToPtr(
 	return nil
 }
 
-// New creates a new T and optionally initializes it.
-func New[T any]() *T {
-	var (
-		t = new(T)
-		a any = t
-	)
-	if init, ok := a.(interface {
-		Init() error
-	}); ok {
-		if err := init.Init(); err != nil {
-			panic("init: " + err.Error())
-		}
-	}
-	return t
-}
-
 func newWithTag(
 	typ reflect.Type,
 	tag reflect.StructTag,
 ) (any, error) {
-	var val any
 	if typ.Kind() == reflect.Ptr {
-		val = reflect.New(typ.Elem()).Interface()
+		obj := reflect.New(typ.Elem()).Interface()
+		if err := tryInitObj(obj, tag); err != nil {
+			return nil, err
+		}
+		return obj, nil
 	} else {
-		val = reflect.New(typ).Elem().Interface()
-	}
-	if len(tag) > 0 {
-		if init, ok := val.(interface {
-			InitWithTag(reflect.StructTag) error
-		}); ok {
-			if err := init.InitWithTag(tag); err != nil {
-				return val, err
-			}
-			return val, nil
+		val := reflect.New(typ)
+		if err := tryInitObj(val.Interface(), tag); err != nil {
+			return nil, err
 		}
+		obj := val.Elem().Interface()
+		return obj, nil
 	}
-	if init, ok := val.(interface {
-		Init() error
-	}); ok {
-		if err := init.Init(); err != nil {
-			return val, err
-		}
-	}
-	return val, nil
 }
+
+func tryInitObj(obj any, tag reflect.StructTag) error {
+	if len(tag) > 0 {
+		if oi, ok := obj.(objInitWithTag); ok {
+			if err := oi.InitWithTag(tag); err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+	if oi, ok := obj.(objInit); ok {
+		if err := oi.Init(); err != nil {
+			return err
+		}
+		return nil
+	}
+	return nil
+}
+
+
+type (
+	objInit interface{Init() error}
+	objInitWithTag interface{InitWithTag(reflect.StructTag) error}
+)

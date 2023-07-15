@@ -120,7 +120,7 @@ func All[T any](
 	promises ...*Promise[T],
 ) *Promise[[]T] {
 	if len(promises) == 0 {
-		panic("missing promises")
+		panic("at lease one promise required")
 	}
 
 	return New(func(resolve func([]T), reject func(error)) {

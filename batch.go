@@ -65,6 +65,9 @@ func (b *batch) Complete(
 			}
 		}
 	}
+	if len(results) == 0 {
+		return promise.Resolve([]any{})
+	}
 	return promise.All(results...)
 }
 
