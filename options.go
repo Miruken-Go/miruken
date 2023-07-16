@@ -7,17 +7,42 @@ import (
 	"reflect"
 )
 
-// mergeable enables custom merge behavior.
-type mergeable interface {
-	MergeFrom(options any) bool
-}
+type (
+	// Option provides an explicit representation of
+	// an optional value when the Zero value is not
+	// sufficient to distinguish unset values.
+	Option[T any] struct {
+		set bool
+		val T
+	}
 
-// Option should be used in option structs if unset
-// values cannot be distinguished from Zero values.
-type Option[T any] struct {
-	set bool
-	val T
-}
+	// FromOptions is a DependencyResolver for option arguments.
+	FromOptions struct {}
+
+	// optCallback captures option values.
+ 	optCallback struct {
+		options any
+	}
+
+	// optionsHandler uses an option instance to merge from
+	// during an option resolution.
+	optionsHandler struct {
+		Handler
+		options any
+		optionsType reflect.Type
+	}
+
+	// optionMerger defines customer merging behavior.
+	optionMerger struct {}
+
+	// mergeable enables custom merge behavior.
+	mergeable interface {
+		MergeFrom(options any) bool
+	}
+)
+
+
+// Option[T]
 
 func (o *Option[T]) Set() bool {
 	return o.set
@@ -55,75 +80,9 @@ func Set[T any](val T) Option[T] {
 	return Option[T]{true, val}
 }
 
-// options represent extensible settings.
-type options struct {
-	options any
-}
 
-func (o *options) CanInfer() bool {
-	return false
-}
-
-func (o *options) CanFilter() bool {
-	return false
-}
-
-func (o *options) CanBatch() bool {
-	return false
-}
-
-func (o *options) mergeFrom(options any) bool {
-	return MergeOptions(options, o.options)
-}
-
-// optionsHandler merges compatible options.
-type optionsHandler struct {
-	Handler
-	options any
-	optionsType reflect.Type
-}
-
-func (c *optionsHandler) Handle(
-	callback any,
-	greedy   bool,
-	composer Handler,
-) HandleResult {
-	if callback == nil {
-		return NotHandled
-	}
-	tryInitializeComposer(&composer, c)
-	cb := callback
-	if comp, ok := cb.(*Composition); ok {
-		if cb = comp.Callback(); cb == nil {
-			return c.Handler.Handle(callback, greedy, composer)
-		}
-	}
-	if opt, ok := cb.(*options); ok {
-		options := opt.options
-		if reflect.TypeOf(options).Elem().AssignableTo(c.optionsType) {
-			merged := false
-			if o, ok := options.(mergeable); ok {
-				merged = o.MergeFrom(c.options)
-			} else {
-				merged = opt.mergeFrom(c.options)
-			}
-			if merged {
-				if greedy {
-					return c.Handler.Handle(callback, greedy, composer).Or(Handled)
-				}
-				return Handled
-			}
-		}
-	}
-	return c.Handler.Handle(callback, greedy, composer)
-}
-
-func MergeOptions(from, into any) bool {
-	return mergo.Merge(into, from,
-		mergo.WithAppendSlice,
-		mergo.WithTransformers(optionTransformerInstance)) == nil
-}
-
+// Options returns a BuilderFunc that makes the provided
+// options available for merging into matching options.
 func Options(options any) BuilderFunc {
 	optType := reflect.TypeOf(options)
 	if optType == nil {
@@ -140,7 +99,13 @@ func Options(options any) BuilderFunc {
 	}
 }
 
-func GetOptions(handler Handler, target any) bool {
+
+func GetOptions[T any](handler Handler) (t T, ok bool) {
+	ok = GetOptionsInto(handler, &t)
+	return
+}
+
+func GetOptionsInto(handler Handler, target any) bool {
 	if IsNil(handler) {
 		panic("handler cannot be nil")
 	}
@@ -152,7 +117,7 @@ func GetOptions(handler Handler, target any) bool {
 	optType = optType.Elem()
 
 	created := false
-	options := &options{}
+	options := optCallback{}
 
 	switch optType.Kind() {
 	case reflect.Struct:
@@ -176,8 +141,68 @@ func GetOptions(handler Handler, target any) bool {
 	return handled
 }
 
-// FromOptions is a DependencyResolver that binds options to an argument.
-type FromOptions struct {}
+// MergeOptions merges from options into options
+func MergeOptions(from, into any) bool {
+	return mergo.Merge(into, from,
+		mergo.WithAppendSlice,
+		mergo.WithTransformers(mergeOptions)) == nil
+}
+
+
+// optCallback
+
+func (o optCallback) CanInfer() bool {
+	return false
+}
+
+func (o optCallback) CanFilter() bool {
+	return false
+}
+
+func (o optCallback) CanBatch() bool {
+	return false
+}
+
+
+// optionsHandler
+
+func (c *optionsHandler) Handle(
+	callback any,
+	greedy   bool,
+	composer Handler,
+) HandleResult {
+	if callback == nil {
+		return NotHandled
+	}
+	tryInitializeComposer(&composer, c)
+	cb := callback
+	if comp, ok := cb.(*Composition); ok {
+		if cb = comp.Callback(); cb == nil {
+			return c.Handler.Handle(callback, greedy, composer)
+		}
+	}
+	if opt, ok := cb.(optCallback); ok {
+		options := opt.options
+		if reflect.TypeOf(options).Elem().AssignableTo(c.optionsType) {
+			merged := false
+			if o, ok := options.(mergeable); ok {
+				merged = o.MergeFrom(c.options)
+			} else {
+				merged = MergeOptions(c.options, opt.options)
+			}
+			if merged {
+				if greedy {
+					return c.Handler.Handle(callback, greedy, composer).Or(Handled)
+				}
+				return Handled
+			}
+		}
+	}
+	return c.Handler.Handle(callback, greedy, composer)
+}
+
+
+// FromOptions
 
 func (o FromOptions) Validate(
 	typ reflect.Type,
@@ -198,7 +223,7 @@ func (o FromOptions) Resolve(
 	ctx HandleContext,
 ) (options reflect.Value, _ *promise.Promise[reflect.Value], err error) {
 	options = reflect.New(typ)
-	if GetOptions(ctx.composer, options.Interface()) {
+	if GetOptionsInto(ctx.composer, options.Interface()) {
 		if typ.Kind() == reflect.Ptr {
 			return options, nil, nil
 		}
@@ -211,9 +236,10 @@ func (o FromOptions) Resolve(
 	return v, nil, fmt.Errorf("FromOptions: unable to resolve options %v", typ)
 }
 
-type optionTransformer struct {}
 
-func (t optionTransformer) Transformer(
+// optionMerger
+
+func (t optionMerger) Transformer(
 	typ reflect.Type,
 ) func(dst, src reflect.Value) error {
 	addr := false
@@ -237,7 +263,8 @@ func (t optionTransformer) Transformer(
 	return nil
 }
 
+
 var (
-	mergeableType             = TypeOf[mergeable]()
-	optionTransformerInstance = &optionTransformer{}
+	mergeableType = TypeOf[mergeable]()
+	mergeOptions  = optionMerger{}
 )

@@ -51,8 +51,8 @@ func (suite *OptionsTestSuite) TestOptions() {
 					{"Content-Encoding", "compress"},
 				}}).
 			Handler()
-		var options ServerOptions
-		suite.True(miruken.GetOptions(handler, &options))
+		options, ok := miruken.GetOptions[ServerOptions](handler)
+		suite.True(ok)
 		suite.Equal("https://playsoccer.com", options.Url)
 		suite.Equal(30, options.Timeout)
 		suite.ElementsMatch([]Header{
@@ -67,8 +67,8 @@ func (suite *OptionsTestSuite) TestOptions() {
 		handler, _ := miruken.Setup().
 			Options(serverOpt).
 			Handler()
-		var options ServerOptions
-		suite.True(miruken.GetOptions(handler, &options))
+		options, ok := miruken.GetOptions[ServerOptions](handler)
+		suite.True(ok)
 		suite.Equal("https://playsoccer.com", options.Url)
 		suite.Equal(30, options.Timeout)
 	})
@@ -80,7 +80,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 				Timeout: 30,
 			}).Handler()
 		var options *ServerOptions
-		suite.True( miruken.GetOptions(handler, &options))
+		suite.True( miruken.GetOptionsInto(handler, &options))
 		suite.NotNil(options)
 		suite.Equal("https://playsoccer.com", options.Url)
 		suite.Equal(30, options.Timeout)
@@ -93,7 +93,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 				Timeout: 30,
 			}).Handler()
 		options := ServerOptions{Timeout: 60}
-		suite.True(miruken.GetOptions(handler, &options))
+		suite.True(miruken.GetOptionsInto(handler, &options))
 		suite.Equal("https://playsoccer.com", options.Url)
 		suite.Equal(60, options.Timeout)
 	})
@@ -106,7 +106,7 @@ func (suite *OptionsTestSuite) TestOptions() {
 			}).Handler()
 		options := new (ServerOptions)
 		options.Url = "https://improving.com"
-		suite.True(miruken.GetOptions(handler, options))
+		suite.True(miruken.GetOptionsInto(handler, options))
 		suite.NotNil(options)
 		suite.Equal("https://improving.com", options.Url)
 		suite.Equal(30, options.Timeout)
@@ -121,8 +121,8 @@ func (suite *OptionsTestSuite) TestOptions() {
 				Timeout:   60,
 				KeepAlive: miruken.Set(false),
 			}).Handler()
-		var options ServerOptions
-		suite.True(miruken.GetOptions(handler, &options))
+		options, ok := miruken.GetOptions[ServerOptions](handler)
+		suite.True(ok)
 		suite.Equal("https://directv.com", options.Url)
 		suite.Equal(60, options.Timeout)
 		suite.Equal(miruken.Set(false), options.KeepAlive)
@@ -142,8 +142,8 @@ func (suite *OptionsTestSuite) TestOptions() {
 					{"Content-Encoding", "compress"},
 				},
 			}).Handler()
-		var options ServerOptions
-		suite.True(miruken.GetOptions(handler, &options))
+		options, ok := miruken.GetOptions[ServerOptions](handler)
+		suite.True(ok)
 		suite.Equal("https://netflix.com", options.Url)
 		suite.Equal(100, options.Timeout)
 		suite.ElementsMatch([]Header{
@@ -154,16 +154,16 @@ func (suite *OptionsTestSuite) TestOptions() {
 
 	suite.Run("NoMatch", func () {
 		handler, _ := miruken.Setup().Handler()
-		var options ServerOptions
-		suite.False(miruken.GetOptions(handler, &options))
+		options, ok := miruken.GetOptions[ServerOptions](handler)
+		suite.False(ok)
 		suite.Equal("", options.Url)
 		suite.Equal(0, options.Timeout)
 	})
 
-	suite.Run("NoMatchCre", func () {
+	suite.Run("NoMatchCreate", func () {
 		handler, _ := miruken.Setup().Handler()
 		var options *ServerOptions
-		suite.False(miruken.GetOptions(handler, &options))
+		suite.False(miruken.GetOptionsInto(handler, &options))
 		suite.Nil(options)
 	})
 

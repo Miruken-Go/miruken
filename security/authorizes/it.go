@@ -93,8 +93,7 @@ func Access(
 	if miruken.IsNil(action) {
 		panic("action cannot be nil")
 	}
-	var options Options
-	miruken.GetOptions(handler, &options)
+	options, _ := miruken.GetOptions[Options](handler)
 	var builder Builder
 	builder.ForAction(action).
 		    WithConstraints(constraints...)

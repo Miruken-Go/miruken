@@ -246,13 +246,8 @@ type FilterOptions struct {
 }
 
 var (
-	DisableFilters BuilderFunc = func (handler Handler) Handler {
-		return BuildUp(handler, Options(FilterOptions{SkipFilters: Set(true)}))
-	}
-
-	EnableFilters BuilderFunc = func (handler Handler) Handler {
-		return BuildUp(handler, Options(FilterOptions{SkipFilters: Set(false)}))
-	}
+	DisableFilters = Options(FilterOptions{SkipFilters: Set(true)})
+	EnableFilters  = Options(FilterOptions{SkipFilters: Set(false)})
 )
 
 func UseFilters(filters ...Filter) Builder {
@@ -264,10 +259,7 @@ func withFilters(required bool, filters ...Filter) Builder {
 }
 
 func ProvideFilters(providers ...FilterProvider) Builder {
-	builder := Options(FilterOptions{Providers: providers})
-	return BuilderFunc(func (handler Handler) Handler {
-		return BuildUp(handler, builder)
-	})
+	return Options(FilterOptions{Providers: providers})
 }
 
 
@@ -284,8 +276,7 @@ func orderedFilters(
 	callback  Callback,
 	providers ...[]FilterProvider,
 ) ([]providedFilter, error) {
-	var options FilterOptions
-	GetOptions(handler, &options)
+	options, _  := GetOptions[FilterOptions](handler)
 	skipFilters := options.SkipFilters
 	bindingSkip := binding.SkipFilters()
 	var allProviders []FilterProvider
