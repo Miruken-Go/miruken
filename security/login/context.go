@@ -69,7 +69,7 @@ func (c *Context) Login(
 			err := mod.Login(subject, handler)
 			if err != nil {
 				for ii := i-1; ii >= 0; ii-- {
-					// clear successful modules
+					// Remove principals from successful modules
 					_ = c.modules[ii].Logout(subject, handler)
 				}
 				reject(Error{err})

@@ -11,7 +11,7 @@ type (
 	// SideEffect encapsulates a custom behavior to be
 	// executed when returned from a Handler.
 	// These behaviors generally represent interactions
-	// with external entities i.e. databases and files
+	// with external entities i.e. databases and other IO.
 	SideEffect interface {
 		Apply(
 			// self provided to facilitate late bindings
@@ -20,51 +20,45 @@ type (
 		) (promise.Reflect, error)
 	}
 
-	// LateSideEffect provides a late binding adapter
-	// for SideEffect's with custom dependencies.
-	LateSideEffect struct {}
+	// SideEffectAdapter is an adapter for implementing a
+	// SideEffect using late binding method resolution.
+	SideEffectAdapter struct {}
 
-	applyBinding struct {
+	// sideEffectBinding describes the method used by a
+	// SideEffectAdapter to apply the SideEffect.
+	sideEffectBinding struct {
 		method reflect.Method
 		ctxIdx int
-		prIdx  int
+		refIdx int
 		errIdx int
 		args   []arg
 	}
 )
 
 
-func (l LateSideEffect) Apply(
+func (l SideEffectAdapter) Apply(
 	self SideEffect,
 	ctx  HandleContext,
 )  (promise.Reflect, error) {
-	return lateApply(self, ctx)
-}
-
-
-func lateApply(
-	sideEffect SideEffect,
-	ctx        HandleContext,
-)  (p promise.Reflect, err error) {
-	var binding *applyBinding
-	if binding, err = getLateApply(sideEffect); err != nil {
-		return
+	if binding, err := getLateApply(self); err != nil {
+		return nil, err
+	} else {
+		return binding.invoke(self, ctx)
 	}
-	return binding.invoke(sideEffect, ctx)
 }
 
 
 func getLateApply(
 	sideEffect SideEffect,
-) (*applyBinding, error) {
-	lateApplyLock.RLock()
+) (*sideEffectBinding, error) {
+	sideEffectBindingLock.RLock()
 	typ := reflect.TypeOf(sideEffect)
-	binding := lateApplyMap[typ]
-	lateApplyLock.RUnlock()
+	binding := sideEffectBindingMap[typ]
+	sideEffectBindingLock.RUnlock()
 	if binding == nil {
-		lateApplyLock.Lock()
-		defer lateApplyLock.Unlock()
-		if binding = lateApplyMap[typ]; binding == nil {
+		sideEffectBindingLock.Lock()
+		defer sideEffectBindingLock.Unlock()
+		if binding = sideEffectBindingMap[typ]; binding == nil {
 			if lateApply, ok := typ.MethodByName("LateApply"); !ok {
 				goto Invalid
 			} else if lateApplyType := lateApply.Type;
@@ -72,7 +66,7 @@ func getLateApply(
 				goto Invalid
 			} else {
 				// Output can be promise, error or both with error last
-				prIdx, errIdx := -1, -1
+				refIdx, errIdx := -1, -1
 				numOut := lateApplyType.NumOut()
 				for i := 0; i < numOut; i++ {
 					out := lateApplyType.Out(i)
@@ -80,7 +74,7 @@ func getLateApply(
 						if i != 0 {
 							goto Invalid
 						}
-						prIdx = i
+						refIdx = i
 					} else if out.AssignableTo(errorType) {
 						if i != numOut-1 {
 							goto Invalid
@@ -92,7 +86,7 @@ func getLateApply(
 				}
 				skip    := 1 // skip receiver
 				numArgs := lateApplyType.NumIn()
-				binding = &applyBinding{method: lateApply, prIdx: prIdx, errIdx: errIdx}
+				binding = &sideEffectBinding{method: lateApply, refIdx: refIdx, errIdx: errIdx}
 				for i := 1; i < 2 && i < numArgs; i++ {
 					if lateApplyType.In(i) == handleCtxType {
 						if binding.ctxIdx > 0 {
@@ -110,7 +104,7 @@ func getLateApply(
 					return nil, &MethodBindingError{lateApply, err}
 				}
 				binding.args = args
-				lateApplyMap[typ] = binding
+				sideEffectBindingMap[typ] = binding
 			}
 		}
 	}
@@ -121,7 +115,7 @@ Invalid:
 	return nil, fmt.Errorf(`side-effect: %v has no valid "LateApply" method`, typ)
 }
 
-func (a *applyBinding) invoke(
+func (a *sideEffectBinding) invoke(
 	s   SideEffect,
 	ctx HandleContext,
 ) (promise.Reflect, error) {
@@ -141,8 +135,8 @@ func (a *applyBinding) invoke(
 				return nil, oe
 			}
 		}
-		if prIdx := a.prIdx; prIdx >= 0 {
-			if po, ok := out[prIdx].(promise.Reflect); ok && !IsNil(po) {
+		if refIdx := a.refIdx; refIdx >= 0 {
+			if po, ok := out[refIdx].(promise.Reflect); ok && !IsNil(po) {
 				return po, nil
 			}
 		}
@@ -155,8 +149,8 @@ func (a *applyBinding) invoke(
 					panic(oe)
 				}
 			}
-			if prIdx := a.prIdx; prIdx >= 0 {
-				if po, ok := out[prIdx].(promise.Reflect); ok && !IsNil(po) {
+			if refIdx := a.refIdx; refIdx >= 0 {
+				if po, ok := out[refIdx].(promise.Reflect); ok && !IsNil(po) {
 					if oa, oe := po.AwaitAny(); oe != nil {
 						panic(oe)
 					} else {
@@ -171,8 +165,8 @@ func (a *applyBinding) invoke(
 
 
 var (
-	lateApplyLock sync.RWMutex
-	lateApplyMap       = make(map[reflect.Type]*applyBinding)
-	promiseReflectType = TypeOf[promise.Reflect]()
-	sideEffectType     = TypeOf[SideEffect]()
+	sideEffectBindingLock sync.RWMutex
+	sideEffectBindingMap = make(map[reflect.Type]*sideEffectBinding)
+	promiseReflectType   = TypeOf[promise.Reflect]()
+	sideEffectType       = TypeOf[SideEffect]()
 )

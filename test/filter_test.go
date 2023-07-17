@@ -77,7 +77,7 @@ func (c *ConsoleLogger) Log(msg string) {
 
 type (
 	NullFilter struct {}
-	LogFilter struct { miruken.LateFilter }
+	LogFilter struct { miruken.FilterAdapter }
 	ExceptionFilter struct {}
 	AbortFilter struct {}
 )

@@ -254,7 +254,7 @@ func newWithTag(
 }
 
 func tryInitObj(obj any, tag reflect.StructTag) error {
-	if len(tag) > 0 {
+	if tag != "" {
 		if oi, ok := obj.(objInitWithTag); ok {
 			if err := oi.InitWithTag(tag); err != nil {
 				return err

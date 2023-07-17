@@ -32,7 +32,7 @@ type (
 	}
 
 	NewEntity struct {
-		miruken.LateSideEffect
+		miruken.SideEffectAdapter
 		Id    int
 		Name  string
 		Email string
@@ -47,7 +47,7 @@ type (
 	}
 
 	SendMail struct {
-		miruken.LateSideEffect
+		miruken.SideEffectAdapter
 		To  string
 		Msg string
 	}

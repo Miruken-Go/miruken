@@ -23,7 +23,7 @@ type (
 
 	// filter controls access to actions using policies
 	// satisfied by the privileges of a security.Subject.
-	filter struct { miruken.LateFilter }
+	filter struct { miruken.FilterAdapter }
 )
 
 

@@ -52,9 +52,9 @@ type (
 		required bool
 	}
 
-	// LateFilter provides a late binding adapter
-	// for Filter's with custom dependencies.
-	LateFilter struct {}
+	// FilterAdapter is an adapter for implementing a
+	// Filter using late binding method resolution.
+	FilterAdapter struct {}
 
 	// Filtered is a container of Filters.
 	Filtered interface {
@@ -387,14 +387,16 @@ func pipeline(
 }
 
 
-type nextBinding struct {
+// filterBinding describes the method used by a
+// FilterAdapter to execute the Filter.
+type filterBinding struct {
 	method  reflect.Method
-	ctxIdx  int
-	provIdx int
-	args    []arg
+	ctxIdx int
+	prvIdx int
+	args   []arg
 }
 
-func (n *nextBinding) invoke(
+func (n *filterBinding) invoke(
 	filter   Filter,
 	ctx      HandleContext,
 	next     Next,
@@ -404,7 +406,7 @@ func (n *nextBinding) invoke(
 	for i := 2; i <= 3; i++ {
 		if n.ctxIdx == i {
 			initArgs = append(initArgs, ctx)
-		} else if n.provIdx == i {
+		} else if n.prvIdx == i {
 			initArgs = append(initArgs, provider)
 		}
 	}
@@ -412,27 +414,17 @@ func (n *nextBinding) invoke(
 }
 
 
-func (l LateFilter) Next(
+func (l FilterAdapter) Next(
 	self     Filter,
 	next     Next,
 	ctx      HandleContext,
 	provider FilterProvider,
-)  ([]any, *promise.Promise[[]any], error) {
-	return lateNext(self, next, ctx, provider)
-}
-
-
-func lateNext(
-	filter   Filter,
-	next     Next,
-	ctx      HandleContext,
-	provider FilterProvider,
-)  (out []any, po *promise.Promise[[]any], err error) {
-	var binding *nextBinding
-	if binding, err = getLateNext(filter); err != nil {
+) (out []any, po *promise.Promise[[]any], err error) {
+	var binding *filterBinding
+	if binding, err = getLateNext(self); err != nil {
 		return
 	}
-	if out, po, err = binding.invoke(filter, ctx, next, provider); err != nil {
+	if out, po, err = binding.invoke(self, ctx, next, provider); err != nil {
 		return
 	} else if po == nil {
 		po,  _ = out[1].(*promise.Promise[[]any])
@@ -452,17 +444,18 @@ func lateNext(
 	return
 }
 
+
 func getLateNext(
 	filter  Filter,
-) (*nextBinding, error) {
-	lateNextLock.RLock()
+) (*filterBinding, error) {
+	filterBindingLock.RLock()
 	typ := reflect.TypeOf(filter)
-	binding := lateNextMap[typ]
-	lateNextLock.RUnlock()
+	binding := filterBindingMap[typ]
+	filterBindingLock.RUnlock()
 	if binding == nil {
-		lateNextLock.Lock()
-		defer lateNextLock.Unlock()
-		if binding = lateNextMap[typ]; binding == nil {
+		filterBindingLock.Lock()
+		defer filterBindingLock.Unlock()
+		if binding = filterBindingMap[typ]; binding == nil {
 			if lateNext, ok := typ.MethodByName("LateNext"); !ok {
 				goto Invalid
 			} else if lateNextType := lateNext.Type;
@@ -476,7 +469,7 @@ func getLateNext(
 			} else {
 				skip    := 2 // skip receiver
 				numArgs := lateNextType.NumIn()
-				binding = &nextBinding{method: lateNext}
+				binding = &filterBinding{method: lateNext}
 				for i := 2; i < 4 && i < numArgs; i++ {
 					if lateNextType.In(i) == handleCtxType {
 						if binding.ctxIdx > 0 {
@@ -487,12 +480,12 @@ func getLateNext(
 						binding.ctxIdx = i
 						skip++
 					} else if lateNextType.In(i) == filterProviderType {
-						if binding.provIdx > 0 {
+						if binding.prvIdx > 0 {
 							return nil, &MethodBindingError{lateNext,
 								fmt.Errorf("filter: %v has duplicate FilterProvider arg at index %v and %v",
-									typ, binding.provIdx, i)}
+									typ, binding.prvIdx, i)}
 						}
-						binding.provIdx = i
+						binding.prvIdx = i
 						skip++
 					}
 				}
@@ -502,7 +495,7 @@ func getLateNext(
 					return nil, &MethodBindingError{lateNext, err}
 				}
 				binding.args = args
-				lateNextMap[typ] = binding
+				filterBindingMap[typ] = binding
 			}
 		}
 	}
@@ -515,9 +508,9 @@ Invalid:
 
 
 var (
-	lateNextLock sync.RWMutex
+	filterBindingLock sync.RWMutex
 	nextType            = TypeOf[Next]()
-	lateNextMap         = make(map[reflect.Type]*nextBinding)
+	filterBindingMap    = make(map[reflect.Type]*filterBinding)
 	filterProviderType  = TypeOf[FilterProvider]()
 	promiseAnySliceType = TypeOf[*promise.Promise[[]any]]()
 )
