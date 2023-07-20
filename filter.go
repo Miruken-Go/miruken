@@ -54,7 +54,9 @@ type (
 
 	// FilterAdapter is an adapter for implementing a
 	// Filter using late binding method resolution.
-	FilterAdapter struct {}
+	FilterAdapter struct {
+		Method string
+	}
 
 	// Filtered is a container of Filters.
 	Filtered interface {
@@ -388,12 +390,12 @@ func pipeline(
 
 
 // filterBinding describes the method used by a
-// FilterAdapter to execute the Filter.
+// FilterAdapter to execute the Filter dynamically.
 type filterBinding struct {
-	method  reflect.Method
+	method reflect.Method
+	args   []arg
 	ctxIdx int
 	prvIdx int
-	args   []arg
 }
 
 func (n *filterBinding) invoke(
@@ -419,19 +421,23 @@ func (l FilterAdapter) Next(
 	next     Next,
 	ctx      HandleContext,
 	provider FilterProvider,
-) (out []any, po *promise.Promise[[]any], err error) {
+) (out []any, pout *promise.Promise[[]any], err error) {
+	method := l.Method
+	if method == "" {
+		method = "LateNext"
+	}
 	var binding *filterBinding
-	if binding, err = getLateNext(self); err != nil {
+	if binding, err = getLateNext(self, method); err != nil {
 		return
 	}
-	if out, po, err = binding.invoke(self, ctx, next, provider); err != nil {
+	if out, pout, err = binding.invoke(self, ctx, next, provider); err != nil {
 		return
-	} else if po == nil {
-		po,  _ = out[1].(*promise.Promise[[]any])
-		err, _ = out[2].(error)
-		out, _ = out[0].([]any)
+	} else if pout == nil {
+		pout, _ = out[1].(*promise.Promise[[]any])
+		err,  _ = out[2].(error)
+		out,  _ = out[0].([]any)
 	} else {
-		po = promise.Then(po, func(o []any) []any {
+		pout = promise.Then(pout, func(o []any) []any {
 			if err, ok := o[2].(error); ok {
 				panic(err)
 			} else if ro, ok := o[0].([]any); ok {
@@ -447,6 +453,7 @@ func (l FilterAdapter) Next(
 
 func getLateNext(
 	filter  Filter,
+	method  string,
 ) (*filterBinding, error) {
 	filterBindingLock.RLock()
 	typ := reflect.TypeOf(filter)
@@ -456,12 +463,12 @@ func getLateNext(
 		filterBindingLock.Lock()
 		defer filterBindingLock.Unlock()
 		if binding = filterBindingMap[typ]; binding == nil {
-			if lateNext, ok := typ.MethodByName("LateNext"); !ok {
+			if lateNext, ok := typ.MethodByName(method); !ok {
 				goto Invalid
 			} else if lateNextType := lateNext.Type;
 				lateNextType.NumIn() < 2 || lateNextType.NumOut() < 3 {
 				goto Invalid
-			} else if lateNextType.In(1) != nextType ||
+			} else if lateNextType.In(1) != nextFilterType ||
 				lateNextType.Out(0) != anySliceType ||
 				lateNextType.Out(1) != promiseAnySliceType ||
 				lateNextType.Out(2) != errorType {
@@ -509,7 +516,7 @@ Invalid:
 
 var (
 	filterBindingLock sync.RWMutex
-	nextType            = TypeOf[Next]()
+	nextFilterType      = TypeOf[Next]()
 	filterBindingMap    = make(map[reflect.Type]*filterBinding)
 	filterProviderType  = TypeOf[FilterProvider]()
 	promiseAnySliceType = TypeOf[*promise.Promise[[]any]]()

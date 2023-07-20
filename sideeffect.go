@@ -22,16 +22,18 @@ type (
 
 	// SideEffectAdapter is an adapter for implementing a
 	// SideEffect using late binding method resolution.
-	SideEffectAdapter struct {}
+	SideEffectAdapter struct {
+		Method string
+	}
 
 	// sideEffectBinding describes the method used by a
-	// SideEffectAdapter to apply the SideEffect.
+	// SideEffectAdapter to apply the SideEffect dynamically.
 	sideEffectBinding struct {
 		method reflect.Method
+		args   []arg
 		ctxIdx int
 		refIdx int
 		errIdx int
-		args   []arg
 	}
 )
 
@@ -40,7 +42,11 @@ func (l SideEffectAdapter) Apply(
 	self SideEffect,
 	ctx  HandleContext,
 )  (promise.Reflect, error) {
-	if binding, err := getLateApply(self); err != nil {
+	method := l.Method
+	if method == "" {
+		method = "LateApply"
+	}
+	if binding, err := getLateApply(self, method); err != nil {
 		return nil, err
 	} else {
 		return binding.invoke(self, ctx)
@@ -50,16 +56,17 @@ func (l SideEffectAdapter) Apply(
 
 func getLateApply(
 	sideEffect SideEffect,
+	method     string,
 ) (*sideEffectBinding, error) {
-	sideEffectBindingLock.RLock()
+	sideEffBindingLock.RLock()
 	typ := reflect.TypeOf(sideEffect)
-	binding := sideEffectBindingMap[typ]
-	sideEffectBindingLock.RUnlock()
+	binding := sideEffBindingMap[typ]
+	sideEffBindingLock.RUnlock()
 	if binding == nil {
-		sideEffectBindingLock.Lock()
-		defer sideEffectBindingLock.Unlock()
-		if binding = sideEffectBindingMap[typ]; binding == nil {
-			if lateApply, ok := typ.MethodByName("LateApply"); !ok {
+		sideEffBindingLock.Lock()
+		defer sideEffBindingLock.Unlock()
+		if binding = sideEffBindingMap[typ]; binding == nil {
+			if lateApply, ok := typ.MethodByName(method); !ok {
 				goto Invalid
 			} else if lateApplyType := lateApply.Type;
 				lateApplyType.NumIn() < 1 || lateApplyType.NumOut() > 2 {
@@ -104,7 +111,7 @@ func getLateApply(
 					return nil, &MethodBindingError{lateApply, err}
 				}
 				binding.args = args
-				sideEffectBindingMap[typ] = binding
+				sideEffBindingMap[typ] = binding
 			}
 		}
 	}
@@ -165,8 +172,8 @@ func (a *sideEffectBinding) invoke(
 
 
 var (
-	sideEffectBindingLock sync.RWMutex
-	sideEffectBindingMap = make(map[reflect.Type]*sideEffectBinding)
-	promiseReflectType   = TypeOf[promise.Reflect]()
-	sideEffectType       = TypeOf[SideEffect]()
+	sideEffBindingLock sync.RWMutex
+	sideEffBindingMap  = make(map[reflect.Type]*sideEffectBinding)
+	promiseReflectType = TypeOf[promise.Reflect]()
+	sideEffectType     = TypeOf[SideEffect]()
 )
