@@ -44,9 +44,9 @@ func (l SideEffectAdapter) Apply(
 )  (promise.Reflect, error) {
 	method := l.Method
 	if method == "" {
-		method = "LateApply"
+		method = "ApplyLate"
 	}
-	if binding, err := getLateApply(self, method); err != nil {
+	if binding, err := getApplyLate(self, method); err != nil {
 		return nil, err
 	} else {
 		return binding.invoke(self, ctx)
@@ -54,7 +54,7 @@ func (l SideEffectAdapter) Apply(
 }
 
 
-func getLateApply(
+func getApplyLate(
 	sideEffect SideEffect,
 	method     string,
 ) (*sideEffectBinding, error) {
@@ -107,7 +107,7 @@ func getLateApply(
 				}
 				args := make([]arg, numArgs-skip)
 				if err := buildDependencies(lateApplyType, skip, numArgs, args, 0); err != nil {
-					err = fmt.Errorf("side-effect: %v \"LateApply\": %w", typ, err)
+					err = fmt.Errorf("side-effect: %v \"ApplyLate\": %w", typ, err)
 					return nil, &MethodBindingError{lateApply, err}
 				}
 				binding.args = args
@@ -119,7 +119,7 @@ func getLateApply(
 		return binding, nil
 	}
 Invalid:
-	return nil, fmt.Errorf(`side-effect: %v has no valid "LateApply" method`, typ)
+	return nil, fmt.Errorf(`side-effect: %v has no valid "ApplyLate" method`, typ)
 }
 
 func (a *sideEffectBinding) invoke(

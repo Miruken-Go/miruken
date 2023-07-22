@@ -16,7 +16,7 @@ type (
 	Lifestyle struct {
 		miruken.BindingGroup
 		scoped
-		miruken.Qualifier[fromScope]
+		miruken.Qualifier[scoped]
 	}
 
 	// Rooted is a BindingGroup for requesting a rooted scoped lifestyle
@@ -24,7 +24,7 @@ type (
 	Rooted struct {
 		miruken.BindingGroup
 		scoped `scoped:"rooted"`
-		miruken.Qualifier[fromScope]
+		miruken.Qualifier[scoped]
 	}
 
 	// scoped LifestyleProvider provides instances per Context.
@@ -41,15 +41,12 @@ type (
 
 	// scopedCache maintains a cache of scopedEntry's.
 	scopedCache map[any]*scopedEntry
-
-	// fromScope is a constraint for the context Lifestyle.
-	fromScope struct {}
 )
 
 
 // From constrains resolution to a handler with scoped lifestyle.
 // This is used to suppress resolving implied values available through a Context.
-var From miruken.Qualifier[fromScope]
+var From miruken.Qualifier[scoped]
 
 
 func (s *scoped) InitWithTag(tag reflect.StructTag) error {
@@ -65,6 +62,8 @@ func (s *scoped) Init() error {
 }
 
 // scopedFilter is a Filter that caches an instance per Context.
+// Since a scoped Handler can provide results polymorphically,
+// a nested map of Context to map of key instances is maintained.
 type scopedFilter struct {
 	miruken.Lifestyle
 	cache  map[*Context]scopedCache
@@ -116,6 +115,8 @@ func (s *scopedFilter) Next(
 		if cache := s.cache; cache != nil {
 			if keys := cache[context]; keys != nil {
 				if entry = keys[key]; entry == nil {
+					// If the key is not found, check if any existing instances
+					// can satisfy the key before a new instance is provided.
 					if typ, ok := key.(reflect.Type); ok {
 						for _,v := range keys {
 							if instance := v.instance; len(instance) > 0 {

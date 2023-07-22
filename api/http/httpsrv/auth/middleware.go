@@ -79,8 +79,8 @@ func (a *Authentication) ServeHTTP(
 		scheme := flow.scheme
 		if ch, err, ok := scheme.Accept(r); ok {
 			if err != nil {
-				statusCode := scheme.Challenge(w, r, err)
-				w.WriteHeader(statusCode)
+				sc := scheme.Challenge(w, r, err)
+				w.WriteHeader(sc)
 				return nil
 			}
 			var ctx *login.Context

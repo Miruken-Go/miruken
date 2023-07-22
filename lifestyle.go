@@ -63,6 +63,8 @@ type (
 	}
 
 	// single is a Filter that caches an instance.
+	// Since a Single Handler can provide results polymorphically,
+	// a map of key to instance is maintained.
 	single struct {
 		Lifestyle
 		keys singleCache
@@ -104,6 +106,8 @@ func (s *single) Next(
 		s.lock.Lock()
 		if keys := s.keys; keys != nil {
 			if entry = keys[key]; entry == nil {
+				// If the key is not found, check if any existing instances
+				// can satisfy the key before a new instance is provided.
 				if typ, ok := key.(reflect.Type); ok {
 					for _,v := range keys {
 						if instance := v.instance; len(instance) > 0 {

@@ -73,7 +73,7 @@ func (f filter) Order() int {
 	return miruken.FilterStageAuthorization
 }
 
-func (f filter) LateNext(
+func (f filter) NextLate(
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,

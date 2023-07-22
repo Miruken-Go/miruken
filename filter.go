@@ -424,10 +424,10 @@ func (l FilterAdapter) Next(
 ) (out []any, pout *promise.Promise[[]any], err error) {
 	method := l.Method
 	if method == "" {
-		method = "LateNext"
+		method = "NextLate"
 	}
 	var binding *filterBinding
-	if binding, err = getLateNext(self, method); err != nil {
+	if binding, err = getNextLate(self, method); err != nil {
 		return
 	}
 	if out, pout, err = binding.invoke(self, ctx, next, provider); err != nil {
@@ -451,9 +451,9 @@ func (l FilterAdapter) Next(
 }
 
 
-func getLateNext(
-	filter  Filter,
-	method  string,
+func getNextLate(
+	filter Filter,
+	method string,
 ) (*filterBinding, error) {
 	filterBindingLock.RLock()
 	typ := reflect.TypeOf(filter)
@@ -468,7 +468,7 @@ func getLateNext(
 			} else if lateNextType := lateNext.Type;
 				lateNextType.NumIn() < 2 || lateNextType.NumOut() < 3 {
 				goto Invalid
-			} else if lateNextType.In(1) != nextFilterType ||
+			} else if lateNextType.In(1) != nextFuncType ||
 				lateNextType.Out(0) != anySliceType ||
 				lateNextType.Out(1) != promiseAnySliceType ||
 				lateNextType.Out(2) != errorType {
@@ -498,7 +498,7 @@ func getLateNext(
 				}
 				args := make([]arg, numArgs-skip)
 				if err := buildDependencies(lateNextType, skip, numArgs, args, 0); err != nil {
-					err = fmt.Errorf("filter: %v \"LateNext\": %w", typ, err)
+					err = fmt.Errorf("filter: %v \"NextLate\": %w", typ, err)
 					return nil, &MethodBindingError{lateNext, err}
 				}
 				binding.args = args
@@ -510,14 +510,14 @@ func getLateNext(
 		return binding, nil
 	}
 Invalid:
-	return nil, fmt.Errorf(`filter: %v has no valid "LateNext" method`, typ)
+	return nil, fmt.Errorf(`filter: %v has no valid "NextLate" method`, typ)
 }
 
 
 var (
 	filterBindingLock sync.RWMutex
-	nextFilterType      = TypeOf[Next]()
-	filterBindingMap    = make(map[reflect.Type]*filterBinding)
+	nextFuncType        = TypeOf[Next]()
 	filterProviderType  = TypeOf[FilterProvider]()
+	filterBindingMap    = make(map[reflect.Type]*filterBinding)
 	promiseAnySliceType = TypeOf[*promise.Promise[[]any]]()
 )

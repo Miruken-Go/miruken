@@ -13,7 +13,8 @@ import (
 )
 
 type (
-	// Middleware extends http.Handler to include a request scoped context.
+	// Middleware augments http.Handler to provide pre and post
+	// processing of requests and responses.
 	Middleware interface {
 		ServeHTTP(
 			w http.ResponseWriter,
@@ -44,7 +45,7 @@ func (f MiddlewareFunc) ServeHTTP(
 ) error { return f(w, r, m, h, n) }
 
 
-func LateServeHTTP(
+func ServeHTTPLate(
 	m Middleware,
 	w http.ResponseWriter,
 	r *http.Request,
@@ -52,7 +53,7 @@ func LateServeHTTP(
 	h miruken.Handler,
 	n func(miruken.Handler),
 ) error {
-	if binding, err := getLateServeHTTP(reflect.TypeOf(m)); err != nil {
+	if binding, err := getServeHTTPLate(reflect.TypeOf(m)); err != nil {
 		return err
 	} else {
 		_, pr, err := binding(h, m, w, r, p, h, n)
@@ -63,28 +64,28 @@ func LateServeHTTP(
 	}
 }
 
-func getLateServeHTTP(typ reflect.Type) (miruken.CallerFunc, error) {
-	lateMiddlewareLock.RLock()
-	binding := lateMiddlewareMap[typ]
-	lateMiddlewareLock.RUnlock()
+func getServeHTTPLate(typ reflect.Type) (miruken.CallerFunc, error) {
+	midFuncLock.RLock()
+	binding := midFuncMap[typ]
+	midFuncLock.RUnlock()
 	if binding == nil {
-		lateMiddlewareLock.Lock()
-		defer lateMiddlewareLock.Unlock()
-		if binding = lateMiddlewareMap[typ]; binding == nil {
-			if lateServeHTTP, ok := typ.MethodByName("LateServeHTTP"); !ok {
+		midFuncLock.Lock()
+		defer midFuncLock.Unlock()
+		if binding = midFuncMap[typ]; binding == nil {
+			if lateServeHTTP, ok := typ.MethodByName("ServeHTTPLate"); !ok {
 				goto Invalid
 			} else if lateNextType := lateServeHTTP.Type;
-				lateNextType.NumIn() < middlewareFuncType.NumIn() ||
-					lateNextType.NumOut() < middlewareFuncType.NumOut() {
+				lateNextType.NumIn() < midFuncType.NumIn() ||
+					lateNextType.NumOut() < midFuncType.NumOut() {
 				goto Invalid
 			} else {
-				for i := 0; i < middlewareFuncType.NumIn(); i++ {
-					if lateNextType.In(i+1) != middlewareFuncType.In(i) {
+				for i := 0; i < midFuncType.NumIn(); i++ {
+					if lateNextType.In(i+1) != midFuncType.In(i) {
 						goto Invalid
 					}
 				}
-				for i := 0; i < middlewareFuncType.NumOut(); i++ {
-					if lateNextType.Out(i) != middlewareFuncType.Out(i) {
+				for i := 0; i < midFuncType.NumOut(); i++ {
+					if lateNextType.Out(i) != midFuncType.Out(i) {
 						goto Invalid
 					}
 				}
@@ -92,7 +93,7 @@ func getLateServeHTTP(typ reflect.Type) (miruken.CallerFunc, error) {
 				if err != nil {
 					return nil, &miruken.MethodBindingError{Method: lateServeHTTP, Cause: err}
 				}
-				lateMiddlewareMap[typ] = caller
+				midFuncMap[typ] = caller
 				binding = caller
 			}
 		}
@@ -100,7 +101,7 @@ func getLateServeHTTP(typ reflect.Type) (miruken.CallerFunc, error) {
 	return binding, nil
 Invalid:
 	return nil, fmt.Errorf(
-		`middleware: %v missing valid "LateServeHTTP" method`, typ)
+		`middleware: %v missing valid "ServeHTTPLate" method`, typ)
 }
 
 
@@ -177,7 +178,7 @@ func handlePanic(w http.ResponseWriter, r *http.Request) {
 
 
 var (
-	lateMiddlewareLock sync.RWMutex
-	middlewareFuncType = miruken.TypeOf[MiddlewareFunc]()
-	lateMiddlewareMap  = make(map[reflect.Type]miruken.CallerFunc)
+	midFuncLock sync.RWMutex
+	midFuncType = miruken.TypeOf[MiddlewareFunc]()
+	midFuncMap  = make(map[reflect.Type]miruken.CallerFunc)
 )

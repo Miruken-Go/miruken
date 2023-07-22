@@ -66,6 +66,30 @@ func (p *Promise[T]) AwaitAny() (any, error) {
 	return p.Await()
 }
 
+func (p *Promise[T]) lift(result any) {
+	p.value = result.(T)
+}
+
+func (p *Promise[T]) coerce(
+	promise Reflect,
+) {
+	if p.ch == nil {
+		p.ch = make(chan struct{})
+	}
+	promise.Then(func(result any) any {
+		var t T
+		if result != nil {
+			t = result.(T)
+		}
+		p.resolve(t)
+		return nil
+	}).Catch(func(err error) error {
+		p.reject(err)
+		return nil
+	})
+}
+
+
 func Inspect(typ reflect.Type) (reflect.Type, bool) {
 	if typ != nil && typ.Implements(reflectType) {
 		promise := reflect.Zero(typ).Interface().(Reflect)
@@ -82,11 +106,6 @@ func Lift(typ reflect.Type, result any) Reflect {
 	promise.lift(result)
 	return promise
 }
-
-func (p *Promise[T]) lift(result any) {
-	p.value = result.(T)
-}
-
 
 func Coerce[T any](
 	promise Reflect,
@@ -116,25 +135,6 @@ func CoerceType(
 	p := reflect.New(typ.Elem()).Interface().(internal)
 	p.coerce(promise)
 	return p
-}
-
-func (p *Promise[T]) coerce(
-	promise Reflect,
-) {
-	if p.ch == nil {
-		p.ch = make(chan struct{})
-	}
-	promise.Then(func(result any) any {
-		var t T
-		if result != nil {
-			t = result.(T)
-		}
-		p.resolve(t)
-		return nil
-	}).Catch(func(err error) error {
-		p.reject(err)
-		return nil
-	})
 }
 
 func Unwrap[T any](
