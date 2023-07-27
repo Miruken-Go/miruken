@@ -154,7 +154,7 @@ func (i *Installer) AfterInstall(
 
 func (i *Installer) BindingCreated(
 	policy     miruken.Policy,
-	descriptor *miruken.HandlerDescriptor,
+	descriptor *miruken.HandlerInfo,
 	binding    miruken.Binding,
 ) {
 	if !(policy == i.policy && binding.Exported()) {
@@ -226,7 +226,7 @@ func (i *Installer) BindingCreated(
 }
 
 func (i *Installer) DescriptorCreated(
-	_ *miruken.HandlerDescriptor,
+	_ *miruken.HandlerInfo,
 ) {
 }
 

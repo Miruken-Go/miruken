@@ -5,40 +5,40 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
-	"sync"
 )
 
 type (
-	// HandlerDescriptor manages Handler Binding's.
-	HandlerDescriptor struct {
+	// HandlerInfo describes the structure of a Handler.
+	HandlerInfo struct {
 		FilteredScope
 		spec     HandlerSpec
 		bindings policyBindingsMap
 	}
 
-	// HandlerSpec creates a HandlerDescriptor.
+	// HandlerSpec is factory for HandlerInfo and associated metadata.
 	HandlerSpec interface {
 		fmt.Stringer
 		PkgPath() string
 		key() any
 		suppress() bool
-		newHandlerDescriptor(
-			builder bindingSpecFactory,
+		describe(
+			builder   bindingSpecFactory,
 			observers []HandlerDescriptorObserver,
-		) (*HandlerDescriptor, error)
+		) (*HandlerInfo, error)
 	}
 
-	// HandlerTypeSpec creates a HandlerDescriptor for a set of methods.
+	// HandlerTypeSpec creates a HandlerInfo using all the exported
+	// methods of reflect.Type instance.
 	HandlerTypeSpec struct {
 		typ reflect.Type
 	}
 
-	// HandlerFuncSpec creates a HandlerDescriptor for a single function.
+	// HandlerFuncSpec creates a HandlerInfo from a single function.
 	HandlerFuncSpec struct {
 		fun reflect.Value
 	}
 
-	// HandlerDescriptorError reports a failed HandlerDescriptor.
+	// HandlerDescriptorError reports a failed HandlerInfo.
 	HandlerDescriptorError struct {
 		Spec  HandlerSpec
 		Cause error
@@ -78,13 +78,13 @@ func (s HandlerTypeSpec) suppress() bool {
 	return s.typ.Implements(suppressDispatchType)
 }
 
-func (s HandlerTypeSpec) newHandlerDescriptor(
+func (s HandlerTypeSpec) describe(
 	factory   bindingSpecFactory,
 	observers []HandlerDescriptorObserver,
-) (descriptor *HandlerDescriptor, invalid error) {
+) (descriptor *HandlerInfo, invalid error) {
 	typ        := s.typ
 	bindings   := make(policyBindingsMap)
-	descriptor  = &HandlerDescriptor{spec: s}
+	descriptor  = &HandlerInfo{spec: s}
 
 	var ctorSpec *bindingSpec
 	var ctorPolicies []policyKey
@@ -185,13 +185,13 @@ func (s HandlerFuncSpec) suppress() bool {
 	return false
 }
 
-func (s HandlerFuncSpec) newHandlerDescriptor(
+func (s HandlerFuncSpec) describe(
 	factory   bindingSpecFactory,
 	observers []HandlerDescriptorObserver,
-) (descriptor *HandlerDescriptor, invalid error) {
+) (descriptor *HandlerInfo, invalid error) {
 	funType    := s.fun.Type()
 	bindings   := make(policyBindingsMap)
-	descriptor  = &HandlerDescriptor{spec: s}
+	descriptor  = &HandlerInfo{spec: s}
 
 	if spec, err := factory.createSpec(funType, 1); err == nil {
 		if spec == nil {
@@ -232,11 +232,11 @@ func (e *HandlerDescriptorError) Unwrap() error {
 	return e.Cause
 }
 
-func (d *HandlerDescriptor) HandlerSpec() HandlerSpec {
+func (d *HandlerInfo) HandlerSpec() HandlerSpec {
 	return d.spec
 }
 
-func (d *HandlerDescriptor) Dispatch(
+func (d *HandlerInfo) Dispatch(
 	policy   Policy,
 	handler  any,
 	callback Callback,
@@ -407,63 +407,62 @@ func processSideEffects(
 
 
 type (
-	// HandlerDescriptorProvider returns HandlerDescriptor's.
+	// HandlerDescriptorProvider returns HandlerInfo's.
 	HandlerDescriptorProvider interface {
-		Descriptor(spec any) *HandlerDescriptor
+		Get(src any) *HandlerInfo
 	}
 
-	// HandlerDescriptorFactory registers HandlerDescriptor's.
+	// HandlerDescriptorFactory registers HandlerInfo's.
 	HandlerDescriptorFactory interface {
 		HandlerDescriptorProvider
-		NewSpec(spec any) HandlerSpec
-		RegisterSpec(spec any) (*HandlerDescriptor, bool, error)
+		Spec(src any) HandlerSpec
+		Register(src any) (*HandlerInfo, bool, error)
 	}
 
-	// HandlerDescriptorObserver observes HandlerDescriptor creation.
+	// HandlerDescriptorObserver observes HandlerInfo creation.
 	HandlerDescriptorObserver interface {
 		BindingCreated(
 			policy     Policy,
-			descriptor *HandlerDescriptor,
+			descriptor *HandlerInfo,
 			binding    Binding,
 		)
 
-		DescriptorCreated(descriptor *HandlerDescriptor)
+		DescriptorCreated(descriptor *HandlerInfo)
 	}
-	BindingObserverFunc func(Policy, *HandlerDescriptor, Binding)
+	BindingObserverFunc func(Policy, *HandlerInfo, Binding)
 )
 
 func (f BindingObserverFunc) BindingCreated(
 	policy     Policy,
-	descriptor *HandlerDescriptor,
+	descriptor *HandlerInfo,
 	binding    Binding,
 ) {
 	f(policy, descriptor, binding)
 }
 
-// mutableDescriptorFactory creates HandlerDescriptor's on demand.
+// mutableDescriptorFactory creates HandlerInfo's on demand.
 type mutableDescriptorFactory struct {
-	sync.RWMutex
 	bindingSpecFactory
-	descriptors map[any]*HandlerDescriptor
+	descriptors map[any]*HandlerInfo
 	observers   []HandlerDescriptorObserver
 }
 
-func (f *mutableDescriptorFactory) NewSpec(
-	spec any,
+func (f *mutableDescriptorFactory) Spec(
+	src any,
 ) HandlerSpec {
-	if IsNil(spec) {
-		panic("spec cannot be nil")
+	if IsNil(src) {
+		panic("src cannot be nil")
 	}
 	var hs HandlerSpec
-	switch h := spec.(type) {
+	switch h := src.(type) {
 	case HandlerSpec:
 		hs = h
 	case reflect.Type:
 		hs = HandlerTypeSpec{h}
 	default:
-		typ := reflect.TypeOf(spec)
+		typ := reflect.TypeOf(src)
 		if typ.Kind() == reflect.Func {
-			hs = HandlerFuncSpec{reflect.ValueOf(spec)}
+			hs = HandlerFuncSpec{reflect.ValueOf(src)}
 		} else {
 			hs = HandlerTypeSpec{typ}
 		}
@@ -474,34 +473,28 @@ func (f *mutableDescriptorFactory) NewSpec(
 	return hs
 }
 
-func (f *mutableDescriptorFactory) Descriptor(
-	spec any,
-) *HandlerDescriptor {
-	handler := f.NewSpec(spec)
+func (f *mutableDescriptorFactory) Get(
+	src any,
+) *HandlerInfo {
+	handler := f.Spec(src)
 	if handler == nil {
 		return nil
 	}
-	f.RLock()
-	defer f.RUnlock()
 	return f.descriptors[handler.key()]
 }
 
-func (f *mutableDescriptorFactory) RegisterSpec(
-	spec any,
-) (*HandlerDescriptor, bool, error) {
-	handler := f.NewSpec(spec)
+func (f *mutableDescriptorFactory) Register(
+	src any,
+) (*HandlerInfo, bool, error) {
+	handler := f.Spec(src)
 	if handler == nil {
 		return nil, false, nil
 	}
-
-	f.Lock()
-	defer f.Unlock()
-
 	key := handler.key()
 	if descriptor := f.descriptors[key]; descriptor != nil {
 		return descriptor, false, nil
 	}
-	if descriptor, err := handler.newHandlerDescriptor(f.bindingSpecFactory, f.observers); err == nil {
+	if descriptor, err := handler.describe(f.bindingSpecFactory, f.observers); err == nil {
 		for _, observer := range f.observers {
 			observer.DescriptorCreated(descriptor)
 		}
@@ -534,7 +527,7 @@ func (b *HandlerDescriptorFactoryBuilder) Observers(
 
 func (b *HandlerDescriptorFactoryBuilder) Build() HandlerDescriptorFactory {
 	factory := &mutableDescriptorFactory{
-		descriptors: make(map[any]*HandlerDescriptor),
+		descriptors: make(map[any]*HandlerInfo),
 		observers:   b.observers,
 	}
 	parsers := make([]BindingParser, len(b.parsers)+4)

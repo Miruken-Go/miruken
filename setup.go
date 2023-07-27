@@ -146,12 +146,12 @@ func (s *SetupBuilder) Handler() (handler Handler, buildErrors error) {
 		hs := make([]HandlerSpec, 0, len(specs))
 		exclude, noInfer := s.exclude, s.noInfer
 		for _, spec := range specs {
-			hspec := factory.NewSpec(spec)
+			hspec := factory.Spec(spec)
 			if hspec == nil || (exclude != nil && exclude(hspec)) {
 				continue
 			}
 			if noInfer {
-				if _, _, err := factory.RegisterSpec(spec); err != nil {
+				if _, _, err := factory.Register(spec); err != nil {
 					panic(err)
 				}
 			} else {

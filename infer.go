@@ -10,7 +10,7 @@ type (
 	// handlers to provide a central point of interception
 	// for inference capability.
 	inferenceHandler struct {
-		descriptor *HandlerDescriptor
+		descriptor *HandlerInfo
 	}
 
 	// inferenceGuard prevents the same handler from being
@@ -148,7 +148,7 @@ func newInferenceHandler(
 	}
 	bindings := make(policyBindingsMap)
 	for _, spec := range specs {
-		if descriptor, added, err := factory.RegisterSpec(spec); err != nil {
+		if descriptor, added, err := factory.Register(spec); err != nil {
 			panic(err)
 		} else if added {
 			var handlerType reflect.Type
@@ -181,7 +181,7 @@ func newInferenceHandler(
 		}
 	}
 	return &inferenceHandler {
-		&HandlerDescriptor{
+		&HandlerInfo{
 			spec:     HandlerTypeSpec{inferenceHandlerType},
 			bindings: bindings,
 		},

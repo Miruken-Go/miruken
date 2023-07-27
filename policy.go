@@ -142,7 +142,7 @@ func DispatchPolicy(
 		return dp.DispatchPolicy(policy, callback, greedy, composer)
 	}
 	if factory := CurrentHandlerDescriptorFactory(composer); factory != nil {
-		if d := factory.Descriptor(handler); d != nil {
+		if d := factory.Get(handler); d != nil {
 			return d.Dispatch(policy, handler, callback, greedy, composer, nil)
 		}
 	}
