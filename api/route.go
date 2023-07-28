@@ -5,6 +5,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/either"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/slices"
 	"net/url"
@@ -236,7 +237,7 @@ func (b *batchRouter) batch(
 
 // RouteTo wraps the message in a Routed container.
 func RouteTo(message any, route string) Routed {
-	if miruken.IsNil(message) {
+	if internal.IsNil(message) {
 		panic("message cannot be nil")
 	}
 	if len(route) == 0 {

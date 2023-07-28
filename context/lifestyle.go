@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
 	"reflect"
@@ -237,4 +238,4 @@ func (s *scopedFilter) tryDispose(instance any) {
 }
 
 
-var contextType = miruken.TypeOf[*Context]()
+var contextType = internal.TypeOf[*Context]()

@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -43,7 +44,7 @@ type CreatesBuilder struct {
 func (b *CreatesBuilder) WithKey(
 	key any,
 ) *CreatesBuilder {
-	if IsNil(key) {
+	if internal.IsNil(key) {
 		panic("key cannot be nil")
 	}
 	b.key = key
@@ -61,7 +62,7 @@ func Create[T any](
 	handler     Handler,
 	constraints ...any,
 ) (T, *promise.Promise[T], error) {
-	return CreateKey[T](handler, TypeOf[T](), constraints...)
+	return CreateKey[T](handler, internal.TypeOf[T](), constraints...)
 }
 
 func CreateKey[T any](
@@ -69,7 +70,7 @@ func CreateKey[T any](
 	key         any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], err error) {
-	if IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder CreatesBuilder
@@ -91,11 +92,11 @@ func CreateAll[T any](
 	handler     Handler,
 	constraints ...any,
 ) (t []T, tp *promise.Promise[[]T], err error) {
-	if IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder CreatesBuilder
-	builder.WithKey(TypeOf[T]()).
+	builder.WithKey(internal.TypeOf[T]()).
 		    IntoTarget(&t).
 			WithConstraints(constraints...)
 	creates := builder.New()

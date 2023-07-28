@@ -157,7 +157,7 @@ func (f constraintFilter) Next(
 	if cp, ok := provider.(ConstraintSource); ok {
 		callback    := ctx.Callback()
 		constraints := cp.Constraints()
-		required    := ctx.Callback().Constraints()
+		required    := callback.Constraints()
 		if len(required) == 0 {
 			// if no required input constraints
 			//   implied receiver constraint must be satisfied or

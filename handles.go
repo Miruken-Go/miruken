@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -78,7 +79,7 @@ type HandlesBuilder struct {
 func (b *HandlesBuilder) WithCallback(
 	callback any,
 ) *HandlesBuilder {
-	if IsNil(callback) {
+	if internal.IsNil(callback) {
 		panic("callback cannot be nil")
 	}
 	b.callback = callback
@@ -99,7 +100,7 @@ func Command(
 	callback    any,
 	constraints ...any,
 ) (pv *promise.Promise[any], err error) {
-	if IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder HandlesBuilder
@@ -123,7 +124,7 @@ func Execute[T any](
 	callback    any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], err error) {
-	if IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder HandlesBuilder
@@ -150,7 +151,7 @@ func CommandAll(
 	callback    any,
 	constraints ...any,
 ) (p *promise.Promise[any], err error) {
-	if IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder HandlesBuilder
@@ -174,7 +175,7 @@ func ExecuteAll[T any](
 	callback    any,
 	constraints ...any,
 ) (t []T, tp *promise.Promise[[]T], err error) {
-	if IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder HandlesBuilder

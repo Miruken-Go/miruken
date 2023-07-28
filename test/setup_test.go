@@ -3,6 +3,7 @@ package test
 import (
 	"errors"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/stretchr/testify/suite"
 	"reflect"
 	"strings"
@@ -70,7 +71,7 @@ func (suite *SetupTestSuite) TestSetup() {
 		handler, _ := miruken.Setup(TestFeature).ExcludeSpecs(
 				func(spec miruken.HandlerSpec) bool {
 					switch ts := spec.(type) {
-					case miruken.HandlerTypeSpec:
+					case miruken.TypeSpec:
 						name := ts.Name()
 						return name == "MultiHandler" || strings.Contains(name, "Invalid")
 					default:
@@ -78,8 +79,8 @@ func (suite *SetupTestSuite) TestSetup() {
 					}
 				},
 				func(spec miruken.HandlerSpec) bool {
-					if ts, ok := spec.(miruken.HandlerTypeSpec); ok {
-						return ts.Type() == miruken.TypeOf[*EverythingHandler]()
+					if ts, ok := spec.(miruken.TypeSpec); ok {
+						return ts.Type() == internal.TypeOf[*EverythingHandler]()
 					}
 					return false
 				}).Handler()

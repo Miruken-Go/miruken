@@ -11,6 +11,7 @@ import (
 	json2 "github.com/miruken-go/miruken/api/json"
 	"github.com/miruken-go/miruken/api/json/stdjson"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/maps"
 	"path/filepath"
 	"reflect"
@@ -153,9 +154,9 @@ func (i *Installer) AfterInstall(
 }
 
 func (i *Installer) BindingCreated(
-	policy     miruken.Policy,
-	descriptor *miruken.HandlerInfo,
-	binding    miruken.Binding,
+	policy      miruken.Policy,
+	handlerInfo *miruken.HandlerInfo,
+	binding     miruken.Binding,
 ) {
 	if !(policy == i.policy && binding.Exported()) {
 		return
@@ -164,7 +165,7 @@ func (i *Installer) BindingCreated(
 		if inType.Kind() == reflect.Ptr {
 			inType = inType.Elem()
 		}
-		spec := descriptor.HandlerSpec()
+		spec := handlerInfo.HandlerSpec()
 		ap   := i.apiProfile(spec.PkgPath())
 		if schema, inputName, created := i.generateTypeSchema(ap, inType, false); created {
 			requestBody := &openapi3.RequestBodyRef{
@@ -225,7 +226,7 @@ func (i *Installer) BindingCreated(
 	}
 }
 
-func (i *Installer) DescriptorCreated(
+func (i *Installer) HandlerInfoCreated(
 	_ *miruken.HandlerInfo,
 ) {
 }
@@ -280,7 +281,7 @@ func (i *Installer) initializeDefinitions(ap *apiProfile) {
 			WithJSONSchema(openapi3.NewSchema().
 				WithProperty("payload", openapi3.NewObjectSchema())),
 	}
-	tags := []string{miruken.TypeOf[api.Message]().PkgPath()}
+	tags := []string{internal.TypeOf[api.Message]().PkgPath()}
 	ap.paths["/process"] = &openapi3.PathItem{
 		Post: &openapi3.Operation{
 			OperationID: "process",
@@ -368,7 +369,7 @@ func (i *Installer) generateExampleJson(
 	handler miruken.Handler,
 ) {
 	for _, schema := range ap.components {
-		if example := schema.Value.Example; !miruken.IsNil(example) {
+		if example := schema.Value.Example; !internal.IsNil(example) {
 			if b, _, _, err := maps.Out[[]byte](handler, example, api.ToJson); err == nil {
 				var js map[string]any
 				if err := json.Unmarshal(b, &js); err == nil {
@@ -410,7 +411,7 @@ func (i *Installer) generateComponentSchema(
 	component any,
 	shared    bool,
 ) (*openapi3.SchemaRef, string, bool) {
-	if miruken.IsNil(component) {
+	if internal.IsNil(component) {
 		return nil, "", false
 	}
 	typ  := reflect.TypeOf(component)
@@ -556,9 +557,9 @@ func Feature(
 			},
 		},
 		surrogates: map[reflect.Type]any{
-			miruken.TypeOf[api.ConcurrentBatch](): json2.Concurrent{},
-			miruken.TypeOf[api.SequentialBatch](): json2.Sequential{},
-			miruken.TypeOf[api.ScheduledResult](): stdjson.ScheduledResult{
+			internal.TypeOf[api.ConcurrentBatch](): json2.Concurrent{},
+			internal.TypeOf[api.SequentialBatch](): json2.Sequential{},
+			internal.TypeOf[api.ScheduledResult](): stdjson.ScheduledResult{
 				stdjson.Either[error, any]{
 					Left:  false,
 					Value: json.RawMessage("\"success\""),

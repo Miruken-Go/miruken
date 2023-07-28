@@ -1,4 +1,4 @@
-package miruken
+package internal
 
 import (
 	"reflect"
@@ -218,7 +218,7 @@ func Exported(t any) bool {
 	return true
 }
 
-func coerceToPtr(
+func CoerceToPtr(
 	givenType   reflect.Type,
 	desiredType reflect.Type,
 ) reflect.Type {
@@ -233,7 +233,7 @@ func coerceToPtr(
 	return nil
 }
 
-func newWithTag(
+func NewWithTag(
 	typ reflect.Type,
 	tag reflect.StructTag,
 ) (any, error) {

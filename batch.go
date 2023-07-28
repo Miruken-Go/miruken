@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"sync/atomic"
@@ -107,7 +108,7 @@ func (b *batchHandler) Handle(
 							return cb.ReceiveResult(h, true, composer)
 						}
 					}
-					if batcher, err := newWithTag(typ, ""); err != nil {
+					if batcher, err := internal.NewWithTag(typ, ""); err != nil {
 						batch.AddHandlers(batcher)
 						return cb.ReceiveResult(batcher, true, composer)
 					}
@@ -176,7 +177,7 @@ func Batch(
 	configure func(Handler),
 	tags      ...any,
 ) *promise.Promise[[]any] {
-	if IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	if configure == nil {
@@ -193,7 +194,7 @@ func BatchAsync[T any](
 	configure func(Handler) *promise.Promise[T],
 	tags      ...any,
 ) *promise.Promise[[]any] {
-	if IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	if configure == nil {
@@ -207,18 +208,18 @@ func BatchTag[T any](
 	handler   Handler,
 	configure func(Handler),
 ) *promise.Promise[[]any] {
-	return Batch(handler, configure, TypeOf[T]())
+	return Batch(handler, configure, internal.TypeOf[T]())
 }
 
 func BatchTagAsync[T any, E any](
 	handler   Handler,
 	configure func(Handler) *promise.Promise[T],
 ) *promise.Promise[[]any] {
-	return BatchAsync(handler, configure, TypeOf[E]())
+	return BatchAsync(handler, configure, internal.TypeOf[E]())
 }
 
 var NoBatch BuilderFunc = func(handler Handler) Handler {
-	if IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	return &noBatchHandler{handler}
@@ -237,7 +238,7 @@ func GetBatch[TB batching](handler Handler, tags ...any) TB {
 				return batcher
 			}
 		}
-		if batcher, err := newWithTag(TypeOf[TB](), ""); err == nil {
+		if batcher, err := internal.NewWithTag(internal.TypeOf[TB](), ""); err == nil {
 			batch.AddHandlers(batcher)
 			return batcher.(TB)
 		}
@@ -257,6 +258,6 @@ func newBatch(tags ...any) *batch {
 }
 
 var (
-	batchType    = TypeOf[*batch]()
-	batchingType = TypeOf[batching]()
+	batchType    = internal.TypeOf[*batch]()
+	batchingType = internal.TypeOf[batching]()
 )

@@ -5,6 +5,7 @@ import (
 	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/either"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
 	"sync"
@@ -130,7 +131,7 @@ func Sequential(
 	handler  miruken.Handler,
 	requests ...any,
 ) *promise.Promise[[]either.Monad[error, any]] {
-	if miruken.IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	return sendBatch(handler, SequentialBatch{requests})
@@ -142,7 +143,7 @@ func Concurrent(
 	handler  miruken.Handler,
 	requests ...any,
 ) *promise.Promise[[]either.Monad[error, any]] {
-	if miruken.IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	return sendBatch(handler, ConcurrentBatch{requests})

@@ -3,6 +3,7 @@ package miruken
 import (
 	"dario.cat/mergo"
 	"fmt"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -106,10 +107,10 @@ func GetOptions[T any](handler Handler) (t T, ok bool) {
 }
 
 func GetOptionsInto(handler Handler, target any) bool {
-	if IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
-	tv := TargetValue(target)
+	tv := internal.TargetValue(target)
 	optType := tv.Type()
 	if optType.Kind() != reflect.Ptr {
 		panic(fmt.Sprintf("options: %v is not a *struct or **struct", optType))
@@ -136,7 +137,7 @@ func GetOptionsInto(handler Handler, target any) bool {
 
 	handled := handler.Handle(options, true, nil).Handled()
 	if handled && created {
-		CopyIndirect(options.options, target)
+		internal.CopyIndirect(options.options, target)
 	}
 	return handled
 }
@@ -252,8 +253,8 @@ func (t optionMerger) Transformer(
 			if addr {
 				dst = dst.Addr()
 			}
-			if d, ok := dst.Interface().(mergeable); ok && !IsNil(d) {
-				if s := src.Interface(); !IsNil(s) {
+			if d, ok := dst.Interface().(mergeable); ok && !internal.IsNil(d) {
+				if s := src.Interface(); !internal.IsNil(s) {
 					d.MergeFrom(s)
 				}
 			}
@@ -265,6 +266,6 @@ func (t optionMerger) Transformer(
 
 
 var (
-	mergeableType = TypeOf[mergeable]()
+	mergeableType = internal.TypeOf[mergeable]()
 	mergeOptions  = optionMerger{}
 )

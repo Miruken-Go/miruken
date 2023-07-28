@@ -7,6 +7,7 @@ import (
 	play "github.com/go-playground/validator/v10"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/args"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/validates"
 	"strings"
 )
@@ -67,7 +68,7 @@ func (v *Validator) Validate(
 	target  any,
 	outcome *validates.Outcome,
 ) miruken.HandleResult {
-	if !miruken.IsStruct(target) {
+	if !internal.IsStruct(target) {
 		return miruken.NotHandled
 	}
 	if err := v.validate.Struct(target); err != nil {

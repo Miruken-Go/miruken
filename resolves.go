@@ -1,21 +1,35 @@
 package miruken
 
-type resolves struct {
-	Provides
-	callback  Callback
-	greedy    bool
-	succeeded bool
-}
+type (
+	// Resolves extends Provides semantics to dispatch a
+	// Callback on the resolved handler.
+	Resolves struct {
+		Provides
+		callback  Callback
+		greedy    bool
+		succeeded bool
+	}
 
-func (r *resolves) Callback() Callback {
+	// ResolvesBuilder builds Resolves callbacks.
+	ResolvesBuilder struct {
+		ProvidesBuilder
+		callback Callback
+		greedy   bool
+	}
+)
+
+
+// Resolves
+
+func (r *Resolves) Callback() Callback {
 	return r.callback
 }
 
-func (r *resolves) Succeeded() bool {
+func (r *Resolves) Succeeded() bool {
 	return r.succeeded
 }
 
-func (r *resolves) CanDispatch(
+func (r *Resolves) CanDispatch(
 	handler any,
 	binding Binding,
 ) (reset func (), approved bool) {
@@ -34,7 +48,7 @@ func (r *resolves) CanDispatch(
 	}
 }
 
-func (r *resolves) accept(
+func (r *Resolves) accept(
 	result   any,
 	composer Handler,
 ) HandleResult {
@@ -47,28 +61,25 @@ func (r *resolves) accept(
 	}
 }
 
-type resolvesBuilder struct {
-	ProvidesBuilder
-	callback Callback
-	greedy   bool
-}
 
-func (b *resolvesBuilder) WithCallback(
+// ResolvesBuilder
+
+func (b *ResolvesBuilder) WithCallback(
 	callback Callback,
-) *resolvesBuilder {
+) *ResolvesBuilder {
 	b.callback = callback
 	return b
 }
 
-func (b *resolvesBuilder) WithGreedy(
+func (b *ResolvesBuilder) WithGreedy(
 	greedy bool,
-) *resolvesBuilder {
+) *ResolvesBuilder {
 	b.greedy = greedy
 	return b
 }
 
-func (b *resolvesBuilder) New() *resolves {
-	resolves := &resolves{
+func (b *ResolvesBuilder) New() *Resolves {
+	resolves := &Resolves{
 		Provides: b.Build(),
 		callback: b.callback,
 		greedy:   b.greedy,

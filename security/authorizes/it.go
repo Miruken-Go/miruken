@@ -3,6 +3,7 @@ package authorizes
 import (
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/security"
 	"reflect"
@@ -57,7 +58,7 @@ type Builder struct {
 func (b *Builder) ForAction(
 	action any,
 ) *Builder {
-	if miruken.IsNil(action) {
+	if internal.IsNil(action) {
 		panic("action cannot be nil")
 	}
 	b.action = action
@@ -67,7 +68,7 @@ func (b *Builder) ForAction(
 func (b *Builder) WithSubject(
 	subject security.Subject,
 ) *Builder {
-	if miruken.IsNil(subject) {
+	if internal.IsNil(subject) {
 		panic("subject cannot be nil")
 	}
 	b.subject = subject
@@ -87,10 +88,10 @@ func Access(
 	action      any,
 	constraints ...any,
 ) (bool, *promise.Promise[bool], error) {
-	if miruken.IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
-	if miruken.IsNil(action) {
+	if internal.IsNil(action) {
 		panic("action cannot be nil")
 	}
 	options, _ := miruken.GetOptions[Options](handler)

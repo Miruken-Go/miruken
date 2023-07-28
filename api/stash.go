@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
 )
@@ -89,10 +90,10 @@ func StashGetKey(
 	handler miruken.Handler,
 	key     any,
 ) (val any, ok bool) {
-	if miruken.IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
-	if miruken.IsNil(key) {
+	if internal.IsNil(key) {
 		panic("key cannot be nil")
 	}
 	get := &stashGet{}
@@ -107,7 +108,7 @@ func StashGetKey(
 func StashGet[T any](
 	handler miruken.Handler,
 ) (t T, ok bool) {
-	if val, ok := StashGetKey(handler, miruken.TypeOf[T]()); ok {
+	if val, ok := StashGetKey(handler, internal.TypeOf[T]()); ok {
 		return val.(T), true
 	}
 	return
@@ -118,10 +119,10 @@ func StashPutKey(
 	key     any,
 	val     any,
 ) error {
-	if miruken.IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
-	if miruken.IsNil(key) {
+	if internal.IsNil(key) {
 		panic("key cannot be nil")
 	}
 	put := &stashPut{val: val}
@@ -138,7 +139,7 @@ func StashPut[T any](
 	handler miruken.Handler,
 	val     T,
 ) error {
-	return StashPutKey(handler, miruken.TypeOf[T](), val)
+	return StashPutKey(handler, internal.TypeOf[T](), val)
 }
 
 func StashGetOrPutKey(
@@ -215,10 +216,10 @@ func StashDropKey(
 	handler miruken.Handler,
 	key     any,
 ) (err error) {
-	if miruken.IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
-	if miruken.IsNil(key) {
+	if internal.IsNil(key) {
 		panic("key cannot be nil")
 	}
 	drop := &stashDrop{}
@@ -234,7 +235,7 @@ func StashDropKey(
 func StashDrop[T any](
 	handler miruken.Handler,
 ) error {
-	return StashDropKey(handler, miruken.TypeOf[T]())
+	return StashDropKey(handler, internal.TypeOf[T]())
 }
 
 // NewStash creates a new Stash.

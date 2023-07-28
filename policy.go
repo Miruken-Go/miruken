@@ -1,6 +1,9 @@
 package miruken
 
-import "container/list"
+import (
+	"container/list"
+	"github.com/miruken-go/miruken/internal"
+)
 
 type (
 	// Policy manages behaviors and callback Binding's.
@@ -23,20 +26,24 @@ type (
 		) HandleResult
 	}
 
-	// policyBindings maintains Binding's for a Policy.
-	policyBindings struct {
+	// policyInfo maintains Binding's for a Policy.
+	// It keeps a linked list of bindings that are partially
+	// ordered for keys that support variance (reflect.Type).
+	// An index into the list is used to optimize lookups.
+	// An invariant map stores the bindings for exact keys (string).
+	policyInfo struct {
 		policy    Policy
 		variant   list.List
 		index     map[any]*list.Element
 		invariant map[any][]Binding
 	}
 
-	// policyBindingsMap maps Policy's to policyBindings.
-	policyBindingsMap map[Policy]*policyBindings
+	// policyInfoMap maps Policy instances to policyInfo.
+	policyInfoMap map[Policy]*policyInfo
 )
 
 
-func (p *policyBindings) insert(binding Binding) {
+func (p *policyInfo) insert(binding Binding) {
 	key := binding.Key()
 	if variant, unknown := p.policy.VariantKey(key); variant {
 		indexedElem := p.index[key]
@@ -74,7 +81,7 @@ func (p *policyBindings) insert(binding Binding) {
 	}
 }
 
-func (p *policyBindings) reduce(
+func (p *policyInfo) reduce(
 	key     any,
 	reducer BindingReducer,
 ) (result HandleResult) {
@@ -118,10 +125,10 @@ func (p *policyBindings) reduce(
 	return result
 }
 
-func (p policyBindingsMap) forPolicy(policy Policy) *policyBindings {
+func (p policyInfoMap) forPolicy(policy Policy) *policyInfo {
 	bindings, found := p[policy]
 	if !found {
-		bindings = &policyBindings{
+		bindings = &policyInfo{
 			policy: policy,
 			index:  make(map[any]*list.Element),
 		}
@@ -141,7 +148,7 @@ func DispatchPolicy(
 	if dp, ok := handler.(PolicyDispatch); ok {
 		return dp.DispatchPolicy(policy, callback, greedy, composer)
 	}
-	if factory := CurrentHandlerDescriptorFactory(composer); factory != nil {
+	if factory := CurrentHandlerInfoFactory(composer); factory != nil {
 		if d := factory.Get(handler); d != nil {
 			return d.Dispatch(policy, handler, callback, greedy, composer, nil)
 		}
@@ -151,9 +158,9 @@ func DispatchPolicy(
 
 
 var (
-	anyType       = TypeOf[any]()
-	anySliceType  = TypeOf[[]any]()
-	errorType     = TypeOf[error]()
-	callbackType  = TypeOf[Callback]()
-	handleResType = TypeOf[HandleResult]()
+	anyType       = internal.TypeOf[any]()
+	anySliceType  = internal.TypeOf[[]any]()
+	errorType     = internal.TypeOf[error]()
+	callbackType  = internal.TypeOf[Callback]()
+	handleResType = internal.TypeOf[HandleResult]()
 )

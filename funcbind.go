@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/slices"
 	"reflect"
@@ -39,7 +40,7 @@ func (b *FuncBinding) Key() any {
 }
 
 func (b *FuncBinding) Exported() bool {
-	return Exported(b.key) && Exported(b.fun.Interface())
+	return internal.Exported(b.key) && internal.Exported(b.fun.Interface())
 }
 
 func (b *FuncBinding) LogicalOutputType() reflect.Type {
@@ -131,7 +132,7 @@ func mergeOutput(
 			// if function error (last output), fail early
 			if e, ok := out[len(out)-1].(error); ok {
 				return nil, nil, e
-			} else if pf, ok := out[0].(promise.Reflect); ok && !IsNil(pf) {
+			} else if pf, ok := out[0].(promise.Reflect); ok && !internal.IsNil(pf) {
 				// if first output is a promise. resolve and replace
 				return nil, promise.Coerce[[]any](
 					pf.Then(func(first any) any {
@@ -150,7 +151,7 @@ func mergeOutput(
 			// if function error, panic
 			if e, ok := oo[len(oo)-1].(error); ok {
 				panic(e)
-			} else if pf, ok := oo[0].(promise.Reflect); ok && !IsNil(pf) {
+			} else if pf, ok := oo[0].(promise.Reflect); ok && !internal.IsNil(pf) {
 				// if first output is a promise. await and replace
 				if first, err := pf.AwaitAny(); err != nil {
 					panic(err)
@@ -184,7 +185,7 @@ func mergeOutputAwait(
 			// if function error (last output), panic
 			if err, ok := out[len(out)-1].(error); ok {
 				panic(err)
-			} else if pf, ok := out[0].(promise.Reflect); ok && !IsNil(pf) {
+			} else if pf, ok := out[0].(promise.Reflect); ok && !internal.IsNil(pf) {
 				// if first output is a promise. await and replace
 				if first, err := pf.AwaitAny(); err != nil {
 					panic(err)
@@ -205,7 +206,7 @@ func mergeOutputAwait(
 		// if function error (last output), panic
 		if err, ok := oo[len(oo)-1].(error); ok {
 			panic(err)
-		} else if pf, ok := oo[0].(promise.Reflect); ok && !IsNil(pf) {
+		} else if pf, ok := oo[0].(promise.Reflect); ok && !internal.IsNil(pf) {
 			// if first output is a promise. await and replace
 			if first, err := pf.AwaitAny(); err != nil {
 				panic(err)

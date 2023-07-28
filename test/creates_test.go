@@ -70,7 +70,7 @@ func (suite *CreatesTestSuite) Setup() (miruken.Handler, error) {
 	return miruken.Setup(TestFeature).ExcludeSpecs(
 		func (spec miruken.HandlerSpec) bool {
 			switch ts := spec.(type) {
-			case miruken.HandlerTypeSpec:
+			case miruken.TypeSpec:
 				return strings.Contains(ts.Name(), "Invalid")
 			default:
 				return false

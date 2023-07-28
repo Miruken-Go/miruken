@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"sort"
@@ -54,9 +55,7 @@ type (
 
 	// FilterAdapter is an adapter for implementing a
 	// Filter using late binding method resolution.
-	FilterAdapter struct {
-		Method string
-	}
+	FilterAdapter struct {}
 
 	// Filtered is a container of Filters.
 	Filtered interface {
@@ -137,7 +136,7 @@ type (
 		order    int
 	}
 
-	// filterSpecProvider resolves a Filter specification.
+	// filterSpecProvider Resolves a Filter specification.
 	filterSpecProvider struct {
 		spec filterSpec
 	}
@@ -422,12 +421,8 @@ func (l FilterAdapter) Next(
 	ctx      HandleContext,
 	provider FilterProvider,
 ) (out []any, pout *promise.Promise[[]any], err error) {
-	method := l.Method
-	if method == "" {
-		method = "NextLate"
-	}
 	var binding *filterBinding
-	if binding, err = getNextLate(self, method); err != nil {
+	if binding, err = getNextLate(self, "NextLate"); err != nil {
 		return
 	}
 	if out, pout, err = binding.invoke(self, ctx, next, provider); err != nil {
@@ -516,8 +511,8 @@ Invalid:
 
 var (
 	filterBindingLock sync.RWMutex
-	nextFuncType        = TypeOf[Next]()
-	filterProviderType  = TypeOf[FilterProvider]()
+	nextFuncType        = internal.TypeOf[Next]()
+	filterProviderType  = internal.TypeOf[FilterProvider]()
 	filterBindingMap    = make(map[reflect.Type]*filterBinding)
-	promiseAnySliceType = TypeOf[*promise.Promise[[]any]]()
+	promiseAnySliceType = internal.TypeOf[*promise.Promise[[]any]]()
 )

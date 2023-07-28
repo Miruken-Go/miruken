@@ -3,7 +3,7 @@ package api
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/internal"
 	"io"
 	"mime"
 	"path/filepath"
@@ -105,7 +105,7 @@ func (b *PartBuilder) Filename(
 func (b *PartBuilder) Body(
 	body any,
 ) *PartBuilder {
-	if miruken.IsNil(body) {
+	if internal.IsNil(body) {
 		panic("body cannot be nil")
 	}
 	b.part.body = body
@@ -144,7 +144,7 @@ func (b *ReadPartsBuilder) AddPart(
 	if len(key) == 0 {
 		panic("key cannot be empty")
 	}
-	if miruken.IsNil(part) {
+	if internal.IsNil(part) {
 		panic("part cannot be nil")
 	}
 	parts := b.container.parts

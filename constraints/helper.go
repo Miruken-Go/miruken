@@ -1,11 +1,14 @@
 package constraints
 
-import "github.com/miruken-go/miruken"
+import (
+	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/internal"
+)
 
 func First[T miruken.Constraint](
 	src miruken.ConstraintSource,
 ) (first T, ok bool) {
-	if miruken.IsNil(src) {
+	if internal.IsNil(src) {
 		panic("src cannot be nil")
 	}
 	for _, constraint := range src.Constraints() {

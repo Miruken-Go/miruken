@@ -3,6 +3,7 @@ package miruken
 import (
 	"container/list"
 	"github.com/hashicorp/go-multierror"
+	"github.com/miruken-go/miruken/internal"
 )
 
 type (
@@ -20,9 +21,9 @@ type (
 		features  []Feature
 		builders  []Builder
 		exclude   Predicate[HandlerSpec]
-		factory   func([]BindingParser, []HandlerDescriptorObserver) HandlerDescriptorFactory
+		factory   func([]BindingParser, []HandlerInfoObserver) HandlerInfoFactory
 		parsers   []BindingParser
-		observers []HandlerDescriptorObserver
+		observers []HandlerInfoObserver
 		tags      map[any]struct{}
 	}
 )
@@ -96,14 +97,14 @@ func (s *SetupBuilder) Parsers(
 }
 
 func (s *SetupBuilder) Observers(
-	observers ...HandlerDescriptorObserver,
+	observers ...HandlerInfoObserver,
 ) *SetupBuilder {
 	s.observers = append(s.observers, observers...)
 	return s
 }
 
 func (s *SetupBuilder) Factory(
-	factory func([]BindingParser, []HandlerDescriptorObserver) HandlerDescriptorFactory,
+	factory func([]BindingParser, []HandlerInfoObserver) HandlerInfoFactory,
 ) *SetupBuilder {
 	s.factory = factory
 	return s
@@ -128,26 +129,26 @@ func (s *SetupBuilder) Tag(tag any) bool {
 func (s *SetupBuilder) Handler() (handler Handler, buildErrors error) {
 	buildErrors = s.installGraph(s.features)
 
-	var factory HandlerDescriptorFactory
+	var factory HandlerInfoFactory
 	if f := s.factory; f != nil {
 		factory = f(s.parsers, s.observers)
 	}
 	if factory == nil {
-		var builder HandlerDescriptorFactoryBuilder
+		var builder HandlerInfoFactoryBuilder
 		factory = builder.
 			Parsers(s.parsers...).
 			Observers(s.observers...).
 			Build()
 	}
 
-	handler = &currentHandlerDescriptorFactory{factory}
+	handler = &currentHandlerInfoFactory{factory}
 
 	if specs := s.specs; len(specs) > 0 {
 		hs := make([]HandlerSpec, 0, len(specs))
 		exclude, noInfer := s.exclude, s.noInfer
 		for _, spec := range specs {
-			hspec := factory.Spec(spec)
-			if hspec == nil || (exclude != nil && exclude(hspec)) {
+			h := factory.Spec(spec)
+			if h == nil || (exclude != nil && exclude(h)) {
 				continue
 			}
 			if noInfer {
@@ -155,7 +156,7 @@ func (s *SetupBuilder) Handler() (handler Handler, buildErrors error) {
 					panic(err)
 				}
 			} else {
-				hs = append(hs, hspec)
+				hs = append(hs, h)
 			}
 		}
 
@@ -193,7 +194,7 @@ func (s *SetupBuilder) installGraph(
 	// traverse level-order so overrides can be applied in any order
 	queue := list.New()
 	for _, feature := range features {
-		if !IsNil(feature) {
+		if !internal.IsNil(feature) {
 			queue.PushBack(feature)
 		}
 	}
@@ -205,7 +206,7 @@ func (s *SetupBuilder) installGraph(
 			DependsOn() []Feature
 		}); ok {
 			for _, dep := range dependsOn.DependsOn() {
-				if !IsNil(dep) {
+				if !internal.IsNil(dep) {
 					queue.PushBack(dep)
 				}
 			}
@@ -221,7 +222,7 @@ func (s *SetupBuilder) installGraph(
 func FeatureSet(features ...Feature) FeatureFunc {
 	return func(setup *SetupBuilder) error {
 		for _, feature := range features {
-			if !IsNil(feature) {
+			if !internal.IsNil(feature) {
 				if err := feature.Install(setup); err != nil {
 					return err
 				}

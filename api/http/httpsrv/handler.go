@@ -8,6 +8,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/args"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/slices"
@@ -62,7 +63,7 @@ func (a *ApiHandler) ServeHTTP(
 	}
 
 	if c, ok := payload.(api.Content); ok {
-		if payload = c.Body(); miruken.IsNil(payload) {
+		if payload = c.Body(); internal.IsNil(payload) {
 			http.Error(w, "400 missing content body", http.StatusBadRequest)
 			return
 		}

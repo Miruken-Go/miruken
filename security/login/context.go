@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/config"
 	"github.com/miruken-go/miruken/creates"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/security"
@@ -30,7 +31,7 @@ type (
 // Error
 
 func (e Error) Error() string {
-	if miruken.IsNil(e.Cause) {
+	if internal.IsNil(e.Cause) {
 		return "login failed"
 	}
 	return fmt.Sprintf("login failed: %s", e.Cause.Error())
@@ -49,12 +50,12 @@ func (e Error) Unwrap() error {
 func (c *Context) Login(
 	handler miruken.Handler,
 ) *promise.Promise[security.Subject] {
-	if miruken.IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 
 	// Already authenticated?
-	if !miruken.IsNil(c.subject) {
+	if !internal.IsNil(c.subject) {
 		return promise.Resolve(c.subject)
 	}
 
@@ -86,7 +87,7 @@ func (c *Context) Logout(
 	handler miruken.Handler,
 ) *promise.Promise[security.Subject] {
 	subject := c.subject
-	if miruken.IsNil(subject) {
+	if internal.IsNil(subject) {
 		return promise.Reject[security.Subject](
 			Error{errors.New("login must succeed first")})
 	}

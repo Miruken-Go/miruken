@@ -3,6 +3,7 @@ package auth
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/security"
 	"github.com/miruken-go/miruken/security/login"
@@ -37,7 +38,7 @@ type (
 
 
 func (b *FlowBuilder) Scheme(scheme Scheme) *Authentication {
-	if miruken.IsNil(scheme) {
+	if internal.IsNil(scheme) {
 		panic("scheme cannot be nil")
 	}
 	b.flow.scheme = scheme

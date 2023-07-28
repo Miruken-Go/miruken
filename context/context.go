@@ -2,6 +2,7 @@ package context
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/provides"
 	"sync"
 )
@@ -190,7 +191,7 @@ func (c *Context) UnwindToRoot(reason any) *Context {
 }
 
 func (c *Context) Unwind(reason any) *Context {
-	if miruken.IsNil(reason) {
+	if internal.IsNil(reason) {
 		reason = ReasonUnwinded
 	}
 	for i := len(c.children)-1; i >= 0; i-- {

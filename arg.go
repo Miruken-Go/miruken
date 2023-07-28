@@ -3,6 +3,7 @@ package miruken
 import (
 	"fmt"
 	"github.com/hashicorp/go-multierror"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -243,7 +244,7 @@ type DependencyResolver interface {
 	) (reflect.Value, *promise.Promise[reflect.Value], error)
 }
 
-// defaultDependencyResolver resolves the value from the Handler.
+// defaultDependencyResolver Resolves the value from the Handler.
 type defaultDependencyResolver struct{}
 
 func (r *defaultDependencyResolver) Resolve(
@@ -269,7 +270,7 @@ func (r *defaultDependencyResolver) Resolve(
 	} else if pr == nil {
 		if many {
 			v = reflect.New(typ).Elem()
-			CopySliceIndirect(result.([]any), v)
+			internal.CopySliceIndirect(result.([]any), v)
 		} else if result != nil {
 			v = reflect.ValueOf(result)
 		} else if dep.Optional() {
@@ -282,7 +283,7 @@ func (r *defaultDependencyResolver) Resolve(
 			var val reflect.Value
 			if many {
 				val = reflect.New(typ).Elem()
-				CopySliceIndirect(res.([]any), val)
+				internal.CopySliceIndirect(res.([]any), val)
 			} else if res != nil {
 				val = reflect.ValueOf(res)
 			} else if dep.Optional() {
@@ -452,12 +453,12 @@ func parseResolver(
 	field   reflect.StructField,
 	binding any,
 ) (bound bool, err error) {
-	if dr := coerceToPtr(field.Type, depResolverType); dr != nil {
+	if dr := internal.CoerceToPtr(field.Type, depResolverType); dr != nil {
 		bound = true
 		if b, ok := binding.(interface {
 			setResolver(DependencyResolver) error
 		}); ok {
-			if resolver, invalid := newWithTag(dr, field.Tag); invalid != nil {
+			if resolver, invalid := internal.NewWithTag(dr, field.Tag); invalid != nil {
 				err = fmt.Errorf(
 					"parseResolver: new dependency resolver at field %v (%v) failed: %w",
 					field.Name, index, invalid)
@@ -472,8 +473,8 @@ func parseResolver(
 }
 
 var (
-	handlerType     = TypeOf[Handler]()
-	handleCtxType   = TypeOf[HandleContext]()
-	depResolverType = TypeOf[DependencyResolver]()
+	handlerType     = internal.TypeOf[Handler]()
+	handleCtxType   = internal.TypeOf[HandleContext]()
+	depResolverType = internal.TypeOf[DependencyResolver]()
 	defaultResolver = defaultDependencyResolver{}
 )

@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -10,7 +11,7 @@ type (
 	// handlers to provide a central point of interception
 	// for inference capability.
 	inferenceHandler struct {
-		descriptor *HandlerInfo
+		info *HandlerInfo
 	}
 
 	// inferenceGuard prevents the same handler from being
@@ -63,7 +64,7 @@ func (h *inferenceHandler) DispatchPolicy(
 	if test, ok := callback.(interface{CanInfer() bool}); ok && !test.CanInfer() {
 		return NotHandled
 	}
-	return h.descriptor.Dispatch(policy, h, callback, greedy, composer, &inferenceGuard{})
+	return h.info.Dispatch(policy, h, callback, greedy, composer, &inferenceGuard{})
 }
 
 func (h *inferenceHandler) SuppressDispatch() {}
@@ -90,7 +91,7 @@ func (b *methodIntercept) Invoke(
 	callback    := ctx.Callback()
 	composer    := ctx.Composer()
 	parent, _   := callback.(*Provides)
-	var builder resolvesBuilder
+	var builder ResolvesBuilder
 	builder.
 		WithCallback(callback).
 		WithGreedy(ctx.Greedy()).
@@ -140,22 +141,22 @@ func (g *inferenceGuard) CanDispatch(
 }
 
 func newInferenceHandler(
-	factory HandlerDescriptorFactory,
+	factory HandlerInfoFactory,
 	specs   []HandlerSpec,
 ) *inferenceHandler {
 	if factory == nil {
 		panic("factory cannot be nil")
 	}
-	bindings := make(policyBindingsMap)
+	bindings := make(policyInfoMap)
 	for _, spec := range specs {
-		if descriptor, added, err := factory.Register(spec); err != nil {
+		if info, added, err := factory.Register(spec); err != nil {
 			panic(err)
 		} else if added {
 			var handlerType reflect.Type
-			if h, ok := descriptor.spec.(HandlerTypeSpec); ok {
+			if h, ok := info.spec.(TypeSpec); ok {
 				handlerType = h.Type()
 			}
-			for policy, bs := range descriptor.bindings {
+			for policy, bs := range info.bindings {
 				pb := bindings.forPolicy(policy)
 				// Us bs.index vs.variant since inference ONLY needs a
 				// single binding to infer the handler type for a
@@ -164,7 +165,7 @@ func newInferenceHandler(
 					linkBinding(elem.Value.(Binding), pb, handlerType,true)
 				}
 				// Only need the first of each invariant since it is
-				// just to link the actual handler descriptor.
+				// just to link the actual handler info.
 				for _, bs := range bs.invariant {
 					if len(bs) > 0 {
 						linkBinding(bs[0], pb, handlerType, true)
@@ -182,7 +183,7 @@ func newInferenceHandler(
 	}
 	return &inferenceHandler {
 		&HandlerInfo{
-			spec:     HandlerTypeSpec{inferenceHandlerType},
+			spec:     TypeSpec{inferenceHandlerType},
 			bindings: bindings,
 		},
 	}
@@ -190,7 +191,7 @@ func newInferenceHandler(
 
 func linkBinding(
 	binding         Binding,
-	bindings        *policyBindings,
+	bindings        *policyInfo,
 	handlerType     reflect.Type,
 	addConstructor  bool,
 ) {
@@ -206,4 +207,4 @@ func linkBinding(
 	}
 }
 
-var inferenceHandlerType = TypeOf[*inferenceHandler]()
+var inferenceHandlerType = internal.TypeOf[*inferenceHandler]()

@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/internal"
 )
 
 type (
@@ -19,7 +20,7 @@ type (
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
-		if provider := v.provider; !miruken.IsNil(provider) {
+		if provider := v.provider; !internal.IsNil(provider) {
 			setup.Specs(&Factory{}).
 				  Handlers(&Factory{v.provider})
 		}
@@ -33,7 +34,7 @@ func Feature(
 	provider Provider,
 	config ...func(*Installer),
 ) miruken.Feature {
-	if miruken.IsNil(provider) {
+	if internal.IsNil(provider) {
 		panic("provider cannot be nil")
 	}
 	installer := &Installer{provider}

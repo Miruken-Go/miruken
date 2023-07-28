@@ -3,6 +3,7 @@ package maps
 import (
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -71,7 +72,7 @@ func (m *It) String() string {
 func (b *Builder) WithKey(
 	key any,
 ) *Builder {
-	if miruken.IsNil(key) {
+	if internal.IsNil(key) {
 		panic("key cannot be nil")
 	}
 	b.key = key
@@ -81,7 +82,7 @@ func (b *Builder) WithKey(
 func (b *Builder) FromSource(
 	source any,
 ) *Builder {
-	if miruken.IsNil(source) {
+	if internal.IsNil(source) {
 		panic("source cannot be nil")
 	}
 	b.source = source
@@ -101,7 +102,7 @@ func Out[T any](
 	source      any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], m *It, err error) {
-	if miruken.IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder Builder
@@ -127,7 +128,7 @@ func Into[T any](
 	target      *T,
 	constraints ...any,
 ) (p *promise.Promise[any], m *It, err error) {
-	if miruken.IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	if target == nil {
@@ -136,7 +137,7 @@ func Into[T any](
 	var builder Builder
 	builder.FromSource(source).
 			WithConstraints(constraints...)
-	if miruken.TypeOf[T]() == anyType {
+	if internal.TypeOf[T]() == anyType {
 		builder.IntoTarget(*target)
 	} else {
 		builder.IntoTarget(target)
@@ -157,7 +158,7 @@ func Key[T any](
 	key         any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], m *It, err error) {
-	if miruken.IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder Builder
@@ -182,10 +183,10 @@ func All[T any](
 	source      any,
 	constraints ...any,
 ) (t []T, _ *promise.Promise[[]T], _ error) {
-	if miruken.IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
-	if miruken.IsNil(source) || reflect.TypeOf(source).Kind() != reflect.Slice {
+	if internal.IsNil(source) || reflect.TypeOf(source).Kind() != reflect.Slice {
 		panic("source must be a non-nil slice")
 	}
 	ts := reflect.ValueOf(source)
@@ -224,5 +225,5 @@ func All[T any](
 
 var (
 	mapsPolicy miruken.Policy = &miruken.BivariantPolicy{}
-	anyType                   = miruken.TypeOf[any]()
+	anyType                   = internal.TypeOf[any]()
 )

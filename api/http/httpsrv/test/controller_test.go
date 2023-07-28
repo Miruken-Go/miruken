@@ -12,6 +12,7 @@ import (
 	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/either"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/validates"
@@ -123,7 +124,7 @@ func (f *BadFormatter) Bad(
 	_*struct{maps.Format `to:"bad"`}, msg api.Message,
 	m *maps.It,
 ) (io.Writer, error) {
-	if writer, ok := m.Target().(*io.Writer); ok && !miruken.IsNil(writer) {
+	if writer, ok := m.Target().(*io.Writer); ok && !internal.IsNil(writer) {
 		enc := json2.NewEncoder(*writer)
 		err := enc.Encode(msg.Payload)
 		return *writer, err

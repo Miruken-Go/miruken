@@ -364,7 +364,7 @@ func (suite *MapsTestSuite) TestMap() {
 			failures := 0
 			defer func() {
 				if r := recover(); r != nil {
-					if err, ok := r.(*miruken.HandlerDescriptorError); ok {
+					if err, ok := r.(*miruken.HandlerInfoError); ok {
 						var errMethod *miruken.MethodBindingError
 						for cause := errors.Unwrap(err.Cause);
 							errors.As(cause, &errMethod); cause = errors.Unwrap(cause) {
@@ -372,7 +372,7 @@ func (suite *MapsTestSuite) TestMap() {
 						}
 						suite.Equal(6, failures)
 					} else {
-						suite.Fail("Expected HandlerDescriptorError")
+						suite.Fail("Expected HandlerInfoError")
 					}
 				}
 			}()

@@ -2,6 +2,7 @@ package provides
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/internal"
 	"reflect"
 )
 
@@ -23,7 +24,7 @@ type (
 // For
 
 func (f *For[T]) Init() error {
-	if f.typ = miruken.TypeOf[T](); f.typ.Kind() == reflect.Ptr {
+	if f.typ = internal.TypeOf[T](); f.typ.Kind() == reflect.Ptr {
 		f.typ = f.typ.Elem()
 	}
 	return nil

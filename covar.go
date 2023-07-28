@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -69,12 +70,12 @@ func (p *CovariantPolicy) AcceptResults(
 ) (result any, accepted HandleResult) {
 	switch len(results) {
 	case 0:
-		if IsNil(results) {
+		if internal.IsNil(results) {
 			return nil, NotHandled
 		}
 		return nil, Handled
 	case 1:
-		if result = results[0]; IsNil(result) {
+		if result = results[0]; internal.IsNil(result) {
 			return nil, NotHandled
 		} else if r, ok := result.(HandleResult); ok {
 			return nil, r
@@ -86,12 +87,12 @@ func (p *CovariantPolicy) AcceptResults(
 		case error:
 			return result, NotHandled.WithError(err)
 		case HandleResult:
-			if IsNil(result) {
+			if internal.IsNil(result) {
 				return nil, err.And(NotHandled)
 			}
 			return result, err
 		default:
-			if IsNil(result) {
+			if internal.IsNil(result) {
 				return nil, NotHandled
 			}
 			return result, Handled

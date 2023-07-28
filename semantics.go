@@ -1,5 +1,7 @@
 package miruken
 
+import "github.com/miruken-go/miruken/internal"
+
 type (
 	// SemanticFlags enumerates semantic options.
 	SemanticFlags uint8
@@ -121,7 +123,7 @@ func (c *callSemantics) Handle(
 
 
 func GetSemantics(handler Handler) *CallbackSemantics {
-	if IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	semantics := &CallbackSemantics{}

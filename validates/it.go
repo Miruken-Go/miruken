@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"strings"
@@ -144,7 +145,7 @@ type Builder struct {
 func (b *Builder) ForSource(
 	source any,
 ) *Builder {
-	if miruken.IsNil(source) {
+	if internal.IsNil(source) {
 		panic("source cannot be nil")
 	}
 	b.source = source
@@ -164,7 +165,7 @@ func Constraints(
 	source      any,
 	constraints ...any,
 ) (o *Outcome, po *promise.Promise[*Outcome], err error) {
-	if miruken.IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
 	var builder Builder

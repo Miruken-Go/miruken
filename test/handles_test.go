@@ -569,7 +569,7 @@ func (suite *HandlesTestSuite) Setup() (miruken.Handler, error) {
 	return miruken.Setup(TestFeature).ExcludeSpecs(
 		func (spec miruken.HandlerSpec) bool {
 			switch ts := spec.(type) {
-			case miruken.HandlerTypeSpec:
+			case miruken.TypeSpec:
 				return strings.Contains(ts.Name(), "Invalid")
 			default:
 				return false
@@ -887,13 +887,13 @@ func (suite *HandlesTestSuite) TestHandles() {
 		suite.Run("Invalid", func() {
 			defer func() {
 				if r := recover(); r != nil {
-					if err, ok := r.(*miruken.HandlerDescriptorError); ok {
+					if err, ok := r.(*miruken.HandlerInfoError); ok {
 						suite.Equal(
 							"1 error occurred:\n\t* unrecognized transactional mode \"suppress\"\n\n",
 							err.Cause.Error())
 						return
 					}
-					suite.Fail("Expected HandlerDescriptorError")
+					suite.Fail("Expected HandlerInfoError")
 				}
 			}()
 			if _, err := miruken.Setup().Specs(&MetadataInvalidHandler{}).Handler(); err != nil {
@@ -1127,7 +1127,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 		failures := 0
 		defer func() {
 			if r := recover(); r != nil {
-				if err, ok := r.(*miruken.HandlerDescriptorError); ok {
+				if err, ok := r.(*miruken.HandlerInfoError); ok {
 					var errMethod *miruken.MethodBindingError
 					for cause := errors.Unwrap(err.Cause);
 						errors.As(cause, &errMethod); cause = errors.Unwrap(cause) {
@@ -1135,7 +1135,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 					}
 					suite.Equal(7, failures)
 				} else {
-					suite.Fail("Expected HandlerDescriptorError")
+					suite.Fail("Expected HandlerInfoError")
 				}
 			}
 		}()

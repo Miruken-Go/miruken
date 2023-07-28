@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 )
 
@@ -44,10 +45,10 @@ func Post(
 	handler miruken.Handler,
 	message any,
 ) (p *promise.Promise[any], err error) {
-	if miruken.IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
-	if miruken.IsNil(message) {
+	if internal.IsNil(message) {
 		panic("message cannot be nil")
 	}
 	stash := miruken.AddHandlers(handler, NewStash(false))
@@ -71,10 +72,10 @@ func Send[TResponse any](
 	handler miruken.Handler,
 	request any,
 ) (r TResponse, pr *promise.Promise[TResponse], err error) {
-	if miruken.IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
-	if miruken.IsNil(request) {
+	if internal.IsNil(request) {
 		panic("request cannot be nil")
 	}
 	stash := miruken.AddHandlers(handler, NewStash(false))
@@ -97,10 +98,10 @@ func Publish(
 	handler miruken.Handler,
 	message any,
 ) (p *promise.Promise[any], err error) {
-	if miruken.IsNil(handler) {
+	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
-	if miruken.IsNil(message) {
+	if internal.IsNil(message) {
 		panic("message cannot be nil")
 	}
 	stash := miruken.AddHandlers(handler, NewStash(false))

@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"sync"
@@ -22,9 +23,7 @@ type (
 
 	// SideEffectAdapter is an adapter for implementing a
 	// SideEffect using late binding method resolution.
-	SideEffectAdapter struct {
-		Method string
-	}
+	SideEffectAdapter struct {}
 
 	// sideEffectBinding describes the method used by a
 	// SideEffectAdapter to apply the SideEffect dynamically.
@@ -42,11 +41,7 @@ func (l SideEffectAdapter) Apply(
 	self SideEffect,
 	ctx  HandleContext,
 )  (promise.Reflect, error) {
-	method := l.Method
-	if method == "" {
-		method = "ApplyLate"
-	}
-	if binding, err := getApplyLate(self, method); err != nil {
+	if binding, err := getApplyLate(self, "ApplyLate"); err != nil {
 		return nil, err
 	} else {
 		return binding.invoke(self, ctx)
@@ -143,7 +138,7 @@ func (a *sideEffectBinding) invoke(
 			}
 		}
 		if refIdx := a.refIdx; refIdx >= 0 {
-			if po, ok := out[refIdx].(promise.Reflect); ok && !IsNil(po) {
+			if po, ok := out[refIdx].(promise.Reflect); ok && !internal.IsNil(po) {
 				return po, nil
 			}
 		}
@@ -157,7 +152,7 @@ func (a *sideEffectBinding) invoke(
 				}
 			}
 			if refIdx := a.refIdx; refIdx >= 0 {
-				if po, ok := out[refIdx].(promise.Reflect); ok && !IsNil(po) {
+				if po, ok := out[refIdx].(promise.Reflect); ok && !internal.IsNil(po) {
 					if oa, oe := po.AwaitAny(); oe != nil {
 						panic(oe)
 					} else {
@@ -174,6 +169,6 @@ func (a *sideEffectBinding) invoke(
 var (
 	sideEffBindingLock sync.RWMutex
 	sideEffBindingMap  = make(map[reflect.Type]*sideEffectBinding)
-	promiseReflectType = TypeOf[promise.Reflect]()
-	sideEffectType     = TypeOf[SideEffect]()
+	promiseReflectType = internal.TypeOf[promise.Reflect]()
+	sideEffectType     = internal.TypeOf[SideEffect]()
 )

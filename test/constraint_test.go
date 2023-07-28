@@ -3,6 +3,7 @@ package test
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/constraints"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -206,7 +207,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 			person, _, err := miruken.Resolve[Person](handler)
 			suite.Nil(err)
 			suite.NotNil(person)
-			person, _, err = miruken.Resolve[Person](handler, miruken.New[Doctor]())
+			person, _, err = miruken.Resolve[Person](handler, internal.New[Doctor]())
 			suite.Nil(err)
 			suite.Nil(person)
 		})
@@ -244,7 +245,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 	suite.Run("Metadata", func () {
 		suite.Run("Resolve", func() {
 			handler, _ := suite.Setup()
-			doctor, _, err := miruken.Resolve[Person](handler, miruken.New[Doctor]())
+			doctor, _, err := miruken.Resolve[Person](handler, internal.New[Doctor]())
 			suite.Nil(err)
 			suite.NotNil(doctor)
 			suite.Equal("Jack", doctor.FirstName())

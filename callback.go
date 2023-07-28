@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/slices"
 	"reflect"
@@ -94,7 +95,7 @@ func (c *CallbackBase) Target() any {
 
 func (c *CallbackBase) TargetForWrite() any {
 	target := c.target
-	if !IsNil(target) {
+	if !internal.IsNil(target) {
 		c.written = true
 	}
 	return target
@@ -145,15 +146,15 @@ func (c *CallbackBase) AddResult(
 	result   any,
 	composer Handler,
 ) HandleResult {
-	if IsNil(result) {
+	if internal.IsNil(result) {
 		return NotHandled
 	}
 	accept := c.accept
-	if pr, ok := result.(promise.Reflect); ok && !IsNil(pr) {
+	if pr, ok := result.(promise.Reflect); ok && !internal.IsNil(pr) {
 		// To avoid locking the results, promises are added to
 		// the results and promises list.  When resolved, the
 		// result is replaced at the same position.  A special
-		// expandResults type is used when the promise resolves
+		// expandResults type is used when the promise Resolves
 		// in a list of results.
 		idx := len(c.results)
 		c.results  = append(c.results, result)
@@ -162,7 +163,7 @@ func (c *CallbackBase) AddResult(
 				if l := len(c.results); l > idx {
 					c.results[idx] = nil
 				}
-				if !IsNil(res) {
+				if !internal.IsNil(res) {
 					accept(res, composer)
 				}
 			} else if l := len(c.results); l > idx {
@@ -184,7 +185,7 @@ func (c *CallbackBase) ReceiveResult(
 	strict   bool,
 	composer Handler,
 ) HandleResult {
-	if IsNil(result) {
+	if internal.IsNil(result) {
 		return NotHandled
 	}
 	if strict {
@@ -208,7 +209,7 @@ func (c *CallbackBase) ensureResult(many bool, expand bool) any {
 		var results []any
 		if expand {
 			results = slices.FlatMap[any, any](c.results, func(res any) []any {
-				if IsNil(res) {
+				if internal.IsNil(res) {
 					return nil
 				}
 				if expand, ok := res.(expandResults); ok {
@@ -218,21 +219,21 @@ func (c *CallbackBase) ensureResult(many bool, expand bool) any {
 			})
 		} else {
 			results = slices.Filter(c.results, func(res any) bool {
-				return !IsNil(res)
+				return !internal.IsNil(res)
 			})
 		}
 		if many {
 			c.result = unwrapResult(results)
-			if !(c.written || IsNil(c.target)) {
-				CopySliceIndirect(results, c.target)
+			if !(c.written || internal.IsNil(c.target)) {
+				internal.CopySliceIndirect(results, c.target)
 				c.written = true
 			}
 		} else if len(results) == 0 {
 			c.result = nil
 		} else {
 			c.result = unwrapResult(results[0])
-			if !(c.written || IsNil(c.target)) {
-				CopyIndirect(c.result, c.target)
+			if !(c.written || internal.IsNil(c.target)) {
+				internal.CopyIndirect(c.result, c.target)
 				c.written = true
 			}
 		}
@@ -245,12 +246,12 @@ func (c *CallbackBase) includeResult(
 	strict   bool,
 	composer Handler,
 ) HandleResult {
-	if IsNil(result) {
+	if internal.IsNil(result) {
 		return NotHandled
 	}
-	if pr, ok := result.(promise.Reflect); ok && !IsNil(pr) {
+	if pr, ok := result.(promise.Reflect); ok && !internal.IsNil(pr) {
 		pp := pr.Then(func(res any) any {
-			if !(strict || IsNil(res)) {
+			if !(strict || internal.IsNil(res)) {
 				// Squash list into expando result
 				switch reflect.TypeOf(res).Kind() {
 				case reflect.Slice, reflect.Array:
@@ -290,7 +291,7 @@ func (c *CallbackBase) processResults(
 	v := reflect.ValueOf(results)
 	for i := 0; i < v.Len(); i++ {
 		val := v.Index(i).Interface()
-		if !IsNil(val) {
+		if !internal.IsNil(val) {
 			if squash {
 				expand = append(expand, val)
 			} else if res = res.Or(c.AddResult(val, composer)); res.stop {
@@ -307,7 +308,7 @@ func (c *CallbackBase) processResults(
 func (b *CallbackBuilder) IntoTarget(
 	target any,
 ) *CallbackBuilder {
-	if IsNil(target) {
+	if internal.IsNil(target) {
 		panic("target cannot be nil")
 	}
 	b.target = target
@@ -349,7 +350,7 @@ func unwrapResult(result any) any {
 	if result == nil {
 		return nil
 	}
-	if pr, ok := result.(promise.Reflect); ok && !IsNil(pr) {
+	if pr, ok := result.(promise.Reflect); ok && !internal.IsNil(pr) {
 		if r, err := pr.AwaitAny(); err != nil {
 			panic(err)
 		} else {

@@ -8,6 +8,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/args"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/maps"
 	"io"
 )
@@ -56,7 +57,7 @@ func (m *Mapper) ToJson(
 	case *[]byte:
 		return marshal(it, t, &options, &apiOptions, ctx.Composer())
 	case *io.Writer:
-		if miruken.IsNil(*t) {
+		if internal.IsNil(*t) {
 			*t = new(bytes.Buffer)
 		}
 		if err = encode(it, *t, &options, &apiOptions, ctx.Composer()); err == nil {

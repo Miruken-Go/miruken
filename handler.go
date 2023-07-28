@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/miruken-go/miruken/internal"
 )
 
 type (
@@ -74,7 +75,7 @@ func (e *RejectedError) Error() string {
 // CanceledError
 
 func (e *CanceledError) Error() string {
-	if IsNil(e.Cause) {
+	if internal.IsNil(e.Cause) {
 		return e.Message
 	}
 	return fmt.Sprintf("%v: %s", e.Message, e.Cause.Error())
@@ -91,7 +92,7 @@ func DispatchCallback(
 	greedy   bool,
 	composer Handler,
 ) HandleResult {
-	if IsNil(handler) {
+	if internal.IsNil(handler) {
 		return NotHandled
 	}
 	switch d := callback.(type) {

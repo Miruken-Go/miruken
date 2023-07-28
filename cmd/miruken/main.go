@@ -5,7 +5,8 @@ import (
     "flag"
     "fmt"
     "github.com/miruken-go/miruken"
-    "go/ast"
+	"github.com/miruken-go/miruken/internal"
+	"go/ast"
     "go/parser"
     "go/token"
     "io"
@@ -214,4 +215,4 @@ func printTo(
     }
 }
 
-var mirukenPkgPath = miruken.TypeOf[miruken.Handler]().PkgPath()
+var mirukenPkgPath = internal.TypeOf[miruken.Handler]().PkgPath()

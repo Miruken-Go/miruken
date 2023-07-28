@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/creates"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/stretchr/testify/suite"
@@ -122,10 +123,10 @@ type OpenProvider struct {
 func (p *OpenProvider) ProvideSingletons(
 	_*struct{provides.Single}, it *provides.It,
 ) any {
-	if key := it.Key(); key == miruken.TypeOf[*Foo]() {
+	if key := it.Key(); key == internal.TypeOf[*Foo]() {
 		p.foo.Inc()
 		return &p.foo
-	} else if key == miruken.TypeOf[*Bar]() {
+	} else if key == internal.TypeOf[*Bar]() {
 		p.bar.Inc()
 		p.bar.Inc()
 		return &p.bar
@@ -139,10 +140,10 @@ func (p *OpenProvider) ProvideSingletons(
 func (p *OpenProvider) ProvideScoped(
 	_*struct{context.Lifestyle}, it *provides.It,
 ) any {
-	if key := it.Key(); key == miruken.TypeOf[*Baz]() {
+	if key := it.Key(); key == internal.TypeOf[*Baz]() {
 		p.baz.Inc()
 		return &p.baz
-	} else if key == miruken.TypeOf[*Bam]() {
+	} else if key == internal.TypeOf[*Bam]() {
 		p.bam.Inc()
 		p.bam.Inc()
 		return &p.bam
@@ -251,7 +252,7 @@ func (suite *ProvidesTestSuite) Setup() (miruken.Handler, error) {
 	return miruken.Setup(TestFeature).ExcludeSpecs(
 		func (spec miruken.HandlerSpec) bool {
 			switch ts := spec.(type) {
-			case miruken.HandlerTypeSpec:
+			case miruken.TypeSpec:
 				return strings.Contains(ts.Name(), "Invalid")
 			default:
 				return false
@@ -561,7 +562,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 		failures := 0
 		defer func() {
 			if r := recover(); r != nil {
-				if err, ok := r.(*miruken.HandlerDescriptorError); ok {
+				if err, ok := r.(*miruken.HandlerInfoError); ok {
 					var errMethod *miruken.MethodBindingError
 					for cause := errors.Unwrap(err.Cause);
 						errors.As(cause, &errMethod); cause = errors.Unwrap(cause) {
@@ -569,7 +570,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 					}
 					suite.Equal(6, failures)
 				} else {
-					suite.Fail("Expected HandlerDescriptorError")
+					suite.Fail("Expected HandlerInfoError")
 				}
 			}
 		}()

@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -38,7 +39,7 @@ func (b *MethodBinding) Key() any {
 }
 
 func (b *MethodBinding) Exported() bool {
-	return Exported(b.key) && Exported(b.method)
+	return internal.Exported(b.key) && internal.Exported(b.method)
 }
 
 func (b *MethodBinding) LogicalOutputType() reflect.Type {

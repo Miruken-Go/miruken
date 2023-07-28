@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/context"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/provides"
 	"log"
 	"net/http"
@@ -179,6 +180,6 @@ func handlePanic(w http.ResponseWriter, r *http.Request) {
 
 var (
 	midFuncLock sync.RWMutex
-	midFuncType = miruken.TypeOf[MiddlewareFunc]()
+	midFuncType = internal.TypeOf[MiddlewareFunc]()
 	midFuncMap  = make(map[reflect.Type]miruken.CallerFunc)
 )

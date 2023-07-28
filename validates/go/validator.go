@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/asaskevich/govalidator"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/validates"
 )
 
@@ -12,7 +13,7 @@ type validator struct{}
 func (v *validator) Validate(
 	it *validates.It, target any,
 ) miruken.HandleResult {
-	if !miruken.IsStruct(target) {
+	if !internal.IsStruct(target) {
 		return miruken.NotHandled
 	}
 	if result, err := govalidator.ValidateStruct(target); !result {

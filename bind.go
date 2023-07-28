@@ -3,6 +3,7 @@ package miruken
 import (
 	"fmt"
 	"github.com/hashicorp/go-multierror"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"strings"
@@ -298,7 +299,7 @@ func (p *bindingSpecFactory) parse(
 	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
-	if cb := coerceToPtr(typ, callbackType); cb != nil {
+	if cb := internal.CoerceToPtr(typ, callbackType); cb != nil {
 		if typ.Kind() == reflect.Interface {
 			return false, fmt.Errorf("callback cannot be an interface: %v", typ)
 		}
@@ -386,7 +387,7 @@ func parseFilters(
 	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
-	if filter := coerceToPtr(typ, filterType); filter != nil {
+	if filter := internal.CoerceToPtr(typ, filterType); filter != nil {
 		bound = true
 		if b, ok := binding.(interface {
 			addFilterProvider(FilterProvider) error
@@ -411,12 +412,12 @@ func parseFilters(
 					provider, index, invalid)
 			}
 		}
-	} else if fp := coerceToPtr(typ, filterProviderType); fp != nil {
+	} else if fp := internal.CoerceToPtr(typ, filterProviderType); fp != nil {
 		bound = true
 		if b, ok := binding.(interface {
 			addFilterProvider(FilterProvider) error
 		}); ok {
-			if provider, invalid := newWithTag(fp, field.Tag); invalid != nil {
+			if provider, invalid := internal.NewWithTag(fp, field.Tag); invalid != nil {
 				err = fmt.Errorf(
 					"parseFilters: new filter provider at index %v failed: %w",
 					index, invalid)
@@ -436,12 +437,12 @@ func parseConstraints(
 	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
-	if ct := coerceToPtr(typ, constraintType); ct != nil {
+	if ct := internal.CoerceToPtr(typ, constraintType); ct != nil {
 		bound = true
 		if b, ok := binding.(interface {
 			addConstraint(Constraint) error
 		}); ok {
-			if constraint, invalid := newWithTag(ct, field.Tag); invalid != nil {
+			if constraint, invalid := internal.NewWithTag(ct, field.Tag); invalid != nil {
 				err = fmt.Errorf(
 					"parseConstraints: new key at index %v failed: %w", index, invalid)
 			} else if invalid := b.addConstraint(constraint.(Constraint)); invalid != nil {
@@ -507,7 +508,7 @@ func addMetadata(
 	if !writeable {
 		typ = reflect.PtrTo(typ)
 	}
-	if metadata, err := newWithTag(typ, tag); metadata != nil && err == nil {
+	if metadata, err := internal.NewWithTag(typ, tag); metadata != nil && err == nil {
 		if !writeable {
 			metadata = reflect.Indirect(reflect.ValueOf(metadata)).Interface()
 		}
@@ -524,11 +525,11 @@ const (
 )
 
 var (
-	strictType          = TypeOf[Strict]()
-	optionalType        = TypeOf[Optional]()
-	skipFiltersType     = TypeOf[SkipFilters]()
-	bindingGroupType    = TypeOf[BindingGroup]()
-	definesBindingGroup = TypeOf[interface{ DefinesBindingGroup() }]()
-	filterType          = TypeOf[Filter]()
-	constraintType      = TypeOf[Constraint]()
+	strictType          = internal.TypeOf[Strict]()
+	optionalType        = internal.TypeOf[Optional]()
+	skipFiltersType     = internal.TypeOf[SkipFilters]()
+	bindingGroupType    = internal.TypeOf[BindingGroup]()
+	definesBindingGroup = internal.TypeOf[interface{ DefinesBindingGroup() }]()
+	filterType          = internal.TypeOf[Filter]()
+	constraintType      = internal.TypeOf[Constraint]()
 )

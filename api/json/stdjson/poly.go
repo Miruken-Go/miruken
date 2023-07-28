@@ -8,6 +8,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/creates"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/maps"
 	"io"
 	"reflect"
@@ -140,7 +141,7 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 							return fmt.Errorf("can't unmarshal array index %d: %w", i, err)
 						}
 					}
-					miruken.CopyIndirect(arr.Interface(), c.v)
+					internal.CopyIndirect(arr.Interface(), c.v)
 				}
 			} else {
 				return json.Unmarshal(data, c.v)
@@ -197,7 +198,7 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 				if late, ok := c.v.(*miruken.Late); ok {
 					late.Value = v
 				} else {
-					miruken.CopyIndirect(v, c.v)
+					internal.CopyIndirect(v, c.v)
 				}
 			}
 		}
@@ -205,4 +206,4 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-var anyType = miruken.TypeOf[any]()
+var anyType = internal.TypeOf[any]()

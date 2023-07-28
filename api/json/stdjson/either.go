@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/either"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/maps"
 )
 
@@ -30,12 +31,12 @@ func (s Either[L, R]) Original(
 			if l, ok := v.(L); ok {
 				return either.Left(l), nil
 			}
-			return nil, fmt.Errorf("expected left of %s", miruken.TypeOf[L]())
+			return nil, fmt.Errorf("expected left of %s", internal.TypeOf[L]())
 		} else {
 			if r, ok := v.(R); ok {
 				return either.Right(r), nil
 			}
-			return nil, fmt.Errorf("expected right of %s", miruken.TypeOf[R]())
+			return nil, fmt.Errorf("expected right of %s", internal.TypeOf[R]())
 		}
 	}
 }

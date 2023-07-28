@@ -3,6 +3,7 @@ package validates
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -40,7 +41,7 @@ func (r *Required) AppliesTo(
 	callback miruken.Callback,
 ) bool {
 	h, ok := callback.(*handles.It)
-	return ok && !miruken.IsNil(h.Source())
+	return ok && !internal.IsNil(h.Source())
 }
 
 func (r *Required) Filters(
@@ -83,7 +84,7 @@ func (f filter) Next(
 				return
 			} else if pout == nil {
 				// validates output if available
-				if len(out) > 0 && !miruken.IsNil(out[0]) {
+				if len(out) > 0 && !internal.IsNil(out[0]) {
 					outcomeOut, poo, errOut := Constraints(composer, out[0])
 					if errOut != nil {
 						// error validating so return
@@ -110,7 +111,7 @@ func (f filter) Next(
 			} else {
 				// asynchronous output validation
 				return nil, promise.Then(pout, func(oo []any) []any {
-					if len(oo) > 0 && !miruken.IsNil(oo[0]) {
+					if len(oo) > 0 && !internal.IsNil(oo[0]) {
 						outcomeOut, poo, errOut := Constraints(composer, oo[0])
 						if errOut != nil {
 							// error validating input
@@ -139,7 +140,7 @@ func (f filter) Next(
 			}
 			oo := next.PipeAwait()
 			// validates output if requested and available
-			if cp.validateOutput && len(oo) > 0 && !miruken.IsNil(oo[0]) {
+			if cp.validateOutput && len(oo) > 0 && !internal.IsNil(oo[0]) {
 				outcomeOut, poo, errOut := Constraints(composer, oo[0])
 				if errOut != nil {
 					// error validating output
