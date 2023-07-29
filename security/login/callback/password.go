@@ -25,7 +25,7 @@ func (p *Password) SetPassword(password []byte) {
 }
 
 func (p *Password) ClearPassword() {
-	for i, _ := range p.password {
+	for i := range p.password {
 		p.password[i] = 0
 	}
 }

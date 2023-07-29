@@ -4,6 +4,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/provides"
+	"github.com/miruken-go/miruken/slices"
 	"sync"
 )
 
@@ -27,13 +28,21 @@ type (
 	// parent-child relationships and thus can form a graph.
 	Context struct {
 		miruken.MutableHandlers
-		parent   *Context
-		state    State
-		children []miruken.Traversing
+		parent    *Context
+		state     State
+		children  slices.Safe[miruken.Traversing]
 		observers map[contextObserverType][]Observer
 		lock      sync.RWMutex
 	}
+
+	// ContextualBase is a base implementation for Contextual.
+	ContextualBase struct {
+		ctx        *Context
+		observers  map[contextualObserverType][]Observer
+		lock       sync.RWMutex
+	}
 )
+
 
 const (
 	StateActive State = iota
@@ -47,6 +56,9 @@ const (
 	ReasonDisposed
 )
 
+
+// Context
+
 func (c *Context) Parent() miruken.Traversing {
 	return c.parent
 }
@@ -56,9 +68,7 @@ func (c *Context) State() State {
 }
 
 func (c *Context) Children() []miruken.Traversing {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	return c.children
+	return c.children.Items()
 }
 
 func (c *Context) Root() *Context {
@@ -71,35 +81,36 @@ func (c *Context) Root() *Context {
 }
 
 func (c *Context) HasChildren() bool {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	return len(c.children) > 0
+	return len(c.children.Items()) > 0
 }
 
 func (c *Context) NewChild() *Context {
 	c.ensureActive()
 	child := &Context{
-		parent: c,
-		state:  StateActive,
+		parent:    c,
+		state:     StateActive,
+		observers: map[contextObserverType][]Observer{
+			contextObserverEnding: {
+				EndingObserverFunc(func(ctx *Context, reason any) {
+					c.notify(contextObserverChildEnding, ctx, reason)
+			})},
+			contextObserverEnded: {
+				EndedObserverFunc(func(ctx *Context, reason any) {
+					c.removeChild(ctx)
+					c.notify(contextObserverChildEnded, ctx, reason)
+			})},
+		},
 	}
-	child.AddHandlers(provides.NewProvider(child))
-	child.Observe(EndingObserverFunc(func(ctx *Context, reason any) {
-		c.notify(contextObserverChildEnding, ctx, reason)
-	}))
-	child.Observe(EndedObserverFunc(func(ctx *Context, reason any) {
-		c.removeChild(ctx)
-		c.notify(contextObserverChildEnded, ctx, reason)
-	}))
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	c.children = append(c.children, child)
+	child.ResetHandlers(provides.NewProvider(child))
+	c.children.Append(child)
 	return child
 }
 
 func (c *Context) Store(values ...any) *Context {
-	for _, val := range values {
-		c.AddHandlers(provides.NewProvider(val))
-	}
+	providers := slices.Map[any, any](values, func (v any) any {
+		return provides.NewProvider(v)
+	})
+	c.AddHandlers(providers...)
 	return c
 }
 
@@ -194,8 +205,9 @@ func (c *Context) Unwind(reason any) *Context {
 	if internal.IsNil(reason) {
 		reason = ReasonUnwinded
 	}
-	for i := len(c.children)-1; i >= 0; i-- {
-		c.children[i].(*Context).End(reason)
+	children := c.children.Items()
+	for i := len(children)-1; i >= 0; i-- {
+		children[i].(*Context).End(reason)
 	}
 	return c
 }
@@ -218,21 +230,14 @@ func (c *Context) Dispose() {
 }
 
 func (c *Context) removeChild(childCtx *Context) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	children := c.children
-	for i, child := range children {
-		if child == childCtx {
-			copy(children[i:], children[i+1:])
-			children[len(children)-1] = nil
-			c.children = children[:len(children)-1]
-			break
-		}
-	}
+	c.children.Delete(func(t miruken.Traversing) (bool, bool) {
+		match := t == childCtx
+		return match, match
+	})
 }
 
 func (c *Context) addObserver(
-	obsType contextObserverType,
+	obsType  contextObserverType,
 	observer Observer,
 ) {
 	if obsType == contextObserverNone {
@@ -315,16 +320,12 @@ func New(handlers ...any) *Context {
 	context := &Context{
 		state: StateActive,
 	}
-	context.AddHandlers(handlers...)
-	context.AddHandlers(provides.NewProvider(context))
+	context.ResetHandlers(append(handlers, provides.NewProvider(context))...)
 	return context
 }
 
-type ContextualBase struct {
-	ctx        *Context
-	observers   map[contextualObserverType][]Observer
-	lock        sync.RWMutex
-}
+
+// ContextualBase
 
 func (c *ContextualBase) Context() *Context {
 	c.lock.RLock()
@@ -447,22 +448,12 @@ func (c *ContextualBase) notify(
 	}
 }
 
+
 // Context observers
-
-type contextObserverType uint
-
-const (
-	contextObserverNone contextObserverType = 0
-	contextObserverEnding contextObserverType = 1 << iota
-	contextObserverEnded
-	contextObserverChildEnding
-	contextObserverChildEnded
-	contextObserverAll = 1 << iota - 1
-)
 
 type (
 	// Observer is a generic Context observer.
-	Observer = interface {}
+	Observer = any
 
 	// EndingObserver reports Context is ending.
 	EndingObserver interface {
@@ -487,7 +478,20 @@ type (
 		ChildContextEnded(childCtx *Context, reason any)
 	}
 	ChildEndedObserverFunc func(ctx *Context, reason any)
+
+	contextObserverType uint
 )
+
+
+const (
+	contextObserverNone contextObserverType = 0
+	contextObserverEnding contextObserverType = 1 << iota
+	contextObserverEnded
+	contextObserverChildEnding
+	contextObserverChildEnded
+	contextObserverAll = 1 << iota - 1
+)
+
 
 func (f EndingObserverFunc) ContextEnding(
 	ctx    *Context,
@@ -517,16 +521,8 @@ func (f ChildEndedObserverFunc) ChildContextEnded(
 	f(ctx, reason)
 }
 
+
 // Contextual observers
-
-type contextualObserverType uint
-
-const (
-	contextualObserverNone contextualObserverType = 0
-	contextualObserverChanging contextualObserverType = 1 << iota
-	contextualObserverChanged
-	contextualObserverAll = 1 << iota - 1
-)
 
 type (
 	// ChangingObserver reports a Context is contextualObserverChanging.
@@ -552,7 +548,18 @@ type (
 		contextual Contextual,
 		oldCtx     *Context,
 		newCtx     *Context)
+
+	contextualObserverType uint
 )
+
+
+const (
+	contextualObserverNone contextualObserverType = 0
+	contextualObserverChanging contextualObserverType = 1 << iota
+	contextualObserverChanged
+	contextualObserverAll = 1 << iota - 1
+)
+
 
 func (f ChangingObserverFunc) ContextChanging(
 	contextual Contextual,
@@ -569,6 +576,7 @@ func (f ChangedObserverFunc) ContextChanged(
 ) {
 	f(contextual, oldCtx, newCtx)
 }
+
 
 var PublishFromRoot miruken.BuilderFunc =
 	 func (handler miruken.Handler) miruken.Handler {

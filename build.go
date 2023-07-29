@@ -2,7 +2,6 @@ package miruken
 
 import (
 	"github.com/miruken-go/miruken/slices"
-	"sync"
 )
 
 type (
@@ -145,12 +144,11 @@ func (w *withHandlers) SuppressDispatch() {}
 
 // MutableHandlers manages a mutable list of Handlers.
 type MutableHandlers struct {
-	handlers []Handler
-	lock     sync.RWMutex
+	handlers slices.Safe[Handler]
 }
 
 func (m *MutableHandlers) Handlers() []any {
-	return slices.Map[Handler, any](m.handlers, func(handler Handler) any {
+	return slices.Map[Handler, any](m.handlers.Items(), func(handler Handler) any {
 		if a, ok := handler.(handlerAdapter); ok {
 			return a.handler
 		}
@@ -158,14 +156,18 @@ func (m *MutableHandlers) Handlers() []any {
 	})
 }
 
+func (m *MutableHandlers) ResetHandlers(
+	handlers ...any,
+) *MutableHandlers {
+	m.handlers.Reset(normalizeHandlers(handlers)...)
+	return m
+}
+
 func (m *MutableHandlers) AddHandlers(
 	handlers ...any,
 ) *MutableHandlers {
 	if len(handlers) > 0 {
-		m.lock.Lock()
-		defer m.lock.Unlock()
-		hs := normalizeHandlers(handlers)
-		m.handlers = append(m.handlers, hs...)
+		m.handlers.Append(normalizeHandlers(handlers)...)
 	}
 	return m
 }
@@ -178,10 +180,7 @@ func (m *MutableHandlers) InsertHandlers(
 		panic("index must be >= 0")
 	}
 	if len(handlers) > 0 {
-		m.lock.Lock()
-		defer m.lock.Unlock()
-		hs := normalizeHandlers(handlers)
-		m.handlers = append(hs, m.handlers...)
+		m.handlers.Insert(index, normalizeHandlers(handlers)...)
 	}
 	return m
 }
@@ -190,22 +189,17 @@ func (m *MutableHandlers) RemoveHandlers(
 	handlers ...any,
 ) *MutableHandlers {
 	if len(handlers) > 0 {
-		m.lock.Lock()
-		defer m.lock.Unlock()
-		if len(m.handlers) > 0 {
-			for i := len(m.handlers)-1; i >= 0; i-- {
-				for _, h := range handlers {
-					handler := m.handlers[i]
-					if handler != h {
-						if a, ok := handler.(handlerAdapter); !ok || a.handler != h {
-							continue
-						}
-					}
-					m.handlers = append(m.handlers[:i], m.handlers[i+1:]...)
-					break
+		m.handlers.Delete(func(h Handler) (bool, bool) {
+			for _, ht := range handlers {
+				if h == ht {
+					return true, false
+				}
+				if a, ok := h.(handlerAdapter); ok {
+					return a.handler == ht, false
 				}
 			}
-		}
+			return false, false
+		})
 	}
 	return m
 }
@@ -221,16 +215,12 @@ func (m *MutableHandlers) Handle(
 	tryInitializeComposer(&composer, m)
 
 	result := NotHandled
-
-	if handlers := m.handlers; len(handlers) > 0 {
-		for _, h := range m.handlers {
-			if result.stop || (result.handled && !greedy) {
-				return result
-			}
-			result = result.Or(h.Handle(callback, greedy, composer))
+	for _, h := range m.handlers.Items() {
+		if result.stop || (result.handled && !greedy) {
+			return result
 		}
+		result = result.Or(h.Handle(callback, greedy, composer))
 	}
-
 	return result
 }
 
