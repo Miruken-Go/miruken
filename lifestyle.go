@@ -6,6 +6,7 @@ import (
 	"math"
 	"reflect"
 	"sync"
+	"sync/atomic"
 )
 
 type (
@@ -67,8 +68,8 @@ type (
 	// a map of key to instance is maintained.
 	single struct {
 		Lifestyle
-		keys singleCache
-		lock sync.RWMutex
+		keys atomic.Pointer[singleCache]
+		lock sync.Mutex
 	}
 
 	// singleEntry stores a lazy instance.
@@ -88,7 +89,7 @@ func (s *Single) Init() error {
 }
 
 func (s *single) Next(
-	_        Filter,
+	self     Filter,
 	next     Next,
 	ctx      HandleContext,
 	provider FilterProvider,
@@ -96,25 +97,29 @@ func (s *single) Next(
 	key := ctx.Callback().(*Provides).Key()
 
 	var entry *singleEntry
-	s.lock.RLock()
-	if keys := s.keys; keys != nil {
-		entry = keys[key]
+	if keys := s.keys.Load(); keys != nil {
+		if e, ok := (*keys)[key]; ok {
+			entry = e
+		}
 	}
-	s.lock.RUnlock()
 
+	// Use copy-on-write idiom since reads should be more frequent than writes.
 	if entry == nil {
 		s.lock.Lock()
-		if keys := s.keys; keys != nil {
-			if entry = keys[key]; entry == nil {
+		if keys := s.keys.Load(); keys != nil {
+			if entry = (*keys)[key]; entry == nil {
+				kc := make(singleCache)
+				typ, assignable := key.(reflect.Type)
 				// If the key is not found, check if any existing instances
 				// can satisfy the key before a new instance is provided.
-				if typ, ok := key.(reflect.Type); ok {
-					for _,v := range keys {
+				for k, v := range *keys {
+					kc[k] = v
+					if assignable {
 						if instance := v.instance; len(instance) > 0 {
 							if o := instance[0]; o != nil {
 								if ot := reflect.TypeOf(o); ot.AssignableTo(typ) {
-									entry     = v
-									keys[key] = v
+									entry   = v
+									kc[key] = v
 									break
 								}
 							}
@@ -123,12 +128,13 @@ func (s *single) Next(
 				}
 				if entry == nil {
 					entry = &singleEntry{once: new(sync.Once)}
-					keys[key] = entry
+					kc[key] = entry
 				}
+				s.keys.Store(&kc)
 			}
 		} else {
-			entry  = &singleEntry{once: new(sync.Once)}
-			s.keys = singleCache{key: entry}
+			entry = &singleEntry{once: new(sync.Once)}
+			s.keys.Store(&singleCache{key: entry})
 		}
 		s.lock.Unlock()
 	}

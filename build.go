@@ -143,7 +143,7 @@ func (w *withHandlers) Handle(
 func (w *withHandlers) SuppressDispatch() {}
 
 
-// MutableHandlers manages any number of Handlers.
+// MutableHandlers manages a mutable list of Handlers.
 type MutableHandlers struct {
 	handlers []Handler
 	lock     sync.RWMutex

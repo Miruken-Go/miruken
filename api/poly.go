@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 type (
@@ -121,28 +122,42 @@ func (m *GoPolymorphism) Dynamic(
 	ctx miruken.HandleContext,
 ) any {
 	if key, ok := create.Key().(string); ok {
-		dynamicLock.RLock()
-		proto := dynamicTypeMap[key]
-		dynamicLock.RUnlock()
-		if proto == nil {
-			if strings.HasPrefix(key, "*") {
-				if id, _, err := creates.Key[any](ctx.Composer(), key[1:]); err == nil {
-					proto = id
-				}
-			} else if strings.HasPrefix(key, "[]") {
-				if el, _, err := creates.Key[any](ctx.Composer(), key[2:]); err == nil {
-					proto = reflect.New(reflect.SliceOf(reflect.TypeOf(el))).Interface()
-				}
+		if types := dynamicTypeMap.Load(); types != nil {
+			if proto, ok := (*types)[key]; ok {
+				return proto
+			}
+		}
+		var proto any
+		if strings.HasPrefix(key, "*") {
+			if id, _, err := creates.Key[any](ctx.Composer(), key[1:]); err == nil {
+				proto = id
+			}
+		} else if strings.HasPrefix(key, "[]") {
+			if el, _, err := creates.Key[any](ctx.Composer(), key[2:]); err == nil {
+				proto = reflect.New(reflect.SliceOf(reflect.TypeOf(el))).Interface()
 			}
 		}
 		if proto != nil {
-			dynamicLock.Lock()
-			defer dynamicLock.Unlock()
-			if p := dynamicTypeMap[key]; p == nil {
-				dynamicTypeMap[key] = proto
+			dynamicTypeLock.Lock()
+			defer dynamicTypeLock.Unlock()
+			types := dynamicTypeMap.Load()
+			if types != nil {
+				if proto, ok := (*types)[key]; ok {
+					return proto
+				}
+				db := make(map[string]any)
+				for k, v := range *types {
+					db[k] = v
+				}
+				types = &db
+			} else {
+				db := make(map[string]any)
+				types = &db
 			}
+			(*types)[key] = proto
+			dynamicTypeMap.Store(types)
+			return proto
 		}
-		return proto
 	}
 	return nil
 }
@@ -191,6 +206,6 @@ var (
 		"[]interface {}": new([]any),
 	}
 
-	dynamicLock sync.RWMutex
-	dynamicTypeMap = make(map[string]any)
+	dynamicTypeLock sync.Mutex
+	dynamicTypeMap = atomic.Pointer[map[string]any]{}
 )

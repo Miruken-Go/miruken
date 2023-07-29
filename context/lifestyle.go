@@ -42,13 +42,19 @@ type (
 
 	// scopedCache maintains a cache of scopedEntry's.
 	scopedCache map[any]*scopedEntry
+
+	// scopedFilter is a Filter that caches an instance per Context.
+	// Since a scoped Handler can provide results polymorphically,
+	// a nested map of Context to map of key instances is maintained.
+	scopedFilter struct {
+		miruken.Lifestyle
+		cache  map[*Context]scopedCache
+		lock   sync.RWMutex
+	}
 )
 
 
-// From constrains resolution to a handler with scoped lifestyle.
-// This is used to suppress resolving implied values available through a Context.
-var From miruken.Qualifier[scoped]
-
+// scoped
 
 func (s *scoped) InitWithTag(tag reflect.StructTag) error {
 	if scoped, ok := tag.Lookup("scoped"); ok {
@@ -62,17 +68,11 @@ func (s *scoped) Init() error {
 	return nil
 }
 
-// scopedFilter is a Filter that caches an instance per Context.
-// Since a scoped Handler can provide results polymorphically,
-// a nested map of Context to map of key instances is maintained.
-type scopedFilter struct {
-	miruken.Lifestyle
-	cache  map[*Context]scopedCache
-	lock   sync.RWMutex
-}
+
+// scopedFilter
 
 func (s *scopedFilter) Next(
-	_        miruken.Filter,
+	self     miruken.Filter,
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
@@ -184,6 +184,7 @@ func (s *scopedFilter) Next(
 			}
 		}
 	})
+
 	return entry.instance, nil, nil
 }
 
@@ -238,4 +239,10 @@ func (s *scopedFilter) tryDispose(instance any) {
 }
 
 
-var contextType = internal.TypeOf[*Context]()
+var (
+	// From constrains resolution to a handler with scoped lifestyle.
+	// This is used to suppress resolving implied values available through a Context.
+	From miruken.Qualifier[scoped]
+
+	contextType = internal.TypeOf[*Context]()
+)

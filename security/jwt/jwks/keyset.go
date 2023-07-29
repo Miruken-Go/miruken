@@ -5,28 +5,19 @@ import (
 	"github.com/MicahParks/keyfunc/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/miruken-go/miruken/promise"
-	"github.com/miruken-go/miruken/provides"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type (
 	// KeySet manages JWKS (Json Web Key Set) using keyfunc module.
 	KeySet struct {
-		at   map[string]jwt.Keyfunc
-		lock sync.RWMutex
+		at   atomic.Pointer[map[string]jwt.Keyfunc]
+		lock sync.Mutex
 	}
 )
 
-
-func (f *KeySet) Constructor(
-	_*struct{
-		provides.It
-		provides.Single
-	  },
-) {
-	f.at = make( map[string]jwt.Keyfunc)
-}
 
 func (f *KeySet) At(
 	jwksURI string,
@@ -34,26 +25,37 @@ func (f *KeySet) At(
 	if jwksURI == "" {
 		panic("jwksURI cannot be empty")
 	}
-	f.lock.RLock()
-	if fn, ok := f.at[jwksURI]; ok {
-		return promise.Resolve(fn)
+
+	if at := f.at.Load(); at != nil {
+		if fn, ok := (*at)[jwksURI]; ok {
+			return promise.Resolve(fn)
+		}
 	}
-	f.lock.RUnlock()
 
 	return promise.New(func(resolve func(jwt.Keyfunc), reject func(error)) {
 		jwks, err := keyfunc.Get(jwksURI, getOptions)
 		if err != nil {
 			reject(err)
-		} else {
-			f.lock.Lock()
-			defer f.lock.Unlock()
-			if fn, ok := f.at[jwksURI]; ok {
-				resolve(fn)
-			} else {
-				f.at[jwksURI] = jwks.Keyfunc
-				resolve(jwks.Keyfunc)
-			}
+			return
 		}
+		f.lock.Lock()
+		defer f.lock.Unlock()
+		at := f.at.Load()
+		if at != nil {
+			if fn, ok := (*at)[jwksURI]; ok {
+				resolve(fn)
+				return
+			}
+			atc := map[string]jwt.Keyfunc{jwksURI: jwks.Keyfunc}
+			for k, v := range *at {
+				atc[k] = v
+			}
+			at = &atc
+		} else {
+			at = &map[string]jwt.Keyfunc{jwksURI: jwks.Keyfunc}
+		}
+		f.at.Store(at)
+		resolve(jwks.Keyfunc)
 	})
 }
 
