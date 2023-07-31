@@ -109,7 +109,7 @@ func (b *batchHandler) Handle(
 						}
 					}
 					if batcher, err := internal.NewWithTag(typ, ""); err != nil {
-						batch.AddHandlers(batcher)
+						batch.AppendHandlers(batcher)
 						return cb.ReceiveResult(batcher, true, composer)
 					}
 				}
@@ -239,7 +239,7 @@ func GetBatch[TB batching](handler Handler, tags ...any) TB {
 			}
 		}
 		if batcher, err := internal.NewWithTag(internal.TypeOf[TB](), ""); err == nil {
-			batch.AddHandlers(batcher)
+			batch.AppendHandlers(batcher)
 			return batcher.(TB)
 		}
 	}

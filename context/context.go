@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/slices"
 	"sync"
+	"sync/atomic"
 )
 
 type (
@@ -31,8 +32,8 @@ type (
 		parent    *Context
 		state     State
 		children  slices.Safe[miruken.Traversing]
-		observers map[contextObserverType][]Observer
-		lock      sync.RWMutex
+		observers atomic.Pointer[map[contextObserverType][]Observer]
+		lock      sync.Mutex
 	}
 
 	// ContextualBase is a base implementation for Contextual.
@@ -87,20 +88,20 @@ func (c *Context) HasChildren() bool {
 func (c *Context) NewChild() *Context {
 	c.ensureActive()
 	child := &Context{
-		parent:    c,
-		state:     StateActive,
-		observers: map[contextObserverType][]Observer{
-			contextObserverEnding: {
-				EndingObserverFunc(func(ctx *Context, reason any) {
-					c.notify(contextObserverChildEnding, ctx, reason)
-			})},
-			contextObserverEnded: {
-				EndedObserverFunc(func(ctx *Context, reason any) {
-					c.removeChild(ctx)
-					c.notify(contextObserverChildEnded, ctx, reason)
-			})},
-		},
+		parent: c,
+		state:  StateActive,
 	}
+	child.observers.Store(&map[contextObserverType][]Observer{
+		contextObserverEnding: {
+			EndingObserverFunc(func(ctx *Context, reason any) {
+				c.notify(contextObserverChildEnding, ctx, reason)
+			})},
+		contextObserverEnded: {
+			EndedObserverFunc(func(ctx *Context, reason any) {
+				c.removeChild(ctx)
+				c.notify(contextObserverChildEnded, ctx, reason)
+			})},
+	})
 	child.ResetHandlers(provides.NewProvider(child))
 	c.children.Append(child)
 	return child
@@ -110,7 +111,7 @@ func (c *Context) Store(values ...any) *Context {
 	providers := slices.Map[any, any](values, func (v any) any {
 		return provides.NewProvider(v)
 	})
-	c.AddHandlers(providers...)
+	c.AppendHandlers(providers...)
 	return c
 }
 
@@ -245,18 +246,25 @@ func (c *Context) addObserver(
 	}
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	if c.observers == nil {
-		c.observers = make(map[contextObserverType][]Observer)
-	}
-	for typ := contextObserverEnding; typ < contextObserverAll; typ <<= 1 {
-		if obsType & typ == typ {
-			c.observers[typ] = append(c.observers[typ], observer)
+	observers := c.observers.Load()
+	obs := make(map[contextObserverType][]Observer)
+	if observers != nil {
+		for k, v := range *observers {
+			os := make([]Observer, len(v))
+			copy(os, v)
+			obs[k] = os
 		}
 	}
+	for ot := contextObserverEnding; ot < contextObserverAll; ot <<= 1 {
+		if obsType & ot == ot {
+			obs[ot] = append(obs[ot], observer)
+		}
+	}
+	c.observers.Store(&obs)
 }
 
 func (c *Context) removeObserver(
-	obsType contextObserverType,
+	obsType  contextObserverType,
 	observer Observer,
 ) {
 	if obsType == contextObserverNone {
@@ -264,47 +272,54 @@ func (c *Context) removeObserver(
 	}
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	for typ := contextObserverEnding; typ < contextObserverAll; typ <<= 1 {
-		if obsType & typ != typ {
-			continue
-		}
-		if observers, ok := c.observers[typ]; ok && len(observers) > 0 {
-			for i, obs := range observers {
-				if obs == observer {
-					copy(observers[i:], observers[i+1:])
-					observers[len(observers)-1] = nil
-					c.observers[typ] = observers[:len(observers)-1]
-					break
+	observers := c.observers.Load()
+	if observers != nil {
+		obs := make(map[contextObserverType][]Observer)
+		for k, v := range *observers {
+			var os []Observer
+			if obsType & k == k {
+				for i, o := range v {
+					if o == observer {
+						os = make([]Observer, len(v)-1)
+						copy(os, v[:i])
+						copy(os[i:], v[i+1:])
+						obs[k] = os
+						break
+					}
 				}
 			}
+			os = make([]Observer, len(v))
+			copy(os, v)
+			obs[k] = os
 		}
+		c.observers.Store(&obs)
 	}
 }
 
 func (c *Context) notify(
-	obsType contextObserverType,
-	ctx     *Context,
+	obsType  contextObserverType,
+	ctx      *Context,
 	reason   any,
 ) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	if observers, ok := c.observers[obsType]; ok && len(observers) > 0 {
-		switch obsType {
-		case contextObserverEnding:
-			for _, obs := range observers {
-				obs.(EndingObserver).ContextEnding(ctx, reason)
-			}
-		case contextObserverEnded:
-			for _, obs := range observers {
-				obs.(EndedObserver).ContextEnded(ctx, reason)
-			}
-		case contextObserverChildEnding:
-			for _, obs := range observers {
-				obs.(ChildEndingObserver).ChildContextEnding(ctx, reason)
-			}
-		case contextObserverChildEnded:
-			for _, obs := range observers {
-				obs.(ChildEndedObserver).ChildContextEnded(ctx, reason)
+	if observers := c.observers.Load(); observers != nil {
+		if obs, ok := (*observers)[obsType]; ok && len(obs) > 0 {
+			switch obsType {
+			case contextObserverEnding:
+				for _, obs := range obs {
+					obs.(EndingObserver).ContextEnding(ctx, reason)
+				}
+			case contextObserverEnded:
+				for _, obs := range obs {
+					obs.(EndedObserver).ContextEnded(ctx, reason)
+				}
+			case contextObserverChildEnding:
+				for _, obs := range obs {
+					obs.(ChildEndingObserver).ChildContextEnding(ctx, reason)
+				}
+			case contextObserverChildEnded:
+				for _, obs := range obs {
+					obs.(ChildEndedObserver).ChildContextEnded(ctx, reason)
+				}
 			}
 		}
 	}

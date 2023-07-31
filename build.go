@@ -148,11 +148,11 @@ type MutableHandlers struct {
 }
 
 func (m *MutableHandlers) Handlers() []any {
-	return slices.Map[Handler, any](m.handlers.Items(), func(handler Handler) any {
-		if a, ok := handler.(handlerAdapter); ok {
+	return slices.Map[Handler, any](m.handlers.Items(), func(h Handler) any {
+		if a, ok := h.(handlerAdapter); ok {
 			return a.handler
 		}
-		return handler
+		return h
 	})
 }
 
@@ -163,7 +163,7 @@ func (m *MutableHandlers) ResetHandlers(
 	return m
 }
 
-func (m *MutableHandlers) AddHandlers(
+func (m *MutableHandlers) AppendHandlers(
 	handlers ...any,
 ) *MutableHandlers {
 	if len(handlers) > 0 {
