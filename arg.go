@@ -9,15 +9,6 @@ import (
 )
 
 type (
-	// HandleContext contain all the information about handling a Callback.
-	HandleContext struct {
-		handler  any
-		callback Callback
-		binding  Binding
-		composer Handler
-		greedy   bool
-	}
-
 	// arg models a parameter of a Handler method.
 	arg interface {
 		flags() bindingFlags
@@ -27,29 +18,6 @@ type (
 		) (reflect.Value, *promise.Promise[reflect.Value], error)
 	}
 )
-
-
-// HandleContext
-
-func (h HandleContext) Handler() any {
-	return h.handler
-}
-
-func (h HandleContext) Callback() Callback {
-	return h.callback
-}
-
-func (h HandleContext) Binding() Binding {
-	return h.binding
-}
-
-func (h HandleContext) Composer() Handler {
-	return h.composer
-}
-
-func (h HandleContext) Greedy() bool {
-	return h.greedy
-}
 
 
 // zeroArg returns the Zero value of the argument type.
@@ -77,7 +45,7 @@ func (c CallbackArg) resolve(
 	typ reflect.Type,
 	ctx HandleContext,
 ) (reflect.Value, *promise.Promise[reflect.Value], error) {
-	val := reflect.ValueOf(ctx.Callback())
+	val := reflect.ValueOf(ctx.Callback)
 	if val.Type().AssignableTo(typ) {
 		return val, nil, nil
 	}
@@ -95,7 +63,7 @@ func (s sourceArg) resolve(
 	typ reflect.Type,
 	ctx HandleContext,
 ) (reflect.Value, *promise.Promise[reflect.Value], error) {
-	if cb := ctx.Callback(); cb != nil {
+	if cb := ctx.Callback; cb != nil {
 		if src := cb.Source(); src != nil {
 			v := reflect.ValueOf(src)
 			if t := v.Type(); t.AssignableTo(typ) {
@@ -209,12 +177,12 @@ func (d DependencyArg) resolve(
 ) (reflect.Value, *promise.Promise[reflect.Value], error) {
 	typ = d.logicalType(typ)
 	if typ == handlerType {
-		return reflect.ValueOf(ctx.Composer()), nil, nil
+		return reflect.ValueOf(ctx.Composer), nil, nil
 	}
 	if typ == handleCtxType {
 		return reflect.ValueOf(ctx), nil, nil
 	}
-	if callback := ctx.Callback(); callback != nil {
+	if callback := ctx.Callback; callback != nil {
 		if val := reflect.ValueOf(callback); val.Type().AssignableTo(typ) {
 			return val, nil, nil
 		} else if typ.AssignableTo(callbackType) {
@@ -252,10 +220,10 @@ func (r *defaultDependencyResolver) Resolve(
 	dep DependencyArg,
 	ctx HandleContext,
 ) (v reflect.Value, pv *promise.Promise[reflect.Value], err error) {
-	parent, _ := ctx.callback.(*Provides)
+	parent, _ := ctx.Callback.(*Provides)
 	many := !dep.Strict() && typ.Kind() == reflect.Slice
 	var builder ProvidesBuilder
-	builder.WithParent(parent).ForOwner(ctx.handler)
+	builder.WithParent(parent).ForOwner(ctx.Handler)
 	if many {
 		builder.WithKey(typ.Elem())
 	} else {
@@ -265,7 +233,7 @@ func (r *defaultDependencyResolver) Resolve(
 		builder.WithConstraints(spec.constraints...)
 	}
 	provides := builder.New()
-	if result, pr, err2 := provides.Resolve(ctx.composer, many); err2 != nil {
+	if result, pr, err2 := provides.Resolve(ctx.Composer, many); err2 != nil {
 		err = fmt.Errorf("arg: unable to resolve dependency %v: %w", typ, err2)
 	} else if pr == nil {
 		if many {

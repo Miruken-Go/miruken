@@ -155,7 +155,7 @@ func (f constraintFilter) Next(
 	provider FilterProvider,
 )  ([]any, *promise.Promise[[]any], error) {
 	if cp, ok := provider.(ConstraintSource); ok {
-		callback    := ctx.Callback()
+		callback    := ctx.Callback
 		constraints := cp.Constraints()
 		required    := callback.Constraints()
 		if len(required) == 0 {

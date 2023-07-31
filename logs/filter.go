@@ -65,15 +65,15 @@ func (f filter) Next(
 	provider miruken.FilterProvider,
 )  (out []any, pout *promise.Promise[[]any], err error) {
 	if emit, ok := provider.(*Emit); ok {
-		logger, _, re := provides.Type[logr.Logger](ctx.Composer())
+		logger, _, re := provides.Type[logr.Logger](ctx.Composer)
 		if re != nil {
 			return next.Pipe()
 		}
 		if logger = logger.V(emit.verbosity); !logger.Enabled() {
 			return next.Pipe()
 		}
-		logger = logger.WithName(fmt.Sprintf("%T", ctx.Handler()))
-		callback := ctx.Callback()
+		logger = logger.WithName(fmt.Sprintf("%T", ctx.Handler))
+		callback := ctx.Callback
 		logger.Info("handling",
 			"callback", reflect.TypeOf(callback).String(),
 			"source", callback.Source())

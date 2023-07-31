@@ -57,7 +57,7 @@ func (b *ConstructorBinding) Invoke(
 	// the creation will be skipped.  Otherwise, a true
 	// construction is desired.
 	handlerType := b.handlerType
-	if reflect.TypeOf(ctx.handler) == handlerType {
+	if reflect.TypeOf(ctx.Handler) == handlerType {
 		return nil, nil, nil
 	}
 	var receiver any

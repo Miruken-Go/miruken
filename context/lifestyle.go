@@ -77,7 +77,7 @@ func (s *scopedFilter) Next(
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  (out []any, po *promise.Promise[[]any], err error) {
-	key := ctx.Callback().(*provides.It).Key()
+	key := ctx.Callback.(*provides.It).Key()
 	if key == contextType {
 		// can't resolve a context contextually
 		return nil, nil,nil
@@ -91,7 +91,7 @@ func (s *scopedFilter) Next(
 	if !s.isCompatibleWithParent(ctx, rooted) {
 		return nil, nil,nil
 	}
-	context, _, err := provides.Type[*Context](ctx.Composer())
+	context, _, err := provides.Type[*Context](ctx.Composer)
 	if err != nil {
 		return nil, nil, err
 	} else if context == nil {
@@ -220,7 +220,7 @@ func (s *scopedFilter) isCompatibleWithParent(
 	ctx miruken.HandleContext,
 	rooted  bool,
 ) bool {
-	if parent := ctx.Callback().(*provides.It).Parent(); parent != nil {
+	if parent := ctx.Callback.(*provides.It).Parent(); parent != nil {
 		if pb := parent.Binding(); pb != nil {
 			for _, filter := range pb.Filters() {
 				if scoped, ok := filter.(*scoped); !ok || (!rooted && scoped.rooted) {

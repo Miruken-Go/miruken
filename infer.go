@@ -88,13 +88,13 @@ func (b *methodIntercept) Invoke(
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	handlerType := b.handlerType
-	callback    := ctx.Callback()
-	composer    := ctx.Composer()
+	callback    := ctx.Callback
+	composer    := ctx.Composer
 	parent, _   := callback.(*Provides)
 	var builder ResolvesBuilder
 	builder.
 		WithCallback(callback).
-		WithGreedy(ctx.Greedy()).
+		WithGreedy(ctx.Greedy).
 		WithParent(parent).
 		WithKey(handlerType)
 	resolves := builder.New()
@@ -162,20 +162,20 @@ func newInferenceHandler(
 				// single binding to infer the handler type for a
 				// specific key.
 				for _, elem := range bs.index {
-					linkBinding(elem.Value.(Binding), pb, handlerType,true)
+					linkBinding(policy, elem.Value.(Binding), pb, handlerType,true)
 				}
 				// Only need the first of each invariant since it is
 				// just to link the actual handler info.
 				for _, bs := range bs.invariant {
 					if len(bs) > 0 {
-						linkBinding(bs[0], pb, handlerType, true)
+						linkBinding(policy, bs[0], pb, handlerType, true)
 					}
 				}
 				// Only need one unknown binding to create link.
 				if last := bs.variant.Back(); last != nil {
 					binding := last.Value.(Binding)
 					if bt, ok := binding.Key().(reflect.Type); ok && anyType.AssignableTo(bt) {
-						linkBinding(binding, pb, handlerType, false)
+						linkBinding(policy, binding, pb, handlerType, false)
 					}
 				}
 			}
@@ -190,6 +190,7 @@ func newInferenceHandler(
 }
 
 func linkBinding(
+	policy          Policy,
 	binding         Binding,
 	bindings        *policyInfo,
 	handlerType     reflect.Type,
@@ -198,12 +199,12 @@ func linkBinding(
 	switch b := binding.(type) {
 	case *ConstructorBinding:
 		if addConstructor {
-			bindings.insert(b)
+			bindings.insert(policy, b)
 		}
 	case *MethodBinding:
-		bindings.insert(&methodIntercept{b, handlerType})
+		bindings.insert(policy, &methodIntercept{b, handlerType})
 	case *FuncBinding:
-		bindings.insert(b)
+		bindings.insert(policy, b)
 	}
 }
 

@@ -371,10 +371,10 @@ func pipeline(
 		proceed  bool,
 	) ([]any, *promise.Promise[[]any], error) {
 		if !proceed {
-			return nil, nil, &RejectedError{ctx.Callback()}
+			return nil, nil, &RejectedError{ctx.Callback}
 		}
 		if composer != nil {
-			ctx.composer = composer
+			ctx.Composer = composer
 		}
 		if index < length {
 			pf := filters[index]
@@ -385,7 +385,7 @@ func pipeline(
 		return complete(ctx)
 	}
 
-	return next(ctx.Composer(), true)
+	return next(ctx.Composer, true)
 }
 
 

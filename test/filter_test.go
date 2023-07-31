@@ -93,7 +93,7 @@ func (n *NullFilter) Next(
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  ([]any, *promise.Promise[[]any], error) {
-	if captured := extractCaptured(ctx.Callback()); captured != nil {
+	if captured := extractCaptured(ctx.Callback); captured != nil {
 		captured.AddFilters(n)
 	}
 	return next.Pipe()
@@ -109,7 +109,7 @@ func (l *LogFilter) NextLate(
 	ctx     miruken.HandleContext,
 	logging Logging,
 )  ([]any, *promise.Promise[[]any], error) {
-	captured := extractCaptured(ctx.Callback())
+	captured := extractCaptured(ctx.Callback)
 	logging.Log(
 		fmt.Sprintf("Log callback %+v", captured))
 	if captured != nil {
@@ -129,7 +129,7 @@ func (e *ExceptionFilter) Next(
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  ([]any, *promise.Promise[[]any], error) {
-	captured := extractCaptured(ctx.Callback())
+	captured := extractCaptured(ctx.Callback)
 	if captured != nil {
 		captured.AddFilters(e)
 	}
@@ -153,7 +153,7 @@ func (a *AbortFilter) Next(
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  ([]any, *promise.Promise[[]any], error) {
-	if captured := extractCaptured(ctx.Callback());
+	if captured := extractCaptured(ctx.Callback);
 		captured == nil || captured.Handled() > 99 {
 		return next.Abort()
 	}
@@ -222,7 +222,7 @@ func (h FilteringHandler) Next(
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 )  ([]any, *promise.Promise[[]any], error) {
-	if bar, ok := ctx.Callback().Source().(*BarC); ok {
+	if bar, ok := ctx.Callback.Source().(*BarC); ok {
 		bar.AddFilters(h)
 		bar.IncHandled(1)
 	}

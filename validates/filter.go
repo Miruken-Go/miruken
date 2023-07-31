@@ -66,8 +66,8 @@ func (f filter) Next(
 	provider miruken.FilterProvider,
 )  (out []any, pout *promise.Promise[[]any], err error) {
 	if cp, ok := provider.(*Required); ok {
-		callback := ctx.Callback()
-		composer := ctx.Composer()
+		callback := ctx.Callback
+		composer := ctx.Composer
 		outcomeIn, poi, errIn := Constraints(composer, callback.Source())
 		if errIn != nil {
 			// error validating input

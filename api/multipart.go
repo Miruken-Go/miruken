@@ -32,7 +32,7 @@ func (m *MultipartMapper) Read(
 
 	var main Part
 	var rpb ReadPartsBuilder
-	composer := ctx.Composer()
+	composer := ctx.Composer
 	now := time.Now().UnixNano()
 	mr  := multipart.NewReader(reader, boundary)
 
@@ -199,7 +199,7 @@ func addPart(
 			var format *maps.Format
 			format, err = ParseMediaType(contentType, maps.DirectionTo)
 			if err == nil {
-				_, _, err = maps.Into(ctx.Composer(), body, &w, format)
+				_, _, err = maps.Into(ctx.Composer, body, &w, format)
 			}
 		}
 	}

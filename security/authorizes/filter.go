@@ -84,11 +84,11 @@ func (f filter) NextLate(
 		if principal.All(subject, security.System) {
 			return next.Pipe()
 		}
-		callback := ctx.Callback()
-		composer := ctx.Composer()
+		callback := ctx.Callback
+		composer := ctx.Composer
 		action   := callback.Source()
 		// check binding principals
-		if !checkBindingPrincipals(ctx.Binding(), subject) {
+		if !checkBindingPrincipals(ctx.Binding, subject) {
 			return nil, nil, &AccessDeniedError{action}
 		}
 		// perform authorization check

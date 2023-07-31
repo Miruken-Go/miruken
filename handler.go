@@ -15,6 +15,15 @@ type (
 		) HandleResult
 	}
 
+	// HandleContext provides the details for Callback processing.
+	HandleContext struct {
+		Handler  any
+		Callback Callback
+		Binding  Binding
+		Composer Handler
+		Greedy   bool
+	}
+
 	// NotHandledError reports a failed callback.
 	NotHandledError struct {
 		Callback any
@@ -33,7 +42,7 @@ type (
 
 	// handlerAdapter adapts an ordinary type to a Handler.
 	handlerAdapter struct {
-		handler any
+		 handler any
 	}
 )
 

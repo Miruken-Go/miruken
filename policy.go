@@ -32,7 +32,6 @@ type (
 	// An index into the list is used to optimize lookups.
 	// An invariant map stores the bindings for exact keys (string).
 	policyInfo struct {
-		policy    Policy
 		variant   list.List
 		index     map[any]*list.Element
 		invariant map[any][]Binding
@@ -43,9 +42,9 @@ type (
 )
 
 
-func (p *policyInfo) insert(binding Binding) {
+func (p *policyInfo) insert(policy Policy, binding Binding) {
 	key := binding.Key()
-	if variant, unknown := p.policy.VariantKey(key); variant {
+	if variant, unknown := policy.VariantKey(key); variant {
 		indexedElem := p.index[key]
 		if unknown {
 			elem := p.variant.PushBack(binding)
@@ -58,7 +57,7 @@ func (p *policyInfo) insert(binding Binding) {
 		if insert == nil {
 			insert = p.variant.Front()
 		}
-		for insert != nil && !p.policy.Less(binding, insert.Value.(Binding)) {
+		for insert != nil && !policy.Less(binding, insert.Value.(Binding)) {
 			insert = insert.Next()
 		}
 		var elem *list.Element
@@ -83,6 +82,7 @@ func (p *policyInfo) insert(binding Binding) {
 
 func (p *policyInfo) reduce(
 	key     any,
+	policy  Policy,
 	reducer BindingReducer,
 ) (result HandleResult) {
 	if reducer == nil {
@@ -91,7 +91,7 @@ func (p *policyInfo) reduce(
 	done := false
 	result = NotHandled
 	// Check variant keys (reflect.Type)
-	if variant, _ := p.policy.VariantKey(key); variant {
+	if variant, _ := policy.VariantKey(key); variant {
 		elem := p.index[key]
 		if elem == nil {
 			elem = p.variant.Front()
@@ -129,8 +129,7 @@ func (p policyInfoMap) forPolicy(policy Policy) *policyInfo {
 	bindings, found := p[policy]
 	if !found {
 		bindings = &policyInfo{
-			policy: policy,
-			index:  make(map[any]*list.Element),
+			index: make(map[any]*list.Element),
 		}
 		p[policy] = bindings
 	}

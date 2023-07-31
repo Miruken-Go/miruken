@@ -518,7 +518,7 @@ func (m *MetadataHandler) HandleFoo(
 	foo.Inc()
 	if transactional, ok :=
 		slices.First(slices.OfType[any,Transactional](
-			ctx.Binding().Metadata())); ok {
+			ctx.Binding.Metadata())); ok {
 		return transactional
 	}
 	return Transactional{}
@@ -534,7 +534,7 @@ func (m *MetadataHandler) HandleBar(
 ) []Anonymous {
 	bar.Inc()
 	bar.Inc()
-	return slices.OfType[any, Anonymous](ctx.Binding().Metadata())
+	return slices.OfType[any, Anonymous](ctx.Binding.Metadata())
 }
 
 // MetadataInvalidHandler

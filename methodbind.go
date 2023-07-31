@@ -51,11 +51,11 @@ func (b *MethodBinding) Invoke(
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	if initArgs == nil {
-		initArgs = []any{ctx.handler}
+		initArgs = []any{ctx.Handler}
 	} else {
 		initArgs = append(initArgs, nil)
 		copy(initArgs[1:], initArgs)
-		initArgs[0] = ctx.handler
+		initArgs[0] = ctx.Handler
 	}
 	return callFunc(b.method.Func, ctx, b.args, initArgs...)
 }

@@ -78,7 +78,7 @@ func (t *TeamApiHandler) CreateTeam(
 ) *promise.Promise[*TeamData] {
 	id := atomic.AddInt32(&t.nextId,1)
 	team := &TeamData{id,create.Name, create.Players}
-	_, _ = api.Publish(ctx.Composer(), &TeamCreated{Team: *team})
+	_, _ = api.Publish(ctx.Composer, &TeamCreated{Team: *team})
 	return promise.Resolve(team)
 }
 

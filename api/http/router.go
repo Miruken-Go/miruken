@@ -68,7 +68,7 @@ func (r *Router) Route(
 			return
 		}
 
-		composer := miruken.BuildUp(ctx.Composer(), api.Polymorphic)
+		composer := miruken.BuildUp(ctx.Composer, api.Polymorphic)
 
 		var b bytes.Buffer
 		out := io.Writer(&b)
@@ -176,7 +176,7 @@ func (r *Router) resourceUri(
 	ctx     *miruken.HandleContext,
 ) (string, error) {
 	var path string
-	if ctx.Greedy() {
+	if ctx.Greedy {
 		if path = options.PublishPath; len(path) == 0 {
 			path = "publish"
 		}

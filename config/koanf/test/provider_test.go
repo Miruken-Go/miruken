@@ -76,7 +76,7 @@ func (g *Gateway) CreateCustomer(
 	ctx miruken.HandleContext,
 ) error {
 	fmt.Println(cfg.Services.CustomerUrl)
-	_, err := handles.Command(ctx.Composer(), CustomerCreated{})
+	_, err := handles.Command(ctx.Composer, CustomerCreated{})
 	return err
 }
 

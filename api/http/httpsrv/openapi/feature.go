@@ -165,7 +165,7 @@ func (i *Installer) BindingCreated(
 		if inType.Kind() == reflect.Ptr {
 			inType = inType.Elem()
 		}
-		spec := handlerInfo.HandlerSpec()
+		spec := handlerInfo.Spec()
 		ap   := i.apiProfile(spec.PkgPath())
 		if schema, inputName, created := i.generateTypeSchema(ap, inType, false); created {
 			requestBody := &openapi3.RequestBodyRef{

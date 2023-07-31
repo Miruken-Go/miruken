@@ -55,12 +55,12 @@ func (m *Mapper) ToJson(
 ) (json any, err error) {
 	switch t := it.Target().(type) {
 	case *[]byte:
-		return marshal(it, t, &options, &apiOptions, ctx.Composer())
+		return marshal(it, t, &options, &apiOptions, ctx.Composer)
 	case *io.Writer:
 		if internal.IsNil(*t) {
 			*t = new(bytes.Buffer)
 		}
-		if err = encode(it, *t, &options, &apiOptions, ctx.Composer()); err == nil {
+		if err = encode(it, *t, &options, &apiOptions, ctx.Composer); err == nil {
 			json = *t
 		}
 	}
@@ -82,7 +82,7 @@ func (m *Mapper) FromBytes(
 	maps *maps.It,
 	ctx  miruken.HandleContext,
 ) (any, error) {
-	return unmarshal(maps, byt, &options, &apiOptions, ctx.Composer())
+	return unmarshal(maps, byt, &options, &apiOptions, ctx.Composer)
 }
 
 func (m *Mapper) FromReader(
@@ -100,7 +100,7 @@ func (m *Mapper) FromReader(
 	maps *maps.It,
 	ctx  miruken.HandleContext,
 ) (any, error) {
-	return decode(maps, reader, &options, &apiOptions, ctx.Composer())
+	return decode(maps, reader, &options, &apiOptions, ctx.Composer)
 }
 
 func marshal(

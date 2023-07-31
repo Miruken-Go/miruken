@@ -49,7 +49,7 @@ func (i *initializer) construct(
 	ctx  HandleContext,
 	recv any,
 ) ([]any, *promise.Promise[[]any], error) {
-	ctx.handler = recv
+	ctx.Handler = recv
 	return callFunc(i.constructor.Func, ctx, i.args, recv)
 }
 

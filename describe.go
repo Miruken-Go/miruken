@@ -127,7 +127,7 @@ func (s TypeSpec) describe(
 				for _, observer := range observers {
 					observer.BindingCreated(policy, info, ctor)
 				}
-				bindings.forPolicy(policy).insert(ctor)
+				bindings.forPolicy(policy).insert(policy, ctor)
 			} else {
 				invalid = multierror.Append(invalid, err)
 			}
@@ -151,7 +151,7 @@ func (s TypeSpec) describe(
 						for _, observer := range observers {
 							observer.BindingCreated(policy, info, binding)
 						}
-						bindings.forPolicy(policy).insert(binding)
+						bindings.forPolicy(policy).insert(policy, binding)
 					} else if errBind != nil {
 						invalid = multierror.Append(invalid, errBind)
 					}
@@ -210,7 +210,7 @@ func (s FuncSpec) describe(
 						for _, observer := range observers {
 							observer.BindingCreated(policy, info, binding)
 						}
-						bindings.forPolicy(policy).insert(binding)
+						bindings.forPolicy(policy).insert(policy, binding)
 					} else if errBind != nil {
 						invalid = multierror.Append(invalid, errBind)
 					}
@@ -244,7 +244,7 @@ func (e *HandlerInfoError) Unwrap() error {
 
 // HandlerInfo
 
-func (d *HandlerInfo) HandlerSpec() HandlerSpec {
+func (d *HandlerInfo) Spec() HandlerSpec {
 	return d.spec
 }
 
@@ -258,7 +258,7 @@ func (d *HandlerInfo) Dispatch(
 ) (result HandleResult) {
 	if pb, found := d.bindings[policy]; found {
 		key := callback.Key()
-		return pb.reduce(key, func (
+		return pb.reduce(key, policy, func (
 			binding Binding,
 			result  HandleResult,
 		) (HandleResult, bool) {
@@ -307,11 +307,11 @@ func (d *HandlerInfo) Dispatch(
 				var pout *promise.Promise[[]any]
 				var err  error
 				ctx := HandleContext{
-					handler:  handler,
-					callback: callback,
-					binding:  binding,
-					composer: composer,
-					greedy:   greedy,
+					Handler:  handler,
+					Callback: callback,
+					Binding:  binding,
+					Composer: composer,
+					Greedy:   greedy,
 				}
 				if len(filters) == 0 {
 					out, pout, err = applySideEffects(binding, &ctx)
@@ -439,10 +439,8 @@ type (
 			handlerInfo *HandlerInfo,
 			binding     Binding,
 		)
-
 		HandlerInfoCreated(handlerInfo *HandlerInfo)
 	}
-
 	HandlerInfoObserverFunc func(Policy, *HandlerInfo, Binding)
 )
 
@@ -456,14 +454,15 @@ func (f HandlerInfoObserverFunc) BindingCreated(
 }
 
 
-// mutableHandlerInfoFactory creates HandlerInfo's on demand.
-type mutableHandlerInfoFactory struct {
+// mutableHandlerFactory creates HandlerInfo's on demand.
+type mutableHandlerFactory struct {
 	bindingSpecFactory
 	handlers  map[any]*HandlerInfo
 	observers []HandlerInfoObserver
 }
 
-func (f *mutableHandlerInfoFactory) Spec(
+
+func (f *mutableHandlerFactory) Spec(
 	src any,
 ) HandlerSpec {
 	if internal.IsNil(src) {
@@ -489,7 +488,7 @@ func (f *mutableHandlerInfoFactory) Spec(
 	return hs
 }
 
-func (f *mutableHandlerInfoFactory) Get(
+func (f *mutableHandlerFactory) Get(
 	src any,
 ) *HandlerInfo {
 	spec := f.Spec(src)
@@ -499,7 +498,7 @@ func (f *mutableHandlerInfoFactory) Get(
 	return f.handlers[spec.key()]
 }
 
-func (f *mutableHandlerInfoFactory) Register(
+func (f *mutableHandlerFactory) Register(
 	src any,
 ) (*HandlerInfo, bool, error) {
 	spec := f.Spec(src)
@@ -521,11 +520,13 @@ func (f *mutableHandlerInfoFactory) Register(
 	}
 }
 
+
 // HandlerInfoFactoryBuilder build the HandlerInfoFactory.
 type HandlerInfoFactoryBuilder struct {
 	parsers   []BindingParser
 	observers []HandlerInfoObserver
 }
+
 
 func (b *HandlerInfoFactoryBuilder) Parsers(
 	parsers ...BindingParser,
@@ -542,7 +543,7 @@ func (b *HandlerInfoFactoryBuilder) Observers(
 }
 
 func (b *HandlerInfoFactoryBuilder) Build() HandlerInfoFactory {
-	factory := &mutableHandlerInfoFactory{
+	factory := &mutableHandlerFactory{
 		handlers:  make(map[any]*HandlerInfo),
 		observers: b.observers,
 	}
@@ -571,6 +572,7 @@ func CurrentHandlerInfoFactory(
 	handler.Handle(get, false, handler)
 	return get.factory
 }
+
 
 // currentHandlerInfoFactory Resolves the current HandlerInfoFactory
 type currentHandlerInfoFactory struct {

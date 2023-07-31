@@ -94,7 +94,7 @@ func (s *single) Next(
 	ctx      HandleContext,
 	provider FilterProvider,
 )  (out []any, po *promise.Promise[[]any], err error) {
-	key := ctx.Callback().(*Provides).Key()
+	key := ctx.Callback.(*Provides).Key()
 
 	var entry *singleEntry
 	if keys := s.keys.Load(); keys != nil {

@@ -132,14 +132,14 @@ func (r routesFilter) Next(
 	provider miruken.FilterProvider,
 )  (out []any, po *promise.Promise[[]any], err error) {
 	if routes, ok := provider.(*Routes); ok {
-		callback := ctx.Callback()
+		callback := ctx.Callback
 		routed   := callback.Source().(Routed)
 		if routes.Satisfies(routed) {
-			composer := ctx.Composer()
+			composer := ctx.Composer
 			if batch := miruken.GetBatch[*batchRouter](composer); batch != nil {
 				return next.Handle(
 					miruken.Batched[Routed]{Source: routed, Callback: callback},
-					ctx.Greedy(),
+					ctx.Greedy,
 					composer)
 			}
 		} else {
@@ -158,14 +158,14 @@ func (b *batchRouter) Route(
 	_ *handles.It, routed Routed,
 	ctx miruken.HandleContext,
 ) *promise.Promise[any] {
-	return b.batch(routed, ctx.Greedy())
+	return b.batch(routed, ctx.Greedy)
 }
 
 func (b *batchRouter) RouteBatch(
 	_ *handles.It, routed miruken.Batched[Routed],
 	ctx miruken.HandleContext,
 ) *promise.Promise[any] {
-	return b.batch(routed.Source, ctx.Greedy())
+	return b.batch(routed.Source, ctx.Greedy)
 }
 
 func (b *batchRouter) CompleteBatch(
