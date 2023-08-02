@@ -82,14 +82,13 @@ func getServeHTTPLate(typ reflect.Type) (miruken.CallerFunc, error) {
 		if caller, ok := (*callers)[typ]; ok {
 			return caller, nil
 		}
-		cb := make(map[reflect.Type]miruken.CallerFunc)
+		cb := make(map[reflect.Type]miruken.CallerFunc, len(*callers)+1)
 		for k, v := range *callers {
 			cb[k] = v
 		}
 		callers = &cb
 	} else {
-		cb := make(map[reflect.Type]miruken.CallerFunc)
-		callers = &cb
+		callers = &map[reflect.Type]miruken.CallerFunc{}
 	}
 	if lateServeHTTP, ok := typ.MethodByName("ServeHTTPLate"); !ok {
 		goto Invalid

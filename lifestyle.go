@@ -108,7 +108,7 @@ func (s *single) Next(
 		s.lock.Lock()
 		if keys := s.keys.Load(); keys != nil {
 			if entry = (*keys)[key]; entry == nil {
-				kc := make(singleCache)
+				kc := make(singleCache, len(*keys)+1)
 				typ, assignable := key.(reflect.Type)
 				// If the key is not found, check if any existing instances
 				// can satisfy the key before a new instance is provided.

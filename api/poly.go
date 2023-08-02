@@ -145,14 +145,13 @@ func (m *GoPolymorphism) Dynamic(
 				if proto, ok := (*types)[key]; ok {
 					return proto
 				}
-				db := make(map[string]any)
+				db := make(map[string]any, len(*types)+1)
 				for k, v := range *types {
 					db[k] = v
 				}
 				types = &db
 			} else {
-				db := make(map[string]any)
-				types = &db
+				types = &map[string]any{}
 			}
 			(*types)[key] = proto
 			dynamicTypeMap.Store(types)

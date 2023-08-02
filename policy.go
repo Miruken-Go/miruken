@@ -3,6 +3,8 @@ package miruken
 import (
 	"container/list"
 	"github.com/miruken-go/miruken/internal"
+	"sync"
+	"sync/atomic"
 )
 
 type (
@@ -33,8 +35,10 @@ type (
 	// An invariant map stores the bindings for exact keys (string).
 	policyInfo struct {
 		variant   list.List
-		index     map[any]*list.Element
 		invariant map[any][]Binding
+		index     map[any]*list.Element
+		dynIdx    atomic.Pointer[map[any]*list.Element]
+		dynLock   sync.Mutex
 	}
 
 	// policyInfoMap maps Policy instances to policyInfo.
@@ -91,13 +95,44 @@ func (p *policyInfo) reduce(
 	done := false
 	result = NotHandled
 	// Check variant keys (reflect.Type)
-	if variant, _ := policy.VariantKey(key); variant {
+	if variant, unknown := policy.VariantKey(key); variant {
+		needsIndex := false
 		elem := p.index[key]
 		if elem == nil {
-			elem = p.variant.Front()
+			if !unknown {
+				if dynIndex := p.dynIdx.Load(); dynIndex != nil {
+					elem = (*dynIndex)[key]
+				}
+			}
+			if elem == nil {
+				elem = p.variant.Front()
+				needsIndex = true
+			}
 		}
 		for elem != nil {
-			if result, done = reducer(elem.Value.(Binding), result); done {
+			binding := elem.Value.(Binding)
+			if result, done = reducer(binding, result); done {
+				if needsIndex {
+					needsIndex = false
+					if _, ok := p.index[key]; !ok {
+						p.dynLock.Lock()
+						dynIndex := p.dynIdx.Load()
+						if dynIndex != nil {
+							if idx := (*dynIndex)[key]; idx == nil {
+								di := make(map[any]*list.Element, len(*dynIndex)+1)
+								for k, v := range *dynIndex {
+									di[k] = v
+								}
+								di[key] = elem
+								dynIndex = &di
+							}
+						} else {
+							dynIndex = &map[any]*list.Element{key: elem}
+						}
+						p.dynIdx.Store(dynIndex)
+						p.dynLock.Unlock()
+					}
+				}
 				break
 			}
 			elem = elem.Next()
@@ -148,8 +183,8 @@ func DispatchPolicy(
 		return dp.DispatchPolicy(policy, callback, greedy, composer)
 	}
 	if factory := CurrentHandlerInfoFactory(composer); factory != nil {
-		if d := factory.Get(handler); d != nil {
-			return d.Dispatch(policy, handler, callback, greedy, composer, nil)
+		if info := factory.Get(handler); info != nil {
+			return info.Dispatch(policy, handler, callback, greedy, composer, nil)
 		}
 	}
 	return NotHandled

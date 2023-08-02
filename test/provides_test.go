@@ -283,6 +283,13 @@ func (suite *ProvidesTestSuite) TestProvides() {
 		if foo, ok := counter.(*Foo); !ok {
 			suite.Fail(fmt.Sprintf("expected *Foo, but found %T", foo))
 		}
+
+		counter, _, err = miruken.Resolve[Counter](handler)
+		suite.Nil(err)
+		suite.Equal(2, counter.Count())
+		if foo, ok := counter.(*Foo); !ok {
+			suite.Fail(fmt.Sprintf("expected *Foo, but found %T", foo))
+		}
 	})
 
 	suite.Run("NotHandledReturnNil", func () {

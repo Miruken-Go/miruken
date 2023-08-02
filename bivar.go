@@ -60,7 +60,6 @@ func (p *BivariantPolicy) MatchesKey(
 	}
 }
 
-
 func (p *BivariantPolicy) Strict() bool {
 	return true
 }

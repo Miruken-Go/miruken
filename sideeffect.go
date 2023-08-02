@@ -68,7 +68,7 @@ func getApplyLate(
 		if binding, ok := (*bindings)[typ]; ok {
 			return binding, nil
 		}
-		sb := make(map[reflect.Type]sideEffectBinding)
+		sb := make(map[reflect.Type]sideEffectBinding, len(*bindings)+1)
 		for k, v := range *bindings {
 			sb[k] = v
 		}

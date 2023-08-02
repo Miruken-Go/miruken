@@ -465,14 +465,13 @@ func getNextLate(
 		if binding, ok := (*bindings)[typ]; ok {
 			return binding, nil
 		}
-		fb := make(map[reflect.Type]filterBinding)
+		fb := make(map[reflect.Type]filterBinding, len(*bindings)+1)
 		for k, v := range *bindings {
 			fb[k] = v
 		}
 		bindings = &fb
 	} else {
-		fb := make(map[reflect.Type]filterBinding)
-		bindings = &fb
+		bindings = &map[reflect.Type]filterBinding{}
 	}
 	if lateNext, ok := typ.MethodByName("NextLate"); !ok {
 		goto Invalid

@@ -247,13 +247,16 @@ func (c *Context) addObserver(
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	observers := c.observers.Load()
-	obs := make(map[contextObserverType][]Observer)
+	var obs map[contextObserverType][]Observer
 	if observers != nil {
+		obs = make(map[contextObserverType][]Observer, len(*observers))
 		for k, v := range *observers {
 			os := make([]Observer, len(v))
 			copy(os, v)
 			obs[k] = os
 		}
+	} else {
+		obs = map[contextObserverType][]Observer{}
 	}
 	for ot := contextObserverEnding; ot < contextObserverAll; ot <<= 1 {
 		if obsType & ot == ot {
@@ -274,7 +277,7 @@ func (c *Context) removeObserver(
 	defer c.lock.Unlock()
 	observers := c.observers.Load()
 	if observers != nil {
-		obs := make(map[contextObserverType][]Observer)
+		obs := make(map[contextObserverType][]Observer, len(*observers))
 		for k, v := range *observers {
 			var os []Observer
 			if obsType & k == k {

@@ -684,6 +684,12 @@ func (suite *HandlesTestSuite) TestHandles() {
 			suite.False(result.IsError())
 			suite.Equal(miruken.Handled, result)
 			suite.Equal(1, foo.Count())
+
+			result = handler.Handle(foo, false, nil)
+
+			suite.False(result.IsError())
+			suite.Equal(miruken.Handled, result)
+			suite.Equal(2, foo.Count())
 		})
 
 		suite.Run("Contravariant", func () {
