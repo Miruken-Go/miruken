@@ -102,14 +102,14 @@ func (c *Context) NewChild() *Context {
 				c.notify(contextObserverChildEnded, ctx, reason)
 			})},
 	})
-	child.ResetHandlers(provides.NewProvider(child))
+	child.ResetHandlers(miruken.NewProvider(child))
 	c.children.Append(child)
 	return child
 }
 
 func (c *Context) Store(values ...any) *Context {
 	providers := slices.Map[any, any](values, func (v any) any {
-		return provides.NewProvider(v)
+		return miruken.NewProvider(v)
 	})
 	c.AppendHandlers(providers...)
 	return c
@@ -338,7 +338,7 @@ func New(handlers ...any) *Context {
 	context := &Context{
 		state: StateActive,
 	}
-	context.ResetHandlers(append(handlers, provides.NewProvider(context))...)
+	context.ResetHandlers(append(handlers, miruken.NewProvider(context))...)
 	return context
 }
 

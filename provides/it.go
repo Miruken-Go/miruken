@@ -12,6 +12,14 @@ type (
 	Strict  = miruken.Strict
 )
 
+
+var (
+	With = miruken.With
+	New  = miruken.NewProvider
+)
+
+
+
 func Type[T any](
 	handler     miruken.Handler,
 	constraints ...any,

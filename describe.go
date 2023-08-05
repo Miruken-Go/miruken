@@ -95,7 +95,7 @@ func (s TypeSpec) describe(
 	// Add constructor implicitly
 	if ctor, ok := typ.MethodByName("Constructor"); ok {
 		constructor = &ctor
-		ctorType   := ctor.Type
+		ctorType := ctor.Type
 		if spec, err := factory.createSpec(ctorType, 2); err == nil {
 			if spec != nil {
 				ctorSpec     = spec

@@ -88,7 +88,7 @@ func (n *NullFilter) Order() int {
 }
 
 func (n *NullFilter) Next(
-	_        miruken.Filter,
+	self     miruken.Filter,
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
@@ -124,7 +124,7 @@ func (e *ExceptionFilter) Order() int {
 }
 
 func (e *ExceptionFilter) Next(
-	_        miruken.Filter,
+	self     miruken.Filter,
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
@@ -148,7 +148,7 @@ func (a *AbortFilter) Order() int {
 }
 
 func (a *AbortFilter) Next(
-	_        miruken.Filter,
+	self     miruken.Filter,
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
@@ -204,8 +204,10 @@ func (h FilteringHandler) HandleBee(
 		LogFilter
 	  },
 	bee *BeeC,
+	cfg map[string]any,
 ) {
 	bee.IncHandled(3)
+	fmt.Println(cfg)
 }
 
 func (h FilteringHandler) HandleStuff(
@@ -217,7 +219,7 @@ func (h FilteringHandler) HandleStuff(
 }
 
 func (h FilteringHandler) Next(
-	_        miruken.Filter,
+	self     miruken.Filter,
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
@@ -226,7 +228,9 @@ func (h FilteringHandler) Next(
 		bar.AddFilters(h)
 		bar.IncHandled(1)
 	}
-	return next.Pipe()
+	return next.Pipe(map[string]any{
+		"foo": "bar",
+	})
 }
 
 

@@ -21,9 +21,12 @@ const (
 
 type (
 	// Next advances to the next step in a pipeline.
+	// The optional composer replaces the Handler in the next step.
+	// The optional values provide dependencies to the next step.
 	Next func (
 		composer Handler,
 		proceed  bool,
+		values   ...any,
 	) ([]any, *promise.Promise[[]any], error)
 
 	// Filter defines a middleware step in a pipeline.
@@ -73,24 +76,26 @@ type (
 )
 
 
-func (n Next) Pipe() ([]any, *promise.Promise[[]any], error) {
-	return mergeOutput(n(nil, true))
+func (n Next) Pipe(values ...any,) ([]any, *promise.Promise[[]any], error) {
+	return mergeOutput(n(nil, true, values...))
 }
 
-func (n Next) PipeAwait() []any {
-	return mergeOutputAwait(n(nil, true))
+func (n Next) PipeAwait(values ...any,) []any {
+	return mergeOutputAwait(n(nil, true, values...))
 }
 
 func (n Next) PipeComposer(
 	composer Handler,
+	values   ...any,
 ) ([]any, *promise.Promise[[]any], error) {
-	return mergeOutput(n(composer, true))
+	return mergeOutput(n(composer, true, values...))
 }
 
 func (n Next) PipeComposerAwait(
 	composer Handler,
+	values   ...any,
 ) []any {
-	return mergeOutputAwait(n(composer, true))
+	return mergeOutputAwait(n(composer, true, values...))
 }
 
 func (n Next) Handle(
@@ -369,12 +374,16 @@ func pipeline(
 	next = func(
 		composer Handler,
 		proceed  bool,
+		values   ...any,
 	) ([]any, *promise.Promise[[]any], error) {
 		if !proceed {
 			return nil, nil, &RejectedError{ctx.Callback}
 		}
 		if composer != nil {
 			ctx.Composer = composer
+		}
+		if len(values) > 0 {
+			ctx.Composer = BuildUp(ctx.Composer, With(values...))
 		}
 		if index < length {
 			pf := filters[index]

@@ -30,9 +30,9 @@ func (v *Installer) DependsOn() []miruken.Feature {
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
 		setup.Specs(&validator{})
-		setup.Handlers(provides.NewProvider(v.validate))
+		setup.Handlers(provides.New(v.validate))
 		if trans := v.translator; trans != nil {
-			setup.Handlers(provides.NewProvider(trans))
+			setup.Handlers(provides.New(trans))
 		}
 	}
 	return nil
