@@ -76,57 +76,60 @@ func getApplyLate(
 	} else {
 		bindings = &map[reflect.Type]sideEffectBinding{}
 	}
-	if lateApply, ok := typ.MethodByName("ApplyLate"); !ok {
-		goto Invalid
-	} else if lateApplyType := lateApply.Type;
-		lateApplyType.NumIn() < 1 || lateApplyType.NumOut() > 2 {
-		goto Invalid
-	} else {
-		// Output can be promise, error or both with error last
-		refIdx, errIdx := -1, -1
-		numOut := lateApplyType.NumOut()
-		for i := 0; i < numOut; i++ {
-			out := lateApplyType.Out(i)
-			if out.AssignableTo(promiseReflectType) {
-				if i != 0 {
-					goto Invalid
+	for i := 0; i < typ.NumMethod(); i++ {
+		method := typ.Method(i)
+		if method.Name == "Apply" {
+			continue
+		}
+		if lateApplyType := method.Type;
+			lateApplyType.NumIn() < 1 || lateApplyType.NumOut() > 2 {
+			continue
+		} else {
+			// Output can be promise, error or both with error last
+			refIdx, errIdx := -1, -1
+			numOut := lateApplyType.NumOut()
+			for i := 0; i < numOut; i++ {
+				out := lateApplyType.Out(i)
+				if out.AssignableTo(promiseReflectType) {
+					if i != 0 {
+						continue
+					}
+					refIdx = i
+				} else if out.AssignableTo(errorType) {
+					if i != numOut-1 {
+						continue
+					}
+					errIdx = i
+				} else {
+					continue
 				}
-				refIdx = i
-			} else if out.AssignableTo(errorType) {
-				if i != numOut-1 {
-					goto Invalid
-				}
-				errIdx = i
-			} else {
-				goto Invalid
 			}
-		}
-		skip    := 1 // skip receiver
-		numArgs := lateApplyType.NumIn()
-		binding := sideEffectBinding{method: lateApply, refIdx: refIdx, errIdx: errIdx}
-		for i := 1; i < 2 && i < numArgs; i++ {
-			if lateApplyType.In(i) == handleCtxType {
-				if binding.ctxIdx > 0 {
-					return sideEffectBinding{}, &MethodBindingError{lateApply,
-						fmt.Errorf("side-effect: %v duplicate HandleContext arg at index %v and %v",
-							typ, binding.ctxIdx, i)}
+			skip    := 1 // skip receiver
+			numArgs := lateApplyType.NumIn()
+			binding := sideEffectBinding{method: method, refIdx: refIdx, errIdx: errIdx}
+			for i := 1; i < 2 && i < numArgs; i++ {
+				if lateApplyType.In(i) == handleCtxType {
+					if binding.ctxIdx > 0 {
+						return sideEffectBinding{}, &MethodBindingError{method,
+							fmt.Errorf("side-effect: %v duplicate HandleContext arg at index %v and %v",
+								typ, binding.ctxIdx, i)}
+					}
+					binding.ctxIdx = i
+					skip++
 				}
-				binding.ctxIdx = i
-				skip++
 			}
+			args := make([]arg, numArgs-skip)
+			if err := buildDependencies(lateApplyType, skip, numArgs, args, 0); err != nil {
+				err = fmt.Errorf("side-effect: %v %q: %w", typ, method.Name, err)
+				return sideEffectBinding{}, &MethodBindingError{method, err}
+			}
+			binding.args = args
+			(*bindings)[typ] = binding
+			sideEffBindingMap.Store(bindings)
+			return binding, nil
 		}
-		args := make([]arg, numArgs-skip)
-		if err := buildDependencies(lateApplyType, skip, numArgs, args, 0); err != nil {
-			err = fmt.Errorf("side-effect: %v \"ApplyLate\": %w", typ, err)
-			return sideEffectBinding{}, &MethodBindingError{lateApply, err}
-		}
-		binding.args = args
-		(*bindings)[typ] = binding
-		sideEffBindingMap.Store(bindings)
-		return binding, nil
 	}
-Invalid:
-	return sideEffectBinding{}, fmt.Errorf(`side-effect: %v has no valid "ApplyLate" method`, typ)
+	return sideEffectBinding{}, fmt.Errorf(`side-effect: %v has no valid dynamic "Apply" method`, typ)
 }
 
 

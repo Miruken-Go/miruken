@@ -113,33 +113,36 @@ func (p *policyInfo) reduce(
 			binding := elem.Value.(Binding)
 			if result, done = reducer(binding, result); done {
 				if needsIndex {
+					// Since interfaces implemented by a type are implied
+					// and cannot be enumerated, we need to dynamically index
+					// the binding for future lookups.
+					// Uses the copy-on-write idiom since reads should be more
+					// frequent than writes.
 					needsIndex = false
-					if _, ok := p.index[key]; !ok {
-						p.dynLock.Lock()
-						dynIndex := p.dynIdx.Load()
-						if dynIndex != nil {
-							if idx := (*dynIndex)[key]; idx == nil {
-								di := make(map[any]*list.Element, len(*dynIndex)+1)
-								for k, v := range *dynIndex {
-									di[k] = v
-								}
-								di[key] = elem
-								dynIndex = &di
+					p.dynLock.Lock()
+					dynIndex := p.dynIdx.Load()
+					if dynIndex != nil {
+						if _, ok := (*dynIndex)[key]; !ok {
+							di := make(map[any]*list.Element, len(*dynIndex)+1)
+							for k, v := range *dynIndex {
+								di[k] = v
 							}
-						} else {
-							dynIndex = &map[any]*list.Element{key: elem}
+							di[key] = elem
+							dynIndex = &di
 						}
-						p.dynIdx.Store(dynIndex)
-						p.dynLock.Unlock()
+					} else {
+						dynIndex = &map[any]*list.Element{key: elem}
 					}
+					p.dynIdx.Store(dynIndex)
+					p.dynLock.Unlock()
 				}
 				break
 			}
 			elem = elem.Next()
 		}
 		return result
-		// Check invariant keys (string)
 	} else if p.invariant != nil {
+		// Check invariant keys (string)
 		if bs := p.invariant[key]; bs != nil {
 			for _, b := range bs {
 				if result, done = reducer(b, result); done {

@@ -89,7 +89,7 @@ func (d *DatabaseStub) NewAccount(
 }
 
 
-func (e NewEntity) ApplyLate(
+func (e NewEntity) NewEntity(
 	database Database,
 ) (promise.Reflect, error) {
 	return database.NewAccount(e.Id, e.Name, e.Email)
@@ -109,7 +109,7 @@ func (m *MailerStub) SendMail(to string, msg string) error {
 }
 
 
-func (s SendMail) ApplyLate(
+func (s SendMail) SendMail(
 	mailer Mailer,
 ) error {
 	return mailer.SendMail(s.To, s.Msg)

@@ -473,51 +473,54 @@ func getNextLate(
 	} else {
 		bindings = &map[reflect.Type]filterBinding{}
 	}
-	if lateNext, ok := typ.MethodByName("NextLate"); !ok {
-		goto Invalid
-	} else if lateNextType := lateNext.Type;
-		lateNextType.NumIn() < 2 || lateNextType.NumOut() < 3 {
-		goto Invalid
-	} else if lateNextType.In(1) != nextFuncType ||
-		lateNextType.Out(0) != anySliceType ||
-		lateNextType.Out(1) != promiseAnySliceType ||
-		lateNextType.Out(2) != errorType {
-		goto Invalid
-	} else {
-		skip    := 2 // skip receiver
-		numArgs := lateNextType.NumIn()
-		binding := filterBinding{method: lateNext}
-		for i := 2; i < 4 && i < numArgs; i++ {
-			if lateNextType.In(i) == handleCtxType {
-				if binding.ctxIdx > 0 {
-					return filterBinding{}, &MethodBindingError{lateNext,
-						fmt.Errorf("filter: %v has duplicate HandleContext arg at index %v and %v",
-							typ, binding.ctxIdx, i)}
+	for i := 0; i < typ.NumMethod(); i++ {
+		method := typ.Method(i)
+		if method.Name == "Next" {
+			continue
+		}
+		if lateNextType := method.Type;
+			lateNextType.NumIn() < 2 || lateNextType.NumOut() < 3 {
+			continue
+		} else if lateNextType.In(1) != nextFuncType ||
+			lateNextType.Out(0) != anySliceType ||
+			lateNextType.Out(1) != promiseAnySliceType ||
+			lateNextType.Out(2) != errorType {
+			continue
+		} else {
+			skip    := 2 // skip receiver
+			numArgs := lateNextType.NumIn()
+			binding := filterBinding{method: method}
+			for i := 2; i < 4 && i < numArgs; i++ {
+				if lateNextType.In(i) == handleCtxType {
+					if binding.ctxIdx > 0 {
+						return filterBinding{}, &MethodBindingError{method,
+							fmt.Errorf("filter: %v has duplicate HandleContext arg at index %v and %v",
+								typ, binding.ctxIdx, i)}
+					}
+					binding.ctxIdx = i
+					skip++
+				} else if lateNextType.In(i) == filterProviderType {
+					if binding.prvIdx > 0 {
+						return filterBinding{}, &MethodBindingError{method,
+							fmt.Errorf("filter: %v has duplicate FilterProvider arg at index %v and %v",
+								typ, binding.prvIdx, i)}
+					}
+					binding.prvIdx = i
+					skip++
 				}
-				binding.ctxIdx = i
-				skip++
-			} else if lateNextType.In(i) == filterProviderType {
-				if binding.prvIdx > 0 {
-					return filterBinding{}, &MethodBindingError{lateNext,
-						fmt.Errorf("filter: %v has duplicate FilterProvider arg at index %v and %v",
-							typ, binding.prvIdx, i)}
-				}
-				binding.prvIdx = i
-				skip++
 			}
+			args := make([]arg, numArgs-skip)
+			if err := buildDependencies(lateNextType, skip, numArgs, args, 0); err != nil {
+				err = fmt.Errorf("filter: %v %q: %w", typ, method.Name, err)
+				return filterBinding{}, &MethodBindingError{method, err}
+			}
+			binding.args = args
+			(*bindings)[typ] = binding
+			filterBindingMap.Store(bindings)
+			return binding, nil
 		}
-		args := make([]arg, numArgs-skip)
-		if err := buildDependencies(lateNextType, skip, numArgs, args, 0); err != nil {
-			err = fmt.Errorf("filter: %v \"NextLate\": %w", typ, err)
-			return filterBinding{}, &MethodBindingError{lateNext, err}
-		}
-		binding.args = args
-		(*bindings)[typ] = binding
-		filterBindingMap.Store(bindings)
-		return binding, nil
 	}
-Invalid:
-	return filterBinding{}, fmt.Errorf(`filter: %v has no valid "NextLate" method`, typ)
+	return filterBinding{}, fmt.Errorf(`filter: %v has no valid dynamic "Next" method`, typ)
 }
 
 

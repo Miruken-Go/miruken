@@ -195,4 +195,5 @@ func ExecuteAll[T any](
 	return
 }
 
+
 var handlesPolicyInstance Policy = &ContravariantPolicy{}

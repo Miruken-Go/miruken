@@ -104,7 +104,7 @@ func (l *LogFilter) Order() int {
 	return 1
 }
 
-func (l *LogFilter) NextLate(
+func (l *LogFilter) Log(
 	next    miruken.Next,
 	ctx     miruken.HandleContext,
 	logging Logging,

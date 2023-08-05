@@ -90,34 +90,37 @@ func getServeHTTPLate(typ reflect.Type) (miruken.CallerFunc, error) {
 	} else {
 		callers = &map[reflect.Type]miruken.CallerFunc{}
 	}
-	if lateServeHTTP, ok := typ.MethodByName("ServeHTTPLate"); !ok {
-		goto Invalid
-	} else if lateNextType := lateServeHTTP.Type;
-		lateNextType.NumIn() < middlewareFuncType.NumIn() ||
-			lateNextType.NumOut() < middlewareFuncType.NumOut() {
-		goto Invalid
-	} else {
-		for i := 0; i < middlewareFuncType.NumIn(); i++ {
-			if lateNextType.In(i+1) != middlewareFuncType.In(i) {
-				goto Invalid
+	for i := 0; i < typ.NumMethod(); i++ {
+		method := typ.Method(i)
+		if method.Name == "ServeHTTP" {
+			continue
+		}
+		if lateNextType := method.Type;
+			lateNextType.NumIn() < middlewareFuncType.NumIn() ||
+				lateNextType.NumOut() < middlewareFuncType.NumOut() {
+			continue
+		} else {
+			for i := 0; i < middlewareFuncType.NumIn(); i++ {
+				if lateNextType.In(i+1) != middlewareFuncType.In(i) {
+					continue
+				}
 			}
-		}
-		for i := 0; i < middlewareFuncType.NumOut(); i++ {
-			if lateNextType.Out(i) != middlewareFuncType.Out(i) {
-				goto Invalid
+			for i := 0; i < middlewareFuncType.NumOut(); i++ {
+				if lateNextType.Out(i) != middlewareFuncType.Out(i) {
+					continue
+				}
 			}
+			caller, err := miruken.MakeCaller(method.Func)
+			if err != nil {
+				return nil, &miruken.MethodBindingError{Method: method, Cause: err}
+			}
+			(*callers)[typ] = caller
+			middlewareFuncMap.Store(callers)
+			return caller, nil
 		}
-		caller, err := miruken.MakeCaller(lateServeHTTP.Func)
-		if err != nil {
-			return nil, &miruken.MethodBindingError{Method: lateServeHTTP, Cause: err}
-		}
-		(*callers)[typ] = caller
-		middlewareFuncMap.Store(callers)
-		return caller, nil
 	}
-Invalid:
 	return nil, fmt.Errorf(
-		`middleware: %v missing valid "ServeHTTPLate" method`, typ)
+		`middleware: %v missing valid dynamic "ServeHTTP" method`, typ)
 }
 
 
