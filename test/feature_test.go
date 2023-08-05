@@ -7,6 +7,7 @@ import "github.com/miruken-go/miruken"
 var TestFeature miruken.Feature = miruken.FeatureFunc(func(setup *miruken.SetupBuilder) error {
 	setup.Specs(
 		&AbortFilter{},
+		&AccountHandler{},
 		&BadHandler{},
 		&BarHandler{},
 		&ComplexAsyncHandler{},

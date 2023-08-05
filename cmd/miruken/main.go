@@ -27,7 +27,7 @@ var (
 
 func init() {
     flag.BoolVar(&norecursFlag, "norecurs", false, "skip sub-directories")
-    flag.StringVar(&outputFlag, "output", "miruken", "name of the generated .go file")
+    flag.StringVar(&outputFlag, "output", "feature", "name of the generated .go file")
     flag.StringVar(&suffixFlag, "suffix", "", "suffix of types to emit or * for all")
     flag.BoolVar(&stdoutFlag, "stdout", false, "write to stdout")
     flag.BoolVar(&testsFlag, "tests", false, "generate test types")
