@@ -110,7 +110,7 @@ func (p *CovariantPolicy) NewMethodBinding(
 	if args, key, err := validateCovariantFunc(method.Type, spec, key,1); err != nil {
 		return nil, &MethodBindingError{method, err}
 	} else {
-		return &MethodBinding{
+		return &methodBinding{
 			BindingBase{
 				FilteredScope{spec.filters},
 				spec.flags,
@@ -129,7 +129,7 @@ func (p *CovariantPolicy) NewFuncBinding(
 	if args, key, err := validateCovariantFunc(fun.Type(), spec, key,0); err != nil {
 		return nil, &FuncBindingError{fun, err}
 	} else {
-		return &FuncBinding{
+		return &funcBinding{
 			BindingBase{
 				FilteredScope{spec.filters},
 				spec.flags,

@@ -17,8 +17,8 @@ type (
 		) (Binding, error)
 	}
 
-	// ConstructorBinding customizes the construction of `handlerType`.
-	ConstructorBinding struct {
+	// constructorBinding customizes the construction of `handlerType`.
+	constructorBinding struct {
 		BindingBase
 		handlerType reflect.Type
 		key         any
@@ -26,30 +26,30 @@ type (
 )
 
 
-func (b *ConstructorBinding) Key() any {
+func (b *constructorBinding) Key() any {
 	if key := b.key; key != nil {
 		return key
 	}
 	return b.handlerType
 }
 
-func (b *ConstructorBinding) Strict() bool {
+func (b *constructorBinding) Strict() bool {
 	return false
 }
 
-func (b *ConstructorBinding) Exported() bool {
+func (b *constructorBinding) Exported() bool {
 	return false
 }
 
-func (b *ConstructorBinding) LogicalOutputType() reflect.Type {
+func (b *constructorBinding) LogicalOutputType() reflect.Type {
 	return b.handlerType
 }
 
-func (b *ConstructorBinding) Invoke(
+func (b *constructorBinding) Invoke(
 	ctx      HandleContext,
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
-	// ConstructorBinding's will be called on existing
+	// constructorBinding's will be called on existing
 	// handlers if present.  This would result in an
 	// additional and unexpected instance created.
 	// This situation can be detected if the handler is
@@ -75,8 +75,8 @@ func newConstructorBinding(
 	spec         *bindingSpec,
 	key          any,
 	explicitSpec bool,
-) (binding *ConstructorBinding, err error) {
-	binding = &ConstructorBinding{
+) (binding *constructorBinding, err error) {
+	binding = &constructorBinding{
 		BindingBase{
 			FilteredScope{spec.filters},
 			spec.flags,

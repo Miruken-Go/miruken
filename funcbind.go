@@ -18,8 +18,8 @@ type (
 		) (Binding, error)
 	}
 
-	// FuncBinding models a `key` Binding to a function.
-	FuncBinding struct {
+	// funcBinding models a `key` Binding to a function.
+	funcBinding struct {
 		BindingBase
 		key  any
 		fun  reflect.Value
@@ -35,19 +35,19 @@ type (
 )
 
 
-func (b *FuncBinding) Key() any {
+func (b *funcBinding) Key() any {
 	return b.key
 }
 
-func (b *FuncBinding) Exported() bool {
+func (b *funcBinding) Exported() bool {
 	return internal.Exported(b.key) && internal.Exported(b.fun.Interface())
 }
 
-func (b *FuncBinding) LogicalOutputType() reflect.Type {
+func (b *funcBinding) LogicalOutputType() reflect.Type {
 	return b.lt
 }
 
-func (b *FuncBinding) Invoke(
+func (b *funcBinding) Invoke(
 	ctx      HandleContext,
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
