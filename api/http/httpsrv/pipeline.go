@@ -55,7 +55,7 @@ func ServeHTTPLate(
 	h miruken.Handler,
 	n func(miruken.Handler),
 ) error {
-	if binding, err := getServeHTTPLate(reflect.TypeOf(m)); err != nil {
+	if binding, err := getServeHTTPCaller(reflect.TypeOf(m)); err != nil {
 		return err
 	} else {
 		_, pr, err := binding(h, m, w, r, p, h, n)
@@ -66,10 +66,9 @@ func ServeHTTPLate(
 	}
 }
 
-
-// getServeHTTPLate discovers a suitable "ServeHTTPLate" method.
+// getServeHTTPCaller discovers a suitable dynamic "ServerHttp" method.
 // Uses the copy-on-write idiom since reads should be more frequent than writes.
-func getServeHTTPLate(typ reflect.Type) (miruken.CallerFunc, error) {
+func getServeHTTPCaller(typ reflect.Type) (miruken.CallerFunc, error) {
 	if callers := middlewareFuncMap.Load(); callers != nil {
 		if caller, ok := (*callers)[typ]; ok {
 			return caller, nil
@@ -119,8 +118,7 @@ func getServeHTTPLate(typ reflect.Type) (miruken.CallerFunc, error) {
 			return caller, nil
 		}
 	}
-	return nil, fmt.Errorf(
-		`middleware: %v missing valid dynamic "ServeHTTP" method`, typ)
+	return nil, fmt.Errorf(`middleware: %v has no compatible dynamic method`, typ)
 }
 
 

@@ -22,7 +22,7 @@ func (p *Provides) Key() any {
 }
 
 func (p *Provides) Policy() Policy {
-	return providesPolicyInstance
+	return providesPolicyIns
 }
 
 func (p *Provides) Parent() *Provides {
@@ -241,4 +241,4 @@ func (p *providesPolicy) NewConstructorBinding(
 	return newConstructorBinding(handlerType, constructor, spec, key, explicitSpec)
 }
 
-var providesPolicyInstance Policy = &providesPolicy{}
+var providesPolicyIns Policy = &providesPolicy{}

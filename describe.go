@@ -14,6 +14,7 @@ type (
 		FilteredScope
 		spec     HandlerSpec
 		bindings policyInfoMap
+		compound filterBindingGroup
 	}
 
 	// HandlerSpec is factory for HandlerInfo and associated metadata.
@@ -114,7 +115,7 @@ func (s TypeSpec) describe(
 			}
 		}
 		if addProvides {
-			ctorPolicies = append(ctorPolicies, policyKey{policy: providesPolicyInstance})
+			ctorPolicies = append(ctorPolicies, policyKey{policy: providesPolicyIns})
 		}
 	} else if constructor != nil {
 		invalid = multierror.Append(invalid, fmt.Errorf(
@@ -133,7 +134,8 @@ func (s TypeSpec) describe(
 			}
 		}
 	}
-	// Add callback factory explicitly
+	isFilter := typ.Implements(filterType)
+	// Discover explicit callback handlers
 	for i := 0; i < typ.NumMethod(); i++ {
 		method := typ.Method(i)
 		if method.Name == "Constructor" || method.Name == "NoConstructor" {
@@ -142,18 +144,25 @@ func (s TypeSpec) describe(
 		methodType := method.Type
 		if spec, err := factory.createSpec(methodType, 2); err == nil {
 			if spec == nil { // not a handler method
+				if !isFilter {
+					if fb, err := parseFilterMethod(method); err != nil {
+						invalid = multierror.Append(invalid, err)
+					} else if fb != nil {
+						info.compound = append(info.compound, *fb)
+					}
+				}
 				continue
 			}
 			for _, pk := range spec.policies {
 				policy := pk.policy
 				if binder, ok := policy.(MethodBinder); ok {
-					if binding, errBind := binder.NewMethodBinding(method, spec, pk.key); binding != nil {
+					if binding, err := binder.NewMethodBinding(method, spec, pk.key); binding != nil {
 						for _, observer := range observers {
 							observer.BindingCreated(policy, info, binding)
 						}
 						bindings.forPolicy(policy).insert(policy, binding)
-					} else if errBind != nil {
-						invalid = multierror.Append(invalid, errBind)
+					} else if err != nil {
+						invalid = multierror.Append(invalid, err)
 					}
 				}
 			}
@@ -244,11 +253,11 @@ func (e *HandlerInfoError) Unwrap() error {
 
 // HandlerInfo
 
-func (d *HandlerInfo) Spec() HandlerSpec {
-	return d.spec
+func (h *HandlerInfo) Spec() HandlerSpec {
+	return h.spec
 }
 
-func (d *HandlerInfo) Dispatch(
+func (h *HandlerInfo) Dispatch(
 	policy   Policy,
 	handler  any,
 	callback Callback,
@@ -256,7 +265,7 @@ func (d *HandlerInfo) Dispatch(
 	composer Handler,
 	guard    CallbackGuard,
 ) (result HandleResult) {
-	if pb, found := d.bindings[policy]; found {
+	if pb, found := h.bindings[policy]; found {
 		key := callback.Key()
 		return pb.reduce(key, policy, func (
 			binding Binding,
@@ -289,16 +298,22 @@ func (d *HandlerInfo) Dispatch(
 					CanFilter() bool
 				}); !ok || check.CanFilter() {
 					var tp []FilterProvider
-					if tf, ok := handler.(Filter); ok {
+					if comp := h.compound; comp != nil {
+						tp = []FilterProvider{
+							&FilterInstanceProvider{[]Filter{
+								compoundHandler{handler, comp},
+							}, true},
+						}
+					} else if tf, ok := handler.(Filter); ok {
 						tp = []FilterProvider{
 							&FilterInstanceProvider{[]Filter{tf}, true},
 						}
 					}
-					if providedFilters, err := orderedFilters(
+					if orderedFilters, err := orderFilters(
 						composer, binding, callback, binding.Filters(),
-						d.Filters(), policy.Filters(), tp);
-						providedFilters != nil && err == nil {
-						filters = providedFilters
+						h.Filters(), policy.Filters(), tp);
+						orderedFilters != nil && err == nil {
+						filters = orderedFilters
 					} else {
 						return result, false
 					}

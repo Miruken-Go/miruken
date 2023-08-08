@@ -193,8 +193,10 @@ func (h FilteringHandler) HandleBar(
 		ExceptionFilter `filter:"required"`
 		AbortFilter
 	  }, bar *BarC,
+	cfg map[string]any,
 ) {
 	bar.IncHandled(1)
+	fmt.Println(cfg)
 }
 
 func (h FilteringHandler) HandleBee(
@@ -223,7 +225,7 @@ func (h FilteringHandler) Next(
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  ([]any, *promise.Promise[[]any], error) {
+) ([]any, *promise.Promise[[]any], error) {
 	if bar, ok := ctx.Callback.Source().(*BarC); ok {
 		bar.AddFilters(h)
 		bar.IncHandled(1)
@@ -241,8 +243,11 @@ func (s SpecialFilteringHandler) HandleFoo(
 		ExceptionFilter
 	  },
 	foo *FooC,
-) *SpecialFooC {
-	return new(SpecialFooC)
+	data map[string]any,
+) map[string]any {
+	foo.IncHandled(1)
+	data["callback"] = foo
+	return data
 }
 
 func (s SpecialFilteringHandler) RemoveBoo(
@@ -254,6 +259,21 @@ func (s SpecialFilteringHandler) RemoveBoo(
 ) {
 }
 
+func (s SpecialFilteringHandler) Load(
+	next miruken.Next,
+) ([]any, *promise.Promise[[]any], error) {
+	return next.Pipe(map[string]any{
+		"foo": "bar",
+	})
+}
+
+func (s SpecialFilteringHandler) LoadMore(
+	next  miruken.Next,
+	data  map[string]any,
+) ([]any, *promise.Promise[[]any], error) {
+	data["more"] = "stuff"
+	return next.Pipe(data)
+}
 
 func (s *SingletonHandler) Constructor(
 	_*struct{
@@ -485,6 +505,23 @@ func (suite *FilterTestSuite) TestFilters() {
 			suite.False(result.IsError())
 			suite.Equal(miruken.Handled, result)
 		})
+	})
+
+	suite.Run("Compound", func () {
+		handler, _ := suite.Setup(
+			&SpecialFilteringHandler{},
+			&LogFilter{},
+			&ConsoleLogger{},
+			&ExceptionFilter{},
+		)
+		foo := new(FooC)
+		r, _, err := miruken.Execute[map[string]any](handler, foo)
+		suite.Nil(err)
+		suite.NotNil(r)
+		suite.Equal(1, foo.Handled())
+		suite.Equal("bar", r["foo"])
+		suite.Equal("stuff", r["more"])
+		suite.Same(foo, r["callback"])
 	})
 
 	suite.Run("Missing Dependencies", func () {

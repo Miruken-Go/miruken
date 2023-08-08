@@ -408,7 +408,7 @@ func buildDependency(
 	if argType.Kind() == reflect.Struct &&
 		argType.Name() == "" {  // anonymous
 		spec := &dependencySpec{}
-		if err = parseBinding(argType, spec, dependencyParsers); err != nil {
+		if err = parseSpec(argType, spec, dependencyParsers); err != nil {
 			return arg, err
 		}
 		arg.spec = spec

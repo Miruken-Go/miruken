@@ -22,7 +22,7 @@ func (h *Handles) Key() any {
 }
 
 func (h *Handles) Policy() Policy {
-	return handlesPolicyInstance
+	return handlesPolicyIns
 }
 
 func (h *Handles) CanDispatch(
@@ -196,4 +196,4 @@ func ExecuteAll[T any](
 }
 
 
-var handlesPolicyInstance Policy = &ContravariantPolicy{}
+var handlesPolicyIns Policy = &ContravariantPolicy{}

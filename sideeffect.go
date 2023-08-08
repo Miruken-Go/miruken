@@ -42,23 +42,22 @@ func (l SideEffectAdapter) Apply(
 	self SideEffect,
 	ctx  HandleContext,
 )  (promise.Reflect, error) {
-	if binding, err := getApplyLate(self); err != nil {
+	if binding, err := getSideEffectMethod(self); err != nil {
 		return nil, err
 	} else {
 		return binding.invoke(self, ctx)
 	}
 }
 
-
-// getApplyLate discovers a suitable "ApplyLate" method.
+// getSideEffectMethod discovers a suitable dynamic SideEffect method.
 // Uses the copy-on-write idiom since reads should be more frequent than writes.
-func getApplyLate(
+func getSideEffectMethod(
 	sideEffect SideEffect,
-) (sideEffectBinding, error) {
+) (*sideEffectBinding, error) {
 	typ := reflect.TypeOf(sideEffect)
 	if bindings := sideEffBindingMap.Load(); bindings != nil {
 		if binding, ok := (*bindings)[typ]; ok {
-			return binding, nil
+			return &binding, nil
 		}
 	}
 	sideEffBindingLock.Lock()
@@ -66,7 +65,7 @@ func getApplyLate(
 	bindings := sideEffBindingMap.Load()
 	if bindings != nil {
 		if binding, ok := (*bindings)[typ]; ok {
-			return binding, nil
+			return &binding, nil
 		}
 		sb := make(map[reflect.Type]sideEffectBinding, len(*bindings)+1)
 		for k, v := range *bindings {
@@ -110,7 +109,7 @@ func getApplyLate(
 			for i := 1; i < 2 && i < numArgs; i++ {
 				if lateApplyType.In(i) == handleCtxType {
 					if binding.ctxIdx > 0 {
-						return sideEffectBinding{}, &MethodBindingError{method,
+						return nil, &MethodBindingError{method,
 							fmt.Errorf("side-effect: %v duplicate HandleContext arg at index %v and %v",
 								typ, binding.ctxIdx, i)}
 					}
@@ -121,15 +120,15 @@ func getApplyLate(
 			args := make([]arg, numArgs-skip)
 			if err := buildDependencies(lateApplyType, skip, numArgs, args, 0); err != nil {
 				err = fmt.Errorf("side-effect: %v %q: %w", typ, method.Name, err)
-				return sideEffectBinding{}, &MethodBindingError{method, err}
+				return  nil, &MethodBindingError{method, err}
 			}
 			binding.args = args
 			(*bindings)[typ] = binding
 			sideEffBindingMap.Store(bindings)
-			return binding, nil
+			return &binding, nil
 		}
 	}
-	return sideEffectBinding{}, fmt.Errorf(`side-effect: %v has no valid dynamic "Apply" method`, typ)
+	return nil, fmt.Errorf(`side-effect: %v has no compatible dynamic method`, typ)
 }
 
 

@@ -18,7 +18,7 @@ func (c *Creates) Key() any {
 }
 
 func (c *Creates) Policy() Policy {
-	return createsPolicyInstance
+	return createsPolicyIns
 }
 
 func (c *Creates) Dispatch(
@@ -127,4 +127,4 @@ func (c *createsPolicy) NewConstructorBinding(
 	return newConstructorBinding(handlerType, constructor, spec, key, spec != nil)
 }
 
-var createsPolicyInstance Policy = &createsPolicy{}
+var createsPolicyIns Policy = &createsPolicy{}

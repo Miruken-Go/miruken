@@ -236,7 +236,7 @@ func (p *bindingSpecFactory) createSpec(
 				at.Name() == "" &&
 				at.Kind() == reflect.Struct {
 			spec = &bindingSpec{}
-			if err = parseBinding(at, spec, p.parsers); err != nil {
+			if err = parseSpec(at, spec, p.parsers); err != nil {
 				return nil, err
 			}
 			spec.arg = zeroArg{} // spec is just a placeholder
@@ -317,12 +317,12 @@ func (p *bindingSpecFactory) parse(
 	return bound, err
 }
 
-func parseBinding(
+func parseSpec(
 	source  reflect.Type,
 	binding any,
 	parsers []BindingParser,
 ) (err error) {
-	if err = parseStructBinding(source, binding, parsers); err == nil {
+	if err = parseStruct(source, binding, parsers); err == nil {
 		if b, ok := binding.(interface {
 			complete() error
 		}); ok {
@@ -332,7 +332,7 @@ func parseBinding(
 	return
 }
 
-func parseStructBinding(
+func parseStruct(
 	typ     reflect.Type,
 	binding any,
 	parsers []BindingParser,
@@ -350,7 +350,7 @@ func parseStructBinding(
 			continue
 		}
 		if fieldType.Kind() == reflect.Struct && fieldType.Implements(definesBindingGroup) {
-			if invalid := parseStructBinding(fieldType, binding, parsers); invalid != nil {
+			if invalid := parseStruct(fieldType, binding, parsers); invalid != nil {
 				err = multierror.Append(err, invalid)
 			}
 			continue
