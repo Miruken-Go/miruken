@@ -268,8 +268,8 @@ func (s SpecialFilteringHandler) Load(
 }
 
 func (s SpecialFilteringHandler) LoadMore(
-	next  miruken.Next,
-	data  map[string]any,
+	next miruken.Next,
+	data map[string]any,
 ) ([]any, *promise.Promise[[]any], error) {
 	data["more"] = "stuff"
 	return next.Pipe(data)

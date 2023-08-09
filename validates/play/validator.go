@@ -9,6 +9,7 @@ import (
 	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/validates"
+	"reflect"
 	"strings"
 )
 
@@ -19,14 +20,17 @@ type (
 		translator ut.Translator
 	}
 
-	// ValidatorT extends validation for a specific type.
+	// ValidatorT handles validation for a specific type.
 	ValidatorT[T any] struct {
 		Validator
 	}
 
-	// Rules express the validation constraints explicitly
+	// TypeRules express the validation constraints for a type
 	// without depending on validation struct tags.
-	Rules []struct{ Type any; Constraints map[string]string }
+	TypeRules struct{ Type any; Constraints map[string]string }
+
+	// Rules express the validation constraints for a set of types.
+	Rules []TypeRules
 
 	// validator performs default tag based validation.
 	validator struct { Validator }
@@ -124,6 +128,13 @@ func (v *Validator) translateErrors(
 		if len(parts) > 1 { path = parts[1] }
 		outcome.AddError(path, errors.New(msg))
 	}
+}
+
+
+// Type is a helper function to define the constraints for a type.
+func Type[T any](constraints map[string]string) TypeRules {
+	typ := reflect.Zero(internal.TypeOf[T]()).Interface()
+	return TypeRules{Type: typ, Constraints: constraints}
 }
 
 

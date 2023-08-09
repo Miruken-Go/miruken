@@ -79,13 +79,13 @@ func (v *CreateUserIntegrity) Constructor(
 ) error {
 	return v.ConstructWithRules(
 		play.Rules{
-			{AddressNoTags{}, map[string]string{
+			play.Type[AddressNoTags](map[string]string{
 				"Street": "required",
 				"City":   "required",
 				"Planet": "required",
 				"Phone":  "required",
-			}},
-			{UserNoTags{}, map[string]string{
+			}),
+			play.Type[UserNoTags](map[string]string{
 				"Id":             "eq=0",
 				"FirstName":      "required",
 				"LastName":       "required",
@@ -93,7 +93,7 @@ func (v *CreateUserIntegrity) Constructor(
 				"Email":          "required,email",
 				"FavouriteColor": "iscolor",
 				"Addresses":      "required,dive",
-			}},
+			}),
 		}, nil, translator)
 }
 
