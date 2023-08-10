@@ -51,7 +51,7 @@ type (
 )
 
 
-// Subject
+// mutableSubject
 
 func (s *mutableSubject) Authenticated() bool {
 	return len(s.principals) > 0 || len(s.credentials) > 0

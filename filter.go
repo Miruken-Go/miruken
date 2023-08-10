@@ -427,10 +427,11 @@ func pipeline(
 type (
 	// filterBinding executes a Filter method dynamically.
 	filterBinding struct {
-		method reflect.Method
-		args   []arg
-		ctxIdx int
-		prvIdx int
+		method  reflect.Method
+		applyTo reflect.Type
+		args    []arg
+		ctxIdx  int
+		prvIdx  int
 	}
 
 	// filterBindingGroup executes a chain of Filter's dynamically.
@@ -451,8 +452,27 @@ func (n filterBinding) invoke(
 	next     Next,
 	provider FilterProvider,
 ) (out []any, pout *promise.Promise[[]any], err error) {
-	initArgs := []any{filter, next}
-	for i := 2; i <= 3; i++ {
+	var initArgs []any
+	if applyTo := n.applyTo; applyTo != nil {
+		cb := ctx.Callback
+		if src := cb.Source(); src != nil {
+			srcTyp := reflect.TypeOf(src)
+			if srcTyp.AssignableTo(applyTo) {
+				initArgs = []any{filter, src, next}
+			} else if (srcTyp.Kind() == reflect.Ptr) && srcTyp.Elem().AssignableTo(applyTo) {
+				initArgs = []any{filter, reflect.ValueOf(src).Elem().Interface(), next}
+			} else {
+				return next(nil, true)
+			}
+		} else if reflect.TypeOf(cb).AssignableTo(applyTo) {
+			initArgs = []any{filter, cb, next}
+		} else {
+			return next(nil, true)
+		}
+	} else {
+		initArgs = []any{filter, next}
+	}
+	for i := len(initArgs); i <= len(initArgs)+1; i++ {
 		if n.ctxIdx == i {
 			initArgs = append(initArgs, ctx)
 		} else if n.prvIdx == i {
@@ -582,51 +602,63 @@ func getFilterBinding(
 	return nil, fmt.Errorf(`filter: %v has no compatible dynamic methods`, typ)
 }
 
-// parseFilterMethod parses a method to see if it is a suitable dynamic Filter method.
+// parseFilterMethod parses a method to see if it's a suitable dynamic Filter.
+// A compatible filter method must have the following signature:
+//    The first or second argument must be the "Next" filter function.
+//    If the second, the first is the callback used to select the filter.
+//    The return type must be ([]any, *promise.Promise[[]any], error).
 func parseFilterMethod(
 	method reflect.Method,
 ) (*filterBinding, error) {
-	if funcType := method.Type;
-		funcType.NumIn() < 2 || funcType.NumOut() < 3 {
+	funcType := method.Type
+	numArgs  := funcType.NumIn()
+	if numArgs < 2 || funcType.NumOut() < 3 {
 		return nil, nil
-	} else if funcType.In(1) != nextFuncType ||
-		funcType.Out(0) != anySliceType ||
+	} else if funcType.Out(0) != anySliceType ||
 		funcType.Out(1) != promiseAnySliceType ||
 		funcType.Out(2) != errorType {
 		return nil, nil
-	} else {
-		skip    := 2 // skip receiver
-		numArgs := funcType.NumIn()
-		binding := filterBinding{method: method}
-		for i := 2; i < 4 && i < numArgs; i++ {
-			if funcType.In(i) == handleCtxType {
-				if binding.ctxIdx > 0 {
-					return nil, &MethodBindingError{method,
-						fmt.Errorf(
-							"filter: %v %q has duplicate HandleContext arg at index %v and %v",
-							funcType.In(0), method.Name, binding.ctxIdx, i)}
-				}
-				binding.ctxIdx = i
-				skip++
-			} else if funcType.In(i) == filterProviderType {
-				if binding.prvIdx > 0 {
-					return nil, &MethodBindingError{method,
-						fmt.Errorf(
-							"filter: %v %q has duplicate FilterProvider arg at index %v and %v",
-							funcType.In(0), method.Name, binding.prvIdx, i)}
-				}
-				binding.prvIdx = i
-				skip++
-			}
-		}
-		args := make([]arg, numArgs-skip)
-		if err := buildDependencies(funcType, skip, numArgs, args, 0); err != nil {
-			err = fmt.Errorf("filter: %v %q: %w", funcType.In(0), method.Name, err)
-			return nil, &MethodBindingError{method, err}
-		}
-		binding.args = args
-		return &binding, nil
 	}
+	skip     := 2 // skip receiver
+	nextIdx  := 1 // must be 1 or 2
+	binding  := filterBinding{method: method}
+	firstArg := funcType.In(1)
+	if firstArg != nextFuncType {
+		if numArgs < 3 || funcType.In(2) != nextFuncType {
+			return nil, nil
+		}
+		binding.applyTo = firstArg
+		nextIdx = 2
+		skip++
+	}
+	for i := nextIdx+1; i <= nextIdx+2 && i < numArgs; i++ {
+		if funcType.In(i) == handleCtxType {
+			if binding.ctxIdx > 0 {
+				return nil, &MethodBindingError{method,
+					fmt.Errorf(
+						"filter: %v %q has duplicate HandleContext arg at index %v and %v",
+						funcType.In(0), method.Name, binding.ctxIdx, i)}
+			}
+			binding.ctxIdx = i
+			skip++
+		} else if funcType.In(i) == filterProviderType {
+			if binding.prvIdx > 0 {
+				return nil, &MethodBindingError{method,
+					fmt.Errorf(
+						"filter: %v %q has duplicate FilterProvider arg at index %v and %v",
+						funcType.In(0), method.Name, binding.prvIdx, i)}
+			}
+			binding.prvIdx = i
+			skip++
+		}
+	}
+	args := make([]arg, numArgs-skip)
+	if err := buildDependencies(funcType, skip, numArgs, args, 0); err != nil {
+		err = fmt.Errorf("filter: %v %q: %w", funcType.In(0), method.Name, err)
+		return nil, &MethodBindingError{method, err}
+	}
+	binding.args = args
+	return &binding, nil
 }
 
 

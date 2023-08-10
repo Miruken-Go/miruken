@@ -246,7 +246,20 @@ func (s SpecialFilteringHandler) HandleFoo(
 	data map[string]any,
 ) map[string]any {
 	foo.IncHandled(1)
-	data["callback"] = foo
+	data["more"] = "stuff"
+	return data
+}
+
+func (s SpecialFilteringHandler) HandleBee(
+	_*struct{
+		handles.It
+		ExceptionFilter
+	 },
+	bee *BeeC,
+	data map[string]any,
+) map[string]any {
+	bee.IncHandled(1)
+	data["hello"] = "world"
 	return data
 }
 
@@ -255,7 +268,7 @@ func (s SpecialFilteringHandler) RemoveBoo(
 		handles.It
 		ExceptionFilter
 	  },
-	boo *BooC,
+	_ *BooC,
 ) {
 }
 
@@ -267,11 +280,12 @@ func (s SpecialFilteringHandler) Load(
 	})
 }
 
-func (s SpecialFilteringHandler) LoadMore(
+func (s SpecialFilteringHandler) LoadFoo(
+	foo  *FooC,
 	next miruken.Next,
 	data map[string]any,
 ) ([]any, *promise.Promise[[]any], error) {
-	data["more"] = "stuff"
+	data["callback"] = foo
 	return next.Pipe(data)
 }
 
@@ -508,20 +522,39 @@ func (suite *FilterTestSuite) TestFilters() {
 	})
 
 	suite.Run("Compound", func () {
-		handler, _ := suite.Setup(
-			&SpecialFilteringHandler{},
-			&LogFilter{},
-			&ConsoleLogger{},
-			&ExceptionFilter{},
-		)
-		foo := new(FooC)
-		r, _, err := miruken.Execute[map[string]any](handler, foo)
-		suite.Nil(err)
-		suite.NotNil(r)
-		suite.Equal(1, foo.Handled())
-		suite.Equal("bar", r["foo"])
-		suite.Equal("stuff", r["more"])
-		suite.Same(foo, r["callback"])
+		suite.Run("ApplyAll", func() {
+			handler, _ := suite.Setup(
+				&SpecialFilteringHandler{},
+				&LogFilter{},
+				&ConsoleLogger{},
+				&ExceptionFilter{},
+			)
+			foo := new(FooC)
+			r, _, err := miruken.Execute[map[string]any](handler, foo)
+			suite.Nil(err)
+			suite.NotNil(r)
+			suite.Equal(1, foo.Handled())
+			suite.Equal("bar", r["foo"])
+			suite.Equal("stuff", r["more"])
+			suite.Same(foo, r["callback"])
+		})
+
+		suite.Run("ApplyTo", func() {
+			handler, _ := suite.Setup(
+				&SpecialFilteringHandler{},
+				&LogFilter{},
+				&ConsoleLogger{},
+				&ExceptionFilter{},
+			)
+			bee := new(BeeC)
+			r, _, err := miruken.Execute[map[string]any](handler, bee)
+			suite.Nil(err)
+			suite.NotNil(r)
+			suite.Equal(1, bee.Handled())
+			suite.Equal("bar", r["foo"])
+			suite.Equal("world", r["hello"])
+			suite.NotContains(r, "callback")
+		})
 	})
 
 	suite.Run("Missing Dependencies", func () {

@@ -298,15 +298,18 @@ func (h *HandlerInfo) Dispatch(
 					CanFilter() bool
 				}); !ok || check.CanFilter() {
 					var tp []FilterProvider
-					if comp := h.compound; comp != nil {
-						tp = []FilterProvider{
-							&FilterInstanceProvider{[]Filter{
-								compoundHandler{handler, comp},
-							}, true},
-						}
-					} else if tf, ok := handler.(Filter); ok {
-						tp = []FilterProvider{
-							&FilterInstanceProvider{[]Filter{tf}, true},
+					// Only apply compound filters for handles policy
+					if policy == handlesPolicyIns {
+						if comp := h.compound; comp != nil {
+							tp = []FilterProvider{
+								&FilterInstanceProvider{[]Filter{
+									compoundHandler{handler, comp},
+								}, true},
+							}
+						} else if tf, ok := handler.(Filter); ok {
+							tp = []FilterProvider{
+								&FilterInstanceProvider{[]Filter{tf}, true},
+							}
 						}
 					}
 					if orderedFilters, err := orderFilters(

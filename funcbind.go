@@ -103,7 +103,7 @@ func callFuncWithArgs(
 		in[i] = reflect.ValueOf(ia)
 	}
 	for i, aa := range ra {
-		in[cnt+ i] = aa
+		in[cnt+i] = aa
 	}
 	return slices.Map[reflect.Value, any](fun.Call(in), reflect.Value.Interface)
 }
