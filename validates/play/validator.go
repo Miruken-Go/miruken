@@ -27,7 +27,10 @@ type (
 
 	// TypeRules express the validation constraints for a type
 	// without depending on validation struct tags.
-	TypeRules struct{ Type any; Constraints map[string]string }
+	TypeRules struct{
+		Type        any
+		Constraints map[string]string
+	}
 
 	// Rules express the validation constraints for a set of types.
 	Rules []TypeRules
@@ -47,11 +50,15 @@ func (v *Validator) Constructor(
 	v.translator = translator
 }
 
-func (v *Validator) ConstructWithRules(
+func (v *Validator) InitWithRules(
 	rules      Rules,
 	configure  func(*play.Validate) error,
 	translator ut.Translator,
 ) error {
+	if v.validate != nil {
+		panic("validator already initialized")
+	}
+
 	validate := play.New()
 	if configure != nil {
 		if err := configure(validate); err != nil {

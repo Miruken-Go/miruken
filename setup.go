@@ -76,6 +76,13 @@ func (s *SetupBuilder) Builders(
 	return s
 }
 
+func (s *SetupBuilder) With(
+	values ...any,
+) *SetupBuilder {
+	s.builders = append(s.builders, With(values...))
+	return s
+}
+
 func (s *SetupBuilder) Options(
 	options ...any,
 ) *SetupBuilder {

@@ -4,7 +4,6 @@ import (
 	ut "github.com/go-playground/universal-translator"
 	play "github.com/go-playground/validator/v10"
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/validates"
 )
 
@@ -29,10 +28,9 @@ func (v *Installer) DependsOn() []miruken.Feature {
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
-		setup.Specs(&validator{})
-		setup.Handlers(provides.New(v.validate))
-		if trans := v.translator; trans != nil {
-			setup.Handlers(provides.New(trans))
+		setup.Specs(&validator{}).With(v.validate)
+		if translator := v.translator; translator != nil {
+			setup.With(translator)
 		}
 	}
 	return nil

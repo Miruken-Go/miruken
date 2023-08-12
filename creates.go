@@ -118,13 +118,13 @@ type createsPolicy struct {
 	CovariantPolicy
 }
 
-func (c *createsPolicy) NewConstructorBinding(
+func (c *createsPolicy) NewCtorBinding(
 	handlerType reflect.Type,
 	constructor *reflect.Method,
 	spec        *bindingSpec,
 	key         any,
 ) (binding Binding, err error) {
-	return newConstructorBinding(handlerType, constructor, spec, key, spec != nil)
+	return newCtorBinding(handlerType, constructor, spec, key, spec != nil)
 }
 
 var createsPolicyIns Policy = &createsPolicy{}

@@ -9,16 +9,16 @@ import (
 type (
 	// ConstructorBinder creates a constructor binding to `handlerType`.
 	ConstructorBinder interface {
-		NewConstructorBinding(
-			handlerType  reflect.Type,
-			constructor *reflect.Method,
-			spec        *bindingSpec,
-			key         any,
+		NewCtorBinding(
+			typ  reflect.Type,
+			ctor *reflect.Method,
+			spec *bindingSpec,
+			key  any,
 		) (Binding, error)
 	}
 
-	// constructorBinding customizes the construction of `handlerType`.
-	constructorBinding struct {
+	// ctorBinding customizes the construction of `handlerType`.
+	ctorBinding struct {
 		BindingBase
 		handlerType reflect.Type
 		key         any
@@ -26,30 +26,30 @@ type (
 )
 
 
-func (b *constructorBinding) Key() any {
+func (b *ctorBinding) Key() any {
 	if key := b.key; key != nil {
 		return key
 	}
 	return b.handlerType
 }
 
-func (b *constructorBinding) Strict() bool {
+func (b *ctorBinding) Strict() bool {
 	return false
 }
 
-func (b *constructorBinding) Exported() bool {
+func (b *ctorBinding) Exported() bool {
 	return false
 }
 
-func (b *constructorBinding) LogicalOutputType() reflect.Type {
+func (b *ctorBinding) LogicalOutputType() reflect.Type {
 	return b.handlerType
 }
 
-func (b *constructorBinding) Invoke(
+func (b *ctorBinding) Invoke(
 	ctx      HandleContext,
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
-	// constructorBinding's will be called on existing
+	// ctorBinding's will be called on existing
 	// handlers if present.  This would result in an
 	// additional and unexpected instance created.
 	// This situation can be detected if the handler is
@@ -69,25 +69,25 @@ func (b *constructorBinding) Invoke(
 	return []any{receiver}, nil, nil
 }
 
-func newConstructorBinding(
-	handlerType  reflect.Type,
-	constructor  *reflect.Method,
+func newCtorBinding(
+	typ          reflect.Type,
+	ctor         *reflect.Method,
 	spec         *bindingSpec,
 	key          any,
 	explicitSpec bool,
-) (binding *constructorBinding, err error) {
-	binding = &constructorBinding{
+) (binding *ctorBinding, err error) {
+	binding = &ctorBinding{
 		BindingBase{
 			FilteredScope{spec.filters},
 			spec.flags,
 			spec.metadata,
 		},
-		handlerType,
+		typ,
 		key,
 	}
-	if constructor != nil {
+	if ctor != nil {
 		startIndex := 0
-		methodType := constructor.Type
+		methodType := ctor.Type
 		numArgs    := methodType.NumIn()
 		args       := make([]arg, numArgs-1)  // skip receiver
 		if spec != nil && explicitSpec {
@@ -95,10 +95,10 @@ func newConstructorBinding(
 			args[0] = zeroArg{} // policy/binding placeholder
 		}
 		if err = buildDependencies(methodType, startIndex+1, numArgs, args, startIndex); err != nil {
-			err = fmt.Errorf("constructor: %w", err)
+			err = fmt.Errorf("ctor: %w", err)
 		} else {
-			initializer := &initializer{*constructor, args}
-			binding.AddFilters(&initializerProvider{[]Filter{initializer}})
+			initializer := &initializer{*ctor, args}
+			binding.AddFilters(&initProvider{[]Filter{initializer}})
 		}
 	}
 	return binding, err

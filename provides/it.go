@@ -10,6 +10,7 @@ type (
 	Builder = miruken.ProvidesBuilder
 	Single  = miruken.Single
 	Strict  = miruken.Strict
+	Init    = miruken.Init
 )
 
 

@@ -6,12 +6,25 @@ import (
 	"reflect"
 )
 
-// initializer is a Filter that invokes a 'Constructor'
-// method on the current output of the pipeline execution.
-type initializer struct {
-	constructor reflect.Method
-	args        []arg
-}
+type (
+	// Init marks a method as an initializer.
+	Init struct {}
+
+	// initializer is a Filter that invokes a 'Constructor'
+	// method on the current output of the pipeline execution.
+	initializer struct {
+		constructor reflect.Method
+		args        []arg
+	}
+
+	// initProvider is a FilterProvider for initializer.
+	initProvider struct {
+		filters []Filter
+	}
+)
+
+
+// initializer
 
 func (i *initializer) Order() int {
 	return math.MaxInt32
@@ -53,16 +66,14 @@ func (i *initializer) construct(
 	return callFunc(i.constructor.Func, ctx, i.args, recv)
 }
 
-// initializerProvider is a FilterProvider for initializer.
-type initializerProvider struct {
-	filters []Filter
-}
 
-func (i *initializerProvider) Required() bool {
+// initProvider
+
+func (i *initProvider) Required() bool {
 	return true
 }
 
-func (i *initializerProvider) AppliesTo(
+func (i *initProvider) AppliesTo(
 	callback Callback,
 ) bool {
 	switch callback.(type) {
@@ -71,7 +82,7 @@ func (i *initializerProvider) AppliesTo(
 	}
 }
 
-func (i *initializerProvider) Filters(
+func (i *initProvider) Filters(
 	binding  Binding,
 	callback any,
 	composer Handler,

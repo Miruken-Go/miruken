@@ -183,22 +183,22 @@ func newInferenceHandler(
 	}
 	return &inferenceHandler {
 		&HandlerInfo{
-			spec:     TypeSpec{inferenceHandlerType},
+			spec:     TypeSpec{inferHandlerType},
 			bindings: bindings,
 		},
 	}
 }
 
 func linkBinding(
-	policy          Policy,
-	binding         Binding,
-	bindings        *policyInfo,
-	handlerType     reflect.Type,
-	addConstructor  bool,
+	policy      Policy,
+	binding     Binding,
+	bindings    *policyInfo,
+	handlerType reflect.Type,
+	addCtor     bool,
 ) {
 	switch b := binding.(type) {
-	case *constructorBinding:
-		if addConstructor {
+	case *ctorBinding:
+		if addCtor {
 			bindings.insert(policy, b)
 		}
 	case *methodBinding:
@@ -208,4 +208,4 @@ func linkBinding(
 	}
 }
 
-var inferenceHandlerType = internal.TypeOf[*inferenceHandler]()
+var inferHandlerType = internal.TypeOf[*inferenceHandler]()

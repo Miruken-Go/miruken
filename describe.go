@@ -121,19 +121,7 @@ func (s TypeSpec) describe(
 		invalid = multierror.Append(invalid, fmt.Errorf(
 			"handler %v has both a Constructor and NoConstructor method", typ))
 	}
-	for _, ctorPk := range ctorPolicies {
-		policy := ctorPk.policy
-		if binder, ok := policy.(ConstructorBinder); ok {
-			if ctor, err := binder.NewConstructorBinding(typ, constructor, ctorSpec, ctorPk.key); err == nil {
-				for _, observer := range observers {
-					observer.BindingCreated(policy, info, ctor)
-				}
-				bindings.forPolicy(policy).insert(policy, ctor)
-			} else {
-				invalid = multierror.Append(invalid, err)
-			}
-		}
-	}
+
 	isFilter := typ.Implements(filterType)
 	// Discover explicit callback handlers
 	for i := 0; i < typ.NumMethod(); i++ {
@@ -170,6 +158,21 @@ func (s TypeSpec) describe(
 			invalid = multierror.Append(invalid, err)
 		}
 	}
+
+	for _, ctorPk := range ctorPolicies {
+		policy := ctorPk.policy
+		if binder, ok := policy.(ConstructorBinder); ok {
+			if ctor, err := binder.NewCtorBinding(typ, constructor, ctorSpec, ctorPk.key); err == nil {
+				for _, observer := range observers {
+					observer.BindingCreated(policy, info, ctor)
+				}
+				bindings.forPolicy(policy).insert(policy, ctor)
+			} else {
+				invalid = multierror.Append(invalid, err)
+			}
+		}
+	}
+
 	if invalid != nil {
 		return nil, &HandlerInfoError{s, invalid}
 	}

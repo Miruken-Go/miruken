@@ -222,7 +222,7 @@ type providesPolicy struct {
 	CovariantPolicy
 }
 
-func (p *providesPolicy) NewConstructorBinding(
+func (p *providesPolicy) NewCtorBinding(
 	handlerType reflect.Type,
 	constructor *reflect.Method,
 	spec        *bindingSpec,
@@ -230,15 +230,13 @@ func (p *providesPolicy) NewConstructorBinding(
 ) (binding Binding, err error) {
 	explicitSpec := spec != nil
 	if !explicitSpec {
-		single := new(Single)
+		single := &Single{}
 		if err = single.Init(); err != nil {
 			return nil, err
 		}
-		spec = &bindingSpec{
-			filters: []FilterProvider{single},
-		}
+		spec = &bindingSpec{filters: []FilterProvider{single}}
 	}
-	return newConstructorBinding(handlerType, constructor, spec, key, explicitSpec)
+	return newCtorBinding(handlerType, constructor, spec, key, explicitSpec)
 }
 
 var providesPolicyIns Policy = &providesPolicy{}
