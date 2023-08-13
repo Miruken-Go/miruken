@@ -3,7 +3,6 @@ package miruken
 import (
 	"github.com/miruken-go/miruken/promise"
 	"math"
-	"reflect"
 )
 
 type (
@@ -13,8 +12,8 @@ type (
 	// initializer is a Filter that invokes a 'Constructor'
 	// method on the current output of the pipeline execution.
 	initializer struct {
-		constructor reflect.Method
-		args        []arg
+		ctor  funcCall
+		inits []funcCall
 	}
 
 	// initProvider is a FilterProvider for initializer.
@@ -63,7 +62,7 @@ func (i *initializer) construct(
 	recv any,
 ) ([]any, *promise.Promise[[]any], error) {
 	ctx.Handler = recv
-	return callFunc(i.constructor.Func, ctx, i.args, recv)
+	return i.ctor.Invoke(ctx, recv)
 }
 
 

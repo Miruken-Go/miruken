@@ -119,12 +119,13 @@ type createsPolicy struct {
 }
 
 func (c *createsPolicy) NewCtorBinding(
-	handlerType reflect.Type,
-	constructor *reflect.Method,
-	spec        *bindingSpec,
-	key         any,
+	typ   reflect.Type,
+	ctor  *reflect.Method,
+	inits []reflect.Method,
+	spec  *bindingSpec,
+	key   any,
 ) (binding Binding, err error) {
-	return newCtorBinding(handlerType, constructor, spec, key, spec != nil)
+	return newCtorBinding(typ, ctor, inits, spec, key, spec != nil)
 }
 
 var createsPolicyIns Policy = &createsPolicy{}

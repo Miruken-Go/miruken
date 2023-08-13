@@ -280,54 +280,6 @@ func (e *UnresolvedArgError) Unwrap() error {
 	return e.Reason
 }
 
-func resolveFuncArgs(
-	fun       reflect.Value,
-	args      []arg,
-	fromIndex int,
-	ctx       HandleContext,
-) ([]reflect.Value, *promise.Promise[[]reflect.Value], error) {
-	if len(args) == 0 {
-		return nil, nil, nil
-	}
-	funType := fun.Type()
-	var promises []*promise.Promise[struct{}]
-	resolved := make([]reflect.Value, len(args))
-	for i, arg := range args {
-		typ := funType.In(fromIndex + i)
-		if a, pa, err := arg.resolve(typ, ctx); err != nil {
-			return nil, nil, &UnresolvedArgError{arg, err}
-		} else if pa == nil {
-			if arg.flags() & bindingAsync == bindingAsync {
-				// Not a promise so lift
-				resolved[i] = reflect.ValueOf(promise.Lift(typ, a.Interface()))
-			} else {
-				resolved[i] = a
-			}
-		} else if arg.flags() & bindingAsync == bindingAsync {
-			// Already a promise so coerce
-			resolved[i] = reflect.ValueOf(
-				promise.CoerceType(typ, pa.Then(func(v any) any {
-					return v.(reflect.Value).Interface()
-				})))
-		} else {
-			idx := i
-			promises = append(promises, promise.Then(pa, func(v reflect.Value) struct {} {
-				resolved[idx] = v
-				return struct{}{}
-			}))
-		}
-	}
-	switch len(promises) {
-	case 0:
-		return resolved, nil, nil
-	case 1:
-		return nil, promise.Then(promises[0],
-			func(struct{}) []reflect.Value { return resolved }), nil
-	default:
-		return nil, promise.Then(promise.All(promises...),
-			func([]struct{}) []reflect.Value { return resolved }), nil
-	}
-}
 
 // Dependency typed
 

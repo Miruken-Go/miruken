@@ -19,10 +19,10 @@ type (
 
 	// methodBinding models a `key` Binding to a method.
 	methodBinding struct {
+		funcCall
 		BindingBase
 		key    any
 		method reflect.Method
-		args   []arg
 		lt     reflect.Type
 	}
 
@@ -46,22 +46,21 @@ func (b *methodBinding) LogicalOutputType() reflect.Type {
 	return b.lt
 }
 
+func (b *methodBinding) Method() reflect.Method {
+	return b.method
+}
+
 func (b *methodBinding) Invoke(
 	ctx      HandleContext,
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	if initArgs == nil {
-		initArgs = []any{ctx.Handler}
-	} else {
-		initArgs = append(initArgs, nil)
-		copy(initArgs[1:], initArgs)
-		initArgs[0] = ctx.Handler
+		return b.funcCall.Invoke(ctx, ctx.Handler)
 	}
-	return callFunc(b.method.Func, ctx, b.args, initArgs...)
-}
-
-func (b *methodBinding) Method() reflect.Method {
-	return b.method
+	initArgs = append(initArgs, nil)
+	copy(initArgs[1:], initArgs)
+	initArgs[0] = ctx.Handler
+	return b.funcCall.Invoke(ctx, initArgs...)
 }
 
 

@@ -24,8 +24,8 @@ func MakeCaller(fun any) (CallerFunc, error) {
 			return nil, err
 		}
 		return func(handler Handler, initArgs ...any) ([]any, *promise.Promise[[]any], error) {
-			ctx := HandleContext{Composer: handler}
-			return callFunc(val, ctx, args[len(initArgs):], initArgs...)
+			fun := funcCall{val, args[len(initArgs):]}
+			return fun.Invoke(HandleContext{Composer: handler}, initArgs...)
 		}, nil
 	}
 }

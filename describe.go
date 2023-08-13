@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
+	"strings"
 )
 
 type (
@@ -89,13 +90,16 @@ func (s TypeSpec) describe(
 	typ      := s.typ
 	bindings := make(policyInfoMap)
 	info      = &HandlerInfo{spec: s}
+	isFilter := typ.Implements(filterType)
 
 	var ctorSpec *bindingSpec
 	var ctorPolicies []policyKey
-	var constructor *reflect.Method
-	// Add constructor implicitly
-	if ctor, ok := typ.MethodByName("Constructor"); ok {
-		constructor = &ctor
+	var ctor *reflect.Method
+	var inits []reflect.Method
+
+	// Add ctor implicitly
+	if ctorMethod, ok := typ.MethodByName("Constructor"); ok {
+		ctor = &ctorMethod
 		ctorType := ctor.Type
 		if spec, err := factory.createSpec(ctorType, 2); err == nil {
 			if spec != nil {
@@ -106,6 +110,8 @@ func (s TypeSpec) describe(
 			invalid = multierror.Append(invalid, err)
 		}
 	}
+
+	// Check for ctor suppression
 	if _, noImplicit := typ.MethodByName("NoConstructor"); !noImplicit {
 		addProvides := true
 		for _, ctorPk := range ctorPolicies {
@@ -117,12 +123,11 @@ func (s TypeSpec) describe(
 		if addProvides {
 			ctorPolicies = append(ctorPolicies, policyKey{policy: providesPolicyIns})
 		}
-	} else if constructor != nil {
+	} else if ctor != nil {
 		invalid = multierror.Append(invalid, fmt.Errorf(
 			"handler %v has both a Constructor and NoConstructor method", typ))
 	}
 
-	isFilter := typ.Implements(filterType)
 	// Discover explicit callback handlers
 	for i := 0; i < typ.NumMethod(); i++ {
 		method := typ.Method(i)
@@ -132,7 +137,10 @@ func (s TypeSpec) describe(
 		methodType := method.Type
 		if spec, err := factory.createSpec(methodType, 2); err == nil {
 			if spec == nil { // not a handler method
-				if !isFilter {
+				if strings.HasPrefix(method.Name, "Init") ||
+					methodType.NumIn() >= 2 && methodType.In(1) == initSpecType {
+					inits = append(inits, method)
+				} else if !isFilter {
 					if fb, err := parseFilterMethod(method); err != nil {
 						invalid = multierror.Append(invalid, err)
 					} else if fb != nil {
@@ -159,10 +167,11 @@ func (s TypeSpec) describe(
 		}
 	}
 
+	// Build ctor bindings
 	for _, ctorPk := range ctorPolicies {
 		policy := ctorPk.policy
 		if binder, ok := policy.(ConstructorBinder); ok {
-			if ctor, err := binder.NewCtorBinding(typ, constructor, ctorSpec, ctorPk.key); err == nil {
+			if ctor, err := binder.NewCtorBinding(typ, ctor, inits, ctorSpec, ctorPk.key); err == nil {
 				for _, observer := range observers {
 					observer.BindingCreated(policy, info, ctor)
 				}
@@ -622,4 +631,7 @@ func (f *currentHandlerInfoFactory) CabBatch() bool {
 }
 
 
-var suppressDispatchType = internal.TypeOf[suppressDispatch]()
+var (
+	suppressDispatchType = internal.TypeOf[suppressDispatch]()
+	initSpecType         = internal.TypeOf[Init]()
+)

@@ -92,12 +92,13 @@ func (p *BivariantPolicy) NewMethodBinding(
 		return nil, &MethodBindingError{method, err}
 	} else {
 		return &methodBinding{
+			funcCall{method.Func, args},
 			BindingBase{
 				FilteredScope{spec.filters},
 				spec.flags,
 				spec.metadata,
 			},
-			key, method, args, spec.lt,
+			key, method, spec.lt,
 		}, nil
 	}
 }
@@ -111,12 +112,13 @@ func (p *BivariantPolicy) NewFuncBinding(
 		return nil, &FuncBindingError{fun, err}
 	} else {
 		return &funcBinding{
+			funcCall{fun, args},
 			BindingBase{
 				FilteredScope{spec.filters},
 				spec.flags,
 				spec.metadata,
 			},
-			key, fun, args, spec.lt,
+			key, spec.lt,
 		}, nil
 	}
 }

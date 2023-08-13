@@ -18,41 +18,29 @@ type (
 		) (Binding, error)
 	}
 
-	// funcBinding models a `key` Binding to a function.
-	funcBinding struct {
-		BindingBase
-		key  any
-		fun  reflect.Value
-		args []arg
-		lt   reflect.Type
-	}
-
 	// FuncBindingError reports a failed function binding.
 	FuncBindingError struct {
 		fun    reflect.Value
 		reason error
 	}
+
+	// funcBinding models a `key` Binding to a function.
+	funcBinding struct {
+		funcCall
+		BindingBase
+		key any
+		lt  reflect.Type
+	}
+
+	// funcCall models a function call with arguments.
+	funcCall struct {
+		fun  reflect.Value
+		args []arg
+	}
 )
 
 
-func (b *funcBinding) Key() any {
-	return b.key
-}
-
-func (b *funcBinding) Exported() bool {
-	return internal.Exported(b.key) && internal.Exported(b.fun.Interface())
-}
-
-func (b *funcBinding) LogicalOutputType() reflect.Type {
-	return b.lt
-}
-
-func (b *funcBinding) Invoke(
-	ctx      HandleContext,
-	initArgs ...any,
-) ([]any, *promise.Promise[[]any], error) {
-	return callFunc(b.fun, ctx, b.args, initArgs...)
-}
+// FuncBindingError
 
 func (e *FuncBindingError) Func() reflect.Value {
 	return e.fun
@@ -67,27 +55,85 @@ func (e *FuncBindingError) Unwrap() error {
 }
 
 
-// callFunc calls the function stored in the fun argument.
-// Resolves the input args and appends them to the initArgs
-// to supply the input arguments to the function.
-// Returns the output results slice and/or and error if not
-// asynchronous or a promise to the output results.
-func callFunc(
-	fun      reflect.Value,
+// funcBinding
+
+func (b *funcBinding) Key() any {
+	return b.key
+}
+
+func (b *funcBinding) Exported() bool {
+	return internal.Exported(b.key) && internal.Exported(b.fun.Interface())
+}
+
+func (b *funcBinding) LogicalOutputType() reflect.Type {
+	return b.lt
+}
+
+
+// funcCall
+
+func (f *funcCall) Invoke(
 	ctx      HandleContext,
-	args     []arg,
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
-	ra, pa, err := resolveFuncArgs(fun, args, len(initArgs), ctx)
+	ra, pa, err := f.resolveArgs(len(initArgs), ctx)
 	if err != nil {
 		return nil, nil, err
 	} else if pa == nil {
-		return callFuncWithArgs(fun, ra, initArgs), nil, nil
+		return callFuncWithArgs(f.fun, ra, initArgs), nil, nil
 	}
 	return nil, promise.Then(pa, func(ra []reflect.Value) []any {
-		return callFuncWithArgs(fun, ra, initArgs)
+		return callFuncWithArgs(f.fun, ra, initArgs)
 	}), nil
 }
+
+func (f *funcCall) resolveArgs(
+	fromIndex int,
+	ctx       HandleContext,
+) ([]reflect.Value, *promise.Promise[[]reflect.Value], error) {
+	if len(f.args) == 0 {
+		return nil, nil, nil
+	}
+	funType := f.fun.Type()
+	var promises []*promise.Promise[struct{}]
+	resolved := make([]reflect.Value, len(f.args))
+	for i, arg := range f.args {
+		typ := funType.In(fromIndex + i)
+		if a, pa, err := arg.resolve(typ, ctx); err != nil {
+			return nil, nil, &UnresolvedArgError{arg, err}
+		} else if pa == nil {
+			if arg.flags() & bindingAsync == bindingAsync {
+				// Not a promise so lift
+				resolved[i] = reflect.ValueOf(promise.Lift(typ, a.Interface()))
+			} else {
+				resolved[i] = a
+			}
+		} else if arg.flags() & bindingAsync == bindingAsync {
+			// Already a promise so coerce
+			resolved[i] = reflect.ValueOf(
+				promise.CoerceType(typ, pa.Then(func(v any) any {
+					return v.(reflect.Value).Interface()
+				})))
+		} else {
+			idx := i
+			promises = append(promises, promise.Then(pa, func(v reflect.Value) struct {} {
+				resolved[idx] = v
+				return struct{}{}
+			}))
+		}
+	}
+	switch len(promises) {
+	case 0:
+		return resolved, nil, nil
+	case 1:
+		return nil, promise.Then(promises[0],
+			func(struct{}) []reflect.Value { return resolved }), nil
+	default:
+		return nil, promise.Then(promise.All(promises...),
+			func([]struct{}) []reflect.Value { return resolved }), nil
+	}
+}
+
 
 // callFuncWithArgs calls the function stored in the fun argument.
 // Combines the initial ands resolved args as the function input.
@@ -107,6 +153,7 @@ func callFuncWithArgs(
 	}
 	return slices.Map[reflect.Value, any](fun.Call(in), reflect.Value.Interface)
 }
+
 
 // mergeOutput analyzes the standard function return values and
 // normalizes them to produce immediate or asynchronous results.

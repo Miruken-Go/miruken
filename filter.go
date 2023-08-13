@@ -427,9 +427,8 @@ func pipeline(
 type (
 	// filterBinding executes a Filter method dynamically.
 	filterBinding struct {
-		method  reflect.Method
+		funcCall
 		applyTo reflect.Type
-		args    []arg
 		ctxIdx  int
 		prvIdx  int
 	}
@@ -479,7 +478,7 @@ func (n filterBinding) invoke(
 			initArgs = append(initArgs, provider)
 		}
 	}
-	if out, pout, err = callFunc(n.method.Func, ctx, n.args, initArgs...); err != nil {
+	if out, pout, err = n.Invoke(ctx, initArgs...); err != nil {
 		return
 	} else if pout == nil {
 		pout, _ = out[1].(*promise.Promise[[]any])
@@ -621,7 +620,7 @@ func parseFilterMethod(
 	}
 	skip     := 2 // skip receiver
 	nextIdx  := 1 // must be 1 or 2
-	binding  := filterBinding{method: method}
+	binding  := filterBinding{}
 	firstArg := funcType.In(1)
 	if firstArg != nextFuncType {
 		if numArgs < 3 || funcType.In(2) != nextFuncType {
@@ -657,7 +656,8 @@ func parseFilterMethod(
 		err = fmt.Errorf("filter: %v %q: %w", funcType.In(0), method.Name, err)
 		return nil, &MethodBindingError{method, err}
 	}
-	binding.args = args
+	binding.funcCall.fun  = method.Func
+	binding.funcCall.args = args
 	return &binding, nil
 }
 

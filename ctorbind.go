@@ -7,21 +7,22 @@ import (
 )
 
 type (
-	// ConstructorBinder creates a constructor binding to `handlerType`.
+	// ConstructorBinder creates constructor Binding's.
 	ConstructorBinder interface {
 		NewCtorBinding(
-			typ  reflect.Type,
-			ctor *reflect.Method,
-			spec *bindingSpec,
-			key  any,
+			typ   reflect.Type,
+			ctor  *reflect.Method,
+			inits []reflect.Method,
+			spec  *bindingSpec,
+			key   any,
 		) (Binding, error)
 	}
 
-	// ctorBinding customizes the construction of `handlerType`.
+	// ctorBinding provides instances through logical construction.
 	ctorBinding struct {
 		BindingBase
-		handlerType reflect.Type
-		key         any
+		typ reflect.Type
+		key any
 	}
 )
 
@@ -30,7 +31,7 @@ func (b *ctorBinding) Key() any {
 	if key := b.key; key != nil {
 		return key
 	}
-	return b.handlerType
+	return b.typ
 }
 
 func (b *ctorBinding) Strict() bool {
@@ -42,7 +43,7 @@ func (b *ctorBinding) Exported() bool {
 }
 
 func (b *ctorBinding) LogicalOutputType() reflect.Type {
-	return b.handlerType
+	return b.typ
 }
 
 func (b *ctorBinding) Invoke(
@@ -56,22 +57,24 @@ func (b *ctorBinding) Invoke(
 	// the same type created by this binding.  If it is,
 	// the creation will be skipped.  Otherwise, a true
 	// construction is desired.
-	handlerType := b.handlerType
-	if reflect.TypeOf(ctx.Handler) == handlerType {
+	typ := b.typ
+	if reflect.TypeOf(ctx.Handler) == typ {
 		return nil, nil, nil
 	}
 	var receiver any
-	if handlerType.Kind() == reflect.Ptr {
-		receiver = reflect.New(handlerType.Elem()).Interface()
+	if typ.Kind() == reflect.Ptr {
+		receiver = reflect.New(typ.Elem()).Interface()
 	} else {
-		receiver = reflect.New(handlerType).Elem().Interface()
+		receiver = reflect.New(typ).Elem().Interface()
 	}
 	return []any{receiver}, nil, nil
 }
 
+
 func newCtorBinding(
 	typ          reflect.Type,
 	ctor         *reflect.Method,
+	inits        []reflect.Method,
 	spec         *bindingSpec,
 	key          any,
 	explicitSpec bool,
@@ -81,9 +84,7 @@ func newCtorBinding(
 			FilteredScope{spec.filters},
 			spec.flags,
 			spec.metadata,
-		},
-		typ,
-		key,
+		}, typ, key,
 	}
 	if ctor != nil {
 		startIndex := 0
@@ -92,12 +93,12 @@ func newCtorBinding(
 		args       := make([]arg, numArgs-1)  // skip receiver
 		if spec != nil && explicitSpec {
 			startIndex = 1
-			args[0] = zeroArg{} // policy/binding placeholder
+			args[0] = zeroArg{}  // policy/binding placeholder
 		}
 		if err = buildDependencies(methodType, startIndex+1, numArgs, args, startIndex); err != nil {
-			err = fmt.Errorf("ctor: %w", err)
+			err = fmt.Errorf("constructor: %w", err)
 		} else {
-			initializer := &initializer{*ctor, args}
+			initializer := &initializer{ctor:funcCall{ctor.Func, args}}
 			binding.AddFilters(&initProvider{[]Filter{initializer}})
 		}
 	}

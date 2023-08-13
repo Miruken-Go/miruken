@@ -223,10 +223,11 @@ type providesPolicy struct {
 }
 
 func (p *providesPolicy) NewCtorBinding(
-	handlerType reflect.Type,
-	constructor *reflect.Method,
-	spec        *bindingSpec,
-	key         any,
+	typ   reflect.Type,
+	ctor  *reflect.Method,
+	inits []reflect.Method,
+	spec  *bindingSpec,
+	key   any,
 ) (binding Binding, err error) {
 	explicitSpec := spec != nil
 	if !explicitSpec {
@@ -236,7 +237,7 @@ func (p *providesPolicy) NewCtorBinding(
 		}
 		spec = &bindingSpec{filters: []FilterProvider{single}}
 	}
-	return newCtorBinding(handlerType, constructor, spec, key, explicitSpec)
+	return newCtorBinding(typ, ctor, inits, spec, key, explicitSpec)
 }
 
 var providesPolicyIns Policy = &providesPolicy{}

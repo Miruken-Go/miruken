@@ -29,8 +29,7 @@ type (
 	// sideEffectBinding describes the method used by a
 	// SideEffectAdapter to apply the SideEffect dynamically.
 	sideEffectBinding struct {
-		method reflect.Method
-		args   []arg
+		funcCall
 		ctxIdx int
 		refIdx int
 		errIdx int
@@ -105,7 +104,7 @@ func getSideEffectMethod(
 			}
 			skip    := 1 // skip receiver
 			numArgs := lateApplyType.NumIn()
-			binding := sideEffectBinding{method: method, refIdx: refIdx, errIdx: errIdx}
+			binding := sideEffectBinding{refIdx: refIdx, errIdx: errIdx}
 			for i := 1; i < 2 && i < numArgs; i++ {
 				if lateApplyType.In(i) == handleCtxType {
 					if binding.ctxIdx > 0 {
@@ -122,7 +121,8 @@ func getSideEffectMethod(
 				err = fmt.Errorf("side-effect: %v %q: %w", typ, method.Name, err)
 				return  nil, &MethodBindingError{method, err}
 			}
-			binding.args = args
+			binding.funcCall.fun  = method.Func
+			binding.funcCall.args = args
 			(*bindings)[typ] = binding
 			sideEffBindingMap.Store(bindings)
 			return &binding, nil
@@ -140,13 +140,10 @@ func (a sideEffectBinding) invoke(
 	if a.ctxIdx == 1 {
 		initArgs = append(initArgs, ctx)
 	}
-	fun := a.method.Func
-	fromIndex := len(initArgs)
-	ra, pa, err := resolveFuncArgs(fun, a.args, fromIndex, ctx)
+	out, pout, err := a.Invoke(ctx, initArgs...)
 	if err != nil {
 		return nil, err
-	} else if pa == nil {
-		out := callFuncWithArgs(fun, ra, initArgs)
+	} else if pout == nil {
 		if errIdx := a.errIdx; errIdx >= 0 {
 			if oe, ok := out[errIdx].(error); ok && oe != nil {
 				return nil, oe
@@ -159,8 +156,7 @@ func (a sideEffectBinding) invoke(
 		}
 		return nil, nil
 	}
-	return promise.Then(pa, func(ra []reflect.Value) any {
-		out := callFuncWithArgs(fun, ra, initArgs)
+	return promise.Then(pout, func(out []any) any {
 		if errIdx := a.errIdx; errIdx >= 0 {
 			if oe, ok := out[errIdx].(error); ok && oe != nil {
 				panic(oe)
