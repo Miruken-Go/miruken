@@ -109,10 +109,8 @@ func (p *ContravariantPolicy) NewMethodBinding(
 			funcCall{method.Func, args},
 			BindingBase{
 				FilteredScope{spec.filters},
-				spec.flags,
-				spec.metadata,
-			},
-			key, method, spec.lt,
+				spec.flags, spec.metadata,
+			}, key, method, spec.lt,
 		}, nil
 	}
 }
@@ -129,10 +127,8 @@ func (p *ContravariantPolicy) NewFuncBinding(
 			funcCall{fun, args},
 			BindingBase{
 				FilteredScope{spec.filters},
-				spec.flags,
-				spec.metadata,
-			},
-			key, spec.lt,
+				spec.flags, spec.metadata,
+			}, key, spec.lt,
 		}, nil
 	}
 }

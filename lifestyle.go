@@ -63,15 +63,6 @@ type (
 		LifestyleProvider
 	}
 
-	// single is a Filter that caches an instance.
-	// Since a Single Handler can provide results polymorphically,
-	// a map of key to instance is maintained.
-	single struct {
-		Lifestyle
-		keys atomic.Pointer[singleCache]
-		lock sync.Mutex
-	}
-
 	// singleEntry stores a lazy instance.
 	singleEntry struct {
 		instance []any
@@ -80,15 +71,47 @@ type (
 
 	// singleCache maintains a cache of singleEntry's.
 	singleCache map[any]*singleEntry
+
+	// single is a Filter that caches a single instance.
+	single struct {
+		Lifestyle
+		entry singleEntry
+	}
+
+	// singlePoly is a Filter that caches a polymorphic instance.
+	// When a Single Handler provides results polymorphically,
+	// a map of key to instance is maintained.
+	singlePoly struct {
+		Lifestyle
+		keys atomic.Pointer[singleCache]
+		lock sync.Mutex
+	}
 )
 
 
+// Single
+
 func (s *Single) Init() error {
-	s.SetFilters(&single{})
+	s.SetFilters(&singlePoly{})
 	return nil
 }
 
+
+// single
+
 func (s *single) Next(
+	self     Filter,
+	next     Next,
+	ctx      HandleContext,
+	provider FilterProvider,
+)  (out []any, po *promise.Promise[[]any], err error) {
+	return nil, nil, err
+}
+
+
+// singlePoly
+
+func (s *singlePoly) Next(
 	self     Filter,
 	next     Next,
 	ctx      HandleContext,

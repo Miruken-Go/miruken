@@ -85,7 +85,7 @@ func (m *MultipartMapper) Read(
 				rpb.AddPart(key, pb.Body(reader).Build())
 			}
 		} else if len(body) > 0 {
-			late, _, _, err := maps.Out[miruken.Late](composer, body, maps.From(ct, nil))
+			late, _, _, err := maps.Out[Late](composer, body, maps.From(ct, nil))
 			if err != nil {
 				return msg, err
 			}

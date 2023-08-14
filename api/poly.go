@@ -30,6 +30,14 @@ type (
 		TypeId string
 		Cause error
 	}
+
+	// Late is a container for late polymorphic results.
+	// It is used be serializers to explicitly request polymorphic
+	// behavior and avoid circular calls with any type.
+	Late struct {
+		Value any
+	}
+
 )
 
 

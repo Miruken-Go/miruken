@@ -54,9 +54,9 @@ func (m *SurrogateMapper) DecodeMessage(
 			return
 		}
 		if payload := sur.Payload; payload != nil {
-			var late miruken.Late
+			var late api.Late
 			composer := ctx.Composer
-			late, _, _, err = maps.Out[miruken.Late](composer, []byte(payload), api.FromJson)
+			late, _, _, err = maps.Out[api.Late](composer, []byte(payload), api.FromJson)
 			if sur, ok := late.Value.(api.Surrogate); ok {
 				late.Value, err = sur.Original(composer)
 			}

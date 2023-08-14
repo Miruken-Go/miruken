@@ -159,7 +159,7 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 		}
 	}
 	if typeIdRaw == nil {
-		if late, ok := c.v.(*miruken.Late); ok {
+		if late, ok := c.v.(*api.Late); ok {
 			if err := json.Unmarshal(data, &late.Value); err != nil {
 				return err
 			} else {
@@ -195,7 +195,7 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 			if err := json.Unmarshal(data, vm); err != nil {
 				return err
 			} else {
-				if late, ok := c.v.(*miruken.Late); ok {
+				if late, ok := c.v.(*api.Late); ok {
 					late.Value = v
 				} else {
 					internal.CopyIndirect(v, c.v)

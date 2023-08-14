@@ -555,7 +555,7 @@ func (suite *StdJsonTestSuite) TestJson() {
 
 			suite.Run("FromJsonReaderTypedLate", func() {
 				reader := strings.NewReader("{\"@type\":\"test.TeamData\",\"Id\":11,\"Name\":\"Chelsea\"}")
-				late, _, _, err := maps.Out[miruken.Late](
+				late, _, _, err := maps.Out[api.Late](
 					miruken.BuildUp(handler, api.Polymorphic),
 					reader, api.FromJson)
 				suite.Nil(err)
@@ -587,7 +587,7 @@ func (suite *StdJsonTestSuite) TestJson() {
 
 			suite.Run("FromJsonBytesNoTypeInfoLate", func() {
 				j := "{\"Id\":23,\"Name\":\"Everton\"}"
-				late, _, _, err := maps.Out[miruken.Late](
+				late, _, _, err := maps.Out[api.Late](
 					miruken.BuildUp(handler, api.Polymorphic),
 					[]byte(j), api.FromJson)
 				suite.Nil(err)

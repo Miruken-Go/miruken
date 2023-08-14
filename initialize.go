@@ -10,7 +10,8 @@ type (
 	Init struct {}
 
 	// initializer is a Filter that invokes a 'Constructor'
-	// method on the current output of the pipeline execution.
+	// method and optional 'Init' methods on the current output
+	// of the pipeline execution.
 	initializer struct {
 		ctor  funcCall
 		inits []funcCall

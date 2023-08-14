@@ -82,8 +82,7 @@ func newCtorBinding(
 	binding = &ctorBinding{
 		BindingBase{
 			FilteredScope{spec.filters},
-			spec.flags,
-			spec.metadata,
+			spec.flags, spec.metadata,
 		}, typ, key,
 	}
 	if ctor != nil {

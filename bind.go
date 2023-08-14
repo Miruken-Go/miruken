@@ -39,11 +39,6 @@ type (
 		result  HandleResult,
 	) (HandleResult, bool)
 
-	// Late is a container for late Binding results.
-	Late struct {
-		Value any
-	}
-
 	// BindingParser is an extension for binding customizations.
 	BindingParser interface {
 		parse(
@@ -75,6 +70,8 @@ type (
 )
 
 
+// BindingParserFunc
+
 func (b BindingParserFunc) parse(
 	index   int,
 	field   reflect.StructField,
@@ -84,8 +81,12 @@ func (b BindingParserFunc) parse(
 }
 
 
+// BindingGroup
+
 func (BindingGroup) DefinesBindingGroup() {}
 
+
+// BindingBase
 
 func (b *BindingBase) Strict() bool {
 	return b.flags & bindingStrict == bindingStrict
@@ -319,11 +320,11 @@ func (p *bindingSpecFactory) parse(
 
 func parseSpec(
 	source  reflect.Type,
-	binding any,
+	spec    any,
 	parsers []BindingParser,
 ) (err error) {
-	if err = parseStruct(source, binding, parsers); err == nil {
-		if b, ok := binding.(interface {
+	if err = parseStruct(source, spec, parsers); err == nil {
+		if b, ok := spec.(interface {
 			complete() error
 		}); ok {
 			err = b.complete()
