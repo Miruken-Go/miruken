@@ -9,6 +9,7 @@ import (
 	"github.com/miruken-go/miruken/provides"
 	"reflect"
 	"sync"
+	"sync/atomic"
 )
 
 type (
@@ -46,8 +47,8 @@ type (
 	// scoped is a Filter that caches a known instance per Context.
 	scoped struct {
 		miruken.Lifestyle
-		cache  map[*Context]*scopedEntry
-		lock   sync.RWMutex
+		cache  atomic.Pointer[map[*Context]*scopedEntry]
+		lock   sync.Mutex
 	}
 
 	// scopedUnk is a miruken.Filter that caches unknown instances
@@ -101,22 +102,30 @@ func (s *scoped) Next(
 	}
 
 	var entry *scopedEntry
-	s.lock.RLock()
-	if cache := s.cache; cache != nil {
-		entry = cache[context]
+	if cache := s.cache.Load(); cache != nil {
+		if e, ok := (*cache)[context]; ok {
+			entry = e
+		}
 	}
-	s.lock.RUnlock()
 
+	// Use copy-on-write idiom since reads should be more frequent than writes.
 	if entry == nil {
 		s.lock.Lock()
-		if cache := s.cache; cache != nil {
-			if entry = cache[context]; entry == nil {
-				entry = &scopedEntry{once: new(sync.Once)}
-				cache[context] = entry
+		if cache := s.cache.Load(); cache != nil {
+			if entry = (*cache)[context]; entry == nil {
+				cc := make(map[*Context]*scopedEntry, len(*cache)+1)
+				for k, v := range *cache {
+					cc[k] = v
+				}
+				if entry == nil {
+					entry = &scopedEntry{once: new(sync.Once)}
+					cc[context] = entry
+				}
+				s.cache.Store(&cc)
 			}
 		} else {
 			entry = &scopedEntry{once: new(sync.Once)}
-			s.cache = map[*Context]*scopedEntry{context: entry}
+			s.cache.Store(&map[*Context]*scopedEntry{context: entry})
 		}
 		s.lock.Unlock()
 	}
@@ -135,14 +144,18 @@ func (s *scoped) ContextChanging(
 	if *newCtx != nil {
 		panic("managed instances cannot change context")
 	}
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	if cache := s.cache; cache == nil {
-		return
-	} else if entry := cache[oldCtx]; entry != nil {
-		if entry.instance[0] == contextual {
-			delete(cache, oldCtx)
+	if cache := s.cache.Load(); cache != nil {
+		if entry := (*cache)[oldCtx]; entry != nil {
+			s.lock.Lock()
+			defer s.lock.Unlock()
+			cc := make(map[*Context]*scopedEntry, len(*cache)+1)
+			for k, v := range *cache {
+				if k != oldCtx {
+					cc[k] = v
+				}
+			}
 			tryDispose(contextual)
+			s.cache.Store(&cc)
 		}
 	}
 }
@@ -150,7 +163,15 @@ func (s *scoped) ContextChanging(
 func (s *scoped) removeContext(context *Context) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	delete(s.cache, context)
+	if cache := s.cache.Load(); cache != nil {
+		cc := make(map[*Context]*scopedEntry, len(*cache)+1)
+		for k, v := range *cache {
+			if k != context {
+				cc[k] = v
+			}
+		}
+		s.cache.Store(&cc)
+	}
 }
 
 
