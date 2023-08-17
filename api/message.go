@@ -16,7 +16,7 @@ type (
 
 	// Surrogate replaces a value with another for api transmission.
 	Surrogate interface {
-		Original(composer miruken.Handler) (any, error)
+		Original(miruken.Handler) (any, error)
 	}
 
 	// Options control api message processing.

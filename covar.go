@@ -25,7 +25,7 @@ func (p *CovariantPolicy) VariantKey(
 	key any,
 ) (variant bool, unknown bool) {
 	if typ, ok := key.(reflect.Type); ok {
-		return true, anyType.AssignableTo(typ)
+		return true, internal.AnyType.AssignableTo(typ)
 	}
 	return false, false
 }
@@ -39,7 +39,7 @@ func (p *CovariantPolicy) MatchesKey(
 	} else if invariant {
 		return false, false
 	} else if bt, isType := key.(reflect.Type); isType {
-		if anyType.AssignableTo(bt) {
+		if internal.AnyType.AssignableTo(bt) {
 			return true, false
 		} else if kt, isType := otherKey.(reflect.Type); isType {
 			return bt.AssignableTo(kt), false
@@ -102,6 +102,38 @@ func (p *CovariantPolicy) AcceptResults(
 	return nil, NotHandled.WithError(ErrCovResultsExceeded)
 }
 
+func (p *CovariantPolicy) NewCtorBinding(
+	typ   reflect.Type,
+	ctor  *reflect.Method,
+	inits []reflect.Method,
+	spec  *bindingSpec,
+	key   any,
+) (Binding, error) {
+	binding := &ctorBinding{typ: typ, key: key}
+	if spec != nil {
+		binding.BindingBase.FilteredScope.providers = spec.filters
+		binding.BindingBase.metadata = spec.metadata
+		binding.BindingBase.flags = spec.flags
+	}
+	if ctor != nil {
+		startIndex := 0
+		methodType := ctor.Type
+		numArgs    := methodType.NumIn()
+		args       := make([]arg, numArgs-1)  // skip receiver
+		if spec != nil {
+			startIndex = 1
+			args[0] = zeroArg{}  // policy/binding placeholder
+		}
+		err := buildDependencies(methodType, startIndex+1, numArgs, args, startIndex)
+		if err != nil {
+			return nil, fmt.Errorf("constructor: %w", err)
+		}
+		initializer := &initializer{ctor:funcCall{ctor.Func, args}}
+		binding.AddFilters(&initProvider{[]Filter{initializer}})
+	}
+	return binding, nil
+}
+
 func (p *CovariantPolicy) NewMethodBinding(
 	method reflect.Method,
 	spec   *bindingSpec,
@@ -158,7 +190,7 @@ func validateCovariantFunc(
 
 	for i := 0; i < numOut; i++ {
 		out := funType.Out(i)
-		if out.AssignableTo(errorType) {
+		if out.AssignableTo(internal.ErrorType) {
 			if i != numOut-1 {
 				err = multierror.Append(err, fmt.Errorf(
 					"covariant: error found at index %v must be last return", i))

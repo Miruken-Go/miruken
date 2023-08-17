@@ -208,7 +208,7 @@ func (b *bindingSpec) addMetadata(
 
 func (b *bindingSpec) setLogicalOutputType(lt reflect.Type) {
 	switch lt {
-	case errorType, handleResType: break
+	case internal.ErrorType, handleResType: break
 	default:
 		b.lt = lt
 	}

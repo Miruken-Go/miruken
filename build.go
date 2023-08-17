@@ -7,7 +7,7 @@ import (
 type (
 	// Builder augments a Handler.
 	Builder interface {
-		BuildUp(handler Handler) Handler
+		BuildUp(Handler) Handler
 	}
 
 	// BuilderFunc promotes a function to Builder.

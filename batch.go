@@ -9,9 +9,7 @@ import (
 
 type (
 	batching interface {
-		CompleteBatch(
-			composer Handler,
-		) (any, *promise.Promise[any], error)
+		CompleteBatch(Handler) (any, *promise.Promise[any], error)
 	}
 
 	batch struct {

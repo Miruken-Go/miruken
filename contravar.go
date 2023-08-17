@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -24,7 +25,7 @@ func (p *ContravariantPolicy) VariantKey(
 	key any,
 ) (variant bool, unknown bool) {
 	if typ, ok := key.(reflect.Type); ok {
-		return true, anyType.AssignableTo(typ)
+		return true, internal.AnyType.AssignableTo(typ)
 	}
 	return false, false
 }
@@ -38,7 +39,7 @@ func (p *ContravariantPolicy) MatchesKey(
 	} else if invariant {
 		return false, false
 	} else if bt, isType := key.(reflect.Type); isType {
-		if anyType.AssignableTo(bt) {
+		if internal.AnyType.AssignableTo(bt) {
 			return true, false
 		} else if kt, isType := otherKey.(reflect.Type); isType {
 			if kt.AssignableTo(bt) {
@@ -152,7 +153,7 @@ func validateContravariantFunc(
 		if arg := funType.In(1+skip); arg.AssignableTo(callbackType) {
 			args[1] = CallbackArg{}
 			if ck == nil {
-				ck = anyType
+				ck = internal.AnyType
 			}
 		} else {
 			if ck == nil {
@@ -164,7 +165,7 @@ func validateContravariantFunc(
 	} else if _, isSpec := spec.arg.(zeroArg); isSpec {
 		err = ErrConMissingCallback
 	} else if ck == nil {
-		ck = anyType
+		ck = internal.AnyType
 	}
 
 	if err2 := buildDependencies(funType, index+skip, numArgs, args, index); err2 != nil {
@@ -175,7 +176,7 @@ func validateContravariantFunc(
 
 	for i := 0; i < numOut; i++ {
 		out := funType.Out(i)
-		if out.AssignableTo(errorType) {
+		if out.AssignableTo(internal.ErrorType) {
 			if i != numOut-1 {
 				err = multierror.Append(err, fmt.Errorf(
 					"contravariant: error found at index %v must be last return", i))

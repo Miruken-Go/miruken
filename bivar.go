@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
 )
@@ -131,8 +132,8 @@ func validateBivariantFunc(
 	args     = make([]arg, numArgs-skip)
 	args[0]  = spec.arg
 	dk       = key
-	in      := anyType
-	out     := anyType
+	in      := internal.AnyType
+	out     := internal.AnyType
 	index   := 1
 
 	// Callback argument must be present if spec
@@ -156,7 +157,7 @@ func validateBivariantFunc(
 
 	for i := 0; i < numOut; i++ {
 		oo := funType.Out(i)
-		if oo.AssignableTo(errorType) {
+		if oo.AssignableTo(internal.ErrorType) {
 			if i != numOut-1 {
 				err = multierror.Append(err, fmt.Errorf(
 					"bivariant: error found at index %v must be last return", i))

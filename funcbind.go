@@ -134,7 +134,6 @@ func (f *funcCall) resolveArgs(
 	}
 }
 
-
 // callFuncWithArgs calls the function stored in the fun argument.
 // Combines the initial ands resolved args as the function input.
 // Returns the output results slice.

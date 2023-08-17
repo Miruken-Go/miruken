@@ -7,15 +7,33 @@ import (
 	"reflect"
 )
 
-// Provides results covariantly.
-type Provides struct {
-	CallbackBase
-	key     any
-	parent  *Provides
-	handler any
-	binding Binding
-	owner   any
-}
+type (
+	// Provides results covariantly.
+	Provides struct {
+		CallbackBase
+		key     any
+		parent  *Provides
+		handler any
+		binding Binding
+		owner   any
+	}
+
+	// ProvidesBuilder builds Provides callbacks.
+ 	ProvidesBuilder struct {
+		CallbackBuilder
+		key      any
+		parent  *Provides
+		owner    any
+	}
+
+	// providesPolicy provides values covariantly with lifestyle.
+ 	providesPolicy struct {
+		CovariantPolicy
+	}
+)
+
+
+// Provides
 
 func (p *Provides) Key() any {
 	return p.key
@@ -109,13 +127,8 @@ func (p *Provides) acceptPromise(
 	})
 }
 
-// ProvidesBuilder builds Provides callbacks.
-type ProvidesBuilder struct {
-	CallbackBuilder
-	key      any
-	parent  *Provides
-	owner    any
-}
+
+// ProvidesBuilder
 
 func (b *ProvidesBuilder) WithKey(
 	key any,
@@ -160,6 +173,9 @@ func (b *ProvidesBuilder) New() *Provides {
 	return p
 }
 
+
+// Resolve retrieves a value of type parameter T.
+// Applies any lifestyle if present.
 func Resolve[T any](
 	handler     Handler,
 	constraints ...any,
@@ -167,6 +183,8 @@ func Resolve[T any](
 	return ResolveKey[T](handler, internal.TypeOf[T](), constraints...)
 }
 
+// ResolveKey retrieves a value of type parameter T with the specified key.
+// Applies any lifestyle if present.
 func ResolveKey[T any](
 	handler     Handler,
 	key         any,
@@ -192,6 +210,8 @@ func ResolveKey[T any](
 	return
 }
 
+// ResolveAll retrieves all values of type parameter T.
+// Applies any lifestyle if present.
 func ResolveAll[T any](
 	handler     Handler,
 	constraints ...any,
@@ -217,10 +237,7 @@ func ResolveAll[T any](
 }
 
 
-// providesPolicy for providing instances covariantly with lifestyle.
-type providesPolicy struct {
-	CovariantPolicy
-}
+// providesPolicy
 
 func (p *providesPolicy) NewCtorBinding(
 	typ   reflect.Type,
@@ -228,16 +245,58 @@ func (p *providesPolicy) NewCtorBinding(
 	inits []reflect.Method,
 	spec  *bindingSpec,
 	key   any,
-) (binding Binding, err error) {
-	explicitSpec := spec != nil
-	if !explicitSpec {
-		single := &Single{}
-		if err = single.Init(); err != nil {
+) (Binding, error) {
+	binding, err := p.CovariantPolicy.NewCtorBinding(typ, ctor, inits, spec, key)
+	if err == nil {
+		if spec == nil {
+			binding.AddFilters(&Single{})
+		}
+		if err = initLifestyles(binding); err != nil {
 			return nil, err
 		}
-		spec = &bindingSpec{filters: []FilterProvider{single}}
 	}
-	return newCtorBinding(typ, ctor, inits, spec, key, explicitSpec)
+	return binding, err
 }
+
+func (p *providesPolicy) NewMethodBinding(
+	method reflect.Method,
+	spec   *bindingSpec,
+	key    any,
+) (Binding, error) {
+	binding, err := p.CovariantPolicy.NewMethodBinding(method, spec, key)
+	if err == nil {
+		if err = initLifestyles(binding); err != nil {
+			return nil, err
+		}
+	}
+	return binding, err
+}
+
+func (p *providesPolicy) NewFuncBinding(
+	fun  reflect.Value,
+	spec *bindingSpec,
+	key  any,
+) (Binding, error) {
+	binding, err := p.CovariantPolicy.NewFuncBinding(fun, spec, key)
+	if err == nil {
+		if err = initLifestyles(binding); err != nil {
+			return nil, err
+		}
+	}
+	return binding, err
+}
+
+
+func initLifestyles(binding Binding) error {
+	for _, filter := range binding.Filters() {
+		if lifestyle, ok := filter.(LifestyleInit); ok {
+			if err := lifestyle.InitLifestyle(binding); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 
 var providesPolicyIns Policy = &providesPolicy{}

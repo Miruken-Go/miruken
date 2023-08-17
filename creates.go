@@ -4,14 +4,24 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
 )
 
-// Creates instances covariantly.
-type Creates struct {
-	CallbackBase
-	key any
-}
+type (
+	// Creates instances covariantly.
+	Creates struct {
+		CallbackBase
+		key any
+	}
+
+	// CreatesBuilder builds Creates callbacks.
+	CreatesBuilder struct {
+		CallbackBuilder
+		key any
+	}
+)
+
+
+// Creates
 
 func (c *Creates) Key() any {
 	return c.key
@@ -35,11 +45,8 @@ func (c *Creates) String() string {
 	return fmt.Sprintf("creates => %+v", c.key)
 }
 
-// CreatesBuilder builds Creates callbacks.
-type CreatesBuilder struct {
-	CallbackBuilder
-	key any
-}
+
+// CreatesBuilder
 
 func (b *CreatesBuilder) WithKey(
 	key any,
@@ -58,6 +65,7 @@ func (b *CreatesBuilder) New() *Creates {
 	}
 }
 
+// Create creates a value of type parameter T.
 func Create[T any](
 	handler     Handler,
 	constraints ...any,
@@ -65,6 +73,7 @@ func Create[T any](
 	return CreateKey[T](handler, internal.TypeOf[T](), constraints...)
 }
 
+// CreateKey creates a value of type parameter T with the specified key.
 func CreateKey[T any](
 	handler     Handler,
 	key         any,
@@ -88,6 +97,7 @@ func CreateKey[T any](
 	return
 }
 
+// CreateAll creates all values of type parameter T.
 func CreateAll[T any](
 	handler     Handler,
 	constraints ...any,
@@ -113,19 +123,4 @@ func CreateAll[T any](
 }
 
 
-// createsPolicy for creating instances covariantly.
-type createsPolicy struct {
-	CovariantPolicy
-}
-
-func (c *createsPolicy) NewCtorBinding(
-	typ   reflect.Type,
-	ctor  *reflect.Method,
-	inits []reflect.Method,
-	spec  *bindingSpec,
-	key   any,
-) (binding Binding, err error) {
-	return newCtorBinding(typ, ctor, inits, spec, key, spec != nil)
-}
-
-var createsPolicyIns Policy = &createsPolicy{}
+var createsPolicyIns Policy = &CovariantPolicy{}

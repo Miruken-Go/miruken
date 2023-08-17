@@ -17,8 +17,8 @@ type (
 	SideEffect interface {
 		Apply(
 			// self provided to facilitate late bindings
-			self SideEffect,
-			ctx  HandleContext,
+			SideEffect,
+			HandleContext,
 		) (promise.Reflect, error)
 	}
 
@@ -93,7 +93,7 @@ func getSideEffectMethod(
 						continue
 					}
 					refIdx = i
-				} else if out.AssignableTo(errorType) {
+				} else if out.AssignableTo(internal.ErrorType) {
 					if i != numOut-1 {
 						continue
 					}

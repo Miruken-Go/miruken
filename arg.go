@@ -13,8 +13,8 @@ type (
 	arg interface {
 		flags() bindingFlags
 		resolve(
-			typ reflect.Type,
-			ctx HandleContext,
+			reflect.Type,
+			HandleContext,
 		) (reflect.Value, *promise.Promise[reflect.Value], error)
 	}
 )
@@ -206,9 +206,9 @@ func (d DependencyArg) resolve(
 // DependencyResolver defines how an argument value is retrieved.
 type DependencyResolver interface {
 	Resolve(
-		typ reflect.Type,
-		dep DependencyArg,
-		ctx HandleContext,
+		reflect.Type,
+		DependencyArg,
+		HandleContext,
 	) (reflect.Value, *promise.Promise[reflect.Value], error)
 }
 
@@ -347,10 +347,10 @@ func buildDependencies(
 func buildDependency(
 	argType reflect.Type,
 ) (arg DependencyArg, err error) {
-	if anyType.AssignableTo(argType) {
+	if internal.AnyType.AssignableTo(argType) {
 		return arg, fmt.Errorf(
 			"type %v cannot be used As a dependency",
-			anyType)
+			internal.AnyType)
 	}
 	// Is it a *struct arg binding?
 	if argType.Kind() != reflect.Ptr {

@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"math"
 	"reflect"
@@ -10,20 +11,29 @@ import (
 )
 
 type (
+	// Lifestyle provides common lifestyle functionality.
+	Lifestyle struct{}
+
 	// LifestyleProvider is a FilterProvider of lifestyles.
 	LifestyleProvider struct {
 		filters []Filter
 	}
 
-	// Lifestyle provides common lifestyle functionality.
-	Lifestyle struct{}
+	// LifestyleInit initializes a Lifestyle from Binding info.
+	LifestyleInit interface {
+		InitLifestyle(Binding) error
+	}
 )
 
+
+// Lifestyle
 
 func (l *Lifestyle) Order() int {
 	return math.MaxInt32 - 1000
 }
 
+
+// LifestyleProvider
 
 func (l *LifestyleProvider) Required() bool {
 	return true
@@ -44,13 +54,11 @@ func (l *LifestyleProvider) Filters(
 	return l.filters, nil
 }
 
+func (l *LifestyleProvider) FiltersAssigned() bool {
+	return l.filters != nil
+}
+
 func (l *LifestyleProvider) SetFilters(filters ...Filter) {
-	if len(filters) == 0 {
-		panic("filters cannot be empty")
-	}
-	if l.filters != nil {
-		panic("lifestyle can only be set once")
-	}
 	l.filters = filters
 }
 
@@ -72,16 +80,16 @@ type (
 	// singleCache maintains a cache of singleEntry's.
 	singleCache map[any]*singleEntry
 
-	// single is a Filter that caches a single instance.
+	// single is a Filter that caches a known instance.
 	single struct {
 		Lifestyle
 		entry singleEntry
 	}
 
-	// singlePoly is a Filter that caches a polymorphic instance.
-	// When a Single Handler provides results polymorphically,
-	// a map of key to instance is maintained.
-	singlePoly struct {
+	// singleUnk is a Filter that caches unknown instances.
+	// When a Handler provides any results, a map of key to
+	// instance is maintained using copy-on-write idiom.
+	singleUnk struct {
 		Lifestyle
 		keys atomic.Pointer[singleCache]
 		lock sync.Mutex
@@ -91,8 +99,14 @@ type (
 
 // Single
 
-func (s *Single) Init() error {
-	s.SetFilters(&singlePoly{})
+func (s *Single)InitLifestyle(binding Binding) error {
+	if !s.FiltersAssigned(){
+		if typ, ok := binding.Key().(reflect.Type); ok && internal.AnyType.AssignableTo(typ) {
+			s.SetFilters(&singleUnk{})
+		} else {
+			s.SetFilters(&single{entry: singleEntry{once: new(sync.Once)}})
+		}
+	}
 	return nil
 }
 
@@ -104,19 +118,19 @@ func (s *single) Next(
 	next     Next,
 	ctx      HandleContext,
 	provider FilterProvider,
-)  (out []any, po *promise.Promise[[]any], err error) {
-	return nil, nil, err
+) (out []any, po *promise.Promise[[]any], err error) {
+	return s.entry.get(next)
 }
 
 
-// singlePoly
+// singleUnk
 
-func (s *singlePoly) Next(
+func (s *singleUnk) Next(
 	self     Filter,
 	next     Next,
 	ctx      HandleContext,
 	provider FilterProvider,
-)  (out []any, po *promise.Promise[[]any], err error) {
+) (out []any, po *promise.Promise[[]any], err error) {
 	key := ctx.Callback.(*Provides).Key()
 
 	var entry *singleEntry
@@ -162,7 +176,16 @@ func (s *singlePoly) Next(
 		s.lock.Unlock()
 	}
 
-	entry.once.Do(func() {
+	return entry.get(next)
+}
+
+
+// singleEntry
+
+func (s *singleEntry) get(
+	next Next,
+) (out []any, po *promise.Promise[[]any], err error) {
+	s.once.Do(func() {
 		defer func() {
 			if r := recover(); r != nil {
 				if e, ok := r.(error); ok {
@@ -170,18 +193,18 @@ func (s *singlePoly) Next(
 				} else {
 					err = fmt.Errorf("single: panic: %v", r)
 				}
-				entry.once = new(sync.Once)
+				s.once = new(sync.Once)
 			}
 		}()
 		if out, po, err = next.Pipe(); err == nil && po != nil {
 			out, err = po.Await()
 		}
 		if err != nil || len(out) == 0 {
-			entry.once = new(sync.Once)
+			s.once = new(sync.Once)
 		} else {
-			entry.instance = out
+			s.instance = out
 		}
 	})
-
-	return entry.instance, nil, err
+	return s.instance, nil, err
 }
+

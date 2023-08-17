@@ -137,7 +137,7 @@ func Into[T any](
 	var builder Builder
 	builder.FromSource(source).
 			WithConstraints(constraints...)
-	if internal.TypeOf[T]() == anyType {
+	if internal.TypeOf[T]() == internal.AnyType {
 		builder.IntoTarget(*target)
 	} else {
 		builder.IntoTarget(target)
@@ -225,5 +225,4 @@ func All[T any](
 
 var (
 	mapsPolicy miruken.Policy = &miruken.BivariantPolicy{}
-	anyType                   = internal.TypeOf[any]()
 )

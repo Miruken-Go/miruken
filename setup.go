@@ -9,9 +9,9 @@ import (
 type (
 	// Feature encapsulates custom setup.
 	Feature interface {
-		Install(setup *SetupBuilder) error
+		Install(*SetupBuilder) error
 	}
-	FeatureFunc func(setup *SetupBuilder) error
+	FeatureFunc func(*SetupBuilder) error
 
 	// SetupBuilder orchestrates the setup process.
 	SetupBuilder struct {

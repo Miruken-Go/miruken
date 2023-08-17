@@ -152,7 +152,7 @@ func (p *policyInfo) reduce(
 		}
 	}
 	// Check unknown keys (any)
-	if unk := p.index[anyType]; unk != nil {
+	if unk := p.index[internal.AnyType]; unk != nil {
 		for unk != nil {
 			if result, done = reducer(unk.Value.(Binding), result); done {
 				break
@@ -195,9 +195,6 @@ func DispatchPolicy(
 
 
 var (
-	anyType       = internal.TypeOf[any]()
-	anySliceType  = internal.TypeOf[[]any]()
-	errorType     = internal.TypeOf[error]()
 	callbackType  = internal.TypeOf[Callback]()
 	handleResType = internal.TypeOf[HandleResult]()
 )

@@ -613,9 +613,9 @@ func parseFilterMethod(
 	numArgs  := funcType.NumIn()
 	if numArgs < 2 || funcType.NumOut() < 3 {
 		return nil, nil
-	} else if funcType.Out(0) != anySliceType ||
+	} else if funcType.Out(0) != internal.AnySliceType ||
 		funcType.Out(1) != promiseAnySliceType ||
-		funcType.Out(2) != errorType {
+		funcType.Out(2) != internal.ErrorType {
 		return nil, nil
 	}
 	skip     := 2 // skip receiver

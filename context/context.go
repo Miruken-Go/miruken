@@ -19,8 +19,8 @@ type (
 	// Contextual represents anything with a Context.
 	Contextual interface {
 		Context() *Context
-		SetContext(ctx *Context)
-		Observe(observer Observer) miruken.Disposable
+		SetContext(*Context)
+		Observe(Observer) miruken.Disposable
 	}
 
 	// A Context represents the scope at a give point in time.

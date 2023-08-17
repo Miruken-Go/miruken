@@ -19,11 +19,11 @@ type (
 	// processing of requests and responses.
 	Middleware interface {
 		ServeHTTP(
-			w http.ResponseWriter,
-			r *http.Request,
-			m Middleware,
-			h miruken.Handler,
-			n func(miruken.Handler),
+			http.ResponseWriter,
+			*http.Request,
+			Middleware,
+			miruken.Handler,
+			func(miruken.Handler),
 		) error
 	}
 
