@@ -60,10 +60,8 @@ func (h *MyCallbackHandler) Handle(
 
 func (l *MyLoginModule) Constructor(
 	_*struct{creates.It `key:"my"`},
-) {
-}
-
-func (l *MyLoginModule) Init(opts map[string]any) error {
+	opts map[string]any,
+) error {
 	switch d := opts["debug"].(type) {
 	case nil:
 	case bool:

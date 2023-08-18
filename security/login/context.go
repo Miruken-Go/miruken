@@ -121,22 +121,16 @@ func (c *Context) initFlow(
 	modules := make([]Module, len(c.flow), len(c.flow))
 
 	for i, entry := range c.flow {
-		m, mp, err := creates.Key[Module](handler, entry.Module)
+		opts := entry.Options
+		if opts == nil {
+			opts = map[string]any{}
+		}
+		h := miruken.BuildUp(handler, miruken.With(opts))
+		m, mp, err := creates.Key[Module](h, entry.Module)
 		if err != nil {
 			return err
 		} else if mp != nil {
 			if m, err = mp.Await(); err != nil {
-				return err
-			}
-		}
-		if mi, ok := m.(interface{
-			Init(map[string]any) error
-		}); ok {
-			opts := entry.Options
-			if opts == nil {
-				opts = map[string]any{}
-			}
-			if err := mi.Init(opts); err != nil {
 				return err
 			}
 		}

@@ -200,6 +200,46 @@ func (p *ComplexAsyncProvider) ProvideBar(
 	return &p.bar
 }
 
+// AsyncArgProvider
+type AsyncArgProvider struct {
+	cp  *ComplexAsyncProvider
+	foo *Foo
+}
+
+func (p *AsyncArgProvider) Constructor(
+	_ *provides.It,
+	cp *ComplexAsyncProvider,
+	foo *Foo,
+) *promise.Promise[any] {
+	p.cp =  cp
+	p.foo = foo
+	return promise.Delay(1 * time.Millisecond)
+}
+
+func (p *AsyncArgProvider) Init() {
+	p.foo.Inc()
+}
+
+func (p *AsyncArgProvider) InitAsync(
+) *promise.Promise[any] {
+	p.foo.Inc()
+	return promise.Delay(1 * time.Millisecond)
+}
+
+func (p *AsyncArgProvider) ExplicitInit(
+	_ provides.Init,
+) *promise.Promise[any] {
+	p.foo.Inc()
+	return promise.Delay(1 * time.Millisecond)
+}
+
+func (p *AsyncArgProvider) ProvideBar(
+	pr *provides.It,
+) *Bar {
+	p.foo.Inc()
+	return p.cp.ProvideBar(pr, p.foo)
+}
+
 // InvalidProvider
 type InvalidProvider struct {}
 
@@ -633,6 +673,29 @@ func (suite *ProvidesTestSuite) TestProvidesAsync() {
 			foo, err = pf.Await()
 			suite.Nil(err)
 			suite.Equal(3, foo.Count())
+		})
+
+		suite.Run("Async Args", func() {
+			handler, _ := miruken.Setup().
+				Specs(
+					&AsyncArgProvider{},
+					&ComplexAsyncProvider{},
+					&SimpleAsyncProvider{}).
+				Handler()
+			bar, pb, err := miruken.Resolve[*Bar](handler)
+			suite.Nil(err)
+			suite.Nil(bar)
+			suite.NotNil(pb)
+			bar, err = pb.Await()
+			suite.Nil(err)
+			suite.Equal(2, bar.Count())
+			foo, pf, err := miruken.Resolve[*Foo](handler)
+			suite.Nil(err)
+			suite.Nil(foo)
+			suite.NotNil(pf)
+			foo, err = pf.Await()
+			suite.Nil(err)
+			suite.Equal(7, foo.Count())
 		})
 	})
 }

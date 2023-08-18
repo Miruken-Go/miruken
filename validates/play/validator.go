@@ -50,7 +50,7 @@ func (v *Validator) Constructor(
 	v.translator = translator
 }
 
-func (v *Validator) InitWithRules(
+func (v *Validator) WithRules(
 	rules      Rules,
 	configure  func(*play.Validate) error,
 	translator ut.Translator,

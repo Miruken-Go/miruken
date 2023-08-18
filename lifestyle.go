@@ -101,7 +101,7 @@ type (
 
 func (s *Single)InitLifestyle(binding Binding) error {
 	if !s.FiltersAssigned(){
-		if typ, ok := binding.Key().(reflect.Type); ok && internal.AnyType.AssignableTo(typ) {
+		if typ, ok := binding.Key().(reflect.Type); ok && internal.IsAny(typ) {
 			s.SetFilters(&singleUnk{})
 		} else {
 			s.SetFilters(&single{entry: singleEntry{once: new(sync.Once)}})
@@ -207,4 +207,3 @@ func (s *singleEntry) get(
 	})
 	return s.instance, nil, err
 }
-

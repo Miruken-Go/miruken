@@ -192,7 +192,7 @@ func mergeOutput(
 		return out, nil, nil
 	}
 	// if promise, resolve and check output
-	return out, promise.Then(pout, func(oo []any) []any {
+	return nil, promise.Then(pout, func(oo []any) []any {
 		if len(oo) > 0 {
 			// if function error, panic
 			if e, ok := oo[len(oo)-1].(error); ok {
@@ -215,7 +215,7 @@ func mergeOutput(
 // from any call to a promise (New, Then, Catch, ...).
 // Since this call is already in a goroutine, it will not block the
 // initial operation and can use Await to obtain the intermediate
-// results.  Provides can be used in Filter's that perform asynchronous
+// results.  Should be used in Filter's that perform asynchronous
 // operations and want to normalize outputs.
 func mergeOutputAwait(
 	out  []any,

@@ -25,7 +25,7 @@ func (p *ContravariantPolicy) VariantKey(
 	key any,
 ) (variant bool, unknown bool) {
 	if typ, ok := key.(reflect.Type); ok {
-		return true, internal.AnyType.AssignableTo(typ)
+		return true, internal.IsAny(typ)
 	}
 	return false, false
 }
@@ -39,7 +39,7 @@ func (p *ContravariantPolicy) MatchesKey(
 	} else if invariant {
 		return false, false
 	} else if bt, isType := key.(reflect.Type); isType {
-		if internal.AnyType.AssignableTo(bt) {
+		if internal.IsAny(bt) {
 			return true, false
 		} else if kt, isType := otherKey.(reflect.Type); isType {
 			if kt.AssignableTo(bt) {

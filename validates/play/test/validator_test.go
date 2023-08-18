@@ -77,7 +77,7 @@ type UserHandler struct {
 func (v *CreateUserIntegrity) Constructor(
 	_*struct{args.Optional}, translator ut.Translator,
 ) error {
-	return v.InitWithRules(
+	return v.WithRules(
 		play.Rules{
 			play.Type[AddressNoTags](map[string]string{
 				"Street": "required",

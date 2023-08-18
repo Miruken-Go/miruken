@@ -56,7 +56,7 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 			writer := io.Writer(&b)
 			enc    := json.NewEncoder(writer)
 			elem   := s.Index(i).Interface()
-			if internal.AnyType.AssignableTo(et) || reflect.TypeOf(elem) != et {
+			if internal.IsAny(et) || reflect.TypeOf(elem) != et {
 				elem = &typeContainer{
 					v:        elem,
 					typInfo:  c.typInfo,

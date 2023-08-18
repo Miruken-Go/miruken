@@ -37,6 +37,7 @@ func IsNil(val any) bool {
 	}
 }
 
+// IsStruct returns true if val is a struct value.
 func IsStruct(val any) bool {
 	if val == nil {
 		return false
@@ -48,6 +49,10 @@ func IsStruct(val any) bool {
 	return v.Kind() == reflect.Struct
 }
 
+// IsAny returns true if tpe is assignable to any.
+func IsAny(typ reflect.Type) bool {
+	return AnyType.AssignableTo(typ)
+}
 
 // New creates a new T and optionally initializes it.
 func New[T any]() *T {

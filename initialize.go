@@ -12,8 +12,8 @@ type (
 	// initializer is a Filter that invokes a 'Constructor'
 	// method and optional 'Init' methods on the current output
 	// of the pipeline execution.
+	// If a 'Constructor' is present, it will be the first item.
 	initializer struct {
-		ctor  funcCall
 		inits []funcCall
 	}
 
@@ -36,20 +36,13 @@ func (i *initializer) Next(
 	ctx      HandleContext,
 	provider FilterProvider,
 )  (out []any, pout *promise.Promise[[]any], err error) {
-	if out, pout, err = next.Pipe(); err != nil || len(out) == 0 {
+	// Handler is always created synchronously
+	if out, _, err = next.Pipe(); err != nil || len(out) == 0 {
 		// no results so nothing to initialize
 		return
 	}
-	if pout != nil {
-		// wait for asynchronous results
-		pout = promise.Then(pout, func(oo []any) []any {
-			if len(oo) > 0 {
-				return mergeOutputAwait(i.construct(ctx, oo[0]))
-			}
-			// no results so nothing to initialize
-			return oo
- 		})
-	} else if _, pout, err = mergeOutput(i.construct(ctx, out[0])); err == nil && pout != nil {
+	pout, err = i.construct(ctx, out[0])
+	if err == nil && pout != nil {
 		// asynchronous constructor so wait for completion
 		pout = promise.Then(pout, func([]any) []any {
 			return out
@@ -61,9 +54,22 @@ func (i *initializer) Next(
 func (i *initializer) construct(
 	ctx  HandleContext,
 	recv any,
-) ([]any, *promise.Promise[[]any], error) {
+) (*promise.Promise[[]any], error) {
 	ctx.Handler = recv
-	return i.ctor.Invoke(ctx, recv)
+	for idx, init := range i.inits {
+		_, pout, err := mergeOutput(init.Invoke(ctx, recv))
+		if err != nil {
+			return nil, err
+		} else if pout != nil {
+			return promise.Then(pout, func([]any) []any {
+				for _, next := range i.inits[idx+1:] {
+					mergeOutputAwait(next.Invoke(ctx, recv))
+				}
+				return nil
+			}), nil
+		}
+	}
+	return nil, nil
 }
 
 

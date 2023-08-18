@@ -347,7 +347,7 @@ func buildDependencies(
 func buildDependency(
 	argType reflect.Type,
 ) (arg DependencyArg, err error) {
-	if internal.AnyType.AssignableTo(argType) {
+	if internal.IsAny(argType) {
 		return arg, fmt.Errorf(
 			"type %v cannot be used As a dependency",
 			internal.AnyType)

@@ -73,7 +73,7 @@ func (s *scopedProvider) InitWithTag(tag reflect.StructTag) error {
 
 func (s *scopedProvider)InitLifestyle(binding miruken.Binding) error {
 	if !s.FiltersAssigned() {
-		if typ, ok := binding.Key().(reflect.Type); ok && internal.AnyType.AssignableTo(typ) {
+		if typ, ok := binding.Key().(reflect.Type); ok && internal.IsAny(typ) {
 			s.SetFilters(&scopedUnk{})
 		} else {
 			s.SetFilters(&scoped{})

@@ -394,7 +394,7 @@ func pipeline(
 	ctx      HandleContext,
 	filters  []providedFilter,
 	complete func(HandleContext) ([]any, *promise.Promise[[]any], error),
-) (results []any, pr *promise.Promise[[]any], err error) {
+) (r []any, pr *promise.Promise[[]any], err error) {
 	index, length := 0, len(filters)
 	var next Next
 	next = func(

@@ -7,6 +7,7 @@ import (
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"reflect"
+	"strings"
 )
 
 // CovariantPolicy matches related output values.
@@ -25,7 +26,7 @@ func (p *CovariantPolicy) VariantKey(
 	key any,
 ) (variant bool, unknown bool) {
 	if typ, ok := key.(reflect.Type); ok {
-		return true, internal.AnyType.AssignableTo(typ)
+		return true, internal.IsAny(typ)
 	}
 	return false, false
 }
@@ -39,7 +40,7 @@ func (p *CovariantPolicy) MatchesKey(
 	} else if invariant {
 		return false, false
 	} else if bt, isType := key.(reflect.Type); isType {
-		if internal.AnyType.AssignableTo(bt) {
+		if internal.IsAny(bt) {
 			return true, false
 		} else if kt, isType := otherKey.(reflect.Type); isType {
 			return bt.AssignableTo(kt), false
@@ -115,21 +116,20 @@ func (p *CovariantPolicy) NewCtorBinding(
 		binding.BindingBase.metadata = spec.metadata
 		binding.BindingBase.flags = spec.flags
 	}
+	var ctorInits initializer
 	if ctor != nil {
-		startIndex := 0
-		methodType := ctor.Type
-		numArgs    := methodType.NumIn()
-		args       := make([]arg, numArgs-1)  // skip receiver
-		if spec != nil {
-			startIndex = 1
-			args[0] = zeroArg{}  // policy/binding placeholder
+		if err := addInitializer(*ctor, &ctorInits, spec != nil); err != nil {
+			return nil, err
 		}
-		err := buildDependencies(methodType, startIndex+1, numArgs, args, startIndex)
-		if err != nil {
-			return nil, fmt.Errorf("constructor: %w", err)
+	}
+	for _, init := range inits {
+		implicit := strings.HasPrefix(init.Name, "Init")
+		if err := addInitializer(init, &ctorInits, !implicit); err != nil {
+			return nil, err
 		}
-		initializer := &initializer{ctor:funcCall{ctor.Func, args}}
-		binding.AddFilters(&initProvider{[]Filter{initializer}})
+	}
+	if len(ctorInits.inits) > 0 {
+		binding.AddFilters(&initProvider{[]Filter{&ctorInits}})
 	}
 	return binding, nil
 }
@@ -229,4 +229,25 @@ func validateCovariantFunc(
 		err = multierror.Append(err, ErrCovMissingReturn)
 	}
 	return
+}
+
+func addInitializer(
+	init      reflect.Method,
+	ci        *initializer,
+	zeroFirst bool,
+) error {
+	startIndex := 0
+	initType   := init.Type
+	numArgs    := initType.NumIn()
+	args       := make([]arg, numArgs-1)  // skip receiver
+	if zeroFirst {
+		startIndex = 1
+		args[0] = zeroArg{}
+	}
+	err := buildDependencies(initType, startIndex+1, numArgs, args, startIndex)
+	if err != nil {
+		return fmt.Errorf("initializer: %w", err)
+	}
+	ci.inits = append(ci.inits, funcCall{init.Func, args})
+	return nil
 }
