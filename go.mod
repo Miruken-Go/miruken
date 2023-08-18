@@ -11,7 +11,7 @@ require (
 	github.com/getkin/kin-openapi v0.118.0
 	github.com/go-logr/logr v1.2.4
 	github.com/go-playground/universal-translator v0.18.1
-	github.com/go-playground/validator/v10 v10.15.0
+	github.com/go-playground/validator/v10 v10.15.1
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1

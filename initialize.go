@@ -13,6 +13,7 @@ type (
 	// method and optional 'Init' methods on the current output
 	// of the pipeline execution.
 	// If a 'Constructor' is present, it will be the first item.
+	// The remaining initializers are called in lexicographic order.
 	initializer struct {
 		inits []funcCall
 	}
@@ -36,17 +37,15 @@ func (i *initializer) Next(
 	ctx      HandleContext,
 	provider FilterProvider,
 )  (out []any, pout *promise.Promise[[]any], err error) {
-	// Handler is always created synchronously
-	if out, _, err = next.Pipe(); err != nil || len(out) == 0 {
-		// no results so nothing to initialize
-		return
-	}
-	pout, err = i.construct(ctx, out[0])
-	if err == nil && pout != nil {
-		// asynchronous constructor so wait for completion
-		pout = promise.Then(pout, func([]any) []any {
-			return out
-		})
+	// Receiver is always created synchronously
+	if out, _, err = next.Pipe(); err == nil && len(out) > 0 {
+		pout, err = i.construct(ctx, out[0])
+		if err == nil && pout != nil {
+			// asynchronous constructor so wait for completion
+			pout = promise.Then(pout, func([]any) []any {
+				return out
+			})
+		}
 	}
 	return
 }
@@ -62,6 +61,7 @@ func (i *initializer) construct(
 			return nil, err
 		} else if pout != nil {
 			return promise.Then(pout, func([]any) []any {
+				// After the first promise, invoke remaining initializers inline.
 				for _, next := range i.inits[idx+1:] {
 					mergeOutputAwait(next.Invoke(ctx, recv))
 				}
