@@ -58,8 +58,8 @@ func Test_Map(t *testing.T) {
 	t.Run("Right", func (t *testing.T) {
 		dt := tryParseDate("2022-07-19", "2006-01-02")
 		ts := tryParseDuration("2h")
-		var nested = either.Map(dt, func (t time.Time) either.Monad[string, time.Time]{
-			return either.Map(ts, func (d time.Duration) time.Time {
+		var nested = either.Map[string, time.Time](dt, func (t time.Time) either.Monad[string, time.Time]{
+			return either.Map[string, time.Duration, time.Time](ts, func (d time.Duration) time.Time {
 				return t.Add(d)
 			})
 		})
@@ -84,7 +84,7 @@ func Test_FlatMap(t *testing.T) {
 		dt := tryParseDate("2022-07-19", "2006-01-02")
 		ts := tryParseDuration("2h")
 		var flattened = either.FlatMap(dt, func (t time.Time) either.Monad[string, time.Time]{
-			return either.Map(ts, func (d time.Duration) time.Time {
+			return either.Map[string, time.Duration, time.Time](ts, func (d time.Duration) time.Time {
 				return t.Add(d)
 			})
 		})

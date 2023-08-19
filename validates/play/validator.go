@@ -14,17 +14,6 @@ import (
 )
 
 type (
-	// Validator provides core validation behavior.
-	Validator struct {
-		validate   *play.Validate
-		translator ut.Translator
-	}
-
-	// ValidatorT handles validation for a specific type.
-	ValidatorT[T any] struct {
-		Validator
-	}
-
 	// TypeRules express the validation constraints for a type
 	// without depending on validation struct tags.
 	TypeRules struct{
@@ -34,6 +23,48 @@ type (
 
 	// Rules express the validation constraints for a set of types.
 	Rules []TypeRules
+
+	// Validator provides core validation behavior.
+	Validator struct {
+		validate   *play.Validate
+		translator ut.Translator
+	}
+
+	// Validates handles validation for a specific type.
+	// We duplicate the definitions below to allow multiple
+	// validations for a single type.  We take advantage of
+	// GO composition to inject a validation handle method.
+	// Methods are only composed if it appears once.
+	// Therefore, we duplicate the validators and define a
+	// unique method i.e. Validate1, Validate2, ...
+	Validates[T any] struct {
+		Validator
+	}
+
+	// Validates1 handles validation for a specific type.
+	Validates1[T any] struct {
+		Validator
+	}
+
+	// Validates2 handles validation for a specific type.
+	Validates2[T any] struct {
+		Validator
+	}
+
+	// Validates3 handles validation for a specific type.
+	Validates3[T any] struct {
+		Validator
+	}
+
+	// Validates4 handles validation for a specific type.
+	Validates4[T any] struct {
+		Validator
+	}
+
+	// Validates5 handles validation for a specific type.
+	Validates5[T any] struct {
+		Validator
+	}
 
 	// validator performs default tag based validation.
 	validator struct { Validator }
@@ -145,9 +176,54 @@ func Type[T any](constraints map[string]string) TypeRules {
 }
 
 
-// ValidatorT
+// Validates
 
-func (v *ValidatorT[T]) Validate(
+func (v *Validates[T]) Validate(
+	validate *validates.It, t T,
+) miruken.HandleResult {
+	return v.ValidateAndStop(t, validate.Outcome())
+}
+
+
+// Validates1
+
+func (v *Validates1[T]) Validate1(
+	validate *validates.It, t T,
+) miruken.HandleResult {
+	return v.ValidateAndStop(t, validate.Outcome())
+}
+
+
+// Validates2
+
+func (v *Validates2[T]) Validate2(
+	validate *validates.It, t T,
+) miruken.HandleResult {
+	return v.ValidateAndStop(t, validate.Outcome())
+}
+
+
+// Validates3
+
+func (v *Validates3[T]) Validate3(
+	validate *validates.It, t T,
+) miruken.HandleResult {
+	return v.ValidateAndStop(t, validate.Outcome())
+}
+
+
+// Validates4
+
+func (v *Validates3[T]) Validate4(
+	validate *validates.It, t T,
+) miruken.HandleResult {
+	return v.ValidateAndStop(t, validate.Outcome())
+}
+
+
+// Validates5
+
+func (v *Validates3[T]) Validate5(
 	validate *validates.It, t T,
 ) miruken.HandleResult {
 	return v.ValidateAndStop(t, validate.Outcome())

@@ -63,7 +63,7 @@ type CreateUserNoTags struct {
 
 // CreateUserIntegrity validates CreateUser
 type CreateUserIntegrity struct {
-	play.ValidatorT[*CreateUserNoTags]
+	play.Validates[*CreateUserNoTags]
 }
 
 // UserHandler handles User commands.

@@ -55,7 +55,7 @@ func Apply[L, R, R2 any](e Monad[L, func(R) R2], f Monad[L, R]) Monad[L, R2] {
 		panic("f cannot be nil")
 	}
 	if r, ok := e.(right[func(R) R2]); ok {
-		return Map(f, r.val)
+		return Map[L, R, R2](f, r.val)
 	}
 	return e
 }
