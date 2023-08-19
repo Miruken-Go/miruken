@@ -2,8 +2,8 @@ package principal
 
 import (
 	"github.com/miruken-go/miruken/internal"
+	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/security"
-	"github.com/miruken-go/miruken/slices"
 )
 
 // All return true if the subject possess all principals.

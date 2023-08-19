@@ -2,7 +2,7 @@ package validates
 
 import (
 	"fmt"
-	"github.com/miruken-go/miruken/maps"
+	"github.com/miruken-go/miruken/internal/maps"
 	"sort"
 	"strings"
 )

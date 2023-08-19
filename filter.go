@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
+	"maps"
 	"math"
 	"reflect"
 	"sort"
@@ -572,10 +573,7 @@ func getFilterBinding(
 		if group, ok := (*bindings)[typ]; ok {
 			return group, nil
 		}
-		fb := make(map[reflect.Type]filterBindingGroup, len(*bindings)+1)
-		for k, v := range *bindings {
-			fb[k] = v
-		}
+		fb := maps.Clone(*bindings)
 		bindings = &fb
 	} else {
 		bindings = &map[reflect.Type]filterBindingGroup{}

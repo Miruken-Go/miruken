@@ -1,7 +1,7 @@
 package test
 
 import (
-	"github.com/miruken-go/miruken/maps"
+	"github.com/miruken-go/miruken/internal/maps"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )

@@ -5,6 +5,7 @@ import (
 	"github.com/MicahParks/keyfunc/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/miruken-go/miruken/promise"
+	"maps"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -46,10 +47,7 @@ func (f *KeySet) At(
 				resolve(fn)
 				return
 			}
-			atc := map[string]jwt.Keyfunc{jwksURI: jwks.Keyfunc}
-			for k, v := range *at {
-				atc[k] = v
-			}
+			atc := maps.Clone(*at)
 			at = &atc
 		} else {
 			at = &map[string]jwt.Keyfunc{jwksURI: jwks.Keyfunc}

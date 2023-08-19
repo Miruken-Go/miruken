@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
+	"maps"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -66,10 +67,7 @@ func getSideEffectMethod(
 		if binding, ok := (*bindings)[typ]; ok {
 			return &binding, nil
 		}
-		sb := make(map[reflect.Type]sideEffectBinding, len(*bindings)+1)
-		for k, v := range *bindings {
-			sb[k] = v
-		}
+		sb := maps.Clone(*bindings)
 		bindings = &sb
 	} else {
 		bindings = &map[reflect.Type]sideEffectBinding{}

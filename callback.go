@@ -3,8 +3,8 @@ package miruken
 import (
 	"fmt"
 	"github.com/miruken-go/miruken/internal"
+	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/promise"
-	"github.com/miruken-go/miruken/slices"
 	"reflect"
 )
 

@@ -7,6 +7,7 @@ import (
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
+	"maps"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -113,10 +114,7 @@ func (s *scoped) Next(
 		s.lock.Lock()
 		if cache := s.cache.Load(); cache != nil {
 			if entry = (*cache)[context]; entry == nil {
-				cc := make(map[*Context]*scopedEntry, len(*cache)+1)
-				for k, v := range *cache {
-					cc[k] = v
-				}
+				cc := maps.Clone(*cache)
 				if entry == nil {
 					entry = &scopedEntry{once: new(sync.Once)}
 					cc[context] = entry

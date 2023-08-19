@@ -1,6 +1,8 @@
 package security
 
-import "github.com/miruken-go/miruken/slices"
+import (
+	"github.com/miruken-go/miruken/internal/slices"
+)
 
 type (
 	// Principal identifies a Subject.

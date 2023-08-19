@@ -3,6 +3,7 @@ package context
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/internal"
+	slices2 "github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/slices"
 	"sync"
@@ -108,7 +109,7 @@ func (c *Context) NewChild() *Context {
 }
 
 func (c *Context) Store(values ...any) *Context {
-	providers := slices.Map[any, any](values, func (v any) any {
+	providers := slices2.Map[any, any](values, func (v any) any {
 		return miruken.NewProvider(v)
 	})
 	c.AppendHandlers(providers...)

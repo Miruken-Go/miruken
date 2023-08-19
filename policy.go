@@ -3,6 +3,7 @@ package miruken
 import (
 	"container/list"
 	"github.com/miruken-go/miruken/internal"
+	"maps"
 	"sync"
 	"sync/atomic"
 )
@@ -123,11 +124,8 @@ func (p *policyInfo) reduce(
 					dynIndex := p.dynIdx.Load()
 					if dynIndex != nil {
 						if _, ok := (*dynIndex)[key]; !ok {
-							di := make(map[any]*list.Element, len(*dynIndex)+1)
-							for k, v := range *dynIndex {
-								di[k] = v
-							}
-							di[key] = elem
+							di := maps.Clone(*dynIndex)
+							di[key]  = elem
 							dynIndex = &di
 						}
 					} else {

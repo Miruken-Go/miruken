@@ -5,6 +5,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/maps"
+	maps2 "maps"
 	"reflect"
 	"strings"
 	"sync"
@@ -153,10 +154,7 @@ func (m *GoPolymorphism) Dynamic(
 				if proto, ok := (*types)[key]; ok {
 					return proto
 				}
-				db := make(map[string]any, len(*types)+1)
-				for k, v := range *types {
-					db[k] = v
-				}
+				db := maps2.Clone(*types)
 				types = &db
 			} else {
 				types = &map[string]any{}

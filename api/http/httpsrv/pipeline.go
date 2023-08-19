@@ -7,6 +7,7 @@ import (
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/provides"
 	"log"
+	"maps"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -81,10 +82,7 @@ func getServeHTTPCaller(typ reflect.Type) (miruken.CallerFunc, error) {
 		if caller, ok := (*callers)[typ]; ok {
 			return caller, nil
 		}
-		cb := make(map[reflect.Type]miruken.CallerFunc, len(*callers)+1)
-		for k, v := range *callers {
-			cb[k] = v
-		}
+		cb := maps.Clone(*callers)
 		callers = &cb
 	} else {
 		callers = &map[reflect.Type]miruken.CallerFunc{}

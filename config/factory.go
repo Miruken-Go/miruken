@@ -5,8 +5,8 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/constraints"
+	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/provides"
-	"github.com/miruken-go/miruken/slices"
 	"reflect"
 	"strings"
 )
