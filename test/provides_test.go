@@ -191,6 +191,10 @@ func (p *ComplexAsyncProvider) Constructor(
 			})
 }
 
+func (p *ComplexAsyncProvider) Init() {
+	p.bar.Inc()
+}
+
 func (p *ComplexAsyncProvider) ProvideBar(
 	_ *provides.It,
 	foo *Foo,
@@ -665,7 +669,7 @@ func (suite *ProvidesTestSuite) TestProvidesAsync() {
 			suite.NotNil(pb)
 			bar, err = pb.Await()
 			suite.Nil(err)
-			suite.Equal(2, bar.Count())
+			suite.Equal(3, bar.Count())
 			foo, pf, err := miruken.Resolve[*Foo](handler)
 			suite.Nil(err)
 			suite.Nil(foo)
@@ -688,7 +692,7 @@ func (suite *ProvidesTestSuite) TestProvidesAsync() {
 			suite.NotNil(pb)
 			bar, err = pb.Await()
 			suite.Nil(err)
-			suite.Equal(2, bar.Count())
+			suite.Equal(3, bar.Count())
 			foo, pf, err := miruken.Resolve[*Foo](handler)
 			suite.Nil(err)
 			suite.Nil(foo)

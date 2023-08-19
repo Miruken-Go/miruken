@@ -118,13 +118,13 @@ func (p *CovariantPolicy) NewCtorBinding(
 	}
 	var ctorInits initializer
 	if ctor != nil {
-		if err := addInitializer(*ctor, &ctorInits, spec != nil); err != nil {
+		if err := addInitializer(*ctor, &ctorInits, spec != nil, "constructor"); err != nil {
 			return nil, err
 		}
 	}
 	for _, init := range inits {
 		implicit := strings.HasPrefix(init.Name, "Init")
-		if err := addInitializer(init, &ctorInits, !implicit); err != nil {
+		if err := addInitializer(init, &ctorInits, !implicit, "initializer"); err != nil {
 			return nil, err
 		}
 	}
@@ -235,6 +235,7 @@ func addInitializer(
 	init      reflect.Method,
 	ci        *initializer,
 	zeroFirst bool,
+	label     string,
 ) error {
 	startIndex := 0
 	initType   := init.Type
@@ -246,7 +247,7 @@ func addInitializer(
 	}
 	err := buildDependencies(initType, startIndex+1, numArgs, args, startIndex)
 	if err != nil {
-		return fmt.Errorf("initializer: %w", err)
+		return fmt.Errorf("%s: %w", label, err)
 	}
 	ci.inits = append(ci.inits, funcCall{init.Func, args})
 	return nil

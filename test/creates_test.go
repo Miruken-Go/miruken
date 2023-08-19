@@ -107,7 +107,7 @@ func (suite *CreatesTestSuite) TestCreates() {
 		c, err = pc.Await()
 		suite.Nil(err)
 		suite.NotNil(c)
-		suite.Equal(1, c.bar.Count())
+		suite.Equal(2, c.bar.Count())
 	})
 
 	suite.Run("Key", func () {

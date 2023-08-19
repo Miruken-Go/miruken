@@ -79,11 +79,11 @@ type (
 
 // Next
 
-func (n Next) Pipe(values ...any,) ([]any, *promise.Promise[[]any], error) {
+func (n Next) Pipe(values ...any) ([]any, *promise.Promise[[]any], error) {
 	return mergeOutput(n(nil, true, values...))
 }
 
-func (n Next) PipeAwait(values ...any,) []any {
+func (n Next) PipeAwait(values ...any) []any {
 	return mergeOutputAwait(n(nil, true, values...))
 }
 
