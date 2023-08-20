@@ -15,8 +15,9 @@ type (
 
 
 var (
-	With = miruken.With
-	New  = miruken.NewProvider
+	With          = miruken.With
+	New           = miruken.NewProvider
+	WithLifestyle = miruken.UseLifestyle
 )
 
 

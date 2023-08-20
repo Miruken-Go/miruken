@@ -164,6 +164,13 @@ func (b *bindingSpec) addFilterProvider(
 	provider FilterProvider,
 ) error {
 	b.filters = append(b.filters, provider)
+	if constraints, ok := provider.(ConstraintSource); ok {
+		for _, constraint := range constraints.Constraints() {
+			if err := b.addConstraint(constraint); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
@@ -309,9 +316,8 @@ func (p *bindingSpecFactory) parse(
 			addPolicy(Policy, reflect.StructField) error
 		}); ok {
 			policy := p.policyOf(cb)
-			if invalid := b.addPolicy(policy, field); invalid != nil {
-				err = fmt.Errorf(
-					"parse: %v at index %v failed: %w", typ, index, invalid)
+			if inv := b.addPolicy(policy, field); inv != nil {
+				err = fmt.Errorf("parse: %v at index %v failed: %w", typ, index, inv)
 			}
 		}
 	}
@@ -351,14 +357,14 @@ func parseStruct(
 			continue
 		}
 		if fieldType.Kind() == reflect.Struct && fieldType.Implements(definesBindingGroup) {
-			if invalid := parseStruct(fieldType, binding, parsers); invalid != nil {
-				err = multierror.Append(err, invalid)
+			if inv := parseStruct(fieldType, binding, parsers); inv != nil {
+				err = multierror.Append(err, inv)
 			}
 			continue
 		}
 		for _, parser := range parsers {
-			if b, invalid := parser.parse(i, field, binding); invalid != nil {
-				err = multierror.Append(err, invalid)
+			if b, inv := parser.parse(i, field, binding); inv != nil {
+				err = multierror.Append(err, inv)
 				continue NextField
 			} else if b {
 				bound = true
@@ -373,8 +379,8 @@ func parseStruct(
 				})
 			}
 			if metadataOwner != nil {
-				if invalid := addMetadata(field.Type, field.Tag, metadataOwner); invalid != nil {
-					err = multierror.Append(err, invalid)
+				if inv := addMetadata(field.Type, field.Tag, metadataOwner); inv != nil {
+					err = multierror.Append(err, inv)
 				}
 			}
 		}
@@ -407,10 +413,10 @@ func parseFilters(
 				}
 			}
 			provider := &filterSpecProvider{spec}
-			if invalid := b.addFilterProvider(provider); invalid != nil {
+			if inv := b.addFilterProvider(provider); inv != nil {
 				err = fmt.Errorf(
 					"parseFilters: filter spec provider %v at index %v failed: %w",
-					provider, index, invalid)
+					provider, index, inv)
 			}
 		}
 	} else if fp := internal.CoerceToPtr(typ, filterProviderType); fp != nil {
@@ -418,18 +424,18 @@ func parseFilters(
 		if b, ok := binding.(interface {
 			addFilterProvider(FilterProvider) error
 		}); ok {
-			if provider, invalid := internal.NewWithTag(fp, field.Tag); invalid != nil {
+			if provider, inv := internal.NewWithTag(fp, field.Tag); inv != nil {
 				err = fmt.Errorf(
 					"parseFilters: new filter provider at index %v failed: %w",
-					index, invalid)
-			} else if invalid := b.addFilterProvider(provider.(FilterProvider)); invalid != nil {
+					index, inv)
+			} else if inv := b.addFilterProvider(provider.(FilterProvider)); inv != nil {
 				err = fmt.Errorf(
 					"parseFilters: filter provider %v at index %v failed: %w",
-					provider, index, invalid)
+					provider, index, inv)
 			}
 		}
 	}
-	return bound, err
+	return
 }
 
 func parseConstraints(
@@ -443,16 +449,16 @@ func parseConstraints(
 		if b, ok := binding.(interface {
 			addConstraint(Constraint) error
 		}); ok {
-			if constraint, invalid := internal.NewWithTag(ct, field.Tag); invalid != nil {
+			if constraint, inv := internal.NewWithTag(ct, field.Tag); inv != nil {
 				err = fmt.Errorf(
-					"parseConstraints: new key at index %v failed: %w", index, invalid)
-			} else if invalid := b.addConstraint(constraint.(Constraint)); invalid != nil {
+					"parseConstraints: new key at index %v failed: %w", index, inv)
+			} else if inv := b.addConstraint(constraint.(Constraint)); inv != nil {
 				err = fmt.Errorf(
-					"parseConstraints: key %v at index %v failed: %w", constraint, index, invalid)
+					"parseConstraints: key %v at index %v failed: %w", constraint, index, inv)
 			}
 		}
 	}
-	return bound, err
+	return
 }
 
 func parseOptions(
@@ -466,10 +472,10 @@ func parseOptions(
 		if b, ok := binding.(interface {
 			setStrict(int, reflect.StructField, bool) error
 		}); ok {
-			if invalid := b.setStrict(index, field, true); invalid != nil {
+			if inv := b.setStrict(index, field, true); inv != nil {
 				err = multierror.Append(err, fmt.Errorf(
 					"parseOptions: strict field %v (%v) failed: %w",
-					field.Name, index, invalid))
+					field.Name, index, inv))
 			}
 		}
 	} else if typ == optionalType {
@@ -477,10 +483,10 @@ func parseOptions(
 		if b, ok := binding.(interface {
 			setOptional(int, reflect.StructField, bool) error
 		}); ok {
-			if invalid := b.setOptional(index, field, true); invalid != nil {
+			if inv := b.setOptional(index, field, true); inv != nil {
 				err = multierror.Append(err, fmt.Errorf(
 					"parseOptions: optional field %v (%v) failed: %w",
-					field.Name, index, invalid))
+					field.Name, index, inv))
 			}
 		}
 	} else if typ == skipFiltersType {
@@ -488,14 +494,14 @@ func parseOptions(
 		if b, ok := binding.(interface {
 			setSkipFilters(int, reflect.StructField, bool) error
 		}); ok {
-			if invalid := b.setSkipFilters(index, field, true); invalid != nil {
+			if inv := b.setSkipFilters(index, field, true); inv != nil {
 				err = multierror.Append(err, fmt.Errorf(
 					"parseOptions: skipFilters on field %v (%v) failed: %w",
-					field.Name, index, invalid))
+					field.Name, index, inv))
 			}
 		}
 	}
-	return bound, err
+	return
 }
 
 func addMetadata(

@@ -801,7 +801,7 @@ func (suite *ContextTestSuite) TestContextual() {
 			service, _, err := provides.Type[*ScopedService](root)
 			suite.Nil(err)
 			suite.NotNil(service)
-			childService, _, err := provides.Type[*ScopedService](child, context.From)
+			childService, _, err := provides.Type[*ScopedService](child, provides.WithLifestyle)
 			suite.Nil(err)
 			suite.Same(child, childService.Context())
 			suite.NotSame(service, childService)

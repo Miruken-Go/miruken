@@ -28,7 +28,34 @@ type (
 	ConstraintSource interface {
 		Constraints() []Constraint
 	}
+
+	// ConstraintProvider is a FilterProvider for constraints.
+	ConstraintProvider struct {
+		constraints []Constraint
+	}
+
+	// constraintFilter enforces constraints.
+ 	constraintFilter struct{}
 )
+
+
+// ConstraintProvider
+
+func (c *ConstraintProvider) Constraints() []Constraint {
+	return c.constraints
+}
+
+func (c *ConstraintProvider) Required() bool {
+	return true
+}
+
+func (c *ConstraintProvider) Filters(
+	binding  Binding,
+	callback any,
+	composer Handler,
+) ([]Filter, error) {
+	return checkConstraints, nil
+}
 
 
 // Named matches against a name.
@@ -141,8 +168,7 @@ func (q Qualifier[T]) qualifier() Qualifier[T] {
 }
 
 
-// constraintFilter enforces constraints.
-type constraintFilter struct{}
+// constraintFilter
 
 func (f constraintFilter) Order() int {
 	return FilterStage
@@ -209,27 +235,8 @@ func (f constraintFilter) Next(
 	return next.Pipe()
 }
 
-var _constraintFilter = []Filter{constraintFilter{}}
 
-// ConstraintProvider is a FilterProvider for constraints.
-type ConstraintProvider struct {
-	constraints []Constraint
-}
-
-func (c *ConstraintProvider) Constraints() []Constraint {
-	return c.constraints
-}
-
-func (c *ConstraintProvider) Required() bool {
-	return true
-}
-
-func (c *ConstraintProvider) Filters(
-	binding  Binding,
-	callback any,
-	composer Handler,
-) ([]Filter, error) {
-	return _constraintFilter, nil
-}
-
-var ErrConstraintNameMissing = errors.New("the Named constraint requires a non-empty `name:[name]` tag")
+var (
+	ErrConstraintNameMissing = errors.New("the Named constraint requires a non-empty `name:[name]` tag")
+	checkConstraints = []Filter{constraintFilter{}}
+)

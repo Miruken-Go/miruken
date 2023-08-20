@@ -14,26 +14,17 @@ import (
 )
 
 type (
-	// Lifestyle is a BindingGroup for requesting a scoped lifestyle.
-	// Lifestyle associates both the scoped lifestyle and fromScope constraint.
+	// Lifestyle is a LifestyleProvider that provides instances per Context.
 	Lifestyle struct {
-		miruken.BindingGroup
-		scopedProvider
-		miruken.Qualifier[scopedProvider]
-	}
-
-	// Rooted is a BindingGroup for requesting a rooted scoped lifestyle
-	// with all resolutions assigned to the root Context.
-	Rooted struct {
-		miruken.BindingGroup
-		scopedProvider `scoped:"rooted"`
-		miruken.Qualifier[scopedProvider]
-	}
-
-	// scopedProvider LifestyleProvider provides instances per Context.
-	scopedProvider struct {
 		miruken.LifestyleProvider
 		rooted bool
+	}
+
+	// Rooted is a BindingGroup for configuring a rooted scoped lifestyle
+	// in which all resolutions are assigned to the root Context.
+	Rooted struct {
+		miruken.BindingGroup
+		Lifestyle `scoped:"rooted"`
 	}
 
 	// scopedEntry stores a lazy instance.
@@ -63,21 +54,21 @@ type (
 )
 
 
-// scopedProvider
+// Lifestyle
 
-func (s *scopedProvider) InitWithTag(tag reflect.StructTag) error {
+func (l *Lifestyle) InitWithTag(tag reflect.StructTag) error {
 	if scoped, ok := tag.Lookup("scoped"); ok {
-		s.rooted = scoped == "rooted"
+		l.rooted = scoped == "rooted"
 	}
 	return nil
 }
 
-func (s *scopedProvider)InitLifestyle(binding miruken.Binding) error {
-	if !s.FiltersAssigned() {
+func (l *Lifestyle)InitLifestyle(binding miruken.Binding) error {
+	if !l.FiltersAssigned() {
 		if typ, ok := binding.Key().(reflect.Type); ok && internal.IsAny(typ) {
-			s.SetFilters(&scopedUnk{})
+			l.SetFilters(&scopedUnk{})
 		} else {
-			s.SetFilters(&scoped{})
+			l.SetFilters(&scoped{})
 		}
 	}
 	return nil
@@ -330,7 +321,7 @@ func getContext(
 	}
 
 	rooted := false
-	if scp, ok := provider.(*scopedProvider); ok {
+	if scp, ok := provider.(*Lifestyle); ok {
 		rooted = scp.rooted
 	}
 
@@ -358,7 +349,7 @@ func isCompatibleWithParent(
 	if parent := ctx.Callback.(*provides.It).Parent(); parent != nil {
 		if pb := parent.Binding(); pb != nil {
 			for _, filter := range pb.Filters() {
-				if scoped, ok := filter.(*scopedProvider); !ok || (!rooted && scoped.rooted) {
+				if scoped, ok := filter.(*Lifestyle); !ok || (!rooted && scoped.rooted) {
 					return false
 				}
 			}
@@ -374,10 +365,4 @@ func tryDispose(instance any) {
 }
 
 
-var (
-	contextType = internal.TypeOf[*Context]()
-
-	// From constrains resolution to a handler with scoped lifestyle.
-	// This is used to suppress resolving implied values available through a Context.
-	From miruken.Qualifier[scopedProvider]
-)
+var contextType = internal.TypeOf[*Context]()
