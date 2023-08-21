@@ -63,7 +63,7 @@ func (l *LifestyleProvider) SetFilters(filters ...Filter) {
 }
 
 func (l *LifestyleProvider) Constraints() []Constraint {
-	return requireLifestyle
+	return enforceLifestyle
 }
 
 
@@ -218,6 +218,6 @@ var (
 	// This is used to suppress implied resolution values from context.
 	UseLifestyle Qualifier[Lifestyle]
 
-	// requireLifestyle enforces lifestyle resolution.
-	requireLifestyle = []Constraint{UseLifestyle}
+	// enforceLifestyle enforces lifestyle resolution.
+	enforceLifestyle = []Constraint{UseLifestyle}
 )

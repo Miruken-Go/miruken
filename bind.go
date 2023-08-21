@@ -164,6 +164,7 @@ func (b *bindingSpec) addFilterProvider(
 	provider FilterProvider,
 ) error {
 	b.filters = append(b.filters, provider)
+	// Add any constraints required by the provider.
 	if constraints, ok := provider.(ConstraintSource); ok {
 		for _, constraint := range constraints.Constraints() {
 			if err := b.addConstraint(constraint); err != nil {

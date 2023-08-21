@@ -562,7 +562,7 @@ type ScopedService struct {
 func (s *ScopedService) Constructor(
 	_*struct{
 		provides.It
-		context.Lifestyle
+		context.Scoped
 	  },
 ) {
 }

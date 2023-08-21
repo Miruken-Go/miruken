@@ -14,8 +14,8 @@ import (
 )
 
 type (
-	// Lifestyle is a LifestyleProvider that provides instances per Context.
-	Lifestyle struct {
+	// Scoped is a LifestyleProvider that provides instances per Context.
+	Scoped struct {
 		miruken.LifestyleProvider
 		rooted bool
 	}
@@ -24,7 +24,7 @@ type (
 	// in which all resolutions are assigned to the root Context.
 	Rooted struct {
 		miruken.BindingGroup
-		Lifestyle `scoped:"rooted"`
+		Scoped `scoped:"rooted"`
 	}
 
 	// scopedEntry stores a lazy instance.
@@ -39,8 +39,8 @@ type (
 	// scoped is a Filter that caches a known instance per Context.
 	scoped struct {
 		miruken.Lifestyle
-		cache  atomic.Pointer[map[*Context]*scopedEntry]
-		lock   sync.Mutex
+		cache atomic.Pointer[map[*Context]*scopedEntry]
+		lock  sync.Mutex
 	}
 
 	// scopedUnk is a miruken.Filter that caches unknown instances
@@ -48,27 +48,27 @@ type (
 	// key to instance is maintained using copy-on-write idiom.
 	scopedUnk struct {
 		miruken.Lifestyle
-		cache  map[*Context]scopedCache
-		lock   sync.RWMutex
+		cache map[*Context]scopedCache
+		lock  sync.RWMutex
 	}
 )
 
 
-// Lifestyle
+// Scoped
 
-func (l *Lifestyle) InitWithTag(tag reflect.StructTag) error {
+func (s *Scoped) InitWithTag(tag reflect.StructTag) error {
 	if scoped, ok := tag.Lookup("scoped"); ok {
-		l.rooted = scoped == "rooted"
+		s.rooted = scoped == "rooted"
 	}
 	return nil
 }
 
-func (l *Lifestyle)InitLifestyle(binding miruken.Binding) error {
-	if !l.FiltersAssigned() {
+func (s *Scoped)InitLifestyle(binding miruken.Binding) error {
+	if !s.FiltersAssigned() {
 		if typ, ok := binding.Key().(reflect.Type); ok && internal.IsAny(typ) {
-			l.SetFilters(&scopedUnk{})
+			s.SetFilters(&scopedUnk{})
 		} else {
-			l.SetFilters(&scoped{})
+			s.SetFilters(&scoped{})
 		}
 	}
 	return nil
@@ -171,7 +171,7 @@ func (s *scopedUnk) Next(
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  (out []any, po *promise.Promise[[]any], err error) {
+) (out []any, po *promise.Promise[[]any], err error) {
 	key := ctx.Callback.(*provides.It).Key()
 	context, abort, err := getContext(key, ctx, provider)
 	if err != nil {
@@ -321,7 +321,7 @@ func getContext(
 	}
 
 	rooted := false
-	if scp, ok := provider.(*Lifestyle); ok {
+	if scp, ok := provider.(*Scoped); ok {
 		rooted = scp.rooted
 	}
 
@@ -349,7 +349,7 @@ func isCompatibleWithParent(
 	if parent := ctx.Callback.(*provides.It).Parent(); parent != nil {
 		if pb := parent.Binding(); pb != nil {
 			for _, filter := range pb.Filters() {
-				if scoped, ok := filter.(*Lifestyle); !ok || (!rooted && scoped.rooted) {
+				if scoped, ok := filter.(*Scoped); !ok || (!rooted && scoped.rooted) {
 					return false
 				}
 			}

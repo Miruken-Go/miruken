@@ -138,7 +138,7 @@ func (p *OpenProvider) ProvideSingletons(
 }
 
 func (p *OpenProvider) ProvideScoped(
-	_*struct{context.Lifestyle}, it *provides.It,
+	_*struct{context.Scoped}, it *provides.It,
 ) any {
 	if key := it.Key(); key == internal.TypeOf[*Baz]() {
 		p.baz.Inc()
