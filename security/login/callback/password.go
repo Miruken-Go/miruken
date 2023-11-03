@@ -1,11 +1,20 @@
 package callback
 
-// Password requests password information.
-type Password struct {
-	prompt   string
-	display  bool
-	password []byte
-}
+import "github.com/miruken-go/miruken"
+
+type (
+	// Password requests password information.
+	Password struct {
+		prompt   string
+		display  bool
+		password []byte
+	}
+
+	// PasswordHandler responds to Password callbacks with give password.
+	PasswordHandler struct {
+		Password []byte
+	}
+)
 
 
 func (p *Password) Prompt() string {
@@ -28,6 +37,21 @@ func (p *Password) ClearPassword() {
 	for i := range p.password {
 		p.password[i] = 0
 	}
+}
+
+
+// PasswordHandler
+
+func (h PasswordHandler) Handle(
+	c        any,
+	greedy   bool,
+	composer miruken.Handler,
+) miruken.HandleResult {
+	if n, ok := c.(*Password); ok {
+		n.SetPassword(h.Password)
+		return miruken.Handled
+	}
+	return miruken.NotHandled
 }
 
 

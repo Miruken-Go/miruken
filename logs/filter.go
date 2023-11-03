@@ -74,9 +74,11 @@ func (f filter) Next(
 		}
 		logger = logger.WithName(fmt.Sprintf("%T", ctx.Handler))
 		callback := ctx.Callback
+		source   := callback.Source()
 		logger.Info("handling",
-			"callback", reflect.TypeOf(callback).String(),
-			"source", callback.Source())
+			"callback", reflect.TypeOf(callback),
+			"source-type", reflect.TypeOf(source),
+			"source",source)
 		start := time.Now()
 		if out, pout, err = next.Pipe(); err != nil {
 			f.logError(err, start, logger)
