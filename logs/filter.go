@@ -65,7 +65,7 @@ func (f filter) Next(
 	provider miruken.FilterProvider,
 )  (out []any, pout *promise.Promise[[]any], err error) {
 	if emit, ok := provider.(*Emit); ok {
-		logger, _, re := provides.Type[logr.Logger](ctx.Composer)
+		logger, _, re := provides.Type[logr.Logger](ctx)
 		if re != nil {
 			return next.Pipe()
 		}

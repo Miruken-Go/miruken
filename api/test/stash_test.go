@@ -47,7 +47,7 @@ func (c *CancelOrderFilter) Next(
 )  ([]any, *promise.Promise[[]any], error) {
 	cancel := ctx.Callback.Source().(*CancelOrder)
 	order  := &Order{cancel.orderId, OrderCreated}
-	if err := api.StashPut(ctx.Composer, order); err != nil {
+	if err := api.StashPut(ctx, order); err != nil {
 		return next.Fail(err)
 	}
 	return next.Pipe()

@@ -328,7 +328,7 @@ func getContext(
 	if !isCompatibleWithParent(ctx, rooted) {
 		return nil, false, nil
 	}
-	context, _, err := provides.Type[*Context](ctx.Composer)
+	context, _, err := provides.Type[*Context](ctx)
 	if err != nil {
 		return nil, false, err
 	} else if context == nil {

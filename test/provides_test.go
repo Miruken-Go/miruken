@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/creates"
+	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
@@ -110,6 +112,27 @@ func (p *KeyProvider) ProvideKey(
 ) *Foo {
 	p.foo.Inc()
 	return &p.foo
+}
+
+// KeyConsumer
+type KeyConsumer struct {
+	foo *Foo
+}
+
+func (c *KeyConsumer) Constructor(
+	_ *provides.It,
+	_*struct{args.Key `of:"Foo"`}, foo *Foo,
+) {
+	foo.Inc()
+	c.foo = foo
+}
+
+func (c *KeyConsumer) HandleBar(
+	_ *handles.It, _ Bar,
+	_*struct{args.Key `of:"Foo"`}, foo *Foo,
+) *Foo {
+	foo.Inc()
+	return foo
 }
 
 // OpenProvider
@@ -344,10 +367,30 @@ func (suite *ProvidesTestSuite) TestProvides() {
 	})
 
 	suite.Run("Key", func () {
-		handler, _ := miruken.Setup().Specs(&KeyProvider{}).Handler()
-		foo, _, err := miruken.ResolveKey[*Foo](handler, "Foo")
-		suite.Nil(err)
-		suite.Equal(1, foo.Count())
+		suite.Run("Provide", func() {
+			handler, _ := miruken.Setup().Specs(&KeyProvider{}).Handler()
+			foo, _, err := miruken.ResolveKey[*Foo](handler, "Foo")
+			suite.Nil(err)
+			suite.Equal(1, foo.Count())
+		})
+
+		suite.Run("Consume", func() {
+			suite.Run("Constructor", func() {
+				handler, _ := miruken.Setup().Specs(&KeyProvider{}, &KeyConsumer{}).Handler()
+				kc, _, err := miruken.Resolve[*KeyConsumer](handler)
+				suite.Nil(err)
+				suite.NotNil(kc)
+				suite.Equal(2, kc.foo.Count())
+			})
+
+			suite.Run("Parameter", func() {
+				handler, _ := miruken.Setup().Specs(&KeyProvider{}, &KeyConsumer{}).Handler()
+				foo, _, err := miruken.Execute[*Foo](handler, Bar{})
+				suite.Nil(err)
+				suite.NotNil(foo)
+				suite.Equal(4, foo.Count())
+			})
+		})
 	})
 
 	suite.Run("Open", func () {

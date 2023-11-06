@@ -224,7 +224,7 @@ func (o FromOptions) Resolve(
 	ctx HandleContext,
 ) (options reflect.Value, _ *promise.Promise[reflect.Value], err error) {
 	options = reflect.New(typ)
-	if GetOptionsInto(ctx.Composer, options.Interface()) {
+	if GetOptionsInto(ctx, options.Interface()) {
 		if typ.Kind() == reflect.Ptr {
 			return options, nil, nil
 		}

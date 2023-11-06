@@ -47,6 +47,17 @@ type (
 )
 
 
+// HandleContext
+
+func (c HandleContext) Handle(
+	callback any,
+	greedy   bool,
+	composer Handler,
+) HandleResult {
+	return c.Composer.Handle(callback, greedy, composer)
+}
+
+
 // handlerAdapter
 
 func (h handlerAdapter) Handle(

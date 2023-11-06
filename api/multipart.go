@@ -199,7 +199,7 @@ func addPart(
 			var format *maps.Format
 			format, err = ParseMediaType(contentType, maps.DirectionTo)
 			if err == nil {
-				_, _, err = maps.Into(ctx.Composer, body, &w, format)
+				_, _, err = maps.Into(ctx, body, &w, format)
 			}
 		}
 	}
