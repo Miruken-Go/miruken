@@ -49,6 +49,7 @@ type (
 
 
 var ErrMissingResponse = errors.New("missing batch response")
+var ErrMissingScheme   = errors.New("the Routes filter requires a non-empty `schemes` tag")
 
 // Routes
 
@@ -57,7 +58,7 @@ func (r *Routes) InitWithTag(tag reflect.StructTag) error {
 		r.schemes = strings.Split(schemes, ",")
 	}
 	if len(r.schemes) == 0 {
-		return errors.New("the Routes filter requires a non-empty `schemes` tag")
+		return ErrMissingScheme
 	}
 	return nil
 }

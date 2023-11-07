@@ -1,0 +1,12 @@
+{
+  "login": {
+    "flow1": [{
+      "module": "login.pwd",
+      "options": {
+        "credentials": {
+            "user": "password"
+        }
+      }
+    }]
+  }
+}

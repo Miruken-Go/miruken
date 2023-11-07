@@ -54,6 +54,9 @@ type (
 )
 
 
+var (
+	ErrScopeInactiveContext = errors.New("scoped: cannot scope instances to an inactive context")
+)
 // Scoped
 
 func (s *Scoped) InitWithTag(tag reflect.StructTag) error {
@@ -334,7 +337,7 @@ func getContext(
 	} else if context == nil {
 		return nil, true, nil
 	} else if context.State() != StateActive {
-		return nil, false, errors.New("scoped: cannot scope instances to an inactive context")
+		return nil, false, ErrScopeInactiveContext
 	} else if rooted {
 		context = context.Root()
 	}

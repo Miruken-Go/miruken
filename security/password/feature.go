@@ -1,8 +1,8 @@
-package jwt
+package password
 
 import "github.com/miruken-go/miruken"
 
-// Installer enables jwt authentication.
+// Installer enables user/password authentication.
 type Installer struct {}
 
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {

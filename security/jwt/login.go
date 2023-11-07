@@ -38,10 +38,14 @@ type (
 
 
 var (
-	ErrMissingToken  = errors.New("missing security token")
-	ErrEmptyToken    = errors.New("empty security token")
-	ErrInvalidToken  = errors.New("invalid security token")
-	ErrInvalidClaims = errors.New("invalid security claims")
+	ErrScopeNameRequired     = errors.New("scope name is required")
+	ErrInvalidJwksOption     = errors.New("invalid jwks option")
+	ErrInvalidJwksUrl        = errors.New("invalid jwks.uri option")
+	ErrJwksUrlOrKeysRequired = errors.New("option jwks.uri or jwks.keys is required")
+	ErrMissingToken          = errors.New("missing security token")
+	ErrEmptyToken            = errors.New("empty security token")
+	ErrInvalidToken          = errors.New("invalid security token")
+	ErrInvalidClaims         = errors.New("invalid security claims")
 )
 
 
@@ -54,7 +58,7 @@ func (s Scope) Name() string {
 func (s *Scope) InitWithTag(tag reflect.StructTag) error {
 	if name, ok := tag.Lookup("name"); ok {
 		if name == "" {
-			return errors.New("scope name is required")
+			return ErrScopeNameRequired
 		}
 		*s = Scope(name)
 	}
@@ -73,13 +77,13 @@ func (l *LoginModule) Init(opts map[string]any) error {
 		switch strings.ToLower(k) {
 		case "jwks":
 			if jwks, ok := opt.(map[string]any); !ok {
-				return errors.New("invalid jwks option")
+				return ErrInvalidJwksOption
 			} else {
 				for jk,jv := range jwks {
 					switch strings.ToLower(jk) {
 					case "uri":
 						if uri, ok := jv.(string); !ok {
-							return errors.New("invalid jwks.uri option")
+							return ErrInvalidJwksUrl
 						} else {
 							l.jwksUri = uri
 						}
@@ -96,7 +100,7 @@ func (l *LoginModule) Init(opts map[string]any) error {
 		}
 	}
 	if (l.jwksUri == "") == (len(l.jwksJson) == 0) {
-		return errors.New("option jwks.uri or jwks.keys is required")
+		return ErrJwksUrlOrKeysRequired
 	}
 	return nil
 }
@@ -106,8 +110,7 @@ func (l *LoginModule) Login(
 	handler miruken.Handler,
 ) error {
 	name := callback.NewName("prompt", "")
-	result := handler.Handle(name, false, nil)
-	if !result.Handled() {
+	if !handler.Handle(name, false, nil).Handled() {
 		return ErrMissingToken
 	}
 	tokenStr := name.Name()

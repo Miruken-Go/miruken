@@ -1,6 +1,8 @@
 package callback
 
-import "github.com/miruken-go/miruken"
+import (
+	"github.com/miruken-go/miruken"
+)
 
 type (
 	// Password requests password information.
