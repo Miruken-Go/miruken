@@ -17,12 +17,11 @@ import (
 type (
 	// LoginModule authenticates a subject from a JWT (JSON Web Token).
 	LoginModule struct {
-		jwksUri  string
-		jwksJson json.RawMessage
-		token    *jwt.Token
-		id       principal.Id
-		scopes   []Scope
-		jwks     KeySet
+		jwksUri    string
+		jwksJson   json.RawMessage
+		token      *jwt.Token
+		principals []security.Principal
+		jwks      KeySet
 	}
 
 	// KeySet provides JWKS (JSON Web Key Sets) to verify JWT signatures.
@@ -133,11 +132,13 @@ func (l *LoginModule) Login(
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		l.token = token
 		if sub, err := claims.GetSubject(); err != nil && sub != "" {
-			l.id = principal.Id(sub)
-			subject.AddPrincipals(l.id)
+			id := principal.Id(sub)
+			subject.AddPrincipals(id)
+			l.principals = append(l.principals, id)
 		}
 		subject.AddCredentials(l.token)
 		l.addScopes(subject, claims)
+		l.addKnownPrincipals(subject, claims)
 	} else {
 		return ErrInvalidClaims
 	}
@@ -149,11 +150,8 @@ func (l *LoginModule) Logout(
 	subject security.Subject,
 	handler miruken.Handler,
 ) error {
-	subject.RemovePrincipals(l.id)
+	subject.RemovePrincipals(l.principals...)
 	subject.RemoveCredentials(l.token)
-	for _, scope := range l.scopes {
-		subject.RemovePrincipals(scope)
-	}
 	l.token = nil
 	return nil
 }
@@ -173,10 +171,31 @@ func (l *LoginModule) addScopes(
 ) {
 	if scp, ok := claims["scp"]; ok {
 		scopes := strings.Split(scp.(string), " ")
-		l.scopes = make([]Scope, len(scopes))
-		for i, scope := range scopes {
-			l.scopes[i] = Scope(scope)
-			subject.AddPrincipals(l.scopes[i])
+		for _, scope := range scopes {
+			scp := Scope(scope)
+			subject.AddPrincipals(scp)
+			l.principals = append(l.principals, scp)
+		}
+	}
+}
+
+func (l *LoginModule) addKnownPrincipals(
+	subject security.Subject,
+	claims  jwt.MapClaims,
+) {
+	for key, val := range claims {
+		switch strings.ToLower(key) {
+		case "email":
+			subject.AddPrincipals(principal.Email(val.(string)))
+		case "roles":
+			roles := principal.Parse[principal.Role](val)
+			subject.AddPrincipals(roles...)
+		case "groups":
+			groups := principal.Parse[principal.Role](val)
+			subject.AddPrincipals(groups...)
+		case "entitlements":
+			entitlements := principal.Parse[principal.Entitlement](val)
+			subject.AddPrincipals(entitlements...)
 		}
 	}
 }

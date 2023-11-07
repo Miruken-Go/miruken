@@ -11,7 +11,8 @@ import (
 	"strings"
 )
 
-type (	// Verifier checks the password for a username.
+type (
+	// Verifier checks the password for a username.
 	Verifier interface {
 		VerifyPassword(username string, password []byte) bool
 	}

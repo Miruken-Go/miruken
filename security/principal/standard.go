@@ -6,17 +6,29 @@ import (
 )
 
 type (
-	// Id represents the identity of a subject. i.e. user
+	// Id represents the identity of a subject.
+	// i.e. user
 	Id string
 
-	// Role represents a certain level of authorization. i.e. operator
+	// User identifies a username or account name.
+	// i.e. test1
+	User string
+
+	// Email is used to hold the email address of the subject.
+	// i.e. johm.doe@domain.com
+	Email string
+
+	// Role represents a certain level of authorization.
+	// i.e. operator
 	Role string
 
-	// Group organizes users having common capabilities. i.e. admin
+	// Group organizes users having common capabilities.
+	// i.e. admin
 	Group string
 
-	// User identifies a username or account name. i.e. test1
-	User string
+	// Entitlement refers to the rights and privileges granted to a user or a group.
+	// i.e. createWidget
+	Entitlement string
 )
 
 
@@ -32,6 +44,40 @@ func (i *Id) InitWithTag(tag reflect.StructTag) error {
 			return errors.New("id name is required")
 		}
 		*i = Id(name)
+	}
+	return nil
+}
+
+
+//goland:noinspection GoMixedReceiverTypes
+func (u User) Name() string {
+	return string(u)
+}
+
+//goland:noinspection GoMixedReceiverTypes
+func (u *User) InitWithTag(tag reflect.StructTag) error {
+	if name, ok := tag.Lookup("name"); ok {
+		if name == "" {
+			return errors.New("user name is required")
+		}
+		*u = User(name)
+	}
+	return nil
+}
+
+
+//goland:noinspection GoMixedReceiverTypes
+func (e Email) Name() string {
+	return string(e)
+}
+
+//goland:noinspection GoMixedReceiverTypes
+func (e *Email) InitWithTag(tag reflect.StructTag) error {
+	if name, ok := tag.Lookup("name"); ok {
+		if name == "" {
+			return errors.New("email name is required")
+		}
+		*e = Email(name)
 	}
 	return nil
 }
@@ -72,17 +118,17 @@ func (g *Group) InitWithTag(tag reflect.StructTag) error {
 
 
 //goland:noinspection GoMixedReceiverTypes
-func (u User) Name() string {
-	return string(u)
+func (e Entitlement) Name() string {
+	return string(e)
 }
 
 //goland:noinspection GoMixedReceiverTypes
-func (u *User) InitWithTag(tag reflect.StructTag) error {
+func (e *Entitlement) InitWithTag(tag reflect.StructTag) error {
 	if name, ok := tag.Lookup("name"); ok {
 		if name == "" {
-			return errors.New("user name is required")
+			return errors.New("entitlement name is required")
 		}
-		*u = User(name)
+		*e = Entitlement(name)
 	}
 	return nil
 }
