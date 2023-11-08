@@ -16,7 +16,7 @@ var static embed.FS
 
 const mirukenMod = "github.com/miruken-go/miruken"
 
-func Handler(prefix string, docs map[string]*openapi3.T) http.HandlerFunc {
+func Handler(prefix string, docs map[string]*openapi3.T, config openapi.Config) http.HandlerFunc {
 	dir, _ := fs.Sub(static, "static")
 	server := http.StripPrefix(prefix, http.FileServer(http.FS(dir)))
 	h      := openapi.Handler(docs, false)
@@ -66,7 +66,17 @@ func Handler(prefix string, docs map[string]*openapi3.T) http.HandlerFunc {
     ],
     layout: "StandaloneLayout"
   });
+`))
+			if clientId := config.ClientId; clientId != "" {
+				_, _ = rw.Write([]byte(`
+  window.ui.initOAuth({
+    clientId: "`))
+				_, _ = rw.Write([]byte(clientId))
+				_, _ = rw.Write([]byte(`"
+})`))
+			}
 
+			_, _ = rw.Write([]byte(`	
   //</editor-fold>
 };`))
 		} else {

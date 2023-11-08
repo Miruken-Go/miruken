@@ -52,7 +52,9 @@ func (m Map) VerifyPassword(username string, password []byte) bool {
 
 func (l *LoginModule) Constructor(
 	_*struct{creates.It `key:"login.pwd"`},
+	verifiers []Verifier,
 ) {
+	l.verifiers = verifiers
 }
 
 func (l *LoginModule) Init(opts map[string]any) error {
