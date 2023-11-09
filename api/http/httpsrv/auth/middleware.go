@@ -47,14 +47,14 @@ func (b *FlowBuilder) Scheme(scheme Scheme) *Authentication {
 }
 
 
-func (a *Authentication) FlowRef(ref string) *FlowBuilder {
+func (a *Authentication) WithFlowRef(ref string) *FlowBuilder {
 	if ref == "" {
 		panic("flow ref cannot be empty")
 	}
 	return &FlowBuilder{a: a, flow: flowSpec{ref: ref}}
 }
 
-func (a *Authentication) Flow(flow login.Flow) *FlowBuilder {
+func (a *Authentication) WithFlow(flow login.Flow) *FlowBuilder {
 	if len(flow) == 0 {
 		panic("flow cannot be empty")
 	}
@@ -166,12 +166,12 @@ func WriteWWWAuthenticateHeader(
 // with a reference to a login flow.
 func WithFlowRef(flow string) *FlowBuilder {
 	auth := &Authentication{}
-	return auth.FlowRef(flow)
+	return auth.WithFlowRef(flow)
 }
 
 // WithFlow starts a new authentication flow builder
 // with the definition of a login flow.
 func WithFlow(flow login.Flow) *FlowBuilder {
 	auth := &Authentication{}
-	return auth.Flow(flow)
+	return auth.WithFlow(flow)
 }

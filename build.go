@@ -1,8 +1,7 @@
 package miruken
 
 import (
-	slices2 "github.com/miruken-go/miruken/internal/slices"
-	"github.com/miruken-go/miruken/slices"
+	"github.com/miruken-go/miruken/internal/slices"
 )
 
 type (
@@ -149,7 +148,7 @@ type MutableHandlers struct {
 }
 
 func (m *MutableHandlers) Handlers() []any {
-	return slices2.Map[Handler, any](m.handlers.Items(), func(h Handler) any {
+	return slices.Map[Handler, any](m.handlers.Items(), func(h Handler) any {
 		if a, ok := h.(handlerAdapter); ok {
 			return a.handler
 		}

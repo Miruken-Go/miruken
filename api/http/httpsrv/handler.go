@@ -20,7 +20,7 @@ import (
 	"strings"
 )
 
-// ApiHandler is an http.Handler for processing api requests over http.
+// ApiHandler is a http.Handler for processing api requests over http.
 type ApiHandler struct {
 	logger logr.Logger
 }

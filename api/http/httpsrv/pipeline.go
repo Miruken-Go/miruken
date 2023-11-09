@@ -1,6 +1,7 @@
 package httpsrv
 
 import (
+	context2 "context"
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/context"
@@ -36,7 +37,14 @@ type (
 		h miruken.Handler,
 		n func(miruken.Handler),
 	) error
+
+	// Specialized key type for context values.
+ 	contextKey int
 )
+
+
+// ComposerKey is used to access the miruken.Handler from the context.
+const ComposerKey contextKey = 0
 
 
 func (f MiddlewareFunc) ServeHTTP(
@@ -117,6 +125,22 @@ func getServeHTTPCaller(typ reflect.Type) (miruken.CallerFunc, error) {
 		}
 	}
 	return nil, fmt.Errorf(`middleware: %v has no compatible dynamic method`, typ)
+}
+
+
+// Handler adapts a http.Handler to Middleware so it can terminate the Pipeline.
+func Handler(handler http.Handler) Middleware {
+	return MiddlewareFunc(func(
+		w http.ResponseWriter,
+		r *http.Request,
+		m Middleware,
+		h miruken.Handler,
+		n func(miruken.Handler),
+	) error {
+		ctxWithComposer := context2.WithValue(r.Context(), ComposerKey, h)
+		handler.ServeHTTP(w, r.WithContext(ctxWithComposer))
+		return nil
+	})
 }
 
 
