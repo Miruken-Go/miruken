@@ -17,11 +17,13 @@ import (
 type (
 	// LoginModule authenticates a subject from a JWT (JSON Web Token).
 	LoginModule struct {
+		issuer     string
+		audience   string
 		jwksUri    string
 		jwksJson   json.RawMessage
 		token      *jwt.Token
 		principals []security.Principal
-		jwks      KeySet
+		jwks       KeySet
 	}
 
 	// KeySet provides JWKS (JSON Web Key Sets) to verify JWT signatures.
@@ -38,6 +40,7 @@ type (
 
 var (
 	ErrScopeNameRequired     = errors.New("scope name is required")
+	ErrInvalidAudOption      = errors.New("invalid audience option")
 	ErrInvalidJwksOption     = errors.New("invalid jwks option")
 	ErrInvalidJwksUrl        = errors.New("invalid jwks.uri option")
 	ErrJwksUrlOrKeysRequired = errors.New("option jwks.uri or jwks.keys is required")
@@ -74,6 +77,18 @@ func (l *LoginModule) Constructor(
 func (l *LoginModule) Init(opts map[string]any) error {
 	for k,opt := range opts {
 		switch strings.ToLower(k) {
+		case "issuer":
+			if iss, ok := opt.(string); !ok {
+				return ErrInvalidAudOption
+			} else {
+				l.issuer = iss
+			}
+		case "audience":
+			if aud, ok := opt.(string); !ok {
+				return ErrInvalidAudOption
+			} else {
+				l.audience = aud
+			}
 		case "jwks":
 			if jwks, ok := opt.(map[string]any); !ok {
 				return ErrInvalidJwksOption
@@ -122,7 +137,8 @@ func (l *LoginModule) Login(
 		return err
 	}
 
-	token, err := jwt.Parse(tokenStr, keys)
+	token, err := jwt.Parse(tokenStr, keys,
+		jwt.WithIssuer(l.issuer), jwt.WithAudience(l.audience))
 	if err != nil {
 		return err
 	} else if !token.Valid {
