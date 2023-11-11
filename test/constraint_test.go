@@ -190,7 +190,8 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 	suite.Run("No Constraints", func () {
 		suite.Run("Resolve", func() {
 			handler, _ := suite.Setup()
-			appSettings, _, err := miruken.Resolve[AppSettings](handler)
+			appSettings, _, ok, err := miruken.Resolve[AppSettings](handler)
+			suite.True(ok)
 			suite.Nil(err)
 			suite.NotNil(appSettings)
 		})
@@ -204,10 +205,12 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 
 		suite.Run("Handler", func() {
 			handler, _ := suite.Setup(&NoConstraintProvider{})
-			person, _, err := miruken.Resolve[Person](handler)
+			person, _, ok, err := miruken.Resolve[Person](handler)
+			suite.True(ok)
 			suite.Nil(err)
 			suite.NotNil(person)
-			person, _, err = miruken.Resolve[Person](handler, internal.New[Doctor]())
+			person, _, ok, err = miruken.Resolve[Person](handler, internal.New[Doctor]())
+			suite.False(ok)
 			suite.Nil(err)
 			suite.Nil(person)
 		})
@@ -216,11 +219,13 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 	suite.Run("Named", func () {
 		suite.Run("Resolve", func() {
 			handler, _ := suite.Setup()
-			appSettings, _, err := miruken.Resolve[AppSettings](handler, "local")
+			appSettings, _, ok, err := miruken.Resolve[AppSettings](handler, "local")
+			suite.True(ok)
 			suite.Nil(err)
 			suite.IsType(&LocalSettings{}, appSettings)
 
-			appSettings, _, err = miruken.Resolve[AppSettings](handler, "remote")
+			appSettings, _, ok, err = miruken.Resolve[AppSettings](handler, "remote")
+			suite.True(ok)
 			suite.Nil(err)
 			suite.IsType(&RemoteSettings{}, appSettings)
 		})
@@ -234,7 +239,8 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 
 		suite.Run("Inject", func() {
 			handler, _ := suite.Setup()
-			client, _, err := miruken.Resolve[*Client](handler)
+			client, _, ok, err := miruken.Resolve[*Client](handler)
+			suite.True(ok)
 			suite.Nil(err)
 			suite.NotNil(client)
 			suite.IsType(&LocalSettings{}, client.Local())
@@ -245,13 +251,15 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 	suite.Run("Metadata", func () {
 		suite.Run("Resolve", func() {
 			handler, _ := suite.Setup()
-			doctor, _, err := miruken.Resolve[Person](handler, internal.New[Doctor]())
+			doctor, _, ok, err := miruken.Resolve[Person](handler, internal.New[Doctor]())
+			suite.True(ok)
 			suite.Nil(err)
 			suite.NotNil(doctor)
 			suite.Equal("Jack", doctor.FirstName())
 			suite.Equal("Zigler", doctor.LastName())
 
-			programmer, _, err := miruken.Resolve[Person](handler, Programmer{})
+			programmer, _, ok, err := miruken.Resolve[Person](handler, Programmer{})
+			suite.True(ok)
 			suite.Nil(err)
 			suite.NotNil(programmer)
 			suite.Equal("Paul", programmer.FirstName())
@@ -267,7 +275,8 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 
 		suite.Run("Inject", func() {
 			handler, _ := suite.Setup()
-			hospital, _, err := miruken.Resolve[*Hospital](handler)
+			hospital, _, ok, err := miruken.Resolve[*Hospital](handler)
+			suite.True(ok)
 			suite.Nil(err)
 			suite.NotNil(hospital)
 			suite.Equal("Jack", hospital.Doctor().FirstName())

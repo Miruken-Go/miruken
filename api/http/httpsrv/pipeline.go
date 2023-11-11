@@ -1,7 +1,6 @@
 package httpsrv
 
 import (
-	context2 "context"
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/context"
@@ -17,8 +16,17 @@ import (
 )
 
 type (
-	// Middleware augments http.Handler to provide pre and post
-	// processing of requests and responses.
+	// Handler augments http.Handler to provide miruken.Handler composer.
+	Handler interface {
+		ServeHTTP(
+			w http.ResponseWriter,
+			r *http.Request,
+			h miruken.Handler,
+		)
+	}
+
+	// Middleware augments Handler to participate in a pipeline to support
+	// pre and post processing of requests.
 	Middleware interface {
 		ServeHTTP(
 			http.ResponseWriter,
@@ -37,14 +45,7 @@ type (
 		h miruken.Handler,
 		n func(miruken.Handler),
 	) error
-
-	// Specialized key type for context values.
- 	contextKey int
 )
-
-
-// ComposerKey is used to access the miruken.Handler from the context.
-const ComposerKey contextKey = 0
 
 
 func (f MiddlewareFunc) ServeHTTP(
@@ -127,26 +128,18 @@ func getServeHTTPCaller(typ reflect.Type) (miruken.CallerFunc, error) {
 	return nil, fmt.Errorf(`middleware: %v has no compatible dynamic method`, typ)
 }
 
-
-// Handler adapts a http.Handler to Middleware so it can terminate the Pipeline.
-func Handler(handler http.Handler) Middleware {
-	return MiddlewareFunc(func(
-		w http.ResponseWriter,
-		r *http.Request,
-		m Middleware,
-		h miruken.Handler,
-		n func(miruken.Handler),
-	) error {
-		ctxWithComposer := context2.WithValue(r.Context(), ComposerKey, h)
-		handler.ServeHTTP(w, r.WithContext(ctxWithComposer))
-		return nil
-	})
+// Api returns a http.Handler for processing api calls through
+// a list of Middleware components.
+func Api(
+	handler    miruken.Handler,
+	middleware ...Middleware,
+) http.Handler {
+	return Pipeline[*ApiHandler](handler, middleware...)
 }
 
-
-// Pipeline returns a http.Handler for processing api calls
+// Pipeline returns a http.Handler for processing requests
 // through a list of Middleware components.
-func Pipeline(
+func Pipeline[H Handler](
 	handler    miruken.Handler,
 	middleware ...Middleware,
 ) http.Handler {
@@ -169,12 +162,12 @@ func Pipeline(
 			if index < length {
 				m := middleware[index]
 				index++
-				mm, mp, err := provides.Key[Middleware](h, reflect.TypeOf(m))
-				if err != nil {
+				mm, pm, ok, err := provides.Key[Middleware](h, reflect.TypeOf(m))
+				if !(ok && err == nil) {
 					w.WriteHeader(http.StatusInternalServerError)
 					return
-				} else if mp != nil {
-					if mm, err = mp.Await(); err != nil {
+				} else if pm != nil {
+					if mm, err = pm.Await(); err != nil {
 						w.WriteHeader(http.StatusInternalServerError)
 						return
 					}
@@ -187,17 +180,17 @@ func Pipeline(
 					return
 				}
 			} else {
-				a, cp, err := provides.Type[*ApiHandler](h)
-				if a == nil || err != nil {
+				hh, ph, ok, err := provides.Type[H](h)
+				if !(ok && err == nil) {
 					w.WriteHeader(http.StatusInternalServerError)
 					return
-				} else if cp != nil {
-					if a, err = cp.Await(); err != nil {
+				} else if ph != nil {
+					if hh, err = ph.Await(); err != nil {
 						w.WriteHeader(http.StatusInternalServerError)
 						return
 					}
 				}
-				a.ServeHTTP(w, r, h)
+				hh.ServeHTTP(w, r, h)
 			}
 		}
 
@@ -205,7 +198,7 @@ func Pipeline(
 	})
 }
 
-func handlePanic(w http.ResponseWriter, r *http.Request) {
+func handlePanic(w http.ResponseWriter, _ *http.Request) {
 	if rc := recover(); rc != nil {
 		buf := make([]byte, 2048)
 		n   := runtime.Stack(buf, false)

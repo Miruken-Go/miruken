@@ -85,11 +85,13 @@ func (suite *SetupTestSuite) TestSetup() {
 					return false
 				}).Handler()
 
-		m, _, err := miruken.Resolve[*MultiHandler](handler)
+		m, _, ok, err := miruken.Resolve[*MultiHandler](handler)
+		suite.False(ok)
 		suite.Nil(err)
 		suite.Nil(m)
 
-		e, _, err := miruken.Resolve[*EverythingHandler](handler)
+		e, _, ok, err := miruken.Resolve[*EverythingHandler](handler)
+		suite.False(ok)
 		suite.Nil(err)
 		suite.Nil(e)
 	})
@@ -104,7 +106,8 @@ func (suite *SetupTestSuite) TestSetup() {
 		suite.False(result.IsError())
 		suite.Equal(miruken.NotHandled, result)
 
-		m, _, err := miruken.Resolve[*MultiHandler](handler)
+		m, _, ok, err := miruken.Resolve[*MultiHandler](handler)
+		suite.False(ok)
 		suite.Nil(err)
 		suite.Nil(m)
 	})
@@ -125,7 +128,8 @@ func (suite *SetupTestSuite) TestSetup() {
 		result := handler.Handle(&Foo{}, false, nil)
 		suite.False(result.IsError())
 		suite.Equal(miruken.Handled, result)
-		multi, _, err := miruken.Resolve[*MultiHandler](handler)
+		multi, _, ok, err := miruken.Resolve[*MultiHandler](handler)
+		suite.True(ok)
 		suite.Nil(err)
 		suite.NotNil(multi)
 	})

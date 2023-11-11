@@ -162,7 +162,7 @@ func (suite *SideEffectTestSuite) TestSideEffects() {
 		suite.Nil(err)
 		suite.Nil(pr)
 		suite.Equal("jd@gmail.com", r)
-		mailer, _, _ := provides.Type[*MailerStub](handler)
+		mailer, _, _, _ := provides.Type[*MailerStub](handler)
 		suite.Equal("Confirm your account John Doe", mailer.Log["jd@gmail.com"])
 	})
 
@@ -176,10 +176,10 @@ func (suite *SideEffectTestSuite) TestSideEffects() {
 		id, err = pid.Await()
 		suite.Nil(err)
 		suite.NotEmpty(id)
-		db, _, _ := provides.Type[*DatabaseStub](handler)
+		db, _, _, _ := provides.Type[*DatabaseStub](handler)
 		suite.Equal("John Doe", db.Accounts[id].Name)
 		suite.NotNil(db)
-		mailer, _, _ := provides.Type[*MailerStub](handler)
+		mailer, _, _, _ := provides.Type[*MailerStub](handler)
 		suite.Equal("Welcome John Doe", mailer.Log["jd@gmail.com"])
 	})
 

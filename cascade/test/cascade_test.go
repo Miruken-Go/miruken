@@ -170,7 +170,8 @@ func (suite *CascadeTestSuite) TestCascade() {
 		suite.Nil(err)
 		suite.NotNil(reservation)
 
-		inventory, _, err := provides.Type[*SeatInventory](handler)
+		inventory, _, ok, err := provides.Type[*SeatInventory](handler)
+		suite.True(ok)
 		suite.Nil(err)
 		suite.NotNil(inventory)
 		seats, err := inventory.Get(reservation.Id)
@@ -193,7 +194,7 @@ func (suite *CascadeTestSuite) TestCascade() {
 		suite.Nil(err)
 		suite.NotNil(reservation)
 
-		inventory, _, err := provides.Type[*SeatInventory](handler)
+		inventory, _, _, err := provides.Type[*SeatInventory](handler)
 		seats, err := inventory.Get(reservation.Id)
 
 		newSeatId := uuid.New()

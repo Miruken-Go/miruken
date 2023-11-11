@@ -598,7 +598,7 @@ func (f ChangedObserverFunc) ContextChanged(
 
 var PublishFromRoot miruken.BuilderFunc =
 	 func (handler miruken.Handler) miruken.Handler {
-		 if context, _, err := provides.Type[*Context](handler); err != nil {
+		 if context, _, ok, err := provides.Type[*Context](handler); !(ok && err == nil) {
 			 panic("root context could not be found")
 		 } else {
 			 return miruken.Publish.BuildUp(context.Root())

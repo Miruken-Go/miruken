@@ -25,7 +25,7 @@ var (
 func Type[T any](
 	handler     miruken.Handler,
 	constraints ...any,
-) (T, *promise.Promise[T], error) {
+) (T, *promise.Promise[T], bool, error) {
 	return miruken.Resolve[T](handler, constraints...)
 }
 
@@ -33,7 +33,7 @@ func Key[T any](
 	handler     miruken.Handler,
 	key         any,
 	constraints ...any,
-) (t T, tp *promise.Promise[T], err error) {
+) (t T, tp *promise.Promise[T], ok bool, err error) {
 	return miruken.ResolveKey[T](handler, key, constraints...)
 }
 

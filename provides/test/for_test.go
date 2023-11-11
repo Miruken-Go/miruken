@@ -195,7 +195,8 @@ func (suite *ForTestSuite) Setup(specs...any) (miruken.Handler, error) {
 func (suite *ForTestSuite) TestFor() {
 	suite.Run("Default", func () {
 		handler, _ := suite.Setup()
-		svc1, _, err := miruken.Resolve[*ApiService](handler)
+		svc1, _, ok, err := miruken.Resolve[*ApiService](handler)
+		suite.True(ok)
 		suite.Nil(err)
 		suite.NotNil(svc1)
 		suite.Equal("default for ApiService", svc1.Work())
@@ -203,12 +204,14 @@ func (suite *ForTestSuite) TestFor() {
 
 	suite.Run("Constructor", func () {
 		handler, _ := suite.Setup()
-		svc1, _, err := miruken.Resolve[*ApiService1](handler)
+		svc1, _, ok, err := miruken.Resolve[*ApiService1](handler)
+		suite.True(ok)
 		suite.Nil(err)
 		suite.NotNil(svc1)
 		suite.Equal("Client1 for ApiService1", svc1.Work())
 
-		svc2, _, err := miruken.Resolve[*ApiService2](handler)
+		svc2, _, ok, err := miruken.Resolve[*ApiService2](handler)
+		suite.True(ok)
 		suite.Nil(err)
 		suite.NotNil(svc2)
 		suite.Equal("Client2 for ApiService2", svc2.Work())
@@ -216,7 +219,8 @@ func (suite *ForTestSuite) TestFor() {
 
 	suite.Run("Method", func () {
 		handler, _ := suite.Setup()
-		svc3, _, err := miruken.Resolve[*ApiService3](handler)
+		svc3, _, ok, err := miruken.Resolve[*ApiService3](handler)
+		suite.True(ok)
 		suite.Nil(err)
 		suite.NotNil(svc3)
 		suite.Equal("Client3 for ApiService3", svc3.Work())
@@ -224,7 +228,8 @@ func (suite *ForTestSuite) TestFor() {
 
 	suite.Run("Interface", func () {
 		handler, _ := suite.Setup(&ApiService2{}, &ApiProvider{})
-		wkr, _, err := miruken.Resolve[Worker](handler)
+		wkr, _, ok, err := miruken.Resolve[Worker](handler)
+		suite.True(ok)
 		suite.Nil(err)
 		suite.NotNil(wkr)
 		suite.Equal("Client2 for ApiService2", wkr.Work())
@@ -232,7 +237,8 @@ func (suite *ForTestSuite) TestFor() {
 
 	suite.Run("Hierarchy", func () {
 		handler, _ := suite.Setup()
-		cluster, _, err := miruken.Resolve[*ApiCluster](handler)
+		cluster, _, ok, err := miruken.Resolve[*ApiCluster](handler)
+		suite.True(ok)
 		suite.Nil(err)
 		suite.NotNil(cluster)
 		work := cluster.Work()

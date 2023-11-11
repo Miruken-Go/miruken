@@ -60,7 +60,8 @@ func (suite *LogTestSuite) TestLogging() {
 		handler, _ := miruken.Setup(
 			logs.Feature(testr.New(suite.T())),
 		).Handler()
-		logger, _, err:= provides.Type[logr.Logger](handler)
+		logger, _, ok, err:= provides.Type[logr.Logger](handler)
+		suite.True(ok)
 		suite.Nil(err)
 		logger.Info("Hello")
 	})
@@ -71,7 +72,8 @@ func (suite *LogTestSuite) TestLogging() {
 				testr.NewWithOptions(suite.T(), testr.Options{Verbosity: 1}),
 			),
 		).Handler()
-		logger, _, err:= provides.Type[logr.Logger](handler)
+		logger, _, ok, err:= provides.Type[logr.Logger](handler)
+		suite.True(ok)
 		suite.Nil(err)
 		logger.V(1).Info("World")
 	})
@@ -81,7 +83,8 @@ func (suite *LogTestSuite) TestLogging() {
 			logs.Feature(testr.New(suite.T()))).
 			Specs(&Service{}).
 			Handler()
-		svc, _, err := provides.Type[*Service](handler)
+		svc, _, ok, err := provides.Type[*Service](handler)
+		suite.True(ok)
 		suite.Nil(err)
 		svc.Run()
 	})

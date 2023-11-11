@@ -60,7 +60,7 @@ func (suite *RouteTestSuite) TestRoute() {
 	suite.Run("Route", func() {
 		suite.Run("Requests", func() {
 			handler := suite.Setup()
-			trash, _, _ := provides.Type[*Trash](handler)
+			trash, _, _, _ := provides.Type[*Trash](handler)
 			getQuote := GetStockQuote{"GOOGL"}
 			r, pr, err := api.Send[StockQuote](handler, api.RouteTo(getQuote, "trash"))
 			suite.Nil(err)
@@ -76,7 +76,7 @@ func (suite *RouteTestSuite) TestRoute() {
 
 		suite.Run("No Response", func() {
 			handler := suite.Setup()
-			trash, _, _ := provides.Type[*Trash](handler)
+			trash, _, _, _ := provides.Type[*Trash](handler)
 			sell := SellStock{"EX", 10}
 			pv, err := api.Post(handler, api.RouteTo(sell, "trash"))
 			suite.Nil(err)
@@ -114,7 +114,7 @@ func (suite *RouteTestSuite) TestRoute() {
 	suite.Run("Route Batch", func() {
 		suite.Run("Requests", func() {
 			handler := suite.Setup()
-			trash, _, _ := provides.Type[*Trash](handler)
+			trash, _, _, _ := provides.Type[*Trash](handler)
 			getQuote := GetStockQuote{"GOOGL"}
 			called := false
 			pb := miruken.BatchAsync(handler,

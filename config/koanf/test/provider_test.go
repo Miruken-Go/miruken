@@ -116,7 +116,8 @@ func (suite *ProviderTestSuite) TestProvider() {
 	suite.Run("Load", func() {
 		suite.Run("Resolve", func() {
 			handler, _ := suite.Setup()
-			cfg, _, err := provides.Type[AppConfig](handler, new(config.Load))
+			cfg, _, ok, err := provides.Type[AppConfig](handler, new(config.Load))
+			suite.True(ok)
 			suite.Nil(err)
 			suite.Equal("develop", cfg.Env)
 			suite.Len(cfg.Databases, 2)
@@ -124,7 +125,8 @@ func (suite *ProviderTestSuite) TestProvider() {
 
 		suite.Run("Constructor", func() {
 			handler, _ := suite.Setup(&EventStore{})
-			es, _, err := provides.Type[*EventStore](handler)
+			es, _, ok, err := provides.Type[*EventStore](handler)
+			suite.True(ok)
 			suite.Nil(err)
 			suite.Equal("develop", es.Env())
 		})
@@ -143,7 +145,8 @@ func (suite *ProviderTestSuite) TestProvider() {
 				CustomerUrl   string
 			}
 			handler, _ := suite.Setup()
-			cfg, _, err := provides.Type[UrlConfig](handler, &config.Load{Path: "services"})
+			cfg, _, ok, err := provides.Type[UrlConfig](handler, &config.Load{Path: "services"})
+			suite.True(ok)
 			suite.Nil(err)
 			suite.Equal("http://gateway/events", cfg.EventStoreUrl)
 			suite.Equal("http://gateway/customer", cfg.CustomerUrl)
@@ -155,7 +158,8 @@ func (suite *ProviderTestSuite) TestProvider() {
 				CustomerUrl   string `path:"services.customerUrl"`
 			}
 			handler, _ := suite.Setup()
-			cfg, _, err := provides.Type[UrlConfig](handler, &config.Load{Flat: true})
+			cfg, _, ok, err := provides.Type[UrlConfig](handler, &config.Load{Flat: true})
+			suite.True(ok)
 			suite.Nil(err)
 			suite.Equal("http://gateway/events", cfg.EventStoreUrl)
 			suite.Equal("http://gateway/customer", cfg.CustomerUrl)
@@ -185,7 +189,8 @@ func (suite *ProviderTestSuite) TestProvider() {
 		handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
 
 		suite.Run("Resolve", func() {
-			cfg, _, err := provides.Type[AppConfig](handler, &config.Load{Path: "Miruken"})
+			cfg, _, ok, err := provides.Type[AppConfig](handler, &config.Load{Path: "Miruken"})
+			suite.True(ok)
 			suite.Nil(err)
 			suite.Equal("local", cfg.Env)
 			suite.Equal("http://gateway/events", cfg.Services.EventStoreUrl)

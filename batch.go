@@ -225,7 +225,7 @@ var NoBatch BuilderFunc = func(handler Handler) Handler {
 
 func GetBatch[TB batching](handler Handler, tags ...any) TB {
 	var tb TB
-	if batch, _, err := Resolve[*batch](handler); err == nil && batch != nil {
+	if batch, _, ok, err := Resolve[*batch](handler); ok && err == nil && batch != nil {
 		for _, tag := range tags {
 			if !batch.ShouldBatch(tag) {
 				break

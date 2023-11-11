@@ -256,7 +256,8 @@ func (suite *LoginTestSuite) TestLogin() {
 			err := k.Load(file.Provider("./login.json"), json.Parser())
 			suite.Nil(err)
 			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
-			cfg, _, err := provides.Type[login.Configuration](handler, &config.Load{Path: "login"})
+			cfg, _, ok, err := provides.Type[login.Configuration](handler, &config.Load{Path: "login"})
+			suite.True(ok)
 			suite.Nil(err)
 			suite.NotNil(cfg)
 			suite.Len(cfg, 1)
@@ -267,7 +268,8 @@ func (suite *LoginTestSuite) TestLogin() {
 				"debug": true,
 			}, cfg["flow1"][0].Options)
 
-			f, _, err := provides.Type[login.Flow](handler, &config.Load{Path: "login.flow1"})
+			f, _, ok, err := provides.Type[login.Flow](handler, &config.Load{Path: "login.flow1"})
+			suite.True(ok)
 			suite.Nil(err)
 			suite.NotNil(f)
 			suite.Equal("module1", f[0].Module)
@@ -284,7 +286,8 @@ func (suite *LoginTestSuite) TestLogin() {
 				koanf.WithMergeFunc(koanfp.Merge))
 			suite.Nil(err)
 			handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
-			cfg, _, err := provides.Type[login.Configuration](handler, &config.Load{Path: "Login"})
+			cfg, _, ok, err := provides.Type[login.Configuration](handler, &config.Load{Path: "Login"})
+			suite.True(ok)
 			suite.Nil(err)
 			suite.NotNil(cfg)
 			suite.Len(cfg, 1)
@@ -295,7 +298,8 @@ func (suite *LoginTestSuite) TestLogin() {
 				"Debug": "true",
 			}, cfg["Flow1"][0].Options)
 
-			f, _, err := provides.Type[login.Flow](handler, &config.Load{Path: "Login.Flow1"})
+			f, _, ok, err := provides.Type[login.Flow](handler, &config.Load{Path: "Login.Flow1"})
+			suite.True(ok)
 			suite.Nil(err)
 			suite.NotNil(f)
 			suite.Equal("module1", f[0].Module)

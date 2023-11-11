@@ -110,10 +110,10 @@ func (c *Context) initFlow(
 		return nil
 	}
 	if flowRef := c.flowRef; flowRef != "" {
-		f, _, err := provides.Type[Flow](handler, &config.Load{Path: flowRef})
+		f, _, ok, err := provides.Type[Flow](handler, &config.Load{Path: flowRef})
 		if err != nil {
 			return err
-		} else if len(f) == 0 {
+		} else if !ok || len(f) == 0 {
 			return fmt.Errorf("no modules found in flow %q", flowRef)
 		}
 		c.flow = f

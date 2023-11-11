@@ -331,10 +331,10 @@ func getContext(
 	if !isCompatibleWithParent(ctx, rooted) {
 		return nil, false, nil
 	}
-	context, _, err := provides.Type[*Context](ctx)
+	context, _, ok, err := provides.Type[*Context](ctx)
 	if err != nil {
 		return nil, false, err
-	} else if context == nil {
+	} else if !ok || context == nil {
 		return nil, true, nil
 	} else if context.State() != StateActive {
 		return nil, false, ErrScopeInactiveContext

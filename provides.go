@@ -179,7 +179,7 @@ func (b *ProvidesBuilder) New() *Provides {
 func Resolve[T any](
 	handler     Handler,
 	constraints ...any,
-) (T, *promise.Promise[T], error) {
+) (T, *promise.Promise[T], bool, error) {
 	return ResolveKey[T](handler, internal.TypeOf[T](), constraints...)
 }
 
@@ -189,7 +189,7 @@ func ResolveKey[T any](
 	handler     Handler,
 	key         any,
 	constraints ...any,
-) (t T, tp *promise.Promise[T], err error) {
+) (t T, tp *promise.Promise[T], ok bool, err error) {
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
@@ -201,6 +201,7 @@ func ResolveKey[T any](
 	if result := handler.Handle(provides, false, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {
+		ok = true
 		if _, p := provides.Result(false); p != nil {
 			tp = promise.Then(p, func(any) T {
 				return t

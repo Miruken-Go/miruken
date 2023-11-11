@@ -145,7 +145,8 @@ func (suite *StashTestSuite) TestStash() {
 		order := &Order{1, OrderCreated}
 		err := api.StashPut(handler, order)
 		suite.Nil(err)
-		o, _, err := provides.Type[*Order](handler)
+		o, _, ok, err := provides.Type[*Order](handler)
+		suite.True(ok)
 		suite.Nil(err)
 		suite.Same(order, o)
 	})
