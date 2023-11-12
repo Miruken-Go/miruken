@@ -66,7 +66,7 @@ func (a *Authentication) ServeHTTP(
 	r *http.Request,
 	m httpsrv.Middleware,
 	h miruken.Handler,
-	n func(miruken.Handler),
+	n httpsrv.Handler,
 ) error {
 	// Merge explicit flows.
 	flows := a.flows
@@ -94,7 +94,7 @@ func (a *Authentication) ServeHTTP(
 			ps := ctx.Login(lh)
 			if sub, err := ps.Await(); err == nil {
 				sub.AddCredentials(scheme)
-				n(miruken.BuildUp(h, provides.With(sub)))
+				n.ServeHTTP(w, r, miruken.BuildUp(h, provides.With(sub)))
 				ctx.Logout(lh)
 			} else {
 				statusCode := scheme.Challenge(w, r, err)
@@ -105,7 +105,7 @@ func (a *Authentication) ServeHTTP(
 	}
 
 	// Provide an unauthenticated subject.
-	n(miruken.BuildUp(h, provides.With(security.NewSubject())))
+	n.ServeHTTP(w, r, miruken.BuildUp(h, provides.With(security.NewSubject())))
 	return nil
 }
 

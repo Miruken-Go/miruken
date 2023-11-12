@@ -25,6 +25,13 @@ type (
 		)
 	}
 
+	// HandlerFunc promotes a function to Handler.
+	HandlerFunc func(
+		w http.ResponseWriter,
+		r *http.Request,
+		h miruken.Handler,
+	)
+
 	// Middleware augments Handler to participate in a pipeline to support
 	// pre and post processing of requests.
 	Middleware interface {
@@ -33,7 +40,7 @@ type (
 			*http.Request,
 			Middleware,
 			miruken.Handler,
-			func(miruken.Handler),
+			Handler,
 		) error
 	}
 
@@ -43,9 +50,16 @@ type (
 		r *http.Request,
 		m Middleware,
 		h miruken.Handler,
-		n func(miruken.Handler),
+		n Handler,
 	) error
 )
+
+
+func (f HandlerFunc) ServeHTTP(
+	w http.ResponseWriter,
+	r *http.Request,
+	h miruken.Handler,
+) { f(w, r, h) }
 
 
 func (f MiddlewareFunc) ServeHTTP(
@@ -53,7 +67,7 @@ func (f MiddlewareFunc) ServeHTTP(
 	r *http.Request,
 	m Middleware,
 	h miruken.Handler,
-	n func(miruken.Handler),
+	n Handler,
 ) error { return f(w, r, m, h, n) }
 
 
@@ -128,42 +142,121 @@ func getServeHTTPCaller(typ reflect.Type) (miruken.CallerFunc, error) {
 	return nil, fmt.Errorf(`middleware: %v has no compatible dynamic method`, typ)
 }
 
-// Api returns a http.Handler for processing api calls through
-// a list of Middleware components.
+
+// Api builds a http.Handler for accepting polymorphic api calls
+// through a Middleware pipeline.
 func Api(
-	handler    miruken.Handler,
+	h          miruken.Handler,
 	middleware ...Middleware,
 ) http.Handler {
-	return Pipeline[*ApiHandler](handler, middleware...)
+	return DispatchTo[*ApiHandler](h, middleware...)
 }
 
-// Pipeline returns a http.Handler for processing requests
-// through a list of Middleware components.
-func Pipeline[H Handler](
-	handler    miruken.Handler,
+// Dispatch builds an enhanced http.Handler for processing
+// requests through a Middleware pipeline and terminating
+// at a Handler.
+func Dispatch(
+	h          miruken.Handler,
+	handler    Handler,
 	middleware ...Middleware,
 ) http.Handler {
-	ctx, ok := handler.(*context.Context)
+	ctx, ok := h.(*context.Context)
 	if !ok {
-		ctx = context.New(handler)
+		ctx = context.New(h)
 	}
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer handlePanic(w, r)
 
+	pipeline := Pipe(middleware...)
+
+	return http.HandlerFunc(func(
+		w http.ResponseWriter,
+		r *http.Request,
+	) {
+		defer handlePanic(w, r)
 		child := ctx.NewChild()
 		defer child.Dispose()
 
+		err := pipeline.ServeHTTP(w, r, nil, child, handler)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	})
+}
+
+// DispatchFunc builds an enhanced http.Handler for processing
+// requests through a Middleware pipeline and terminating at
+// a handler function.
+func DispatchFunc(
+	h          miruken.Handler,
+	handler    func(http.ResponseWriter, *http.Request, miruken.Handler),
+	middleware ...Middleware,
+) http.Handler {
+	return Dispatch(h, HandlerFunc(handler), middleware...)
+}
+
+// DispatchTo builds an enhanced http.Handler for processing
+// requests through a Middleware pipeline and terminating
+// at a typed Handler.
+func DispatchTo[H Handler](
+	h          miruken.Handler,
+	middleware ...Middleware,
+) http.Handler {
+	ctx, ok := h.(*context.Context)
+	if !ok {
+		ctx = context.New(h)
+	}
+
+	pipeline := Pipe(middleware...)
+
+	return http.HandlerFunc(func(
+		w http.ResponseWriter,
+		r *http.Request,
+	) {
+		defer handlePanic(w, r)
+		child := ctx.NewChild()
+		defer child.Dispose()
+
+		hh, ph, ok, err := provides.Type[H](child)
+		if !(ok && err == nil) {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		} else if ph != nil {
+			if hh, err = ph.Await(); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+
+		err = pipeline.ServeHTTP(w, r, nil, child, hh)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	})
+}
+
+// Pipe builds a Middleware chain for pre and post processing of requests.
+func Pipe(middleware ...Middleware) Middleware {
+	return MiddlewareFunc(func(
+		w http.ResponseWriter,
+		r *http.Request,
+		m Middleware,
+		h miruken.Handler,
+		n Handler,
+	) error {
 		index, length := 0, len(middleware)
-		var next func(miruken.Handler)
-		next = func(h miruken.Handler) {
-			if h == nil {
-				h = child
+		var next Handler
+		next = HandlerFunc(func(
+			w        http.ResponseWriter,
+			r        *http.Request,
+			composer miruken.Handler,
+		) {
+			if composer == nil {
+				composer = h
 			}
 			if index < length {
 				m := middleware[index]
 				index++
-				mm, pm, ok, err := provides.Key[Middleware](h, reflect.TypeOf(m))
-				if !(ok && err == nil) {
+				mm, pm, _, err := provides.Key[Middleware](composer, reflect.TypeOf(m))
+				if err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				} else if pm != nil {
@@ -175,28 +268,19 @@ func Pipeline[H Handler](
 				if mm == nil {
 					mm = m
 				}
-				if err := mm.ServeHTTP(w, r, m, h, next); err != nil {
+				if err := mm.ServeHTTP(w, r, m, composer, next); err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
 			} else {
-				hh, ph, ok, err := provides.Type[H](h)
-				if !(ok && err == nil) {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				} else if ph != nil {
-					if hh, err = ph.Await(); err != nil {
-						w.WriteHeader(http.StatusInternalServerError)
-						return
-					}
-				}
-				hh.ServeHTTP(w, r, h)
+				n.ServeHTTP(w, r, composer)
 			}
-		}
-
-		next(child)
+		})
+		next.ServeHTTP(w, r, h)
+		return nil
 	})
 }
+
 
 func handlePanic(w http.ResponseWriter, _ *http.Request) {
 	if rc := recover(); rc != nil {

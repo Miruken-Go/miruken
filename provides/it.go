@@ -33,13 +33,13 @@ func Key[T any](
 	handler     miruken.Handler,
 	key         any,
 	constraints ...any,
-) (t T, tp *promise.Promise[T], ok bool, err error) {
+) (T, *promise.Promise[T], bool, error) {
 	return miruken.ResolveKey[T](handler, key, constraints...)
 }
 
 func All[T any](
 	handler     miruken.Handler,
 	constraints ...any,
-) (t []T, tp *promise.Promise[[]T], err error) {
+) ([]T, *promise.Promise[[]T], error) {
 	return miruken.ResolveAll[T](handler, constraints...)
 }
