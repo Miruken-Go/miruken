@@ -90,7 +90,7 @@ func ServeHTTPLate(
 	}
 }
 
-// getServeHTTPCaller discovers a suitable dynamic "ServerHttp" method.
+// getServeHTTPCaller discovers a suitable dynamic "ServeHttp" method.
 // Uses the copy-on-write idiom since reads should be more frequent than writes.
 func getServeHTTPCaller(typ reflect.Type) (miruken.CallerFunc, error) {
 	if callers := middlewareFuncMap.Load(); callers != nil {

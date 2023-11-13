@@ -20,7 +20,8 @@ type (
 
 	// Authentication applies login flows to auth requests.
 	Authentication struct {
-		flows []flowSpec
+		flows    []flowSpec
+		required bool
 	}
 
 	// FlowBuilder configures a login flow.
@@ -60,6 +61,12 @@ func (a *Authentication) WithFlow(flow login.Flow) *FlowBuilder {
 	}
 	return &FlowBuilder{a: a, flow: flowSpec{flow: flow}}
 }
+
+func (a *Authentication) Required() *Authentication {
+	a.required = true
+	return a
+}
+
 
 func (a *Authentication) ServeHTTP(
 	w http.ResponseWriter,
@@ -102,6 +109,12 @@ func (a *Authentication) ServeHTTP(
 			}
 			return nil
 		}
+	}
+
+	// Return unauthorized if authentication is required.
+	if a.required {
+		w.WriteHeader(http.StatusUnauthorized)
+		return nil
 	}
 
 	// Provide an unauthenticated subject.
