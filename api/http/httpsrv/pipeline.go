@@ -36,22 +36,28 @@ type (
 	// pre and post processing of requests.
 	Middleware interface {
 		ServeHTTP(
+			Middleware,
 			http.ResponseWriter,
 			*http.Request,
 			Middleware,
 			miruken.Handler,
-			Handler,
-		) error
+			func(miruken.Handler),
+		)
 	}
 
 	// MiddlewareFunc promotes a function to Middleware.
 	MiddlewareFunc func(
+		s Middleware,
 		w http.ResponseWriter,
 		r *http.Request,
 		m Middleware,
 		h miruken.Handler,
-		n Handler,
-	) error
+		n func(miruken.Handler),
+	)
+
+	// MiddlewareAdapter is an adapter for implementing
+	// Middleware using late binding method resolution.
+	MiddlewareAdapter struct {}
 )
 
 
@@ -63,80 +69,120 @@ func (f HandlerFunc) ServeHTTP(
 
 
 func (f MiddlewareFunc) ServeHTTP(
+	s Middleware,
 	w http.ResponseWriter,
 	r *http.Request,
 	m Middleware,
 	h miruken.Handler,
-	n Handler,
-) error { return f(w, r, m, h, n) }
+	n func(miruken.Handler),
+) { f(s, w, r, m, h, n) }
 
 
-func ServeHTTPLate(
-	m Middleware,
+// middlewareBinding describes the method used by a
+// MiddlewareAdapter to server dynamically.
+type middlewareBinding struct {
+	caller      miruken.CallerFunc
+	argIndexes  []int
+}
+
+
+func (m MiddlewareAdapter) ServeHTTP(
+	s Middleware,
 	w http.ResponseWriter,
 	r *http.Request,
 	p Middleware,
 	h miruken.Handler,
 	n func(miruken.Handler),
-) error {
-	if binding, err := getServeHTTPCaller(reflect.TypeOf(m)); err != nil {
-		return err
+) {
+	if binding, err := getMiddlewareMethod(s); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	} else {
-		_, pr, err := binding(h, m, w, r, p, h, n)
-		if pr != nil {
+		initArgs := []any{s,w,r}
+		for _, idx := range binding.argIndexes {
+			switch idx {
+			case 3:
+				initArgs = append(initArgs, p)
+			case 4:
+				initArgs = append(initArgs, h)
+			case 5:
+				initArgs = append(initArgs, n)
+			}
+		}
+		_, pr, err := binding.caller(h, initArgs...)
+		if err != nil && pr != nil {
 			_, err = pr.Await()
 		}
-		return err
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 }
 
-// getServeHTTPCaller discovers a suitable dynamic "ServeHttp" method.
+
+// getMiddlewareMethod discovers a suitable Middleware method.
 // Uses the copy-on-write idiom since reads should be more frequent than writes.
-func getServeHTTPCaller(typ reflect.Type) (miruken.CallerFunc, error) {
-	if callers := middlewareFuncMap.Load(); callers != nil {
-		if caller, ok := (*callers)[typ]; ok {
-			return caller, nil
+func getMiddlewareMethod(
+	middleware Middleware,
+) (*middlewareBinding, error) {
+	typ := reflect.TypeOf(middleware)
+	if bindings := middlewareBindingMap.Load(); bindings != nil {
+		if binding, ok := (*bindings)[typ]; ok {
+			return &binding, nil
 		}
 	}
 	middlewareFuncLock.Lock()
 	defer middlewareFuncLock.Unlock()
-	callers := middlewareFuncMap.Load()
-	if callers != nil {
-		if caller, ok := (*callers)[typ]; ok {
-			return caller, nil
+	bindings := middlewareBindingMap.Load()
+	if bindings != nil {
+		if binding, ok := (*bindings)[typ]; ok {
+			return &binding, nil
 		}
-		cb := maps.Clone(*callers)
-		callers = &cb
+		sb := maps.Clone(*bindings)
+		bindings = &sb
 	} else {
-		callers = &map[reflect.Type]miruken.CallerFunc{}
+		bindings = &map[reflect.Type]middlewareBinding{}
 	}
 	for i := 0; i < typ.NumMethod(); i++ {
 		method := typ.Method(i)
 		if method.Name == "ServeHTTP" {
 			continue
 		}
-		if lateNextType := method.Type;
-			lateNextType.NumIn() < middlewareFuncType.NumIn() ||
-				lateNextType.NumOut() < middlewareFuncType.NumOut() {
+		if lateServeType := method.Type;
+			lateServeType.NumIn() < 4 || lateServeType.NumOut() > 0 {
 			continue
 		} else {
-			for i := 0; i < middlewareFuncType.NumIn(); i++ {
-				if lateNextType.In(i+1) != middlewareFuncType.In(i) {
+			binding := middlewareBinding{}
+			numArgs := lateServeType.NumIn()
+			for i := 1; i < 3; i++ {
+				if lateServeType.In(i) != middlewareFuncType.In(i) {
 					continue
 				}
 			}
-			for i := 0; i < middlewareFuncType.NumOut(); i++ {
-				if lateNextType.Out(i) != middlewareFuncType.Out(i) {
-					continue
+			required := 0
+			for i := 3; i < numArgs; i++ {
+				for j := 3; j < middlewareFuncType.NumIn(); j++ {
+					if lateServeType.In(i) == middlewareFuncType.In(j) {
+						binding.argIndexes = append(binding.argIndexes, j)
+						if j == 4 || j == 5 {
+							required++
+						}
+						break
+					}
 				}
+			}
+			if required != 2 {
+				continue
 			}
 			caller, err := miruken.MakeCaller(method.Func)
 			if err != nil {
 				return nil, &miruken.MethodBindingError{Method: method, Cause: err}
 			}
-			(*callers)[typ] = caller
-			middlewareFuncMap.Store(callers)
-			return caller, nil
+			binding.caller   = caller
+			(*bindings)[typ] = binding
+			middlewareBindingMap.Store(bindings)
+			return &binding, nil
 		}
 	}
 	return nil, fmt.Errorf(`middleware: %v has no compatible dynamic method`, typ)
@@ -175,10 +221,9 @@ func Dispatch(
 		child := ctx.NewChild()
 		defer child.Dispose()
 
-		err := pipeline.ServeHTTP(w, r, nil, child, handler)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-		}
+		pipeline.ServeHTTP(pipeline, w, r, nil, child, func(c miruken.Handler) {
+			handler.ServeHTTP(w, r, c)
+		})
 	})
 }
 
@@ -226,29 +271,25 @@ func DispatchTo[H Handler](
 			}
 		}
 
-		err = pipeline.ServeHTTP(w, r, nil, child, hh)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-		}
+		pipeline.ServeHTTP(pipeline, w, r, nil, child, func(c miruken.Handler) {
+			hh.ServeHTTP(w, r, c)
+		})
 	})
 }
 
 // Pipe builds a Middleware chain for pre and post processing of requests.
 func Pipe(middleware ...Middleware) Middleware {
 	return MiddlewareFunc(func(
+		s Middleware,
 		w http.ResponseWriter,
 		r *http.Request,
 		m Middleware,
 		h miruken.Handler,
-		n Handler,
-	) error {
+		n func(miruken.Handler),
+	) {
 		index, length := 0, len(middleware)
-		var next Handler
-		next = HandlerFunc(func(
-			w        http.ResponseWriter,
-			r        *http.Request,
-			composer miruken.Handler,
-		) {
+		var next func(miruken.Handler)
+		next = func(composer miruken.Handler) {
 			if composer == nil {
 				composer = h
 			}
@@ -268,16 +309,12 @@ func Pipe(middleware ...Middleware) Middleware {
 				if mm == nil {
 					mm = m
 				}
-				if err := mm.ServeHTTP(w, r, m, composer, next); err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
+				mm.ServeHTTP(mm, w, r, m, composer, next);
 			} else {
-				n.ServeHTTP(w, r, composer)
+				n(composer)
 			}
-		})
-		next.ServeHTTP(w, r, h)
-		return nil
+		}
+		next(h)
 	})
 }
 
@@ -295,6 +332,6 @@ func handlePanic(w http.ResponseWriter, _ *http.Request) {
 
 var (
 	middlewareFuncLock sync.Mutex
-	middlewareFuncType = internal.TypeOf[MiddlewareFunc]()
-	middlewareFuncMap  = atomic.Pointer[map[reflect.Type]miruken.CallerFunc]{}
+	middlewareFuncType   = internal.TypeOf[MiddlewareFunc]()
+	middlewareBindingMap = atomic.Pointer[map[reflect.Type]middlewareBinding]{}
 )

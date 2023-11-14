@@ -6,12 +6,12 @@ import (
 )
 
 func BasicAuth(username, password string) Policy {
-	return func(
+	return PolicyFunc(func(
 		req      *http.Request,
 		composer miruken.Handler,
 		next     func() (*http.Response, error),
-	)  (*http.Response, error) {
+	) (*http.Response, error) {
 		req.SetBasicAuth(username, password)
 		return next()
-	}
+	})
 }

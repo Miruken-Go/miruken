@@ -69,12 +69,13 @@ func (a *Authentication) Required() *Authentication {
 
 
 func (a *Authentication) ServeHTTP(
+	_ httpsrv.Middleware,
 	w http.ResponseWriter,
 	r *http.Request,
 	m httpsrv.Middleware,
 	h miruken.Handler,
-	n httpsrv.Handler,
-) error {
+	n func(miruken.Handler),
+) {
 	// Merge explicit flows.
 	flows := a.flows
 	if ma, ok := m.(*Authentication); ok {
@@ -89,7 +90,7 @@ func (a *Authentication) ServeHTTP(
 			if err != nil {
 				sc := scheme.Challenge(w, r, err)
 				w.WriteHeader(sc)
-				return nil
+				return
 			}
 			var ctx *login.Context
 			if flow.flow != nil {
@@ -101,25 +102,24 @@ func (a *Authentication) ServeHTTP(
 			ps := ctx.Login(lh)
 			if sub, err := ps.Await(); err == nil {
 				sub.AddCredentials(scheme)
-				n.ServeHTTP(w, r, miruken.BuildUp(h, provides.With(sub)))
+				n(miruken.BuildUp(h, provides.With(sub)))
 				ctx.Logout(lh)
 			} else {
 				statusCode := scheme.Challenge(w, r, err)
 				w.WriteHeader(statusCode)
 			}
-			return nil
+			return
 		}
 	}
 
 	// Return unauthorized if authentication is required.
 	if a.required {
 		w.WriteHeader(http.StatusUnauthorized)
-		return nil
+		return
 	}
 
 	// Provide an unauthenticated subject.
-	n.ServeHTTP(w, r, miruken.BuildUp(h, provides.With(security.NewSubject())))
-	return nil
+	n(miruken.BuildUp(h, provides.With(security.NewSubject())))
 }
 
 

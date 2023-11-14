@@ -132,12 +132,12 @@ func (f *BadFormatter) Bad(
 	return nil, nil
 }
 
-type ControllerTestSuite struct {
+type ApiHandlerTestSuite struct {
 	suite.Suite
 	srv *httptest.Server
 }
 
-func (suite *ControllerTestSuite) Setup(specs ...any) *context.Context {
+func (suite *ApiHandlerTestSuite) Setup(specs ...any) *context.Context {
 	handler, _ := miruken.Setup(
 		TestFeature, http.Feature(), stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
@@ -146,7 +146,7 @@ func (suite *ControllerTestSuite) Setup(specs ...any) *context.Context {
 	return context.New(handler)
 }
 
-func (suite *ControllerTestSuite) SetupTest() {
+func (suite *ApiHandlerTestSuite) SetupTest() {
 	handler, _ := miruken.Setup(
 		TestFeature, httpsrv.Feature(), stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
@@ -154,12 +154,12 @@ func (suite *ControllerTestSuite) SetupTest() {
 	suite.srv = httptest.NewServer(httpsrv.Api(handler))
 }
 
-func (suite *ControllerTestSuite) TearDownTest() {
+func (suite *ApiHandlerTestSuite) TearDownTest() {
 	suite.srv.CloseClientConnections()
 	suite.srv.Close()
 }
 
-func (suite *ControllerTestSuite) TestController() {
+func (suite *ApiHandlerTestSuite) TestApiHandler() {
 	suite.Run("Route", func() {
 		suite.Run("Send", func() {
 			handler := suite.Setup()
@@ -320,7 +320,7 @@ func (suite *ControllerTestSuite) TestController() {
 		suite.Run("Pipeline", func() {
 			handler := miruken.BuildUp(
 				suite.Setup(),
-				http.Pipeline(authenticate))
+				http.Pipeline(http.PolicyFunc(authenticate)))
 			create := api.RouteTo(CreateTeam{Name: "Tottenham"}, suite.srv.URL)
 			_, pp, err := api.Send[*TeamData](handler, create)
 			suite.Nil(err)
@@ -362,8 +362,8 @@ func (suite *ControllerTestSuite) TestController() {
 	})
 }
 
-func TestControllerTestSuite(t *testing.T) {
-	suite.Run(t, new(ControllerTestSuite))
+func TestApiHandlerTestSuite(t *testing.T) {
+	suite.Run(t, new(ApiHandlerTestSuite))
 }
 
 func authenticate(

@@ -17,7 +17,17 @@ import (
 )
 
 type (
-	Policy func(
+	// Policy defines custom behavior for http requests.
+	Policy interface {
+		Apply(
+			req      *http.Request,
+			composer miruken.Handler,
+			next     func() (*http.Response, error),
+		) (*http.Response, error)
+	}
+
+	// PolicyFunc promotes a function to Policy.
+	PolicyFunc func(
 		req      *http.Request,
 		composer miruken.Handler,
 		next     func() (*http.Response, error),
@@ -35,10 +45,21 @@ type (
 	Router struct {}
 )
 
+
 const (
 	defaultFormat = "application/json"
 	defaultTimeout = 30 * time.Second
 )
+
+
+func (f PolicyFunc) Apply(
+	req      *http.Request,
+	composer miruken.Handler,
+	next     func() (*http.Response, error),
+) (*http.Response, error) {
+	return f(req, composer, next)
+}
+
 
 func (r *Router) Route(
 	_*struct{
@@ -137,7 +158,7 @@ func (r *Router) invoke(
 		if index < length {
 			policy := pipeline[index]
 			index++
-			return policy(req, composer, next)
+			return policy.Apply(req, composer, next)
 		}
 		return defaultHttpClient.Do(req)
 	}
@@ -190,13 +211,13 @@ func (r *Router) resourceUri(
 // Client returns a Policy to use the supplied http.Client.
 // This should be the last Policy in the pipeline.
 func Client(client *http.Client) Policy {
-	return func(
+	return PolicyFunc(func(
 		req *http.Request,
 		_   miruken.Handler,
 		_   func() (*http.Response, error),
 	) (*http.Response, error) {
 		return client.Do(req)
-	}
+	})
 }
 
 // Format returns a miruken.Builder requesting a specific format.
