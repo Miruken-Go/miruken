@@ -78,13 +78,7 @@ func (f MiddlewareFunc) ServeHTTP(
 ) { f(s, w, r, m, h, n) }
 
 
-// middlewareBinding describes the method used by a
-// MiddlewareAdapter to server dynamically.
-type middlewareBinding struct {
-	caller      miruken.CallerFunc
-	argIndexes  []int
-}
-
+// MiddlewareAdapter
 
 func (m MiddlewareAdapter) ServeHTTP(
 	s Middleware,
@@ -118,6 +112,14 @@ func (m MiddlewareAdapter) ServeHTTP(
 			return
 		}
 	}
+}
+
+
+// middlewareBinding describes the method used by a
+// MiddlewareAdapter to server dynamically.
+type middlewareBinding struct {
+	caller      miruken.CallerFunc
+	argIndexes  []int
 }
 
 
@@ -222,6 +224,9 @@ func Dispatch(
 		defer child.Dispose()
 
 		pipeline.ServeHTTP(pipeline, w, r, nil, child, func(c miruken.Handler) {
+			if c == nil {
+				c = child
+			}
 			handler.ServeHTTP(w, r, c)
 		})
 	})
@@ -272,6 +277,9 @@ func DispatchTo[H Handler](
 		}
 
 		pipeline.ServeHTTP(pipeline, w, r, nil, child, func(c miruken.Handler) {
+			if c == nil {
+				c = child
+			}
 			hh.ServeHTTP(w, r, c)
 		})
 	})

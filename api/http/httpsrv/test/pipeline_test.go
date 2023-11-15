@@ -34,7 +34,7 @@ func AddHeader(key, value string) httpsrv.Middleware {
 	})
 }
 
-func (l *Logger) Log(
+func (l Logger) Log(
 	w   http.ResponseWriter,
 	r   *http.Request,
 	h   miruken.Handler,
@@ -104,7 +104,7 @@ func (suite *PipelineTestSuite) TestPipeline() {
 			handler := httpsrv.DispatchFunc(suite.Setup(),
 				func(w http.ResponseWriter, r *http.Request, composer miruken.Handler) {
 					_, _ = fmt.Fprint(w, "Hello")
-				}, &Logger{},
+				}, Logger{},
 			)
 			req := httptest.NewRequest("GET", "http://hello.com", nil)
 			w := httptest.NewRecorder()
@@ -119,7 +119,7 @@ func (suite *PipelineTestSuite) TestPipeline() {
 			handler := httpsrv.DispatchFunc(suite.Setup(),
 				func(w http.ResponseWriter, r *http.Request, composer miruken.Handler) {
 					_, _ = fmt.Fprint(w, "Hello")
-				}, &Logger{}, AddHeader("X-Test", "Goodbye"),
+				}, Logger{}, AddHeader("X-Test", "Goodbye"),
 			)
 			req := httptest.NewRequest("GET", "http://hello.com", nil)
 			w := httptest.NewRecorder()
