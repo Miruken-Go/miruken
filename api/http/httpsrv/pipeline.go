@@ -1,6 +1,7 @@
 package httpsrv
 
 import (
+	context2 "context"
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/context"
@@ -162,20 +163,13 @@ func getMiddlewareMethod(
 					continue
 				}
 			}
-			required := 0
 			for i := 3; i < numArgs; i++ {
 				for j := 3; j < middlewareFuncType.NumIn(); j++ {
 					if lateServeType.In(i) == middlewareFuncType.In(j) {
 						binding.argIndexes = append(binding.argIndexes, j)
-						if j == 4 || j == 5 {
-							required++
-						}
 						break
 					}
 				}
-			}
-			if required != 2 {
-				continue
 			}
 			caller, err := miruken.MakeCaller(method.Func)
 			if err != nil {
@@ -191,98 +185,195 @@ func getMiddlewareMethod(
 }
 
 
-// Api builds a http.Handler for accepting polymorphic api calls
-// through a Middleware pipeline.
-func Api(
-	h          miruken.Handler,
-	middleware ...Middleware,
-) http.Handler {
-	return DispatchTo[*ApiHandler](h, middleware...)
-}
-
-// Dispatch builds an enhanced http.Handler for processing
-// requests through a Middleware pipeline and terminating
-// at a Handler.
-func Dispatch(
-	h          miruken.Handler,
-	handler    Handler,
-	middleware ...Middleware,
-) http.Handler {
-	ctx, ok := h.(*context.Context)
-	if !ok {
-		ctx = context.New(h)
+type (
+	// baseAdapter provides common behavior for adapting a pipeline.
+	// to various http handler mechanisms.
+	baseAdapter struct {
+		ctx      *context.Context
+		pipeline Middleware
 	}
 
-	pipeline := Pipe(middleware...)
+	// rawAdapter adapts a standard http.Handler to a pipeline.
+	rawAdapter struct {
+		baseAdapter
+		handler  http.Handler
+	}
 
-	return http.HandlerFunc(func(
-		w http.ResponseWriter,
-		r *http.Request,
-	) {
-		defer handlePanic(w, r)
-		child := ctx.NewChild()
-		defer child.Dispose()
+	// useAdapter adapts an enhanced Handler to a pipeline.
+	useAdapter struct {
+		baseAdapter
+		handler  Handler
+	}
 
-		pipeline.ServeHTTP(pipeline, w, r, nil, child, func(c miruken.Handler) {
-			if c == nil {
-				c = child
-			}
-			handler.ServeHTTP(w, r, c)
-		})
+	// funAdapter adapts a handler function to a pipeline.
+	funAdapter struct {
+		baseAdapter
+		handler miruken.CallerFunc
+	}
+
+	// resolveAdapter adapts a resolved Handler to a pipeline.
+	resolveAdapter[H Handler] struct {
+		baseAdapter
+	}
+
+	// Specialized key type for context values.
+	contextKey int
+)
+
+// ComposerKey is used to access the miruken.Handler from the context.
+const ComposerKey contextKey = 0
+
+
+func (a *baseAdapter) serve(
+	w http.ResponseWriter,
+	r *http.Request,
+	h func(c miruken.Handler),
+) {
+	defer handlePanic(w, r)
+	child := a.ctx.NewChild()
+	defer child.Dispose()
+
+	a.pipeline.ServeHTTP(a.pipeline, w, r, nil, child, func(c miruken.Handler) {
+		if c == nil {
+			c = child
+		}
+		h(c)
 	})
 }
 
-// DispatchFunc builds an enhanced http.Handler for processing
-// requests through a Middleware pipeline and terminating at
-// a handler function.
-func DispatchFunc(
-	h          miruken.Handler,
-	handler    func(http.ResponseWriter, *http.Request, miruken.Handler),
-	middleware ...Middleware,
-) http.Handler {
-	return Dispatch(h, HandlerFunc(handler), middleware...)
+func (a *rawAdapter) ServeHTTP(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	a.serve(w, r, func(c miruken.Handler) {
+		ctxWithComposer := context2.WithValue(r.Context(), ComposerKey, c)
+		a.handler.ServeHTTP(w, r.WithContext(ctxWithComposer))
+	})
 }
 
-// DispatchTo builds an enhanced http.Handler for processing
-// requests through a Middleware pipeline and terminating
-// at a typed Handler.
-func DispatchTo[H Handler](
-	h          miruken.Handler,
-	middleware ...Middleware,
-) http.Handler {
-	ctx, ok := h.(*context.Context)
-	if !ok {
-		ctx = context.New(h)
+func (a *useAdapter) ServeHTTP(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	a.serve(w, r, func(c miruken.Handler) {
+		a.handler.ServeHTTP(w, r, c)
+	})
+}
+
+func (a *funAdapter) tryBind(fun any) bool {
+	typ := reflect.TypeOf(fun)
+	if typ.Kind() != reflect.Func {
+		return false
 	}
+	if typ.NumIn() < 2 || typ.NumOut() > 0 {
+		return false
+	}
+	if typ.In(0) != middlewareFuncType.In(1) ||
+		typ.In(1) != middlewareFuncType.In(2) {
+		return false
+	}
+	handler, err := miruken.MakeCaller(fun)
+	if err != nil {
+		return false
+	}
+	a.handler = handler
+	return true
+}
 
-	pipeline := Pipe(middleware...)
+func (a *funAdapter) ServeHTTP(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	a.serve(w, r, func(c miruken.Handler) {
+		initArgs := []any{w,r}
+		_, pr, err := a.handler(c, initArgs...)
+		if err != nil && pr != nil {
+			_, err = pr.Await()
+		}
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	})
+}
 
-	return http.HandlerFunc(func(
-		w http.ResponseWriter,
-		r *http.Request,
-	) {
-		defer handlePanic(w, r)
-		child := ctx.NewChild()
-		defer child.Dispose()
-
-		hh, ph, ok, err := provides.Type[H](child)
+func (a *resolveAdapter[H]) ServeHTTP(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	a.serve(w, r, func(c miruken.Handler) {
+		handler, ph, ok, err := provides.Type[H](c)
 		if !(ok && err == nil) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		} else if ph != nil {
-			if hh, err = ph.Await(); err != nil {
+			if handler, err = ph.Await(); err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 		}
-
-		pipeline.ServeHTTP(pipeline, w, r, nil, child, func(c miruken.Handler) {
-			if c == nil {
-				c = child
-			}
-			hh.ServeHTTP(w, r, c)
-		})
+		handler.ServeHTTP(w, r, c)
 	})
+}
+
+
+// Use builds an enhanced http.Handler for processing
+// requests through a Middleware pipeline and terminating
+// at a provided handler.
+func Use(
+	composer miruken.Handler,
+	handler    any,
+	middleware ...Middleware,
+) http.Handler {
+	ctx, ok := composer.(*context.Context)
+	if !ok {
+		ctx = context.New(composer)
+	}
+
+	pipeline := Pipe(middleware...)
+
+	switch h := handler.(type) {
+	case http.Handler:
+		return &rawAdapter{baseAdapter{ctx, pipeline}, h}
+	case Handler:
+		return &useAdapter{baseAdapter{ctx, pipeline}, h}
+	case func(http.ResponseWriter, *http.Request):
+		return &rawAdapter{baseAdapter{ctx, pipeline}, http.HandlerFunc(h)}
+	case func(http.ResponseWriter, *http.Request,  miruken.Handler):
+		return &useAdapter{baseAdapter{ctx, pipeline}, HandlerFunc(h)}
+	default:
+		fun := &funAdapter{baseAdapter: baseAdapter{ctx, pipeline}}
+		if fun.tryBind(handler) {
+			return fun
+		}
+		panic(fmt.Errorf(
+			"httpsrv: %T is not a http.Handler, httpsrv.Handler or compatible handler function",
+			handler))
+	}
+}
+
+// Resolve builds an enhanced http.Handler for processing
+// requests through a Middleware pipeline and terminating
+// at a resolved Handler.
+func Resolve[H Handler](
+	composer   miruken.Handler,
+	middleware ...Middleware,
+) http.Handler {
+	ctx, ok := composer.(*context.Context)
+	if !ok {
+		ctx = context.New(composer)
+	}
+	pipeline := Pipe(middleware...)
+	return &resolveAdapter[H]{baseAdapter{ctx, pipeline}}
+}
+
+// Api builds a http.Handler for accepting polymorphic api calls
+// through a Middleware pipeline.
+func Api(
+	composer   miruken.Handler,
+	middleware ...Middleware,
+) http.Handler {
+	return Resolve[*ApiHandler](composer, middleware...)
 }
 
 // Pipe builds a Middleware chain for pre and post processing of requests.

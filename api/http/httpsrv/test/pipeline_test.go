@@ -15,10 +15,21 @@ import (
 )
 
 type (
+	SayHello struct {}
+
 	Logger struct {
 		httpsrv.MiddlewareAdapter
 	}
 )
+
+
+func (h SayHello) ServeHTTP(
+	w        http.ResponseWriter,
+	r        *http.Request,
+	composer miruken.Handler,
+) {
+	_, _ = fmt.Fprintf(w, "Hello %s", r.URL.Query().Get("name"))
+}
 
 func AddHeader(key, value string) httpsrv.Middleware {
 	return httpsrv.MiddlewareFunc(func(
@@ -67,9 +78,96 @@ func (suite *PipelineTestSuite) Setup(specs ...any) miruken.Handler {
 	return handler
 }
 
+func (suite *PipelineTestSuite) TestHandler() {
+	suite.Run("Function", func() {
+		handler := httpsrv.Use(suite.Setup(),
+			func(w http.ResponseWriter, r *http.Request) {
+				_, _ = fmt.Fprint(w, "Hello World")
+			})
+		req := httptest.NewRequest("GET", "http://hello.com", nil)
+		w   := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		resp := w.Result()
+		suite.Equal(200, resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		suite.Equal("Hello World", string(body))
+	})
+
+	suite.Run("Handler", func() {
+		handler := httpsrv.Use(suite.Setup(),
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_, _ = fmt.Fprint(w, "Hello Goodbye")
+			}))
+		req := httptest.NewRequest("GET", "http://hello.com", nil)
+		w   := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		resp := w.Result()
+		suite.Equal(200, resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		suite.Equal("Hello Goodbye", string(body))
+	})
+
+	suite.Run("Extended Function", func() {
+		handler := httpsrv.Use(suite.Setup(),
+			func(w http.ResponseWriter, r *http.Request, c miruken.Handler) {
+				suite.NotNil(c)
+				_, _ = fmt.Fprint(w, "Hello World")
+			})
+		req := httptest.NewRequest("GET", "http://hello.com", nil)
+		w   := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		resp := w.Result()
+		suite.Equal(200, resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		suite.Equal("Hello World", string(body))
+	})
+
+	suite.Run("Extended Handler", func() {
+		handler := httpsrv.Use(suite.Setup(),
+			httpsrv.HandlerFunc(func(w http.ResponseWriter, r *http.Request, c miruken.Handler) {
+				suite.NotNil(c)
+				_, _ = fmt.Fprint(w, "Hello Goodbye")
+			}))
+		req := httptest.NewRequest("GET", "http://hello.com", nil)
+		w   := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		resp := w.Result()
+		suite.Equal(200, resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		suite.Equal("Hello Goodbye", string(body))
+	})
+
+	suite.Run("Function Dependencies", func() {
+		handler := httpsrv.Use(suite.Setup(),
+			func(w http.ResponseWriter, r *http.Request, logs logr.Logger, h miruken.Handler) {
+				suite.NotNil(h)
+				logs.Info("Hello World")
+				_, _ = fmt.Fprint(w, "Hello World")
+			})
+		req := httptest.NewRequest("GET", "http://hello.com", nil)
+		w   := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		resp := w.Result()
+		suite.Equal(200, resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		suite.Equal("Hello World", string(body))
+	})
+
+	suite.Run("Resolve", func() {
+		handler := httpsrv.Resolve[SayHello](suite.Setup(SayHello{}))
+		req := httptest.NewRequest("GET", "http://hello.com?name=Craig", nil)
+		w   := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		resp := w.Result()
+		suite.Equal(200, resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		suite.Equal("Hello Craig", string(body))
+	})
+}
+
 func (suite *PipelineTestSuite) TestPipeline() {
 	suite.Run("Empty", func() {
-		handler := httpsrv.DispatchFunc(suite.Setup(),
+		handler := httpsrv.Use(suite.Setup(),
 			func(w http.ResponseWriter, r *http.Request, composer miruken.Handler) {
 				_, _ = fmt.Fprint(w, "Hello")
 			},
@@ -85,13 +183,13 @@ func (suite *PipelineTestSuite) TestPipeline() {
 
 	suite.Run("Middleware", func() {
 		suite.Run("Function", func() {
-			handler := httpsrv.DispatchFunc(suite.Setup(),
+			handler := httpsrv.Use(suite.Setup(),
 				func(w http.ResponseWriter, r *http.Request, composer miruken.Handler) {
 					_, _ = fmt.Fprint(w, "Hello")
 				}, AddHeader("X-Test", "World"),
 			)
 			req := httptest.NewRequest("GET", "http://hello.com", nil)
-			w := httptest.NewRecorder()
+			w   := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
 			resp := w.Result()
 			suite.Equal(200, resp.StatusCode)
@@ -101,13 +199,13 @@ func (suite *PipelineTestSuite) TestPipeline() {
 		})
 
 		suite.Run("Dynamic", func() {
-			handler := httpsrv.DispatchFunc(suite.Setup(),
+			handler := httpsrv.Use(suite.Setup(),
 				func(w http.ResponseWriter, r *http.Request, composer miruken.Handler) {
 					_, _ = fmt.Fprint(w, "Hello")
 				}, Logger{},
 			)
 			req := httptest.NewRequest("GET", "http://hello.com", nil)
-			w := httptest.NewRecorder()
+			w   := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
 			resp := w.Result()
 			suite.Equal(200, resp.StatusCode)
@@ -116,13 +214,13 @@ func (suite *PipelineTestSuite) TestPipeline() {
 		})
 
 		suite.Run("Pipe", func() {
-			handler := httpsrv.DispatchFunc(suite.Setup(),
+			handler := httpsrv.Use(suite.Setup(),
 				func(w http.ResponseWriter, r *http.Request, composer miruken.Handler) {
 					_, _ = fmt.Fprint(w, "Hello")
 				}, Logger{}, AddHeader("X-Test", "Goodbye"),
 			)
 			req := httptest.NewRequest("GET", "http://hello.com", nil)
-			w := httptest.NewRecorder()
+			w   := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
 			resp := w.Result()
 			suite.Equal(200, resp.StatusCode)
