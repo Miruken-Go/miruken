@@ -1,376 +1,257 @@
 package test
 
 import (
-	json2 "encoding/json"
-	"errors"
+	"fmt"
+	"github.com/go-logr/logr"
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/api"
-	"github.com/miruken-go/miruken/api/http"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
-	"github.com/miruken-go/miruken/api/json/stdjson"
-	"github.com/miruken-go/miruken/context"
-	"github.com/miruken-go/miruken/creates"
-	"github.com/miruken-go/miruken/either"
-	"github.com/miruken-go/miruken/handles"
-	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/maps"
-	"github.com/miruken-go/miruken/promise"
-	"github.com/miruken-go/miruken/validates"
+	"github.com/miruken-go/miruken/args"
+	"github.com/miruken-go/miruken/logs"
 	"github.com/stretchr/testify/suite"
 	"io"
-	http2 "net/http"
+	"net/http"
 	"net/http/httptest"
-	"sync/atomic"
+	"strconv"
 	"testing"
 )
 
-//go:generate $GOPATH/bin/miruken -tests
-
 type (
-	PlayerData struct {
-		Id   int32
-		Name string
+	SayHello struct {}
+
+	WeatherUnit uint
+	WeatherOptions struct {
+		Unit WeatherUnit
+	}
+	GetWeather struct {
+		opts WeatherOptions
 	}
 
-	TeamData struct {
-		Id      int32
-		Name    string
-		Players []PlayerData
-	}
-
-	CreateTeam struct {
-		Name    string
-		Players []PlayerData
-	}
-
-	TeamCreated struct {
-		Team TeamData
-	}
-
-	GetTeamNotifications struct {}
-
-	TeamApiHandler struct {
-		nextId int32
-	}
-
-	TeamApiConsumer struct {
-		notifications []any
-	}
-
-	BadFormatter struct {}
+	Fibonacci struct {}
 )
 
-// TeamApiHandler
+const (
+	WeatherUnitFahrenheit = iota
+	WeatherUnitCelsius
+)
 
-func (t *TeamApiHandler) MustHaveTeamName(
-	v *validates.It, create *CreateTeam,
+
+func (h SayHello) ServeHTTP(
+	w http.ResponseWriter,
+	r *http.Request,
 ) {
-	outcome := v.Outcome()
+	_, _ = fmt.Fprintf(w, "Hello %s", r.URL.Query().Get("name"))
+}
 
-	if len(create.Name) == 0 {
-		outcome.AddError("Name", errors.New(`"Name" is required`))
+
+func (u WeatherUnit) FromFahrenheit(f float64) float64 {
+	switch u {
+	case WeatherUnitFahrenheit:
+		return f
+	case WeatherUnitCelsius:
+		return (f - 32) * 5 / 9
+	default:
+		panic(fmt.Sprintf("Unknown unit %d", u))
 	}
 }
 
-func (t *TeamApiHandler) CreateTeam(
-	_ *handles.It, create *CreateTeam,
-	ctx miruken.HandleContext,
-) *promise.Promise[*TeamData] {
-	id := atomic.AddInt32(&t.nextId,1)
-	team := &TeamData{id,create.Name, create.Players}
-	_, _ = api.Publish(ctx, &TeamCreated{Team: *team})
-	return promise.Resolve(team)
-}
-
-func (t *TeamApiHandler) New(
-	_*struct{
-		_ creates.It `key:"test.CreateTeam"`
-		_ creates.It `key:"test.TeamCreated"`
-	    _ creates.It `key:"test.GetTeamNotifications"`
-		_ creates.It `key:"test.TeamData"`
-	  }, create *creates.It,
-) any {
-	switch create.Key() {
-	case "test.CreateTeam":
-		return new(CreateTeam)
-	case "test.TeamCreated":
-		return new(TeamCreated)
-	case "test.GetTeamNotifications":
-		return new(GetTeamNotifications)
-	case "test.TeamData":
-		return new(TeamData)
+func (u WeatherUnit) Abbrev() string {
+	switch u {
+	case WeatherUnitFahrenheit:
+		return "F"
+	case WeatherUnitCelsius:
+		return "C"
+	default:
+		panic(fmt.Sprintf("Unknown unit %d", u))
 	}
-	return nil
 }
 
-// TeamApiConsumer
-
-func (t *TeamApiConsumer) TeamCreated(
-	_ *handles.It, created *TeamCreated,
+func (h *GetWeather) Constructor(
+	_*struct{args.Optional}, options WeatherOptions,
 ) {
-	t.notifications = append(t.notifications, created)
+	h.opts = options
 }
 
-func (t *TeamApiConsumer) TeamNotifications(
-	_ *handles.It, _ *GetTeamNotifications,
-) []any {
-	return t.notifications
-}
-
-
-// BadFormatter
-
-func (f *BadFormatter) Bad(
-	_*struct{maps.Format `to:"bad"`}, msg api.Message,
-	m *maps.It,
-) (io.Writer, error) {
-	if writer, ok := m.Target().(*io.Writer); ok && !internal.IsNil(writer) {
-		enc := json2.NewEncoder(*writer)
-		err := enc.Encode(msg.Payload)
-		return *writer, err
+func (h *GetWeather) ServeHTTP(
+	w http.ResponseWriter,
+	r *http.Request,
+	c miruken.Handler,
+) {
+	opt := h.opts
+	zip := r.URL.Query().Get("zip")
+	switch zip {
+	case "75032":
+		_, _ = fmt.Fprintf(w, "The weather in Health TX is %.1f°%s",
+			opt.Unit.FromFahrenheit(76), opt.Unit.Abbrev())
+	case "11580":
+		_, _ = fmt.Fprintf(w, "The weather in Valley Stream NY is %.1f°%s",
+			opt.Unit.FromFahrenheit(44), opt.Unit.Abbrev())
+	case "90011":
+		_, _ = fmt.Fprintf(w, "The weather in Los Angeles CA is %.1f°%s",
+			opt.Unit.FromFahrenheit(73), opt.Unit.Abbrev())
+	default:
+		_, _ = fmt.Fprintf(w, "Unknown weather for %s", zip)
 	}
-	return nil, nil
 }
 
-type ApiHandlerTestSuite struct {
+
+func (h Fibonacci) Calculate(
+	w   http.ResponseWriter,
+	r   *http.Request,
+	log logr.Logger,
+) {
+	n, err := strconv.Atoi(r.URL.Query().Get("n"))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+	} else {
+		fib := fibonacci(n)
+		log.Info("Fibonacci", "n", n, "value", fib)
+		_, _ = fmt.Fprintf(w, "Fibonacci(%d) = %d", n, fib)
+	}
+}
+
+func fibonacci(n int) int {
+	if n <= 1 {
+		return n
+	}
+	return fibonacci(n-1) + fibonacci(n-2)
+}
+
+
+type HandlerTestSuite struct {
 	suite.Suite
-	srv *httptest.Server
 }
 
-func (suite *ApiHandlerTestSuite) Setup(specs ...any) *context.Context {
-	handler, _ := miruken.Setup(
-		TestFeature, http.Feature(), stdjson.Feature()).
-		Specs(&api.GoPolymorphism{}).
+func (suite *HandlerTestSuite) Setup(specs ...any) miruken.Handler {
+	handler, _ := miruken.Setup(logs.Feature(NewStdoutLogger())).
 		Specs(specs...).
 		Handler()
-	return context.New(handler)
+	return handler
 }
 
-func (suite *ApiHandlerTestSuite) SetupTest() {
-	handler, _ := miruken.Setup(
-		TestFeature, httpsrv.Feature(), stdjson.Feature()).
-		Specs(&api.GoPolymorphism{}).
-		Handler()
-	suite.srv = httptest.NewServer(httpsrv.Api(handler))
-}
-
-func (suite *ApiHandlerTestSuite) TearDownTest() {
-	suite.srv.CloseClientConnections()
-	suite.srv.Close()
-}
-
-func (suite *ApiHandlerTestSuite) TestApiHandler() {
-	suite.Run("Route", func() {
-		suite.Run("Send", func() {
-			handler := suite.Setup()
-			create := api.RouteTo(CreateTeam{Name: "Tottenham"}, suite.srv.URL)
-			_, pp, err := api.Send[*TeamData](handler, create)
-			suite.Nil(err)
-			suite.NotNil(pp)
-			team, err := pp.Await()
-			suite.Nil(err)
-			suite.Equal(TeamData{1, "Tottenham", nil}, *team)
-
-			get := api.RouteTo(GetTeamNotifications{}, suite.srv.URL)
-			events, pe, err := api.Send[[]any](handler, get)
-			suite.Nil(err)
-			suite.NotNil(pe)
-			events, err = pe.Await()
-			suite.Nil(err)
-			suite.NotNil(events)
-			created := &TeamCreated{TeamData{1, "Tottenham", nil}}
-			suite.Contains(events, created)
-		})
-
-		suite.Run("Publish", func() {
-			handler := suite.Setup()
-			created := &TeamCreated{TeamData{8, "Liverpool", nil}}
-			notify  := api.RouteTo(created, suite.srv.URL)
-			pv, err := api.Publish(handler, notify)
-			suite.Nil(err)
-			suite.NotNil(pv)
-			_, err = pv.Await()
-			suite.Nil(err)
-
-			get := api.RouteTo(GetTeamNotifications{}, suite.srv.URL)
-			events, pe, err := api.Send[[]any](handler, get)
-			suite.Nil(err)
-			suite.NotNil(pe)
-			events, err = pe.Await()
-			suite.Nil(err)
-			suite.NotNil(events)
-			ev := &TeamCreated{TeamData{8, "Liverpool", nil}}
-			suite.Contains(events, ev)
-		})
-
-		suite.Run("ConcurrentSingle", func() {
-			handler := suite.Setup()
-			batch   := api.RouteTo(api.ConcurrentBatch{
-				Requests: []any{&CreateTeam{Name: "Tottenham"}},
-			}, suite.srv.URL)
-			r, pr, err := api.Send[api.ScheduledResult](handler, batch)
-			suite.NotNil(pr)
-			r, err = pr.Await()
-			suite.Nil(err)
-			suite.Len(r.Responses, 1)
-			either.Match(r.Responses[0], func(err error) {
-				suite.Fail("unexpected error", err)
-			}, func(res any) {
-				team := res.(*TeamData)
-				suite.True(team.Id > 0)
-				suite.Equal("Tottenham", team.Name)
+func (suite *HandlerTestSuite) TestHandler() {
+	suite.Run("Function", func() {
+		handler := httpsrv.Use(suite.Setup(),
+			func(w http.ResponseWriter, r *http.Request) {
+				_, _ = fmt.Fprint(w, "Hello World")
 			})
-		})
+		req := httptest.NewRequest("GET", "http://hello.com", nil)
+		w   := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		resp := w.Result()
+		suite.Equal(200, resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		suite.Equal("Hello World", string(body))
+	})
 
-		suite.Run("ConcurrentBatchSingle", func() {
-			handler := suite.Setup()
-			var team *TeamData
-			results, err := miruken.BatchAsync(handler,
-				func(batch miruken.Handler) *promise.Promise[*TeamData]{
-					r, pr, err := api.Send[*TeamData](batch,
-						api.RouteTo(&CreateTeam{Name: "Chelsea"}, suite.srv.URL))
-				suite.Nil(err)
-				suite.Zero(r)
-				suite.NotNil(pr)
-				return promise.Then(pr, func(t *TeamData) *TeamData {
-					team = t
-					return t
-				})
-			}).Await()
-			suite.Nil(err)
-			suite.Len(results, 1)
-			suite.Equal([]any{
-				api.RouteReply{Uri: suite.srv.URL, Responses: []any {team}},
-			}, results[0])
-		})
+	suite.Run("Handler", func() {
+		handler := httpsrv.Use(suite.Setup(),
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_, _ = fmt.Fprint(w, "Hello Goodbye")
+			}))
+		req := httptest.NewRequest("GET", "http://hello.com", nil)
+		w   := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		resp := w.Result()
+		suite.Equal(200, resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		suite.Equal("Hello Goodbye", string(body))
+	})
 
-		suite.Run("ConcurrentSingleError", func() {
-			handler := suite.Setup()
-			batch   := api.RouteTo(api.ConcurrentBatch{
-				Requests: []any{&CreateTeam{Name: ""}},
-			}, suite.srv.URL)
-			r, pr, err := api.Send[api.ScheduledResult](handler, batch)
-			suite.NotNil(pr)
-			r, err = pr.Await()
-			suite.Nil(err)
-			suite.Len(r.Responses, 1)
-			either.Match(r.Responses[0], func(err error) {
-				suite.IsType(&validates.Outcome{}, err)
-				outcome := err.(*validates.Outcome)
-				suite.False(outcome.Valid())
-				suite.Equal("Name: \"Name\" is required", outcome.Error())
-			}, func(res any) {
-				suite.Fail("expected validation error")
+	suite.Run("Extended Function", func() {
+		handler := httpsrv.Use(suite.Setup(),
+			func(w http.ResponseWriter, r *http.Request, c miruken.Handler) {
+				suite.NotNil(c)
+				_, _ = fmt.Fprint(w, "Hello World")
 			})
+		req := httptest.NewRequest("GET", "http://hello.com", nil)
+		w   := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		resp := w.Result()
+		suite.Equal(200, resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		suite.Equal("Hello World", string(body))
+	})
+
+	suite.Run("Extended Handler", func() {
+		handler := httpsrv.Use(suite.Setup(),
+			httpsrv.HandlerFunc(func(w http.ResponseWriter, r *http.Request, c miruken.Handler) {
+				suite.NotNil(c)
+				_, _ = fmt.Fprint(w, "Hello Goodbye")
+			}))
+		req := httptest.NewRequest("GET", "http://hello.com", nil)
+		w   := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		resp := w.Result()
+		suite.Equal(200, resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		suite.Equal("Hello Goodbye", string(body))
+	})
+
+	suite.Run("Function Dependencies", func() {
+		handler := httpsrv.Use(suite.Setup(),
+			func(w http.ResponseWriter, r *http.Request, logs logr.Logger, h miruken.Handler) {
+				suite.NotNil(h)
+				logs.Info("Hello World")
+				_, _ = fmt.Fprint(w, "Hello World")
+			})
+		req := httptest.NewRequest("GET", "http://hello.com", nil)
+		w   := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		resp := w.Result()
+		suite.Equal(200, resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		suite.Equal("Hello World", string(body))
+	})
+
+	suite.Run("Resolve", func() {
+		suite.Run("Handler", func() {
+			handler := httpsrv.Use(suite.Setup(SayHello{}), httpsrv.H[SayHello]())
+			req := httptest.NewRequest("GET", "http://hello.com?name=Craig", nil)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+			resp := w.Result()
+			suite.Equal(200, resp.StatusCode)
+			body, _ := io.ReadAll(resp.Body)
+			suite.Equal("Hello Craig", string(body))
 		})
 
-		suite.Run("ConcurrentBatchSingleError", func() {
-			handler := suite.Setup()
-			var ex error
-			results, err := miruken.BatchAsync(handler,
-				func(batch miruken.Handler) *promise.Promise[*TeamData]{
-					r, pr, err := api.Send[*TeamData](batch,
-						api.RouteTo(&CreateTeam{Name: ""}, suite.srv.URL))
-				suite.Nil(err)
-				suite.Zero(r)
-				suite.NotNil(pr)
-				return promise.Catch(pr, func(e error) error {
-					ex = e
-					return nil
-				})
-			}).Await()
-			suite.Nil(err)
-			suite.Len(results, 1)
-			suite.Equal([]any{
-				api.RouteReply{Uri: suite.srv.URL, Responses: []any {ex}},
-			}, results[0])
+		suite.Run("Extended Handler", func() {
+			handler := httpsrv.Use(suite.Setup(&GetWeather{}), httpsrv.H[*GetWeather]())
+			req := httptest.NewRequest("GET", "http://weather.com?zip=11580", nil)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+			resp := w.Result()
+			suite.Equal(200, resp.StatusCode)
+			body, _ := io.ReadAll(resp.Body)
+			suite.Equal("The weather in Valley Stream NY is 44.0°F", string(body))
 		})
 
-		suite.Run("ConcurrentMixed", func() {
-			handler := suite.Setup()
-			batch   := api.RouteTo(api.ConcurrentBatch{
-				Requests: []any{
-					&CreateTeam{Name: "Liverpool"},
-					&CreateTeam{Name: ""},
-				},
-			}, suite.srv.URL)
-			r, pr, err := api.Send[api.ScheduledResult](handler, batch)
-			suite.NotNil(pr)
-			r, err = pr.Await()
-			suite.Nil(err)
-			suite.Len(r.Responses, 2)
-			count := 0
-			for _, resp := range r.Responses {
-				either.Match(resp, func(err error) {
-					suite.IsType(&validates.Outcome{}, err)
-					outcome := err.(*validates.Outcome)
-					suite.False(outcome.Valid())
-					suite.Equal("Name: \"Name\" is required", outcome.Error())
-					count += 1
-				}, func(res any) {
-					team := res.(*TeamData)
-					suite.True(team.Id > 0)
-					suite.Equal("Liverpool", team.Name)
-					count += 2
-				})
-			}
-			suite.Equal(3, count)
+		suite.Run("Extended Handler with Options", func() {
+			handler := httpsrv.Use(suite.Setup(&GetWeather{}),
+				httpsrv.H[*GetWeather](WeatherOptions{Unit: WeatherUnitCelsius}))
+			req := httptest.NewRequest("GET", "http://weather.com?zip=11580", nil)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+			resp := w.Result()
+			suite.Equal(200, resp.StatusCode)
+			body, _ := io.ReadAll(resp.Body)
+			suite.Equal("The weather in Valley Stream NY is 6.7°C", string(body))
 		})
 
-		suite.Run("Pipeline", func() {
-			handler := miruken.BuildUp(
-				suite.Setup(),
-				http.Pipeline(http.PolicyFunc(authenticate)))
-			create := api.RouteTo(CreateTeam{Name: "Tottenham"}, suite.srv.URL)
-			_, pp, err := api.Send[*TeamData](handler, create)
-			suite.Nil(err)
-			suite.NotNil(pp)
-			team, err := pp.Await()
-			suite.Nil(err)
-			suite.Equal("Tottenham", team.Name)
-		})
 
-		suite.Run("ValidationError", func() {
-			handler := suite.Setup()
-			create  := api.RouteTo(CreateTeam{}, suite.srv.URL)
-			_, pp, err := api.Send[*TeamData](handler, create)
-			suite.Nil(err)
-			suite.NotNil(pp)
-			_, err = pp.Await()
-			var outcome *validates.Outcome
-			suite.ErrorAs(err, &outcome)
-			suite.Equal(`Name: "Name" is required`, outcome.Error())
-			suite.Equal([]string{"Name"}, outcome.Fields())
-			suite.ElementsMatch(
-				[]error{errors.New(`"Name" is required`)},
-				outcome.FieldErrors("Name"))
-		})
-
-		suite.Run("UnknownFormat", func() {
-			handler := miruken.BuildUp(
-				suite.Setup(&BadFormatter{}),
-				http.Format("bad"))
-			create  := api.RouteTo(CreateTeam{}, suite.srv.URL)
-			_, pp, err := api.Send[*TeamData](handler, create)
-			suite.Nil(err)
-			suite.NotNil(pp)
-			_, err = pp.Await()
-			suite.ErrorContains(err, "415 Unsupported Media Type")
-			var nh *miruken.NotHandledError
-			suite.ErrorAs(err, &nh)
+		suite.Run("Dynamic Handler", func() {
+			handler := httpsrv.Use(suite.Setup(Fibonacci{}), httpsrv.H[Fibonacci]())
+			req := httptest.NewRequest("GET", "http://fibonacci.com?n=5", nil)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+			resp := w.Result()
+			suite.Equal(200, resp.StatusCode)
+			body, _ := io.ReadAll(resp.Body)
+			suite.Equal("Fibonacci(5) = 5", string(body))
 		})
 	})
 }
 
-func TestApiHandlerTestSuite(t *testing.T) {
-	suite.Run(t, new(ApiHandlerTestSuite))
-}
-
-func authenticate(
-	req      *http2.Request,
-	composer miruken.Handler,
-	next     func() (*http2.Response, error),
-)  (*http2.Response, error) {
-	req.Header.Set("Authorization", "Bearer token")
-	return next()
+func TestHandlerTestSuite(t *testing.T) {
+	suite.Run(t, new(HandlerTestSuite))
 }

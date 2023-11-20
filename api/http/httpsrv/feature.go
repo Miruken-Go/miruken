@@ -15,7 +15,7 @@ func (i *Installer) DependsOn() []miruken.Feature {
 func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
 		setup.Specs(
-			&ApiHandler{},
+			&PolyHandler{},
 			&StatusCodeMapper{})
 	}
 	return nil

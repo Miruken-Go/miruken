@@ -1,248 +1,355 @@
 package httpsrv
 
 import (
-	"bytes"
-	"errors"
+	context2 "context"
 	"fmt"
-	"github.com/go-logr/logr"
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/api"
-	"github.com/miruken-go/miruken/args"
+	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/internal/slices"
-	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/provides"
-	"github.com/timewasted/go-accept-headers"
-	"io"
+	"maps"
 	"net/http"
-	"net/textproto"
-	"runtime"
-	"strings"
+	"reflect"
+	"sync"
+	"sync/atomic"
 )
 
-// ApiHandler is a http.Handler for processing api requests over http.
-type ApiHandler struct {
-	logger logr.Logger
-}
-
-
-func (a *ApiHandler) Constructor(
-	_*struct{args.Optional}, logger logr.Logger,
-) {
-	if logger == a.logger {
-		a.logger = logr.Discard()
-	} else {
-		a.logger = logger
+type (
+	// Handler augments http.Handler to provide miruken.Handler composer.
+	Handler interface {
+		ServeHTTP(
+			w http.ResponseWriter,
+			r *http.Request,
+			h miruken.Handler,
+		)
 	}
-}
 
-func (a *ApiHandler) ServeHTTP(
+	// HandlerFunc promotes a function to Handler.
+	HandlerFunc func(
+		w http.ResponseWriter,
+		r *http.Request,
+		h miruken.Handler,
+	)
+)
+
+
+func (f HandlerFunc) ServeHTTP(
 	w http.ResponseWriter,
 	r *http.Request,
 	h miruken.Handler,
-) {
-	defer a.handlePanic(w)
+) { f(w, r, h) }
 
-	accepted, from, publish := a.acceptRequest(w, r)
-	if !accepted {
-		return
+
+// Use builds an enhanced http.Handler for processing
+// requests through a Middleware pipeline and terminating
+// at a provided handler.
+func Use(
+	composer miruken.Handler,
+	handler    any,
+	middleware ...any,
+) http.Handler {
+	ctx, ok := composer.(*context.Context)
+	if !ok {
+		ctx = context.New(composer)
 	}
 
-	h = miruken.BuildUp(h, api.Polymorphic, provides.With(r.Context()))
+	pipeline := Pipe(middleware...)
 
-	msg, _, _, err := maps.Out[api.Message](h, r.Body, from)
-	if err != nil {
-		a.encodeError(err, http.StatusUnsupportedMediaType, w, h)
-		return
-	}
-
-	payload := msg.Payload
-	if payload == nil {
-		http.Error(w, "400 missing payload", http.StatusBadRequest)
-		return
-	}
-
-	if c, ok := payload.(api.Content); ok {
-		if payload = c.Body(); internal.IsNil(payload) {
-			http.Error(w, "400 missing content body", http.StatusBadRequest)
-			return
+	switch h := handler.(type) {
+	case http.Handler:
+		return &rawAHandler{baseHandler{ctx, pipeline}, h}
+	case Handler:
+		return &extHandler{baseHandler{ctx, pipeline}, h}
+	case func(http.ResponseWriter, *http.Request):
+		return &rawAHandler{baseHandler{ctx, pipeline}, http.HandlerFunc(h)}
+	case func(http.ResponseWriter, *http.Request,  miruken.Handler):
+		return &extHandler{baseHandler{ctx, pipeline}, HandlerFunc(h)}
+	default:
+		fun := &funHandler{baseHandler: baseHandler{ctx, pipeline}}
+		if fun.tryBind(handler) {
+			return fun
 		}
-		h = miruken.BuildUp(h, provides.With(c))
-	}
-
-	if publish {
-		if pv, err := api.Publish(h, payload); err != nil {
-			a.encodeError(err, 0, w, h)
-		} else if pv == nil {
-			a.encodeResult(nil, r, w, h)
-		} else if _, err = pv.Await(); err == nil {
-			a.encodeResult(nil, r, w, h)
-		} else {
-			a.encodeError(err, 0, w, h)
-		}
-	} else {
-		if res, pr, err := api.Send[any](h, payload); err != nil {
-			a.encodeError(err, 0, w, h)
-		} else if pr == nil {
-			a.encodeResult(res, r, w, h)
-		} else if res, err = pr.Await(); err == nil {
-			a.encodeResult(res, r, w, h)
-		} else {
-			a.encodeError(err, 0, w, h)
-		}
+		panic(fmt.Errorf(
+			"httpsrv: %T is not a http.Handler, httpsrv.Handler or compatible handler function",
+			handler))
 	}
 }
 
-func (a *ApiHandler) acceptRequest(
+// Api builds a http.Handler for processing polymorphic api calls
+// through a Middleware pipeline.
+func Api(
+	composer   miruken.Handler,
+	middleware ...any,
+) http.Handler {
+	return Use(composer, H[*PolyHandler](), middleware...)
+}
+
+
+// H builds a typed Handler wrapper for dynamic http processing.
+func H[H any](opts ...any) Handler {
+	typ := internal.TypeOf[H]()
+	if typ.Implements(handlerType) {
+		return &rawResHandler{resHandler[http.Handler]{typ: typ, opts: opts}}
+	}
+	if typ.Implements(extHandlerType) {
+		return &extResHandler{resHandler[Handler]{typ: typ, opts: opts}}
+	}
+	if binding, err := getHandlerBinding(typ); err == nil {
+		return &dynResHandler{resHandler[any]{typ: typ, opts: opts},binding}
+	}
+	panic(fmt.Errorf(
+		"httpsrv: %v is not a http.Handler, httpsrv.Handler or compatible handler type", typ))
+}
+
+// getHandlerBinding discovers a suitable handler ServerHTTP method.
+// Uses the copy-on-write idiom since reads should be more frequent than writes.
+func getHandlerBinding(
+	typ reflect.Type,
+) (handlerBinding, error) {
+	if bindings := handlerBindingMap.Load(); bindings != nil {
+		if binding, ok := (*bindings)[typ]; ok {
+			return binding, nil
+		}
+	}
+	handlerLock.Lock()
+	defer handlerLock.Unlock()
+	bindings := handlerBindingMap.Load()
+	if bindings != nil {
+		if binding, ok := (*bindings)[typ]; ok {
+			return binding, nil
+		}
+		sb := maps.Clone(*bindings)
+		bindings = &sb
+	} else {
+		bindings = &map[reflect.Type]handlerBinding{}
+	}
+	for i := 0; i < typ.NumMethod(); i++ {
+		method := typ.Method(i)
+		binding, err := makeHandlerBinding(method.Type, method.Func,1)
+		if binding != nil {
+			(*bindings)[typ] = binding
+			handlerBindingMap.Store(bindings)
+			return binding, nil
+		} else if err != nil {
+			return nil, &miruken.MethodBindingError{Method: method, Cause: err}
+		}
+	}
+	return nil, fmt.Errorf(`httpsrv: handler %v has no compatible dynamic method`, typ)
+}
+
+
+func makeHandlerBinding(
+	typ reflect.Type,
+	fun reflect.Value,
+	idx int,
+) (handlerBinding, error) {
+	if typ.NumIn() < 2 || typ.NumOut() > 0 {
+		return nil, nil
+	}
+	for i := 0; i < 2; i++ {
+		if typ.In(i+idx) != handlerFuncType.In(i) {
+			continue
+		}
+	}
+	if caller, err := miruken.MakeCaller(fun); err != nil {
+		return nil, err
+	} else {
+		return handlerBinding(caller), nil
+	}
+}
+
+
+type (
+	// baseHandler provides common behavior for adapting a pipeline.
+	// to various http handler mechanisms.
+	baseHandler struct {
+		ctx      *context.Context
+		pipeline Middleware
+	}
+
+	// rawAHandler adapts a standard http.Handler to a pipeline.
+	rawAHandler struct {
+		baseHandler
+		handler http.Handler
+	}
+
+	// extHandler adapts an enhanced Handler to a pipeline.
+	extHandler struct {
+		baseHandler
+		handler Handler
+	}
+
+	// funHandler adapts a handler function to a pipeline.
+	funHandler struct {
+		baseHandler
+		binding handlerBinding
+	}
+
+	// resHandler adapts a resolved handler to a pipeline.
+	resHandler[H any] struct {
+		typ  reflect.Type
+		opts []any
+	}
+
+	// rawResHandler adapts a resolved http.Handler to a pipeline.
+	rawResHandler struct {
+		resHandler[http.Handler]
+	}
+
+	// extResHandler adapts a resolved Handler to a pipeline.
+	extResHandler struct {
+		resHandler[Handler]
+	}
+
+	// dynResHandler adapts a resolved compatible handler to a pipeline.
+	dynResHandler struct {
+		resHandler[any]
+		binding handlerBinding
+	}
+
+	// handlerBinding represents the method used by a
+	// dynamic handler to serve http content.
+	handlerBinding miruken.CallerFunc
+
+	// Specialized key type for context values.
+	contextKey int
+)
+
+// ComposerKey is used to access the miruken.Handler from the context.
+const ComposerKey contextKey = 0
+
+
+func (a *baseHandler) serve(
 	w http.ResponseWriter,
 	r *http.Request,
-) (accepted bool, format *maps.Format, publish bool) {
-	if r.Method != "POST" {
-		w.Header().Set("Allow", "POST")
-		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	contentType := r.Header.Get("Content-Type")
-	if len(contentType) == 0 {
-		http.Error(w, "400 missing 'Content-Type' header", http.StatusBadRequest)
-		return
-	}
-	format, err := api.ParseMediaType(contentType, maps.DirectionFrom)
-	if err != nil {
-		http.Error(w, "415 invalid 'Content-Type' header", http.StatusUnsupportedMediaType)
-		return
-	}
-	path := r.RequestURI
-	if path == "/process" || strings.HasPrefix(path, "/process/") {
-		accepted = true
-		publish  = false
-	} else if path == "/publish" || strings.HasPrefix(path, "/publish/") {
-		accepted = true
-		publish  = false
-	} else {
-		http.Error(w, "404 not found", http.StatusNotFound)
-	}
-	return
+	h func(c miruken.Handler),
+) {
+	defer handlePanic(w, r)
+	child := a.ctx.NewChild()
+	defer child.Dispose()
+
+	a.pipeline.ServeHTTP(w, r, child, func(c miruken.Handler) {
+		if c == nil {
+			c = child
+		}
+		h(c)
+	})
 }
 
-func (a *ApiHandler) encodeResult(
-	result  any,
-	r       *http.Request,
-	w       http.ResponseWriter,
-	handler miruken.Handler,
+func (a *rawAHandler) ServeHTTP(
+	w http.ResponseWriter,
+	r *http.Request,
 ) {
-	header := w.Header()
-	var formats []*maps.Format
-	if content, ok := result.(api.Content); ok {
-		if format, err := api.ParseMediaType(content.MediaType(), maps.DirectionTo); err == nil {
-			formats = []*maps.Format{format}
-			if wb := content.(interface{ WriteBody() any }); ok {
-				result = wb.WriteBody()
-			} else {
-				result = content.Body()
-			}
-		} else {
-			a.encodeError(err, 0, w, handler)
-			return
-		}
-		api.MergeHeader(textproto.MIMEHeader(header), content.Metadata())
-	} else if hdr := r.Header.Get("Accept"); hdr != "" {
-		if fs := accept.Parse(hdr); len(fs) > 0 {
-			formats = slices.Map[accept.Accept, *maps.Format](fs, formatAccept)
-		}
-	}
-	if len(formats) == 0 {
-		formats = []*maps.Format{api.ToJson}
-	}
-	msg := api.Message{Payload: result}
-	if len(formats) == 1 && formats[0].Rule() == maps.FormatRuleEquals {
-		format := formats[0]
-		header.Set("Content-Type", format.Name())
-		out := io.Writer(w)
-		if _, _, err := maps.Into(handler, msg, &out, format); err != nil {
-			a.encodeError(err, http.StatusNotAcceptable, w, handler)
-		}
-	} else {
-		for i, format := range formats {
-			var b bytes.Buffer
-			out := io.Writer(&b)
-			if _, m, err := maps.Into(handler, msg, &out, format); err == nil {
-				var contentType string
-				if format.Rule() == maps.FormatRuleEquals {
-					contentType = api.FormatMediaType(format)
-				} else if match := m.Matched(); match != nil {
-					contentType = api.FormatMediaType(match)
-				} else {
-					w.WriteHeader(http.StatusNotAcceptable)
-					return
-				}
-				header.Set("Content-Type", contentType)
-				if _, err := w.Write(b.Bytes()); err != nil {
-					a.logger.Error(err, "unable to write response")
-					w.WriteHeader(http.StatusInternalServerError)
-				}
-				break
-			} else if i == len(formats)-1 {
-				a.encodeError(err, http.StatusNotAcceptable, w, handler)
-			}
-		}
-	}
+	a.serve(w, r, func(c miruken.Handler) {
+		ctxWithComposer := context2.WithValue(r.Context(), ComposerKey, c)
+		a.handler.ServeHTTP(w, r.WithContext(ctxWithComposer))
+	})
 }
 
-func (a *ApiHandler) encodeError(
-	err                  error,
-	notHandledStatusCode int,
-	w                    http.ResponseWriter,
-	handler              miruken.Handler,
+func (a *extHandler) ServeHTTP(
+	w http.ResponseWriter,
+	r *http.Request,
 ) {
-	if notHandledStatusCode > 0 {
-		var nh *miruken.NotHandledError
-		if errors.As(err, &nh) {
-			w.WriteHeader(notHandledStatusCode)
+	a.serve(w, r, func(c miruken.Handler) {
+		a.handler.ServeHTTP(w, r, c)
+	})
+}
+
+func (a *funHandler) ServeHTTP(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	a.serve(w, r, func(c miruken.Handler) {
+		if err := a.binding.invoke(c, w, r); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	})
+}
+
+func (a *funHandler) tryBind(fun any) bool {
+	typ := reflect.TypeOf(fun)
+	if typ.Kind() != reflect.Func {
+		return false
+	}
+	binding, err := makeHandlerBinding(typ, reflect.ValueOf(fun), 0)
+	if binding != nil && err == nil {
+		a.binding = binding
+		return true
+	}
+	return false
+}
+
+func (a *resHandler[H]) serve(
+	w http.ResponseWriter,
+	c miruken.Handler,
+	h func(handler H),
+) {
+	if opts := a.opts; len(opts) > 0 {
+		c = miruken.BuildUp(c, provides.With(opts...))
+	}
+	handler, ph, ok, err := miruken.ResolveKey[H](c, a.typ)
+	if !(ok && err == nil) {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	} else if ph != nil {
+		if handler, err = ph.Await(); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 	}
-	w.Header().Set("Content-Type", api.ToJson.Name())
-	statusCode := http.StatusInternalServerError
-	handler = miruken.BuildUp(handler, miruken.BestEffort)
-	if sc, _, _, e := maps.Out[int](handler, err, toStatusCode); sc != 0 && e == nil {
-		statusCode = sc
-	}
-	w.WriteHeader(statusCode)
-	out := io.Writer(w)
-	msg := api.Message{Payload: err}
-	_, _, _ = maps.Into(handler, msg, &out, api.ToJson)
+	h(handler)
 }
 
-func formatAccept(a accept.Accept) *maps.Format {
-	var sb strings.Builder
-	if a.Subtype == "*" {
-		if a.Type == "*" {
-			return maps.To("*", a.Extensions)
+func (a *rawResHandler) ServeHTTP(
+	w http.ResponseWriter,
+	r *http.Request,
+	c miruken.Handler,
+) {
+	a.serve(w, c, func(h http.Handler) {
+		ctxWithComposer := context2.WithValue(r.Context(), ComposerKey, c)
+		h.ServeHTTP(w, r.WithContext(ctxWithComposer))
+	})
+}
+
+func (a *extResHandler) ServeHTTP(
+	w http.ResponseWriter,
+	r *http.Request,
+	c miruken.Handler,
+) {
+	a.serve(w, c, func(h Handler) {
+		h.ServeHTTP(w, r, c)
+	})
+}
+
+func (a *dynResHandler) ServeHTTP(
+	w http.ResponseWriter,
+	r *http.Request,
+	c miruken.Handler,
+) {
+	a.serve(w, c, func(h any) {
+		if err := a.binding.invoke(c, h, w, r); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
 		}
-		sb.WriteString("/")
-	}
-	sb.WriteString(a.Type)
-	if a.Subtype != "*" {
-		sb.WriteString("/")
-		sb.WriteString(a.Subtype)
-	} else {
-		sb.WriteString("//")
-	}
-	return maps.To(sb.String(), a.Extensions)
+	})
 }
 
-func (a *ApiHandler) handlePanic(w http.ResponseWriter) {
-	if r := recover(); r != nil {
-		err, _ := r.(error)
-		buf := make([]byte, 2048)
-		n := runtime.Stack(buf, false)
-		buf = buf[:n]
-		msg := fmt.Sprintf("%v", r)
-		a.logger.Error(err, "recovering from http panic", "stack", string(buf))
-		http.Error(w, msg, http.StatusInternalServerError)
+func (b handlerBinding) invoke(
+	c        miruken.Handler,
+	initArgs ...any,
+) error {
+	_, pr, err := b(c, initArgs...)
+	if err != nil && pr != nil {
+		_, err = pr.Await()
 	}
+	return err
 }
 
 
-var toStatusCode = maps.To("http:status-code", nil)
+var (
+	handlerType    = internal.TypeOf[http.Handler]()
+	extHandlerType = internal.TypeOf[Handler]()
+
+	handlerLock sync.Mutex
+	handlerFuncType   = internal.TypeOf[http.HandlerFunc]()
+	handlerBindingMap = atomic.Pointer[map[reflect.Type]handlerBinding]{}
+)

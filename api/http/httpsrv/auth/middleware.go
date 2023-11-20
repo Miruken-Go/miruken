@@ -2,7 +2,7 @@ package auth
 
 import (
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/api/http/httpsrv"
+	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/security"
@@ -18,10 +18,15 @@ type (
 		Challenge(http.ResponseWriter, *http.Request, error) int
 	}
 
-	// Authentication applies login flows to auth requests.
-	Authentication struct {
+	// Options configures authentication middleware.
+	Options struct {
 		flows    []flowSpec
 		required bool
+	}
+
+	// Authentication applies login flows to auth requests.
+	Authentication struct {
+		options Options
 	}
 
 	// FlowBuilder configures a login flow.
@@ -43,10 +48,16 @@ func (b *FlowBuilder) Scheme(scheme Scheme) *Authentication {
 		panic("scheme cannot be nil")
 	}
 	b.flow.scheme = scheme
-	b.a.flows = append(b.a.flows, b.flow)
+	b.a.options.flows = append(b.a.options.flows, b.flow)
 	return b.a
 }
 
+
+func (a *Authentication) Constructor(
+	_*struct{args.Optional}, options Options,
+) {
+	a.options = options
+}
 
 func (a *Authentication) WithFlowRef(ref string) *FlowBuilder {
 	if ref == "" {
@@ -63,28 +74,18 @@ func (a *Authentication) WithFlow(flow login.Flow) *FlowBuilder {
 }
 
 func (a *Authentication) Required() *Authentication {
-	a.required = true
+	a.options.required = true
 	return a
 }
 
 
 func (a *Authentication) ServeHTTP(
-	_ httpsrv.Middleware,
 	w http.ResponseWriter,
 	r *http.Request,
-	m httpsrv.Middleware,
 	h miruken.Handler,
 	n func(miruken.Handler),
 ) {
-	// Merge explicit flows.
-	flows := a.flows
-	if ma, ok := m.(*Authentication); ok {
-		if ma.flows != nil {
-			flows = ma.flows
-		}
-	}
-
-	for _, flow := range flows {
+	for _, flow := range a.options.flows {
 		scheme := flow.scheme
 		if ch, err, ok := scheme.Accept(r); ok {
 			if err != nil {
@@ -113,7 +114,7 @@ func (a *Authentication) ServeHTTP(
 	}
 
 	// Return unauthorized if authentication is required.
-	if a.required {
+	if a.options.required {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
