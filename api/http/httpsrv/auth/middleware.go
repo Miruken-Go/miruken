@@ -102,14 +102,17 @@ func (a *Authentication) ServeHTTP(
 			lh := miruken.AddHandlers(h, ch)
 			ps := ctx.Login(lh)
 			if sub, err := ps.Await(); err == nil {
-				sub.AddCredentials(scheme)
-				n(miruken.BuildUp(h, provides.With(sub)))
-				ctx.Logout(lh)
+				if sub.Authenticated() {
+					sub.AddCredentials(scheme)
+					n(miruken.BuildUp(h, provides.With(sub)))
+					ctx.Logout(lh)
+					return
+				}
 			} else {
 				statusCode := scheme.Challenge(w, r, err)
 				w.WriteHeader(statusCode)
+				return
 			}
-			return
 		}
 	}
 
