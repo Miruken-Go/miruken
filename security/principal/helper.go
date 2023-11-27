@@ -13,7 +13,7 @@ type StringPrincipal interface {
 	security.Principal
 }
 
-// All return true if the subject possess all principals.
+// All returns true if the security.Subject possess all security.Principal's.
 func All(subject security.Subject, ps ...security.Principal) bool {
 	if internal.IsNil(subject) {
 		panic("subject cannot be nil")
@@ -27,7 +27,7 @@ func All(subject security.Subject, ps ...security.Principal) bool {
 	return true
 }
 
-// Any return true if the subject possess any principals.
+// Any returns true if the security.Subject possess any security.Principal's.
 func Any(subject security.Subject, ps ...security.Principal) bool {
 	if internal.IsNil(subject) {
 		panic("subject cannot be nil")

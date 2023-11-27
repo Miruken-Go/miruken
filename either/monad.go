@@ -4,7 +4,7 @@ import "fmt"
 
 type (
 	// Monad represents one of two values (left or right).
-	Monad[L, R any] interface{}
+	Monad[L, R any] any
 
 	// right represents the right side of an Monad.
 	right[R any] struct {
