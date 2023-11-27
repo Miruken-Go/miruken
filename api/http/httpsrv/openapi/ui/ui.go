@@ -23,7 +23,7 @@ func Handler(prefix string, docs map[string]*openapi3.T, config openapi.Config) 
 	return func(rw http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "openapi.json") {
 			h(rw, r)
-		} else if len(docs) > 1 && strings.HasSuffix(r.URL.Path, "swagger-initializer.js") {
+		} else if strings.HasSuffix(r.URL.Path, "swagger-initializer.js") {
 			rw.Header().Set("Content-Type", "application/javascript")
 			_, _ = rw.Write([]byte(`window.onload = function() {
   //<editor-fold desc="Changeable Configuration Block">
