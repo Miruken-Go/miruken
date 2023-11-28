@@ -134,16 +134,17 @@ func (f *BadFormatter) Bad(
 
 type ApiHandlerTestSuite struct {
 	suite.Suite
+	ctx *context.Context
 	srv *httptest.Server
 }
 
-func (suite *ApiHandlerTestSuite) Setup(specs ...any) *context.Context {
+func (suite *ApiHandlerTestSuite) Setup(specs ...any) miruken.Handler {
 	handler, _ := miruken.Setup(
 		TestFeature, http.Feature(), stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
 		Specs(specs...).
 		Handler()
-	return context.New(handler)
+	return handler
 }
 
 func (suite *ApiHandlerTestSuite) SetupTest() {
@@ -151,12 +152,14 @@ func (suite *ApiHandlerTestSuite) SetupTest() {
 		TestFeature, httpsrv.Feature(), stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
 		Handler()
-	suite.srv = httptest.NewServer(httpsrv.Api(handler))
+	suite.ctx = context.New(handler)
+	suite.srv = httptest.NewServer(httpsrv.Api(suite.ctx))
 }
 
 func (suite *ApiHandlerTestSuite) TearDownTest() {
 	suite.srv.CloseClientConnections()
 	suite.srv.Close()
+	suite.ctx.End(nil)
 }
 
 func (suite *ApiHandlerTestSuite) TestApiHandler() {

@@ -5,6 +5,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
 	"github.com/miruken-go/miruken/api/http/httpsrv/auth"
+	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/security"
 	"github.com/miruken-go/miruken/security/login"
@@ -21,9 +22,9 @@ type MiddlewareTestSuite struct {
 	suite.Suite
 }
 
-func (suite *MiddlewareTestSuite) Setup(specs ...any) miruken.Handler {
+func (suite *MiddlewareTestSuite) Setup(specs ...any) *context.Context {
 	handler, _ := miruken.Setup(password.Feature()).Specs(specs...).Handler()
-	return handler
+	return context.New(handler)
 }
 
 func (suite *MiddlewareTestSuite) TestHandler() {

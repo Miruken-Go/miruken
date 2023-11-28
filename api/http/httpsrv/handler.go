@@ -44,15 +44,10 @@ func (f HandlerFunc) ServeHTTP(
 // requests through a Middleware pipeline and terminating
 // at a provided handler.
 func Use(
-	composer miruken.Handler,
+	ctx        *context.Context,
 	handler    any,
 	middleware ...any,
 ) http.Handler {
-	ctx, ok := composer.(*context.Context)
-	if !ok {
-		ctx = context.New(composer)
-	}
-
 	pipeline := Pipe(middleware...)
 
 	switch h := handler.(type) {
@@ -78,10 +73,10 @@ func Use(
 // Api builds a http.Handler for processing polymorphic api calls
 // through a Middleware pipeline.
 func Api(
-	composer   miruken.Handler,
+	ctx        *context.Context,
 	middleware ...any,
 ) http.Handler {
-	return Use(composer, H[*PolyHandler](), middleware...)
+	return Use(ctx, H[*PolyHandler](), middleware...)
 }
 
 

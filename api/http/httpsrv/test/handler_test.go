@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
 	"github.com/miruken-go/miruken/args"
+	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/logs"
 	"github.com/stretchr/testify/suite"
 	"io"
@@ -121,11 +122,11 @@ type HandlerTestSuite struct {
 	suite.Suite
 }
 
-func (suite *HandlerTestSuite) Setup(specs ...any) miruken.Handler {
+func (suite *HandlerTestSuite) Setup(specs ...any) *context.Context {
 	handler, _ := miruken.Setup(logs.Feature(NewStdoutLogger())).
 		Specs(specs...).
 		Handler()
-	return handler
+	return context.New(handler)
 }
 
 func (suite *HandlerTestSuite) TestHandler() {

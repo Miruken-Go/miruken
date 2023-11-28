@@ -95,16 +95,17 @@ func (p *PlayerHandler) UpdatePlayer(
 type OpenApiTestSuite struct {
 	suite.Suite
 	openapi *openapi.Installer
+	ctx *context.Context
 	srv *httptest.Server
 }
 
-func (suite *OpenApiTestSuite) Setup(specs ...any) *context.Context {
+func (suite *OpenApiTestSuite) Setup(specs ...any) miruken.Handler {
 	handler, _ := miruken.Setup(
 		TestFeature, http.Feature(), stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
 		Specs(specs...).
 		Handler()
-	return context.New(handler)
+	return handler
 }
 
 func (suite *OpenApiTestSuite) SetupTest() {
@@ -131,12 +132,14 @@ func (suite *OpenApiTestSuite) SetupTest() {
 		TestFeature, stdjson.Feature(), suite.openapi).
 		Specs(&api.GoPolymorphism{}).
 		Handler()
-	suite.srv = httptest.NewServer(httpsrv.Api(handler))
+	suite.ctx = context.New(handler)
+	suite.srv = httptest.NewServer(httpsrv.Api(suite.ctx))
 }
 
 func (suite *OpenApiTestSuite) TearDownTest() {
 	suite.srv.CloseClientConnections()
 	suite.srv.Close()
+	suite.ctx.End(nil)
 }
 
 func (suite *OpenApiTestSuite) TestOpenApi() {
