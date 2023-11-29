@@ -13,6 +13,7 @@ import (
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/maps"
+	"net/http"
 	"path/filepath"
 	"reflect"
 	"runtime/debug"
@@ -39,8 +40,8 @@ type (
 		module        *debug.Module
 		schemas       openapi3.Schemas
 		requestBodies openapi3.RequestBodies
-		responses     openapi3.Responses
-		paths         openapi3.Paths
+		responses     openapi3.ResponseBodies
+		paths         *openapi3.Paths
 		generator     *openapi3gen.Generator
 		components    map[reflect.Type]*openapi3.SchemaRef
 	}
@@ -128,7 +129,7 @@ func (i *Installer) AfterInstall(
 		}
 		if responses := ap.responses; len(responses) > 0 {
 			if components.Responses == nil {
-				components.Responses = make(openapi3.Responses)
+				components.Responses = make(openapi3.ResponseBodies)
 			}
 			for name, response := range ap.responses {
 				if _, ok := components.Responses[name]; !ok {
@@ -136,13 +137,13 @@ func (i *Installer) AfterInstall(
 				}
 			}
 		}
-		if paths := ap.paths; len(paths) > 0 {
+		if paths := ap.paths; paths.Len() > 0 {
 			if doc.Paths == nil {
-				doc.Paths = make(openapi3.Paths)
+				doc.Paths = new(openapi3.Paths)
 			}
-			for name, path := range ap.paths {
-				if _, ok := doc.Paths[name]; !ok {
-					doc.Paths[name] = path
+			for name, path := range ap.paths.Map() {
+				if p := doc.Paths.Value(name); p == nil{
+					doc.Paths.Set(name, path)
 				}
 			}
 		}
@@ -201,27 +202,27 @@ func (i *Installer) BindingCreated(
 					RequestBody: &openapi3.RequestBodyRef{
 						Ref: "#/components/requestBodies/"+requestName,
 					},
-					Responses: openapi3.Responses{
-						"200": &openapi3.ResponseRef{
+					Responses: openapi3.NewResponses(func(responses *openapi3.Responses) {
+						openapi3.WithStatus(http.StatusOK, &openapi3.ResponseRef{
 							Ref: "#/components/responses/"+responseName,
-						},
-						"422": &openapi3.ResponseRef{
+						})
+						openapi3.WithStatus(http.StatusUnprocessableEntity, &openapi3.ResponseRef{
 							Ref: "#/components/responses/ValidationError",
-						},
-						"401": &openapi3.ResponseRef{
+						})
+						openapi3.WithStatus(http.StatusUnauthorized, &openapi3.ResponseRef{
 							Ref: "#/components/responses/UnauthorizedError",
-						},
-						"403": &openapi3.ResponseRef{
+						})
+						openapi3.WithStatus(http.StatusForbidden, &openapi3.ResponseRef{
 							Ref: "#/components/responses/ForbiddenError",
-						},
-						"500": &openapi3.ResponseRef{
+						})
+						openapi3.WithStatus(http.StatusInternalServerError, &openapi3.ResponseRef{
 							Ref: "#/components/responses/GenericError",
-						},
-					},
+						})
+					}),
 					Tags: []string{inType.PkgPath()},
 				},
 			}
-			ap.paths["/process/"+strings.ToLower(inputName)] = path
+			ap.paths.Set("/process/"+strings.ToLower(inputName), path)
 		}
 	}
 }
@@ -282,48 +283,54 @@ func (i *Installer) initializeDefinitions(ap *apiProfile) {
 				WithProperty("payload", openapi3.NewObjectSchema())),
 	}
 	tags := []string{internal.TypeOf[api.Message]().PkgPath()}
-	ap.paths["/process"] = &openapi3.PathItem{
+	ap.paths.Set("/process", &openapi3.PathItem{
 		Post: &openapi3.Operation{
 			OperationID: "process",
 			RequestBody: payload,
-			Responses: openapi3.Responses{
-				"200": &openapi3.ResponseRef{
+			Responses:   openapi3.NewResponses(func(responses *openapi3.Responses) {
+				openapi3.WithStatus(http.StatusOK, &openapi3.ResponseRef{
 					Ref: "#/components/responses/NoResponse",
-				},
-				"422": &openapi3.ResponseRef{
+				})
+				openapi3.WithStatus(http.StatusUnprocessableEntity, &openapi3.ResponseRef{
 					Ref: "#/components/responses/ValidationError",
-				},
-				"401": &openapi3.ResponseRef{
+				})
+				openapi3.WithStatus(http.StatusUnauthorized, &openapi3.ResponseRef{
 					Ref: "#/components/responses/UnauthorizedError",
-				},
-				"403": &openapi3.ResponseRef{
+				})
+				openapi3.WithStatus(http.StatusForbidden, &openapi3.ResponseRef{
 					Ref: "#/components/responses/ForbiddenError",
-				},
-				"500": &openapi3.ResponseRef{
+				})
+				openapi3.WithStatus(http.StatusInternalServerError, &openapi3.ResponseRef{
 					Ref: "#/components/responses/GenericError",
-				},
-			},
+				})
+			}),
 			Tags: tags,
 		},
-	}
-	ap.paths["/publish"] = &openapi3.PathItem{
+	})
+	ap.paths.Set("/publish", &openapi3.PathItem{
 		Post: &openapi3.Operation{
 			OperationID: "publish",
 			RequestBody: payload,
-			Responses: openapi3.Responses{
-				"200": &openapi3.ResponseRef{
+			Responses:   openapi3.NewResponses(func(responses *openapi3.Responses) {
+				openapi3.WithStatus(http.StatusOK, &openapi3.ResponseRef{
 					Ref: "#/components/responses/NoResponse",
-				},
-				"422": &openapi3.ResponseRef{
+				})
+				openapi3.WithStatus(http.StatusUnprocessableEntity, &openapi3.ResponseRef{
 					Ref: "#/components/responses/ValidationError",
-				},
-				"500": &openapi3.ResponseRef{
+				})
+				openapi3.WithStatus(http.StatusUnauthorized, &openapi3.ResponseRef{
+					Ref: "#/components/responses/UnauthorizedError",
+				})
+				openapi3.WithStatus(http.StatusForbidden, &openapi3.ResponseRef{
+					Ref: "#/components/responses/ForbiddenError",
+				})
+				openapi3.WithStatus(http.StatusInternalServerError, &openapi3.ResponseRef{
 					Ref: "#/components/responses/GenericError",
-				},
-			},
+				})
+			}),
 			Tags: tags,
 		},
-	}
+	})
 }
 
 func (i *Installer) apiProfile(
@@ -351,8 +358,8 @@ func (i *Installer) apiProfile(
 			module:        module,
 			schemas:       make(openapi3.Schemas),
 			requestBodies: make(openapi3.RequestBodies),
-			responses:     make(openapi3.Responses),
-			paths:         make(openapi3.Paths),
+			responses:     make(openapi3.ResponseBodies),
+			paths:         new(openapi3.Paths),
 			components:    make(map[reflect.Type]*openapi3.SchemaRef),
 		}
 		ap.generator = openapi3gen.NewGenerator(

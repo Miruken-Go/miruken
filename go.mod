@@ -8,7 +8,7 @@ require (
 	github.com/Rican7/conjson v0.1.0
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/bearbin/go-age v0.0.0-20210220235509-f0fa00c278ce
-	github.com/getkin/kin-openapi v0.120.0
+	github.com/getkin/kin-openapi v0.122.0
 	github.com/go-logr/logr v1.3.0
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.16.0
@@ -39,9 +39,9 @@ require (
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
-	golang.org/x/crypto v0.15.0 // indirect
-	golang.org/x/net v0.18.0 // indirect
-	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/crypto v0.16.0 // indirect
+	golang.org/x/net v0.19.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
