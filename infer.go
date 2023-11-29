@@ -91,6 +91,7 @@ func (b *methodIntercept) Invoke(
 	callback    := ctx.Callback
 	parent, _   := callback.(*Provides)
 	var builder ResolvesBuilder
+	builder.WithConstraints(Explicit)
 	builder.
 		WithCallback(callback).
 		WithGreedy(ctx.Greedy).

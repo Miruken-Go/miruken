@@ -661,14 +661,14 @@ func (suite *HandlesTestSuite) TestHandles() {
 		}
 
 		suite.Equal(4, multi.foo.Count())
-		suite.Equal(8, multi.bar.Count())
+		suite.Equal(4, multi.bar.Count())
 
 		result := handler.Handle(foo, false, nil)
 		suite.True(result.IsError())
 		suite.Equal("count reached 5", result.Error().Error())
 
 		suite.Equal(5, multi.foo.Count())
-		suite.Equal(8, multi.bar.Count())
+		suite.Equal(4, multi.bar.Count())
 	})
 
 	suite.Run("Everything", func () {
@@ -1100,12 +1100,12 @@ func (suite *HandlesTestSuite) TestHandles() {
 					suite.NotNil(foo)
 					// 1 from explicit return of *CountByTwoHandler
 					// 2 from inference of *CountByTwoHandler (1) which includes explicit instance (1)
-					suite.Len(foo, 3)
-					// 3 from explicit *CountByTwoHandler (2) and *SpecificationHandler (1)
-					// 4 for inference of *CountByTwoHandler (2) which includes explicit instance (2)
-					// 2 for inference of *SpecificationHandler (1) which includes explicit instance (1)
+					suite.Len(foo, 2)
+					// 3 from explicit *CountByTwoHandler (2)
+					// 4 for inference of *CountByTwoHandler (2)
+					// 2 for inference of *SpecificationHandler (1)
 					// 9 + 1 = 10 total
-					suite.Equal(10, foo[0].Count())
+					suite.Equal(7, foo[0].Count())
 				} else {
 					suite.Fail("unexpected error", err.Error())
 				}

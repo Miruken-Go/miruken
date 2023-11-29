@@ -108,7 +108,7 @@ func (suite *LoginTestSuite) TestLogin() {
 			})
 
 			suite.Run("Fail", func() {
-				ctx := login.New("login.flow1")
+				ctx := login.New("Login.Flow1")
 				ch := miruken.AddHandlers(
 					callback.NameHandler{Name: "user"},
 					callback.PasswordHandler{Password: []byte("foo")},

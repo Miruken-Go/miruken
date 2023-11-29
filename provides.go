@@ -11,17 +11,19 @@ type (
 	// Provides results covariantly.
 	Provides struct {
 		CallbackBase
-		key     any
-		parent  *Provides
-		handler any
-		binding Binding
-		owner   any
+		key      any
+		explicit bool
+		parent   *Provides
+		handler  any
+		binding  Binding
+		owner    any
 	}
 
 	// ProvidesBuilder builds Provides callbacks.
  	ProvidesBuilder struct {
 		CallbackBuilder
 		key      any
+		explicit bool
 		parent  *Provides
 		owner    any
 	}
@@ -30,6 +32,9 @@ type (
  	providesPolicy struct {
 		CovariantPolicy
 	}
+
+	// Explicit suppresses implied resolution.
+	explicit struct {}
 )
 
 
@@ -90,7 +95,7 @@ func (p *Provides) Dispatch(
 ) (result HandleResult) {
 	result = NotHandled
 	count := p.ResultCount()
-	if len(p.Constraints()) == 0 {
+	if !p.explicit && len(p.Constraints()) == 0 {
 		if typ, ok := p.key.(reflect.Type); ok {
 			if reflect.TypeOf(handler).AssignableTo(typ) {
 				result = result.Or(p.ReceiveResult(handler, false, composer))
@@ -154,10 +159,25 @@ func (b *ProvidesBuilder) ForOwner(
 	return b
 }
 
+func (b *ProvidesBuilder) WithConstraints(
+	constraints ...any,
+) *CallbackBuilder {
+	var cs []any
+	for _, constraint := range constraints {
+		if constraint == Explicit {
+			b.explicit = true
+		} else {
+			cs = append(cs, constraint)
+		}
+	}
+	return b.CallbackBuilder.WithConstraints(cs...)
+}
+
 func (b *ProvidesBuilder) Build() Provides {
 	return Provides{
 		CallbackBase: b.CallbackBase(),
 		key:          b.key,
+		explicit:     b.explicit,
 		parent:       b.parent,
 	}
 }
@@ -166,6 +186,7 @@ func (b *ProvidesBuilder) New() *Provides {
 	p := &Provides{
 		CallbackBase: b.CallbackBase(),
 		key:          b.key,
+		explicit:     b.explicit,
 		parent:       b.parent,
 		owner:        b.owner,
 	}
@@ -194,9 +215,9 @@ func ResolveKey[T any](
 		panic("handler cannot be nil")
 	}
 	var builder ProvidesBuilder
+	builder.WithConstraints(constraints...)
 	builder.WithKey(key).
-		    IntoTarget(&t).
-		    WithConstraints(constraints...)
+		    IntoTarget(&t)
 	provides := builder.New()
 	if result := handler.Handle(provides, false, nil); result.IsError() {
 		err = result.Error()
@@ -221,9 +242,9 @@ func ResolveAll[T any](
 		panic("handler cannot be nil")
 	}
 	var builder ProvidesBuilder
+	builder.WithConstraints(constraints...)
 	builder.WithKey(internal.TypeOf[T]()).
-		    IntoTarget(&t).
-		    WithConstraints(constraints...)
+		    IntoTarget(&t)
 	provides := builder.New()
 	if result := handler.Handle(provides, true, nil); result.IsError() {
 		err = result.Error()
@@ -300,4 +321,9 @@ func initLifestyles(binding Binding) error {
 }
 
 
-var providesPolicyIns Policy = &providesPolicy{}
+var (
+	providesPolicyIns Policy = &providesPolicy{}
+
+	// Explicit suppresses implied resolution.
+	Explicit explicit
+)

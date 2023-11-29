@@ -11,6 +11,11 @@ type Factory struct {
 	root logr.Logger
 }
 
+// NoConstructor prevents Factory from being created implicitly.
+// The Factory is explicitly created by the Installer which
+// assigns the root logger.
+func (f *Factory) NoConstructor() {}
+
 // NewContextLogger return a new logger in a context.
 // The context is a name derived from the following information.
 // If the request has an owner, the owner's type is used.

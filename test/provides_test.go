@@ -110,7 +110,7 @@ func (p *KeyProvider) ProvideKey(
 		provides.It `key:"Foo"`
 	  },
 ) *Foo {
-	p.foo.Inc()
+ 	p.foo.Inc()
 	return &p.foo
 }
 
@@ -465,27 +465,27 @@ func (suite *ProvidesTestSuite) TestProvides() {
 		suite.Equal(2, baz.Count())
 
 		child := ctx.NewChild()
-		baz, _, ok, err = miruken.Resolve[*Baz](child, provides.WithLifestyle)
+		baz, _, ok, err = miruken.Resolve[*Baz](child, provides.Explicit)
 		suite.True(ok)
 		suite.Nil(err)
 		suite.Equal(3, baz.Count())
-		baz, _, ok, err = miruken.Resolve[*Baz](child, provides.WithLifestyle)
+		baz, _, ok, err = miruken.Resolve[*Baz](child, provides.Explicit)
 		suite.True(ok)
 		suite.Nil(err)
 		suite.Equal(3, baz.Count())
-		bam, _, ok, err = miruken.Resolve[*Bam](child, provides.WithLifestyle)
+		bam, _, ok, err = miruken.Resolve[*Bam](child, provides.Explicit)
 		suite.True(ok)
 		suite.Nil(err)
 		suite.Equal(4, bam.Count())
-		bam, _, ok, err = miruken.Resolve[*Bam](child, provides.WithLifestyle)
+		bam, _, ok, err = miruken.Resolve[*Bam](child, provides.Explicit)
 		suite.True(ok)
 		suite.Nil(err)
 		suite.Equal(4, bam.Count())
-		baz, _, ok, err = miruken.ResolveKey[*Baz](child, "Baz", provides.WithLifestyle)
+		baz, _, ok, err = miruken.ResolveKey[*Baz](child, "Baz", provides.Explicit)
 		suite.True(ok)
 		suite.Nil(err)
 		suite.Equal(4, baz.Count())
-		baz, _, ok, err = miruken.Resolve[*Baz](child, provides.WithLifestyle)
+		baz, _, ok, err = miruken.Resolve[*Baz](child, provides.Explicit)
 		suite.True(ok)
 		suite.Nil(err)
 		suite.Equal(4, baz.Count())
@@ -643,13 +643,12 @@ func (suite *ProvidesTestSuite) TestProvides() {
 
 			if foo, _, err := miruken.ResolveAll[*Foo](handler); err == nil {
 				suite.NotNil(foo)
-				// 3 from each of the 3 explicit instances (1)
 				// 2 for inference of *FooProvider (1) which includes explicit instance (1)
 				// 2 for inference of *MultiProvider (1) which includes explicit instance (1)
 				// 1 for inference of *SpecificationProvider (1) which excludes constructed
 				//   instance since it has an unsatisfied dependency on Baz
 				// 8 total
-				suite.Len(foo, 8)
+				suite.Len(foo, 5)
 				suite.True(foo[0] != foo[1])
 			} else {
 				suite.Fail("unexpected error", err.Error())
@@ -663,10 +662,8 @@ func (suite *ProvidesTestSuite) TestProvides() {
 				Handler()
 			if counted, _, err := miruken.ResolveAll[Counter](handler); err == nil {
 				suite.NotNil(counted)
-				// 4 from 2 methods on explicit *ListProvider
 				// 8 for inference of *ListProvider (4) which includes explicit instance (4)
-				// 12 total
-				suite.Len(counted, 12)
+				suite.Len(counted, 8)
 			} else {
 				suite.Fail("unexpected error", err.Error())
 			}

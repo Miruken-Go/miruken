@@ -52,11 +52,17 @@ func (l *Load) Satisfies(required miruken.Constraint, _ miruken.Callback) bool {
 
 // Factory
 
+// NoConstructor prevents Factory from being created implicitly.
+// The Factory is explicitly created by the Installer which
+// assigns the Provider.
+func (f *Factory) NoConstructor() {}
+
 // NewConfiguration return a new configuration instance
 // populated by the assigned Provider.
 func (f *Factory) NewConfiguration(
 	_*struct{
-		provides.Single; args.Strict; Load}, p *provides.It,
+		provides.It; args.Strict; Load
+	}, p *provides.It,
 ) (any, error) {
 	if typ, ok := p.Key().(reflect.Type); ok {
 		var out any
