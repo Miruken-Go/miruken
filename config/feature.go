@@ -22,7 +22,7 @@ func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
 		if provider := v.provider; !internal.IsNil(provider) {
 			setup.Specs(&Factory{}).
-				  Handlers(&Factory{v.provider})
+				  Handlers(&Factory{Provider: v.provider})
 		}
 	}
 	return nil

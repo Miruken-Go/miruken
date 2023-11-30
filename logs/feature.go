@@ -18,8 +18,8 @@ func (v *Installer) SetVerbosity (verbosity int) {
 func (v *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
 		setup.Specs(&Factory{}).
-			  Handlers(&Factory{v.root}).
-			  Filters(&Emit{v.verbosity})
+			  Handlers(&Factory{root: v.root}).
+			  Filters(&Emit{verbosity: v.verbosity})
 	}
 	return nil
 }
