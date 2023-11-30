@@ -18,11 +18,11 @@ type (
 	}
 )
 
-func (v *Installer) Install(setup *miruken.SetupBuilder) error {
+func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
-		if provider := v.provider; !internal.IsNil(provider) {
+		if provider := i.provider; !internal.IsNil(provider) {
 			setup.Specs(&Factory{}).
-				  Handlers(&Factory{Provider: v.provider})
+				  Handlers(&Factory{Provider: i.provider})
 		}
 	}
 	return nil

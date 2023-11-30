@@ -7,7 +7,7 @@ import (
 // Installer enables core api support.
 type Installer struct {}
 
-func (v *Installer) Install(setup *miruken.SetupBuilder) error {
+func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
 		setup.Specs(
 			&Stash{},

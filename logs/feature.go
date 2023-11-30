@@ -11,15 +11,15 @@ type Installer struct {
 	verbosity int
 }
 
-func (v *Installer) SetVerbosity (verbosity int) {
-	v.verbosity = verbosity
+func (i *Installer) SetVerbosity (verbosity int) {
+	i.verbosity = verbosity
 }
 
-func (v *Installer) Install(setup *miruken.SetupBuilder) error {
+func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
 		setup.Specs(&Factory{}).
-			  Handlers(&Factory{root: v.root}).
-			  Filters(&Emit{verbosity: v.verbosity})
+			  Handlers(&Factory{root: i.root}).
+			  Filters(&Emit{verbosity: i.verbosity})
 	}
 	return nil
 }

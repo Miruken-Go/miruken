@@ -14,22 +14,22 @@ type Installer struct {
 	translator ut.Translator
 }
 
-func (v *Installer) Validator() *play.Validate {
-	return v.validate
+func (i *Installer) Validator() *play.Validate {
+	return i.validate
 }
 
-func (v *Installer) UseTranslator(translator ut.Translator) {
-	v.translator = translator
+func (i *Installer) UseTranslator(translator ut.Translator) {
+	i.translator = translator
 }
 
-func (v *Installer) DependsOn() []miruken.Feature {
+func (i *Installer) DependsOn() []miruken.Feature {
 	return []miruken.Feature{validates.Feature()}
 }
 
-func (v *Installer) Install(setup *miruken.SetupBuilder) error {
+func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
-		setup.Specs(&validator{}).With(v.validate)
-		if translator := v.translator; translator != nil {
+		setup.Specs(&validator{}).With(i.validate)
+		if translator := i.translator; translator != nil {
 			setup.With(translator)
 		}
 	}

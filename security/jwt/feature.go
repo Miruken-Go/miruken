@@ -12,7 +12,7 @@ func (i *Installer) DependsOn() []miruken.Feature {
 	return []miruken.Feature{jwks.Feature()}
 }
 
-func (v *Installer) Install(setup *miruken.SetupBuilder) error {
+func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
 		setup.Specs(&LoginModule{})
 	}

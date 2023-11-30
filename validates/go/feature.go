@@ -9,11 +9,11 @@ import (
 // https://github.com/asaskevich/govalidator
 type Installer struct{}
 
-func (v *Installer) DependsOn() []miruken.Feature {
+func (i *Installer) DependsOn() []miruken.Feature {
 	return []miruken.Feature{validates.Feature()}
 }
 
-func (v *Installer) Install(setup *miruken.SetupBuilder) error {
+func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
 		setup.Specs(&validator{})
 	}

@@ -5,7 +5,7 @@ import "github.com/miruken-go/miruken"
 // Installer enables user/password authentication.
 type Installer struct {}
 
-func (v *Installer) Install(setup *miruken.SetupBuilder) error {
+func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&featureTag) {
 		setup.Specs(&LoginModule{})
 	}

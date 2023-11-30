@@ -7,13 +7,13 @@ type Installer struct {
 	output bool
 }
 
-func (v *Installer) Output() {
-	v.output = true
+func (i *Installer) Output() {
+	i.output = true
 }
 
-func (v *Installer) Install(setup *miruken.SetupBuilder) error {
+func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	if setup.Tag(&_featureTag) {
-		setup.Filters(&Required{v.output})
+		setup.Filters(&Required{i.output})
 	}
 	return nil
 }
