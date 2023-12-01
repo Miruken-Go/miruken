@@ -1,0 +1,3 @@
+[submodule "deployment/ci.cd"]
+	path = deployment/ci.cd
+	url = git@github.com:Miruken-Go/ci.cd.git

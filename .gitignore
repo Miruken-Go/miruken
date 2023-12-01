@@ -20,3 +20,5 @@
 
 # JetBrains GoLand
 .idea/
+
+node_modules

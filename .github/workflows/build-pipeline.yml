@@ -13,13 +13,20 @@ permissions:
   contents: write
 
 jobs:
-  build-pipeline:
+  containerized_job:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/miruken-go/demo.microservice.build:1699298856
+      env:
+        ghToken:        ${{ secrets.WORKFLOW_GH_TOKEN }}
+        GH_TOKEN:       ${{ secrets.WORKFLOW_GH_TOKEN }}
+        repositoryPath: ${{ github.workspace }}
+        
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
       with: 
         fetch-depth: 0
-
-    - name: Run build
-      run: ./build.sh
+        submodules: 'recursive'
+    - name: Run buildMiruken.js
+      run:  node ./deployment/src/buildMiruken.js 
