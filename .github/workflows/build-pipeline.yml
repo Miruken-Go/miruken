@@ -1,4 +1,4 @@
-name: build pipeline
+name: build miruken
 
 on:
   push:
@@ -28,5 +28,8 @@ jobs:
       with: 
         fetch-depth: 0
         submodules: 'recursive'
+    - name: npm ci
+      working-directory: ./deployment
+      run: npm ci
     - name: Run buildMiruken.js
       run:  node ./deployment/src/buildMiruken.js 
