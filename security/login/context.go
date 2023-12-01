@@ -113,8 +113,8 @@ func (c *Context) initFlow(
 		f, _, ok, err := provides.Type[Flow](handler, &config.Load{Path: flowRef})
 		if err != nil {
 			return err
-		} else if !ok || len(f) == 0 {
-			return fmt.Errorf("no modules found in flow %q", flowRef)
+		} else if !ok {
+			return fmt.Errorf("unable to load flow %q", flowRef)
 		}
 		c.flow = f
 	}
@@ -153,8 +153,8 @@ func New(flow string) *Context {
 
 // NewFlow creates a Context from the supplied flow entries.
 func NewFlow(flow Flow) *Context {
-	if len(flow) == 0 {
-		panic("login: at least one module is required")
+	if err := flow.Validate(); err != nil {
+		panic(fmt.Sprintf("login: %s", err.Error()))
 	}
 	return &Context{flow: flow}
 }

@@ -120,6 +120,14 @@ func (f *Factory) NewConfiguration(
 			out = reflect.ValueOf(out).Elem().Interface()
 		}
 
+		if v, ok := out.(interface {
+			Validate() error
+		}); ok {
+			if err := v.Validate(); err != nil {
+				return nil, fmt.Errorf("config: %w", err)
+			}
+		}
+
 		cc[key] = out
 		f.cache.Store(&cc)
 		return out, nil

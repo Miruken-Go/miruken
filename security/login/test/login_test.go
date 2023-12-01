@@ -206,7 +206,7 @@ func (suite *LoginTestSuite) TestLogin() {
 		suite.Run("No Modules", func() {
 			defer func() {
 				if r := recover(); r != nil {
-					suite.Equal("login: at least one module is required", r)
+					suite.Equal("login: flow requires at least one module", r)
 				}
 			}()
 			login.NewFlow(login.Flow{})
@@ -322,7 +322,7 @@ func (suite *LoginTestSuite) TestLogin() {
 			suite.Nil(sub)
 			var le login.Error
 			suite.ErrorAs(err, &le)
-			suite.Equal(`login failed: no modules found in flow "login.flow"`, le.Error())
+			suite.Equal("login failed: config: flow requires at least one module", le.Error())
 		})
 	})
 }

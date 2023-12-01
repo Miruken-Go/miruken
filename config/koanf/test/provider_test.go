@@ -1,6 +1,7 @@
 package test
 
 import (
+	"errors"
 	"fmt"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/json"
@@ -48,6 +49,15 @@ type (
 
 	Repository struct {}
 )
+
+// AppConfig
+
+func (a AppConfig) Validate() error {
+	if a.Env == "" {
+		return errors.New("environment is missing")
+	}
+	return nil
+}
 
 // EventStore
 
@@ -135,6 +145,14 @@ func (suite *ProviderTestSuite) TestProvider() {
 			handler, _ := suite.Setup(&Gateway{}, &EventStore{})
 			_, err := handles.Command(handler, CreateCustomer{})
 			suite.Nil(err)
+		})
+
+		suite.Run("Validate", func() {
+			handler, _ := suite.Setup()
+			_, _, ok, err := provides.Type[AppConfig](handler, &config.Load{Path: "missing"})
+			suite.False(ok)
+			suite.NotNil(err)
+			suite.ErrorContains(err, "config: environment is missing")
 		})
 	})
 

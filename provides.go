@@ -218,13 +218,13 @@ func ResolveKey[T any](
 	builder.WithConstraints(constraints...)
 	builder.WithKey(key).
 		    IntoTarget(&t)
-	provides := builder.New()
-	if result := handler.Handle(provides, false, nil); result.IsError() {
+	p := builder.New()
+	if result := handler.Handle(p, false, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {
 		ok = true
-		if _, p := provides.Result(false); p != nil {
-			tp = promise.Then(p, func(any) T {
+		if _, pr := p.Result(false); pr != nil {
+			tp = promise.Then(pr, func(any) T {
 				return t
 			})
 		}
@@ -245,12 +245,12 @@ func ResolveAll[T any](
 	builder.WithConstraints(constraints...)
 	builder.WithKey(internal.TypeOf[T]()).
 		    IntoTarget(&t)
-	provides := builder.New()
-	if result := handler.Handle(provides, true, nil); result.IsError() {
+	p := builder.New()
+	if result := handler.Handle(p, true, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {
-		if _, p := provides.Result(true); p != nil {
-			tp = promise.Then(p, func(any) []T {
+		if _, pr := p.Result(true); pr != nil {
+			tp = promise.Then(pr, func(any) []T {
 				return t
 			})
 		}

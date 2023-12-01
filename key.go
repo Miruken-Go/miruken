@@ -26,8 +26,8 @@ func (k Key) Resolve(
 	ctx HandleContext,
 ) (v reflect.Value, pv *promise.Promise[reflect.Value], err error) {
 	var builder ProvidesBuilder
-	provides := builder.WithKey(string(k)).New()
-	if result, pr, err2 := provides.Resolve(ctx, false); err2 != nil {
+	p := builder.WithKey(string(k)).New()
+	if result, pr, err2 := p.Resolve(ctx, false); err2 != nil {
 		err = fmt.Errorf("key: unable to resolve dependency %q: %w", k, err2)
 	} else if pr == nil {
 		if result != nil {
