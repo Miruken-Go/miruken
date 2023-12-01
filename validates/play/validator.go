@@ -66,6 +66,26 @@ type (
 		Validator
 	}
 
+	// Validates6 handles validation for a specific type.
+	Validates6[T any] struct {
+		Validator
+	}
+
+	// Validates7 handles validation for a specific type.
+	Validates7[T any] struct {
+		Validator
+	}
+
+	// Validates8 handles validation for a specific type.
+	Validates8[T any] struct {
+		Validator
+	}
+
+	// Validates9 handles validation for a specific type.
+	Validates9[T any] struct {
+		Validator
+	}
+
 	// validator performs default tag based validation.
 	validator struct { Validator }
 )
@@ -113,19 +133,22 @@ func (v *Validator) Validate(
 	if !internal.IsStruct(target) {
 		return miruken.NotHandled
 	}
-	if err := v.validate.Struct(target); err != nil {
-		switch e := err.(type) {
-		case *play.InvalidValidationError:
-			return miruken.NotHandled.WithError(err)
-		case play.ValidationErrors:
-			if v.translator == nil {
-				v.addErrors(outcome, e)
-			} else {
-				v.translateErrors(outcome, e)
+	// valid if no rules assigned
+	if valid := v.validate; valid != nil {
+		if err := valid.Struct(target); err != nil {
+			switch e := err.(type) {
+			case *play.InvalidValidationError:
+				return miruken.NotHandled.WithError(err)
+			case play.ValidationErrors:
+				if v.translator == nil {
+					v.addErrors(outcome, e)
+				} else {
+					v.translateErrors(outcome, e)
+				}
+				return miruken.HandledAndStop
+			default:
+				panic(fmt.Errorf("unexpected validation error: %w", err))
 			}
-			return miruken.HandledAndStop
-		default:
-			panic(fmt.Errorf("unexpected validation error: %w", err))
 		}
 	}
 	return miruken.Handled
@@ -214,7 +237,7 @@ func (v *Validates3[T]) Validate3(
 
 // Validates4
 
-func (v *Validates3[T]) Validate4(
+func (v *Validates4[T]) Validate4(
 	validate *validates.It, t T,
 ) miruken.HandleResult {
 	return v.ValidateAndStop(t, validate.Outcome())
@@ -223,7 +246,39 @@ func (v *Validates3[T]) Validate4(
 
 // Validates5
 
-func (v *Validates3[T]) Validate5(
+func (v *Validates5[T]) Validate5(
+	validate *validates.It, t T,
+) miruken.HandleResult {
+	return v.ValidateAndStop(t, validate.Outcome())
+}
+
+// Validates6
+
+func (v *Validates6[T]) Validate6(
+	validate *validates.It, t T,
+) miruken.HandleResult {
+	return v.ValidateAndStop(t, validate.Outcome())
+}
+
+// Validates7
+
+func (v *Validates7[T]) Validate7(
+	validate *validates.It, t T,
+) miruken.HandleResult {
+	return v.ValidateAndStop(t, validate.Outcome())
+}
+
+// Validates8
+
+func (v *Validates8[T]) Validate8(
+	validate *validates.It, t T,
+) miruken.HandleResult {
+	return v.ValidateAndStop(t, validate.Outcome())
+}
+
+// Validates9
+
+func (v *Validates9[T]) Validate9(
 	validate *validates.It, t T,
 ) miruken.HandleResult {
 	return v.ValidateAndStop(t, validate.Outcome())
