@@ -15,10 +15,10 @@ import (
 type (
 	// Context coordinates the entire login process.
 	Context struct {
-		flow    Flow
-		flowRef string
-		modules []Module
-		subject security.Subject
+		flow      Flow
+		flowAlias string
+		modules   []Module
+		subject   security.Subject
 	}
 
 	// Error reports a failure during the login process.
@@ -109,12 +109,12 @@ func (c *Context) initFlow(
 	if c.modules != nil {
 		return nil
 	}
-	if flowRef := c.flowRef; flowRef != "" {
-		f, _, ok, err := provides.Type[Flow](handler, &config.Load{Path: flowRef})
+	if flowAlias := c.flowAlias; flowAlias != "" {
+		f, _, ok, err := provides.Type[Flow](handler, &config.Load{Path: flowAlias})
 		if err != nil {
 			return err
 		} else if !ok {
-			return fmt.Errorf("unable to load flow %q", flowRef)
+			return fmt.Errorf("unable to load flow %q", flowAlias)
 		}
 		c.flow = f
 	}
@@ -148,7 +148,7 @@ func New(flow string) *Context {
 	if flow == "" {
 		panic("login: flow cannot be empty")
 	}
-	return &Context{flowRef: flow}
+	return &Context{flowAlias: flow}
 }
 
 // NewFlow creates a Context from the supplied flow entries.

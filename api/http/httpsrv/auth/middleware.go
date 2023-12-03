@@ -59,11 +59,11 @@ func (a *Authentication) Constructor(
 	a.options = options
 }
 
-func (a *Authentication) WithFlowRef(ref string) *FlowBuilder {
-	if ref == "" {
-		panic("flow ref cannot be empty")
+func (a *Authentication) WithFlowAlias(alias string) *FlowBuilder {
+	if alias == "" {
+		panic("flow alias cannot be empty")
 	}
-	return &FlowBuilder{a: a, flow: flowSpec{ref: ref}}
+	return &FlowBuilder{a: a, flow: flowSpec{ref: alias}}
 }
 
 func (a *Authentication) WithFlow(flow login.Flow) *FlowBuilder {
@@ -178,12 +178,11 @@ func WriteWWWAuthenticateHeader(
 	w.Header().Add("WWW-Authenticate", h.String())
 }
 
-
-// WithFlowRef starts a new authentication flow builder
-// with a reference to a login flow.
-func WithFlowRef(flow string) *FlowBuilder {
+// WithFlowAlias starts a new authentication flow builder
+// with an alias to a login flow.
+func WithFlowAlias(flow string) *FlowBuilder {
 	auth := &Authentication{}
-	return auth.WithFlowRef(flow)
+	return auth.WithFlowAlias(flow)
 }
 
 // WithFlow starts a new authentication flow builder
