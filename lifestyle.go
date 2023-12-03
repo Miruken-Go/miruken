@@ -69,6 +69,7 @@ type (
 	// Single LifestyleProvider providing same instance.
 	Single struct {
 		LifestyleProvider
+		covar bool
 	}
 
 	// singleEntry stores a lazy instance.
@@ -86,10 +87,10 @@ type (
 		entry singleEntry
 	}
 
-	// singleUnk is a Filter that caches unknown instances.
-	// When a Handler provides any results, a map of key to
+	// singleCovar is a Filter that caches covariant instances.
+	// When a Handler provides covariant results, a map of key to
 	// instance is maintained using copy-on-write idiom.
-	singleUnk struct {
+	singleCovar struct {
 		Lifestyle
 		keys atomic.Pointer[singleCache]
 		lock sync.Mutex
@@ -99,10 +100,22 @@ type (
 
 // Single
 
+func (s *Single) InitWithTag(tag reflect.StructTag) error {
+	if mode, ok := tag.Lookup("mode"); ok {
+		s.covar = mode == "covariant"
+	}
+	return nil
+}
+
 func (s *Single)InitLifestyle(binding Binding) error {
 	if !s.FiltersAssigned(){
-		if typ, ok := binding.Key().(reflect.Type); ok && internal.IsAny(typ) {
-			s.SetFilters(&singleUnk{})
+		covar := s.covar
+		if !covar {
+			typ, ok := binding.Key().(reflect.Type)
+			covar = ok && internal.IsAny(typ)
+		}
+		if covar {
+			s.SetFilters(&singleCovar{})
 		} else {
 			s.SetFilters(&single{entry: singleEntry{once: new(sync.Once)}})
 		}
@@ -123,9 +136,9 @@ func (s *single) Next(
 }
 
 
-// singleUnk
+// singleCovar
 
-func (s *singleUnk) Next(
+func (s *singleCovar) Next(
 	self     Filter,
 	next     Next,
 	ctx      HandleContext,

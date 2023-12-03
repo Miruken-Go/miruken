@@ -71,9 +71,7 @@ func (f *Factory) NoConstructor() {}
 // NewConfiguration return a new configuration instance
 // populated from the designated Provider.
 func (f *Factory) NewConfiguration(
-	_*struct{
-		provides.It; args.Strict; Load
-	}, p *provides.It,
+	_*struct{args.Strict; Load}, p *provides.It,
 ) (any, error) {
 	if typ, ok := p.Key().(reflect.Type); ok {
 		var path string

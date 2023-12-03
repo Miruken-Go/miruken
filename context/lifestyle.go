@@ -9,6 +9,7 @@ import (
 	"github.com/miruken-go/miruken/provides"
 	"maps"
 	"reflect"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -18,13 +19,14 @@ type (
 	Scoped struct {
 		miruken.LifestyleProvider
 		rooted bool
+		covar  bool
 	}
 
 	// Rooted is a BindingGroup for configuring a rooted scoped lifestyle
 	// in which all resolutions are assigned to the root Context.
 	Rooted struct {
 		miruken.BindingGroup
-		Scoped `scoped:"rooted"`
+		Scoped `mode:"rooted"`
 	}
 
 	// scopedEntry stores a lazy instance.
@@ -43,10 +45,10 @@ type (
 		lock  sync.Mutex
 	}
 
-	// scopedUnk is a miruken.Filter that caches unknown instances
+	// scopedCovar is a miruken.Filter that caches covariant instances
 	// per Context.  When a Handler provides any results, a map of
 	// key to instance is maintained using copy-on-write idiom.
-	scopedUnk struct {
+	scopedCovar struct {
 		miruken.Lifestyle
 		cache map[*Context]scopedCache
 		lock  sync.RWMutex
@@ -57,19 +59,33 @@ type (
 var (
 	ErrScopeInactiveContext = errors.New("scoped: cannot scope instances to an inactive context")
 )
+
+
 // Scoped
 
 func (s *Scoped) InitWithTag(tag reflect.StructTag) error {
-	if scoped, ok := tag.Lookup("scoped"); ok {
-		s.rooted = scoped == "rooted"
+	if mode, ok := tag.Lookup("mode"); ok {
+		for _, opt := range strings.Split(mode, ",") {
+			switch opt {
+			case "covariant":
+				s.covar = true
+			case "rooted":
+				s.rooted = true
+			}
+		}
 	}
 	return nil
 }
 
 func (s *Scoped)InitLifestyle(binding miruken.Binding) error {
 	if !s.FiltersAssigned() {
-		if typ, ok := binding.Key().(reflect.Type); ok && internal.IsAny(typ) {
-			s.SetFilters(&scopedUnk{})
+		covar := s.covar
+		if !covar {
+			typ, ok := binding.Key().(reflect.Type)
+			covar = ok && internal.IsAny(typ)
+		}
+		if covar {
+			s.SetFilters(&scopedCovar{})
 		} else {
 			s.SetFilters(&scoped{})
 		}
@@ -167,9 +183,9 @@ func (s *scoped) removeContext(context *Context) {
 }
 
 
-// scopedUnk
+// scopedCovar
 
-func (s *scopedUnk) Next(
+func (s *scopedCovar) Next(
 	self     miruken.Filter,
 	next     miruken.Next,
 	ctx      miruken.HandleContext,
@@ -231,7 +247,7 @@ func (s *scopedUnk) Next(
 	return entry.get(context, s, s.removeContext, next)
 }
 
-func (s *scopedUnk) ContextChanging(
+func (s *scopedCovar) ContextChanging(
 	contextual Contextual,
 	oldCtx     *Context,
 	newCtx     **Context,
@@ -259,7 +275,7 @@ func (s *scopedUnk) ContextChanging(
 	}
 }
 
-func (s *scopedUnk) removeContext(context *Context) {
+func (s *scopedCovar) removeContext(context *Context) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	delete(s.cache, context)
