@@ -18,9 +18,11 @@ jobs:
     container:
       image: ghcr.io/miruken-go/demo.microservice.build:1699298856
       env:
-        ghToken:        ${{ secrets.WORKFLOW_GH_TOKEN }}
-        GH_TOKEN:       ${{ secrets.WORKFLOW_GH_TOKEN }}
-        repositoryPath: ${{ github.workspace }}
+        ghToken:         ${{ secrets.WORKFLOW_GH_TOKEN }}
+        GH_TOKEN:        ${{ secrets.WORKFLOW_GH_TOKEN }}
+        repositoryPath:  ${{ github.workspace }}
+        repository:      ${{ github.repository }}
+        repositoryOwner: ${{ github.repository_owner }}
         
     steps:
     - name: Checkout repository
