@@ -9,6 +9,7 @@ import (
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -157,7 +158,7 @@ func (suite *CascadeTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
-	return miruken.Setup().Specs(specs...).Handler()
+	return setup.New().Specs(specs...).Handler()
 }
 
 func (suite *CascadeTestSuite) TestCascade() {

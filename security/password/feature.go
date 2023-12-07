@@ -1,18 +1,20 @@
 package password
 
-import "github.com/miruken-go/miruken"
+import (
+	"github.com/miruken-go/miruken/setup"
+)
 
 // Installer enables user/password authentication.
 type Installer struct {}
 
-func (i *Installer) Install(setup *miruken.SetupBuilder) error {
+func (i *Installer) Install(setup *setup.Builder) error {
 	if setup.Tag(&featureTag) {
 		setup.Specs(&LoginModule{})
 	}
 	return nil
 }
 
-func Feature(config ...func(*Installer)) miruken.Feature {
+func Feature(config ...func(*Installer)) setup.Feature {
 	installer := &Installer{}
 	for _, configure := range config {
 		if configure != nil {

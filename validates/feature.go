@@ -1,6 +1,8 @@
 package validates
 
-import "github.com/miruken-go/miruken"
+import (
+	"github.com/miruken-go/miruken/setup"
+)
 
 // Installer enables validation support.
 type Installer struct {
@@ -11,7 +13,7 @@ func (i *Installer) Output() {
 	i.output = true
 }
 
-func (i *Installer) Install(setup *miruken.SetupBuilder) error {
+func (i *Installer) Install(setup *setup.Builder) error {
 	if setup.Tag(&_featureTag) {
 		setup.Filters(&Required{i.output})
 	}
@@ -23,7 +25,7 @@ func Output(installer *Installer) {
 }
 
 // Feature creates and configures validation support.
-func Feature(config ...func(*Installer)) miruken.Feature {
+func Feature(config ...func(*Installer)) setup.Feature {
 	installer := &Installer{}
 	for _, configure := range config {
 		if configure != nil {

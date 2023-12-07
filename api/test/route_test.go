@@ -7,6 +7,7 @@ import (
 	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"sync/atomic"
 	"testing"
@@ -48,7 +49,7 @@ type RouteTestSuite struct {
 }
 
 func (suite *RouteTestSuite) Setup() miruken.Handler {
-	handler, _ := miruken.Setup(
+	handler, _ := setup.New(
 		TestFeature,
 		api.Feature()).
 		Specs(&Trash{}).

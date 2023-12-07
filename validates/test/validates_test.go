@@ -5,6 +5,7 @@ import (
 	"github.com/bearbin/go-age"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/miruken-go/miruken/validates"
 	"github.com/stretchr/testify/suite"
 	"reflect"
@@ -201,7 +202,7 @@ func (suite *ValidatesTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
-	return miruken.Setup().Specs(specs...).Handler()
+	return setup.New().Specs(specs...).Handler()
 }
 
 type (
@@ -322,7 +323,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 	})
 
 	suite.Run("Filter", func () {
-		handler, _ := miruken.Setup(
+		handler, _ := setup.New(
 			validates.Feature(validates.Output)).
 			Specs(suite.specs...).
 			Handler()

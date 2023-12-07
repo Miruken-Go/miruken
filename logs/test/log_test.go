@@ -3,11 +3,11 @@ package test
 import (
 	"github.com/go-logr/logr"
 	"github.com/go-logr/logr/testr"
-	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/logs"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"testing"
 	"time"
@@ -57,7 +57,7 @@ type LogTestSuite struct {
 
 func (suite *LogTestSuite) TestLogging() {
 	suite.Run("Build", func() {
-		handler, _ := miruken.Setup(
+		handler, _ := setup.New(
 			logs.Feature(testr.New(suite.T())),
 		).Handler()
 		logger, _, ok, err:= provides.Type[logr.Logger](handler)
@@ -67,7 +67,7 @@ func (suite *LogTestSuite) TestLogging() {
 	})
 
 	suite.Run("verbosity", func() {
-		handler, _ := miruken.Setup(
+		handler, _ := setup.New(
 			logs.Feature(
 				testr.NewWithOptions(suite.T(), testr.Options{Verbosity: 1}),
 			),
@@ -79,7 +79,7 @@ func (suite *LogTestSuite) TestLogging() {
 	})
 
 	suite.Run("CtorDependency", func() {
-		handler, _ := miruken.Setup(
+		handler, _ := setup.New(
 			logs.Feature(testr.New(suite.T()))).
 			Specs(&Service{}).
 			Handler()
@@ -90,7 +90,7 @@ func (suite *LogTestSuite) TestLogging() {
 	})
 
 	suite.Run("MethodDependency", func() {
-		handler, _ := miruken.Setup(
+		handler, _ := setup.New(
 			logs.Feature(testr.NewWithOptions(suite.T(), testr.Options{
 				LogTimestamp: true,
 				Verbosity:    1,
@@ -106,7 +106,7 @@ func (suite *LogTestSuite) TestLogging() {
 	})
 
 	suite.Run("MethodDependencyAsync", func() {
-		handler, _ := miruken.Setup(
+		handler, _ := setup.New(
 			logs.Feature(testr.NewWithOptions(suite.T(), testr.Options{
 				LogTimestamp: true,
 				Verbosity:    1,
@@ -122,7 +122,7 @@ func (suite *LogTestSuite) TestLogging() {
 	})
 
 	suite.Run("Suppressed", func() {
-		handler, _ := miruken.Setup(
+		handler, _ := setup.New(
 			logs.Feature(testr.NewWithOptions(suite.T(), testr.Options{
 				LogTimestamp: true,
 				Verbosity:    1,

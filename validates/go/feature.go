@@ -1,7 +1,7 @@
 package govalidator
 
 import (
-	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/miruken-go/miruken/validates"
 )
 
@@ -9,18 +9,18 @@ import (
 // https://github.com/asaskevich/govalidator
 type Installer struct{}
 
-func (i *Installer) DependsOn() []miruken.Feature {
-	return []miruken.Feature{validates.Feature()}
+func (i *Installer) DependsOn() []setup.Feature {
+	return []setup.Feature{validates.Feature()}
 }
 
-func (i *Installer) Install(setup *miruken.SetupBuilder) error {
+func (i *Installer) Install(setup *setup.Builder) error {
 	if setup.Tag(&featureTag) {
 		setup.Specs(&validator{})
 	}
 	return nil
 }
 
-func Feature(config ...func(*Installer)) miruken.Feature {
+func Feature(config ...func(*Installer)) setup.Feature {
 	installer := &Installer{}
 	for _, configure := range config {
 		if configure != nil {

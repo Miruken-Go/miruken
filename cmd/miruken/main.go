@@ -4,9 +4,9 @@ import (
     "bytes"
     "flag"
     "fmt"
-    "github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/internal"
-	"go/ast"
+    "github.com/miruken-go/miruken/internal"
+    "github.com/miruken-go/miruken/setup"
+    "go/ast"
     "go/parser"
     "go/token"
     "io"
@@ -131,11 +131,11 @@ func parseDir(
         _, _ = fmt.Fprintln(&buf)
         _, _ = fmt.Fprintln(&buf, "package", pkg.Name)
         _, _ = fmt.Fprintln(&buf, "")
-        _, _ = fmt.Fprintf(&buf, "import %q\n", mirukenPkgPath)
+        _, _ = fmt.Fprintf(&buf, "import %q\n", setupPkgPath)
         _, _ = fmt.Fprintln(&buf, "")
 
         // Feature
-        _, _ = fmt.Fprintf(&buf, "var %s miruken.Feature = miruken.FeatureFunc(func(setup *miruken.SetupBuilder) error {\n", featureName)
+        _, _ = fmt.Fprintf(&buf, "var %s setup.Feature = setup.FeatureFunc(func(setup *setup.Builder) error {\n", featureName)
         _, _ = fmt.Fprintln(&buf, "\tsetup.Specs(")
 
         if _, err := io.Copy(&buf, &typBuf); err != nil {
@@ -215,4 +215,4 @@ func printTo(
     }
 }
 
-var mirukenPkgPath = internal.TypeOf[miruken.Handler]().PkgPath()
+var setupPkgPath = internal.TypeOf[setup.Builder]().PkgPath()

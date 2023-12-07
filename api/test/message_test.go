@@ -8,6 +8,7 @@ import (
 	"github.com/miruken-go/miruken/either"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"strconv"
 	"testing"
@@ -68,7 +69,7 @@ type MessageTestSuite struct {
 }
 
 func (suite *MessageTestSuite) Setup() miruken.Handler {
-	handler, _ := miruken.Setup(
+	handler, _ := setup.New(
 		TestFeature,
 		api.Feature(),
 	).Handler()

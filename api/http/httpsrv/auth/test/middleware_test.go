@@ -2,7 +2,6 @@ package test
 
 import (
 	"fmt"
-	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
 	"github.com/miruken-go/miruken/api/http/httpsrv/auth"
 	"github.com/miruken-go/miruken/context"
@@ -11,6 +10,7 @@ import (
 	"github.com/miruken-go/miruken/security/login"
 	"github.com/miruken-go/miruken/security/password"
 	"github.com/miruken-go/miruken/security/principal"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"io"
 	"net/http"
@@ -23,7 +23,7 @@ type MiddlewareTestSuite struct {
 }
 
 func (suite *MiddlewareTestSuite) Setup(specs ...any) *context.Context {
-	handler, _ := miruken.Setup(password.Feature()).Specs(specs...).Handler()
+	handler, _ := setup.New(password.Feature()).Specs(specs...).Handler()
 	return context.New(handler)
 }
 

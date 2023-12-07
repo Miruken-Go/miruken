@@ -8,6 +8,7 @@ import (
 	"github.com/miruken-go/miruken/api/http/httpsrv"
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/logs"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"io"
 	"net/http"
@@ -78,7 +79,7 @@ type PipelineTestSuite struct {
 }
 
 func (suite *PipelineTestSuite) Setup(specs ...any) *context.Context {
-	handler, _ := miruken.Setup(logs.Feature(NewStdoutLogger())).
+	handler, _ := setup.New(logs.Feature(NewStdoutLogger())).
 		Specs(specs...).
 		Handler()
 	return context.New(handler)

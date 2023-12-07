@@ -140,10 +140,10 @@ func (g *inferenceGuard) CanDispatch(
 	return nil, true
 }
 
-func newInferenceHandler(
+func NewInferenceHandler(
 	factory HandlerInfoFactory,
 	specs   []HandlerSpec,
-) *inferenceHandler {
+) Handler {
 	if factory == nil {
 		panic("factory cannot be nil")
 	}

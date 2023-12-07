@@ -2,9 +2,11 @@
 
 package test
 
-import "github.com/miruken-go/miruken"
+import (
+	"github.com/miruken-go/miruken/setup"
+)
 
-var TestFeature miruken.Feature = miruken.FeatureFunc(func(setup *miruken.SetupBuilder) error {
+var TestFeature setup.Feature = setup.FeatureFunc(func(setup *setup.Builder) error {
 	setup.Specs(
 		&CreateUserIntegrity{},
 		&UserHandler{},

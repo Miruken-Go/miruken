@@ -2,7 +2,7 @@ package logs
 
 import (
 	"github.com/go-logr/logr"
-	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/setup"
 )
 
 // Installer configures logging support.
@@ -15,7 +15,7 @@ func (i *Installer) SetVerbosity (verbosity int) {
 	i.verbosity = verbosity
 }
 
-func (i *Installer) Install(setup *miruken.SetupBuilder) error {
+func (i *Installer) Install(setup *setup.Builder) error {
 	if setup.Tag(&featureTag) {
 		setup.Specs(&Factory{}).
 			  Handlers(&Factory{root: i.root}).
@@ -35,7 +35,7 @@ func Verbosity(verbosity int) func(*Installer) {
 func Feature(
 	rootLogger logr.Logger,
 	config     ...func(*Installer),
-) miruken.Feature {
+) setup.Feature {
 	installer := &Installer{root: rootLogger}
 	for _, configure := range config {
 		if configure != nil {

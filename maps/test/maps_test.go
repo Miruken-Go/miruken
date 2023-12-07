@@ -9,6 +9,7 @@ import (
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/provides"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"reflect"
 	"testing"
@@ -224,7 +225,7 @@ func (suite *MapsTestSuite) SetupTest() {
 }
 
 func (suite *MapsTestSuite) Setup() (miruken.Handler, error) {
-	return miruken.Setup().Specs(suite.specs...).Handler()
+	return setup.New().Specs(suite.specs...).Handler()
 }
 
 func (suite *MapsTestSuite) TestMap() {
@@ -268,7 +269,7 @@ func (suite *MapsTestSuite) TestMap() {
 		})
 
 		suite.Run("Open", func() {
-			handler, _ := miruken.Setup().Specs(&OpenMapper{}).Handler()
+			handler, _ := setup.New().Specs(&OpenMapper{}).Handler()
 			entity := PlayerEntity{
 				Entity{ Id: 1 },
 				"Tim Howard",
@@ -304,7 +305,7 @@ func (suite *MapsTestSuite) TestMap() {
 		})
 
 		suite.Run("Format", func() {
-			handler, _ := miruken.Setup().Specs(&FormatMapper{}).Handler()
+			handler, _ := setup.New().Specs(&FormatMapper{}).Handler()
 
 			data  := PlayerData{
 				Id:   1,
@@ -376,7 +377,7 @@ func (suite *MapsTestSuite) TestMap() {
 					}
 				}
 			}()
-			_, err := miruken.Setup().Specs(&InvalidMapper{}).Handler()
+			_, err := setup.New().Specs(&InvalidMapper{}).Handler()
 			suite.Nil(err)
 			suite.Fail("should cause panic")
 		})
@@ -384,7 +385,7 @@ func (suite *MapsTestSuite) TestMap() {
 
 	suite.Run("Format", func () {
 		suite.Run("StartsWith", func () {
-			handler, _ := miruken.Setup().Specs(&FormatMapper{}).Handler()
+			handler, _ := setup.New().Specs(&FormatMapper{}).Handler()
 			var data PlayerData
 			res, _, _, err := maps.Out[string](handler, &data, maps.To("hello", nil))
 			suite.Nil(err)
@@ -402,7 +403,7 @@ func (suite *MapsTestSuite) TestMap() {
 		})
 
 		suite.Run("EndsWith", func () {
-			handler, _ := miruken.Setup().Specs(&FormatMapper{}).Handler()
+			handler, _ := setup.New().Specs(&FormatMapper{}).Handler()
 			var data PlayerData
 			res, _, _, err := maps.Out[string](handler, &data, maps.To("world", nil))
 			suite.Nil(err)
@@ -420,7 +421,7 @@ func (suite *MapsTestSuite) TestMap() {
 		})
 
 		suite.Run("Pattern", func () {
-			handler, _ := miruken.Setup().Specs(&FormatMapper{}).Handler()
+			handler, _ := setup.New().Specs(&FormatMapper{}).Handler()
 			var data PlayerData
 			res, _, _, err := maps.Out[string](handler, &data, maps.To("J9!P3", nil))
 			suite.Nil(err)

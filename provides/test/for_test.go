@@ -3,6 +3,7 @@ package test
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/provides"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"math/rand"
 	"strings"
@@ -189,7 +190,7 @@ func (suite *ForTestSuite) Setup(specs...any) (miruken.Handler, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
-	return miruken.Setup().Specs(specs...).Handler()
+	return setup.New().Specs(specs...).Handler()
 }
 
 func (suite *ForTestSuite) TestFor() {

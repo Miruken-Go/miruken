@@ -9,6 +9,7 @@ import (
 	"github.com/miruken-go/miruken/security"
 	"github.com/miruken-go/miruken/security/authorizes"
 	"github.com/miruken-go/miruken/security/principal"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -82,13 +83,13 @@ func (suite *AuthorizesTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
-	return miruken.Setup().Specs(specs...).Handler()
+	return setup.New().Specs(specs...).Handler()
 }
 
 func (suite *AuthorizesTestSuite) TestAuthorizes() {
 	suite.Run("Authorize", func () {
 		suite.Run("Default", func() {
-			handler, _ := miruken.Setup().Handler()
+			handler, _ := setup.New().Handler()
 			transfer := TransferFunds{Amount: 1000}
 			handler = miruken.BuildUp(handler, provides.With(security.NewSubject()))
 			grant, _, err := authorizes.Access(handler, transfer)
@@ -97,7 +98,7 @@ func (suite *AuthorizesTestSuite) TestAuthorizes() {
 		})
 
 		suite.Run("RequiresPolicy", func() {
-			handler, _ := miruken.Setup().Handler()
+			handler, _ := setup.New().Handler()
 			handler = miruken.BuildUp(handler,
 				provides.With(security.NewSubject()),
 				miruken.Options(authorizes.Options{RequirePolicy: true}))

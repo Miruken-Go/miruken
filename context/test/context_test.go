@@ -5,6 +5,7 @@ import (
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/provides"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -106,7 +107,7 @@ func (suite *ContextTestSuite) RootContext() *context.Context {
 }
 
 func (suite *ContextTestSuite) RootContextWith(specs ...any) *context.Context {
-	handler, _ := miruken.Setup().Specs(specs...).Handler()
+	handler, _ := setup.New().Specs(specs...).Handler()
 	return context.New(handler)
 }
 
@@ -156,7 +157,7 @@ func (suite *ContextTestSuite) TestContext() {
 	})
 
 	suite.Run("Handlers", func () {
-		handler, _ := miruken.Setup().
+		handler, _ := setup.New().
 			WithoutInference().
 			Specs(&Service{}).
 			Handler()

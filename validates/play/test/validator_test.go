@@ -5,6 +5,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/miruken-go/miruken/validates"
 	play "github.com/miruken-go/miruken/validates/play"
 	"github.com/stretchr/testify/suite"
@@ -124,7 +125,7 @@ type ValidatorTestSuite struct {
 }
 
 func (suite *ValidatorTestSuite) SetupTest() {
-	suite.handler, _ = miruken.Setup(
+	suite.handler, _ = setup.New(
 		TestFeature,
 		play.Feature(),
 	).Handler()

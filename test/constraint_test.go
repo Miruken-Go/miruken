@@ -5,6 +5,7 @@ import (
 	"github.com/miruken-go/miruken/constraints"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/provides"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -183,7 +184,7 @@ func (suite *ConstraintTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
-	return miruken.Setup().Specs(specs...).Handler()
+	return setup.New().Specs(specs...).Handler()
 }
 
 func (suite *ConstraintTestSuite) TestConstraints() {

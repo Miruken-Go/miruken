@@ -12,6 +12,7 @@ import (
 	koanfp "github.com/miruken-go/miruken/config/koanf"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/provides"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"os"
 	"reflect"
@@ -118,7 +119,7 @@ func (suite *ProviderTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	var k = koanf.New(".")
 	err := k.Load(file.Provider("../../test/configs/appconfig.json"), json.Parser())
 	suite.Nil(err)
-	return miruken.Setup(config.Feature(koanfp.P(k))).
+	return setup.New(config.Feature(koanfp.P(k))).
 		Specs(specs...).Handler()
 }
 
@@ -204,7 +205,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 		err := k.Load(env.Provider("Miruken", "__", nil), nil,
 			koanf.WithMergeFunc(koanfp.Merge))
 		suite.Nil(err)
-		handler, _ := miruken.Setup(config.Feature(koanfp.P(k))).Handler()
+		handler, _ := setup.New(config.Feature(koanfp.P(k))).Handler()
 
 		suite.Run("Resolve", func() {
 			cfg, _, ok, err := provides.Type[AppConfig](handler, &config.Load{Path: "Miruken"})

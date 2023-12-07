@@ -1,21 +1,21 @@
 package http
 
 import (
-	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/miruken-go/miruken/validates"
 )
 
 // Installer configure http client support.
 type Installer struct {}
 
-func (i *Installer) DependsOn() []miruken.Feature {
-	return []miruken.Feature{
+func (i *Installer) DependsOn() []setup.Feature {
+	return []setup.Feature{
 		validates.Feature(),
 		api.Feature()}
 }
 
-func (i *Installer) Install(setup *miruken.SetupBuilder) error {
+func (i *Installer) Install(setup *setup.Builder) error {
 	if setup.Tag(&featureTag) {
 		setup.Specs(&Router{})
 	}
@@ -23,7 +23,7 @@ func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 }
 
 // Feature configures http client support
-func Feature(config ...func(*Installer)) miruken.Feature {
+func Feature(config ...func(*Installer)) setup.Feature {
 	installer := &Installer{}
 	for _, configure := range config {
 		if configure != nil {

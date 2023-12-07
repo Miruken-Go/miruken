@@ -12,6 +12,7 @@ import (
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"net/http/httptest"
 	"sync/atomic"
@@ -100,7 +101,7 @@ type OpenApiTestSuite struct {
 }
 
 func (suite *OpenApiTestSuite) Setup(specs ...any) miruken.Handler {
-	handler, _ := miruken.Setup(
+	handler, _ := setup.New(
 		TestFeature, http.Feature(), stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
 		Specs(specs...).
@@ -128,7 +129,7 @@ func (suite *OpenApiTestSuite) SetupTest() {
 			},
 		},
 	})
-	handler, _ := miruken.Setup(
+	handler, _ := setup.New(
 		TestFeature, stdjson.Feature(), suite.openapi).
 		Specs(&api.GoPolymorphism{}).
 		Handler()

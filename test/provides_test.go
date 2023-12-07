@@ -11,6 +11,7 @@ import (
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"strings"
 	"testing"
@@ -316,7 +317,7 @@ type ProvidesTestSuite struct {
 }
 
 func (suite *ProvidesTestSuite) Setup() (miruken.Handler, error) {
-	return miruken.Setup(TestFeature).ExcludeSpecs(
+	return setup.New(TestFeature).ExcludeSpecs(
 		func (spec miruken.HandlerSpec) bool {
 			switch ts := spec.(type) {
 			case miruken.TypeSpec:
@@ -329,7 +330,7 @@ func (suite *ProvidesTestSuite) Setup() (miruken.Handler, error) {
 
 func (suite *ProvidesTestSuite) TestProvides() {
 	suite.Run("Implied", func () {
-		handler, _ := miruken.Setup().Handlers(new(FooProvider)).Handler()
+		handler, _ := setup.New().Handlers(new(FooProvider)).Handler()
 		fooProvider, _, ok, err := miruken.Resolve[*FooProvider](handler)
 		suite.True(ok)
 		suite.Nil(err)
@@ -337,7 +338,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 	})
 
 	suite.Run("Invariant", func () {
-		handler, _ := miruken.Setup().Specs(&FooProvider{}).Handler()
+		handler, _ := setup.New().Specs(&FooProvider{}).Handler()
 		foo, _, ok, err := miruken.Resolve[*Foo](handler)
 		suite.True(ok)
 		suite.Nil(err)
@@ -345,7 +346,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 	})
 
 	suite.Run("Covariant", func () {
-		handler, _ := miruken.Setup().Specs(&FooProvider{}).Handler()
+		handler, _ := setup.New().Specs(&FooProvider{}).Handler()
 		counter, _, ok, err := miruken.Resolve[Counter](handler)
 		suite.True(ok)
 		suite.Nil(err)
@@ -364,7 +365,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 	})
 
 	suite.Run("NotHandledReturnNil", func () {
-		handler, _ := miruken.Setup().Handler()
+		handler, _ := setup.New().Handler()
 		foo, _, ok, err := miruken.Resolve[*Foo](handler)
 		suite.False(ok)
 		suite.Nil(err)
@@ -373,7 +374,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 
 	suite.Run("Key", func () {
 		suite.Run("Provide", func() {
-			handler, _ := miruken.Setup().Specs(&KeyProvider{}).Handler()
+			handler, _ := setup.New().Specs(&KeyProvider{}).Handler()
 			foo, _, ok, err := miruken.ResolveKey[*Foo](handler, "Foo")
 			suite.True(ok)
 			suite.Nil(err)
@@ -382,7 +383,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 
 		suite.Run("Consume", func() {
 			suite.Run("Constructor", func() {
-				handler, _ := miruken.Setup().Specs(&KeyProvider{}, &KeyConsumer{}).Handler()
+				handler, _ := setup.New().Specs(&KeyProvider{}, &KeyConsumer{}).Handler()
 				kc, _, ok, err := miruken.Resolve[*KeyConsumer](handler)
 				suite.True(ok)
 				suite.Nil(err)
@@ -391,7 +392,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 			})
 
 			suite.Run("Parameter", func() {
-				handler, _ := miruken.Setup().Specs(&KeyProvider{}, &KeyConsumer{}).Handler()
+				handler, _ := setup.New().Specs(&KeyProvider{}, &KeyConsumer{}).Handler()
 				foo, _, err := miruken.Execute[*Foo](handler, Bar{})
 				suite.Nil(err)
 				suite.NotNil(foo)
@@ -401,7 +402,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 	})
 
 	suite.Run("Open", func () {
-		handler, _ := miruken.Setup().Specs(&OpenProvider{}).Handler()
+		handler, _ := setup.New().Specs(&OpenProvider{}).Handler()
 		foo, _, ok, err := miruken.Resolve[*Foo](handler)
 		suite.True(ok)
 		suite.Nil(err)
@@ -433,7 +434,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 	})
 
 	suite.Run("OpenScoped", func () {
-		handler, _ := miruken.Setup().Specs(&OpenProvider{}).Handler()
+		handler, _ := setup.New().Specs(&OpenProvider{}).Handler()
 		ctx := context.New(handler)
 		baz, _, ok, err := miruken.Resolve[*Baz](ctx)
 		suite.True(ok)
@@ -492,7 +493,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 	})
 
 	suite.Run("Multiple", func () {
-		handler, _ := miruken.Setup().Specs(&MultiProvider{}).Handler()
+		handler, _ := setup.New().Specs(&MultiProvider{}).Handler()
 		foo, _, ok, err := miruken.Resolve[*Foo](handler)
 		suite.True(ok)
 		suite.Nil(err)
@@ -510,7 +511,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 	})
 
 	suite.Run("Specification", func () {
-		handler, _ := miruken.Setup().Specs(&SpecificationProvider{}).Handler()
+		handler, _ := setup.New().Specs(&SpecificationProvider{}).Handler()
 		handler = miruken.BuildUp(handler, provides.With(Baz{Counted{2}}))
 
 		suite.Run("Invariant", func () {
@@ -535,7 +536,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 	})
 
 	suite.Run("Lists", func () {
-		handler, _ := miruken.Setup().Specs(&ListProvider{}).Handler()
+		handler, _ := setup.New().Specs(&ListProvider{}).Handler()
 
 		suite.Run("Slice", func () {
 			foo, _, ok, err := miruken.Resolve[*Foo](handler)
@@ -571,7 +572,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 		})
 
 		suite.Run("ConstructorDependencies", func () {
-			handler, _ := miruken.Setup().Specs(&SpecificationProvider{}).Handler()
+			handler, _ := setup.New().Specs(&SpecificationProvider{}).Handler()
 			specProvider, _, ok, err := miruken.Resolve[*SpecificationProvider](
 				miruken.BuildUp(handler, provides.With(Baz{Counted{2}})))
 			suite.True(ok)
@@ -591,7 +592,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 
 	suite.Run("Infer", func () {
 		suite.Run("Invariant", func() {
-			handler, _ := miruken.Setup().Specs(&SpecificationHandler{}).Handler()
+			handler, _ := setup.New().Specs(&SpecificationHandler{}).Handler()
 			foo := new(Foo)
 			result := handler.Handle(foo, false, nil)
 			suite.False(result.IsError())
@@ -619,7 +620,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 		})
 
 		suite.Run("Disable", func() {
-			handler, _ := miruken.Setup().
+			handler, _ := setup.New().
 				WithoutInference().
 				Handlers(new(FooProvider)).
 				Handler()
@@ -632,7 +633,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 
 	suite.Run("ResolveAll", func () {
 		suite.Run("Invariant", func () {
-			handler, _ := miruken.Setup().
+			handler, _ := setup.New().
 				Specs(
 					&FooProvider{},
 					&MultiProvider{},
@@ -656,7 +657,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 		})
 
 		suite.Run("Covariant", func () {
-			handler, _ := miruken.Setup().
+			handler, _ := setup.New().
 				Specs(&ListProvider{}).
 				Handlers(new(ListProvider)).
 				Handler()
@@ -670,7 +671,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 		})
 
 		suite.Run("Empty", func () {
-			handler, _ := miruken.Setup().Handlers(new(FooProvider)).Handler()
+			handler, _ := setup.New().Handlers(new(FooProvider)).Handler()
 			bars, _, err := miruken.ResolveAll[*Bar](handler)
 			suite.Nil(err)
 			suite.Nil(bars)
@@ -678,7 +679,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 	})
 
 	suite.Run("With", func () {
-		handler, _ := miruken.Setup().Handler()
+		handler, _ := setup.New().Handler()
 		fooProvider, _, ok, err := miruken.Resolve[*FooProvider](handler)
 		suite.False(ok)
 		suite.Nil(err)
@@ -706,7 +707,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 				}
 			}
 		}()
-		_, err := miruken.Setup().
+		_, err := setup.New().
 			Specs(&InvalidProvider{}).
 			Handlers(new(InvalidProvider)).
 			Handler()
@@ -716,7 +717,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 
 	suite.Run("Function Binding", func () {
 		suite.Run("Implied", func() {
-			handler, _ := miruken.Setup().Specs(ProvideBar).Handler()
+			handler, _ := setup.New().Specs(ProvideBar).Handler()
 			bar, _, ok, err := miruken.Resolve[*Bar](handler)
 			suite.True(ok)
 			suite.Nil(err)
@@ -729,7 +730,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 func (suite *ProvidesTestSuite) TestProvidesAsync() {
 	suite.Run("Simple", func () {
 		suite.Run("Returns Promise", func() {
-			handler, _ := miruken.Setup().Specs(&SimpleAsyncProvider{}).Handler()
+			handler, _ := setup.New().Specs(&SimpleAsyncProvider{}).Handler()
 			foo, pf, ok, err := miruken.Resolve[*Foo](handler)
 			suite.True(ok)
 			suite.Nil(err)
@@ -743,7 +744,7 @@ func (suite *ProvidesTestSuite) TestProvidesAsync() {
 
 	suite.Run("Complex", func () {
 		suite.Run("Returns Promise", func() {
-			handler, _ := miruken.Setup().
+			handler, _ := setup.New().
 				Specs(&SimpleAsyncProvider{}, &ComplexAsyncProvider{}).
 				Handler()
 			bar, pb, ok, err := miruken.Resolve[*Bar](handler)
@@ -765,7 +766,7 @@ func (suite *ProvidesTestSuite) TestProvidesAsync() {
 		})
 
 		suite.Run("Async Args", func() {
-			handler, _ := miruken.Setup().
+			handler, _ := setup.New().
 				Specs(
 					&AsyncArgProvider{},
 					&ComplexAsyncProvider{},

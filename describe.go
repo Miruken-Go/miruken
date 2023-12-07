@@ -18,7 +18,7 @@ type (
 		compound filterBindingGroup
 	}
 
-	// HandlerSpec is factory for HandlerInfo and associated metadata.
+	// HandlerSpec is Factory for HandlerInfo and associated metadata.
 	HandlerSpec interface {
 		fmt.Stringer
 		PkgPath() string
@@ -598,18 +598,17 @@ func CurrentHandlerInfoFactory(
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
-	get := &currentHandlerInfoFactory{}
-	handler.Handle(get, false, handler)
-	return get.factory
+	request := &CurrentHandlerInfoFactoryProvider{}
+	handler.Handle(request, false, handler)
+	return request.Factory
 }
 
-
-// currentHandlerInfoFactory Resolves the current HandlerInfoFactory
-type currentHandlerInfoFactory struct {
-	factory HandlerInfoFactory
+// CurrentHandlerInfoFactoryProvider Resolves the current HandlerInfoFactory
+type CurrentHandlerInfoFactoryProvider struct {
+	Factory HandlerInfoFactory
 }
 
-func (f *currentHandlerInfoFactory) Handle(
+func (f *CurrentHandlerInfoFactoryProvider) Handle(
 	callback any,
 	greedy   bool,
 	composer Handler,
@@ -617,16 +616,16 @@ func (f *currentHandlerInfoFactory) Handle(
 	if comp, ok := callback.(*Composition); ok {
 		callback = comp.callback
 	}
-	if get, ok := callback.(*currentHandlerInfoFactory); ok {
-		get.factory = f.factory
+	if get, ok := callback.(*CurrentHandlerInfoFactoryProvider); ok {
+		get.Factory = f.Factory
 		return Handled
 	}
 	return NotHandled
 }
 
-func (f *currentHandlerInfoFactory) SuppressDispatch() {}
+func (f *CurrentHandlerInfoFactoryProvider) SuppressDispatch() {}
 
-func (f *currentHandlerInfoFactory) CabBatch() bool {
+func (f *CurrentHandlerInfoFactoryProvider) CabBatch() bool {
 	return false
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/miruken-go/miruken/validates"
 	"github.com/stretchr/testify/suite"
 	"io"
@@ -139,7 +140,7 @@ type ApiHandlerTestSuite struct {
 }
 
 func (suite *ApiHandlerTestSuite) Setup(specs ...any) miruken.Handler {
-	handler, _ := miruken.Setup(
+	handler, _ := setup.New(
 		TestFeature, http.Feature(), stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
 		Specs(specs...).
@@ -148,7 +149,7 @@ func (suite *ApiHandlerTestSuite) Setup(specs ...any) miruken.Handler {
 }
 
 func (suite *ApiHandlerTestSuite) SetupTest() {
-	handler, _ := miruken.Setup(
+	handler, _ := setup.New(
 		TestFeature, httpsrv.Feature(), stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
 		Handler()

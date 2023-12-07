@@ -13,6 +13,7 @@ import (
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/maps"
+	"github.com/miruken-go/miruken/setup"
 	"net/http"
 	"path/filepath"
 	"reflect"
@@ -52,11 +53,11 @@ func (i *Installer) Docs() map[string]*openapi3.T {
 	return i.apiDocs
 }
 
-func (i *Installer) DependsOn() []miruken.Feature {
-	return []miruken.Feature{httpsrv.Feature()}
+func (i *Installer) DependsOn() []setup.Feature {
+	return []setup.Feature{httpsrv.Feature()}
 }
 
-func (i *Installer) Install(setup *miruken.SetupBuilder) error {
+func (i *Installer) Install(setup *setup.Builder) error {
 	if setup.Tag(&featureTag) {
 		var h handles.It
 		i.policy = h.Policy()
@@ -77,7 +78,7 @@ func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 }
 
 func (i *Installer) AfterInstall(
-	_ *miruken.SetupBuilder,
+	_ *setup.Builder,
 	handler miruken.Handler,
 ) error {
 	for _, ap := range i.apiProfiles {

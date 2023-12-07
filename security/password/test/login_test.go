@@ -12,6 +12,7 @@ import (
 	"github.com/miruken-go/miruken/security/login/callback"
 	"github.com/miruken-go/miruken/security/password"
 	"github.com/miruken-go/miruken/security/principal"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"os"
 	"testing"
@@ -26,7 +27,7 @@ func (suite *LoginTestSuite) TestLogin() {
 		var k = koanf.New(".")
 		err := k.Load(file.Provider("./login.json"), json.Parser())
 		suite.Nil(err)
-		handler, _ := miruken.Setup(
+		handler, _ := setup.New(
 			config.Feature(koanfp.P(k)),
 			password.Feature()).Handler()
 
@@ -79,7 +80,7 @@ func (suite *LoginTestSuite) TestLogin() {
 		err := k.Load(env.Provider("", "__", nil), nil,
 			koanf.WithMergeFunc(koanfp.Merge))
 		suite.Nil(err)
-		handler, _ := miruken.Setup(
+		handler, _ := setup.New(
 			config.Feature(koanfp.P(k)),
 			password.Feature()).Handler()
 

@@ -1,128 +1,129 @@
-package miruken
+package setup
 
 import (
 	"container/list"
 	"github.com/hashicorp/go-multierror"
+	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/internal"
 )
 
 type (
 	// Feature encapsulates custom setup.
 	Feature interface {
-		Install(*SetupBuilder) error
+		Install(*Builder) error
 	}
-	FeatureFunc func(*SetupBuilder) error
+	FeatureFunc func(*Builder) error
 
-	// SetupBuilder orchestrates the setup process.
-	SetupBuilder struct {
+	// Builder orchestrates the setup process.
+	Builder struct {
 		noInfer   bool
 		handlers  []any
 		specs     []any
 		features  []Feature
-		builders  []Builder
-		exclude   Predicate[HandlerSpec]
-		factory   func([]BindingParser, []HandlerInfoObserver) HandlerInfoFactory
-		parsers   []BindingParser
-		observers []HandlerInfoObserver
+		builders  []miruken.Builder
+		exclude   miruken.Predicate[miruken.HandlerSpec]
+		factory   func([]miruken.BindingParser, []miruken.HandlerInfoObserver) miruken.HandlerInfoFactory
+		parsers   []miruken.BindingParser
+		observers []miruken.HandlerInfoObserver
 		tags      map[any]struct{}
 	}
 )
 
-func (f FeatureFunc) Install(setup *SetupBuilder) error {
+func (f FeatureFunc) Install(setup *Builder) error {
 	return f(setup)
 }
 
 
-// SetupBuilder
+// Builder
 
-func (s *SetupBuilder) Features(
+func (s *Builder) Features(
 	features ...Feature,
-) *SetupBuilder {
+) *Builder {
 	s.features = append(s.features, features...)
 	return s
 }
 
-func (s *SetupBuilder) Handlers(
+func (s *Builder) Handlers(
 	handlers ...any,
-) *SetupBuilder {
+) *Builder {
 	s.handlers = append(s.handlers, handlers...)
 	return s
 }
 
-func (s *SetupBuilder) Specs(
+func (s *Builder) Specs(
 	specs ...any,
-) *SetupBuilder {
+) *Builder {
 	s.specs = append(s.specs, specs...)
 	return s
 }
 
-func (s *SetupBuilder) ExcludeSpecs(
-	excludes ...Predicate[HandlerSpec],
-) *SetupBuilder {
-	s.exclude = CombinePredicates(s.exclude, excludes...)
+func (s *Builder) ExcludeSpecs(
+	excludes ...miruken.Predicate[miruken.HandlerSpec],
+) *Builder {
+	s.exclude = miruken.CombinePredicates(s.exclude, excludes...)
 	return s
 }
 
-func (s *SetupBuilder) Filters(
-	providers ...FilterProvider,
-) *SetupBuilder {
-	return s.Builders(ProvideFilters(providers...))
+func (s *Builder) Filters(
+	providers ...miruken.FilterProvider,
+) *Builder {
+	return s.Builders(miruken.ProvideFilters(providers...))
 }
 
-func (s *SetupBuilder) Builders(
-	builders ...Builder,
-) *SetupBuilder {
+func (s *Builder) Builders(
+	builders ...miruken.Builder,
+) *Builder {
 	s.builders = append(s.builders, builders...)
 	return s
 }
 
-func (s *SetupBuilder) With(
+func (s *Builder) With(
 	values ...any,
-) *SetupBuilder {
-	s.builders = append(s.builders, With(values...))
+) *Builder {
+	s.builders = append(s.builders, miruken.With(values...))
 	return s
 }
 
-func (s *SetupBuilder) Options(
+func (s *Builder) Options(
 	options ...any,
-) *SetupBuilder {
+) *Builder {
 	for _, option := range options {
-		if builder, ok := option.(Builder); ok {
+		if builder, ok := option.(miruken.Builder); ok {
 			s.builders = append(s.builders, builder)
 		} else {
-			s.builders = append(s.builders, Options(option))
+			s.builders = append(s.builders, miruken.Options(option))
 		}
 	}
 	return s
 }
 
-func (s *SetupBuilder) Parsers(
-	parsers ...BindingParser,
-) *SetupBuilder {
+func (s *Builder) Parsers(
+	parsers ...miruken.BindingParser,
+) *Builder {
 	s.parsers = append(s.parsers, parsers...)
 	return s
 }
 
-func (s *SetupBuilder) Observers(
-	observers ...HandlerInfoObserver,
-) *SetupBuilder {
+func (s *Builder) Observers(
+	observers ...miruken.HandlerInfoObserver,
+) *Builder {
 	s.observers = append(s.observers, observers...)
 	return s
 }
 
-func (s *SetupBuilder) Factory(
-	factory func([]BindingParser, []HandlerInfoObserver) HandlerInfoFactory,
-) *SetupBuilder {
+func (s *Builder) Factory(
+	factory func([]miruken.BindingParser, []miruken.HandlerInfoObserver) miruken.HandlerInfoFactory,
+) *Builder {
 	s.factory = factory
 	return s
 }
 
-func (s *SetupBuilder) WithoutInference() *SetupBuilder {
+func (s *Builder) WithoutInference() *Builder {
 	s.noInfer = true
 	return s
 }
 
-func (s *SetupBuilder) Tag(tag any) bool {
+func (s *Builder) Tag(tag any) bool {
 	if tags := s.tags; tags == nil {
 		s.tags = map[any]struct{}{tag: {}}
 		return true
@@ -133,25 +134,25 @@ func (s *SetupBuilder) Tag(tag any) bool {
 	return false
 }
 
-func (s *SetupBuilder) Handler() (handler Handler, buildErrors error) {
+func (s *Builder) Handler() (handler miruken.Handler, buildErrors error) {
 	buildErrors = s.installGraph(s.features)
 
-	var factory HandlerInfoFactory
+	var factory miruken.HandlerInfoFactory
 	if f := s.factory; f != nil {
 		factory = f(s.parsers, s.observers)
 	}
 	if factory == nil {
-		var builder HandlerInfoFactoryBuilder
+		var builder miruken.HandlerInfoFactoryBuilder
 		factory = builder.
 			Parsers(s.parsers...).
 			Observers(s.observers...).
 			Build()
 	}
 
-	handler = &currentHandlerInfoFactory{factory}
+	handler = &miruken.CurrentHandlerInfoFactoryProvider{Factory: factory}
 
 	if specs := s.specs; len(specs) > 0 {
-		hs := make([]HandlerSpec, 0, len(specs))
+		hs := make([]miruken.HandlerSpec, 0, len(specs))
 		exclude, noInfer := s.exclude, s.noInfer
 		for _, spec := range specs {
 			h := factory.Spec(spec)
@@ -168,23 +169,23 @@ func (s *SetupBuilder) Handler() (handler Handler, buildErrors error) {
 		}
 
 		if len(hs) > 0 {
-			handler = &withHandler{handler, newInferenceHandler(factory, hs)}
+			handler = miruken.AddHandlers(handler, miruken.NewInferenceHandler(factory, hs))
 		}
 	}
 
 	// Handler overrides
 	if explicit := s.handlers; len(explicit) > 0 {
-		handler = AddHandlers(handler, explicit...)
+		handler = miruken.AddHandlers(handler, explicit...)
 	}
 
 	if builders := s.builders; len(builders) > 0 {
-		handler = BuildUp(handler, builders...)
+		handler = miruken.BuildUp(handler, builders...)
 	}
 
 	// call after setup hooks
 	for _, feature := range s.features {
 		if after, ok := feature.(interface{
-			AfterInstall(*SetupBuilder, Handler) error
+			AfterInstall(*Builder, miruken.Handler) error
 		}); ok {
 			if err := after.AfterInstall(s, handler); err != nil {
 				buildErrors = multierror.Append(buildErrors, err)
@@ -195,7 +196,7 @@ func (s *SetupBuilder) Handler() (handler Handler, buildErrors error) {
 	return handler, buildErrors
 }
 
-func (s *SetupBuilder) installGraph(
+func (s *Builder) installGraph(
 	features []Feature,
 ) (err error) {
 	// traverse level-order so overrides can be applied in any order
@@ -227,7 +228,7 @@ func (s *SetupBuilder) installGraph(
 
 // FeatureSet combines one or more Feature's into a single Feature.
 func FeatureSet(features ...Feature) FeatureFunc {
-	return func(setup *SetupBuilder) error {
+	return func(setup *Builder) error {
 		for _, feature := range features {
 			if !internal.IsNil(feature) {
 				if err := feature.Install(setup); err != nil {
@@ -239,7 +240,7 @@ func FeatureSet(features ...Feature) FeatureFunc {
 	}
 }
 
-// Setup returns a new SetupBuilder with initial Feature's.
-func Setup(features ...Feature) *SetupBuilder {
-	return &SetupBuilder{features: features}
+// New returns a new Builder with initial Feature's.
+func New(features ...Feature) *Builder {
+	return &Builder{features: features}
 }

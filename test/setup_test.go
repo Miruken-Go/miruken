@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/internal"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"reflect"
 	"strings"
@@ -15,7 +16,7 @@ type MyInstaller struct {
 }
 
 func (i *MyInstaller) Install(
-	setup *miruken.SetupBuilder,
+	setup *setup.Builder,
 ) error {
 	if setup.Tag(reflect.TypeOf(i)) {
 		i.count++
@@ -26,12 +27,12 @@ func (i *MyInstaller) Install(
 
 type RootInstaller struct {}
 
-func (i *RootInstaller) DependsOn() []miruken.Feature {
-	return []miruken.Feature{&MyInstaller{}}
+func (i *RootInstaller) DependsOn() []setup.Feature {
+	return []setup.Feature{&MyInstaller{}}
 }
 
 func (i *RootInstaller) Install(
-	setup *miruken.SetupBuilder,
+	setup *setup.Builder,
 ) error {
 	return nil
 }
@@ -39,13 +40,13 @@ func (i *RootInstaller) Install(
 type BadInstaller struct {}
 
 func (i BadInstaller) Install(
-	*miruken.SetupBuilder,
+	*setup.Builder,
 ) error {
 	return errors.New("insufficient resources")
 }
 
 func (i BadInstaller) AfterInstall(
-	*miruken.SetupBuilder, miruken.Handler,
+	*setup.Builder, miruken.Handler,
 ) error {
 	return errors.New("process failed to start")
 }
@@ -56,7 +57,7 @@ type SetupTestSuite struct {
 
 func (suite *SetupTestSuite) TestSetup() {
 	suite.Run("Specs", func () {
-		handler, _ := miruken.Setup().Specs(&MultiHandler{}).Handler()
+		handler, _ := setup.New().Specs(&MultiHandler{}).Handler()
 
 		result := handler.Handle(&Foo{}, false, nil)
 		suite.False(result.IsError())
@@ -68,7 +69,7 @@ func (suite *SetupTestSuite) TestSetup() {
 	})
 
 	suite.Run("ExcludeSpecs", func () {
-		handler, _ := miruken.Setup(TestFeature).ExcludeSpecs(
+		handler, _ := setup.New(TestFeature).ExcludeSpecs(
 				func(spec miruken.HandlerSpec) bool {
 					switch ts := spec.(type) {
 					case miruken.TypeSpec:
@@ -97,7 +98,7 @@ func (suite *SetupTestSuite) TestSetup() {
 	})
 
 	suite.Run("WithoutInference", func () {
-		handler, _ := miruken.Setup().
+		handler, _ := setup.New().
 			WithoutInference().
 			Specs(&MultiHandler{}).
 			Handler()
@@ -114,7 +115,7 @@ func (suite *SetupTestSuite) TestSetup() {
 
 	suite.Run("Installs once", func () {
 		installer := &MyInstaller{}
-		handler, err := miruken.Setup(installer, installer).Handler()
+		handler, err := setup.New(installer, installer).Handler()
 		suite.Nil(err)
 		suite.Equal(1, installer.count)
 		result := handler.Handle(&Foo{}, false, nil)
@@ -123,7 +124,7 @@ func (suite *SetupTestSuite) TestSetup() {
 	})
 
 	suite.Run("Installs Dependencies", func () {
-		handler, err := miruken.Setup(&RootInstaller{}).Handler()
+		handler, err := setup.New(&RootInstaller{}).Handler()
 		suite.Nil(err)
 		result := handler.Handle(&Foo{}, false, nil)
 		suite.False(result.IsError())
@@ -136,7 +137,7 @@ func (suite *SetupTestSuite) TestSetup() {
 
 	suite.Run("Overrides Dependencies", func () {
 		installer := &MyInstaller{10}
-		handler, err := miruken.Setup(&RootInstaller{}, installer).Handler()
+		handler, err := setup.New(&RootInstaller{}, installer).Handler()
 		suite.Nil(err)
 		suite.NotNil(handler)
 		suite.Equal(11, installer.count)
@@ -144,7 +145,7 @@ func (suite *SetupTestSuite) TestSetup() {
 
 	suite.Run("Errors", func () {
 		installer := BadInstaller{}
-		_, err := miruken.Setup(installer).Handler()
+		_, err := setup.New(installer).Handler()
 		suite.Equal("2 errors occurred:\n\t* insufficient resources\n\t* process failed to start\n\n", err.Error())
 	})
 }

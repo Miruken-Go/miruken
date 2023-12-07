@@ -3,6 +3,7 @@ package test
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -13,7 +14,7 @@ type CallbackTestSuite struct {
 }
 
 func (suite *CallbackTestSuite) SetupSuite() {
-	suite.composer, _ = miruken.Setup().Handler()
+	suite.composer, _ = setup.New().Handler()
 }
 
 func (suite *CallbackTestSuite) TestCallback() {

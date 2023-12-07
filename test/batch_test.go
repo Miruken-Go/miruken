@@ -7,6 +7,7 @@ import (
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -125,14 +126,14 @@ type BatchTestSuite struct {
 }
 
 func (suite *BatchTestSuite) Setup() (miruken.Handler, error) {
-	return miruken.Setup(api.Feature()).
+	return setup.New(api.Feature()).
 		Specs(&EmailHandler{}).
 		Handler()
 }
 
 func (suite *BatchTestSuite) TestBatch() {
 	suite.Run("Uses Same Batcher", func() {
-		handler, _ := miruken.Setup().Handlers(new(EmailHandler)).Handler()
+		handler, _ := setup.New().Handlers(new(EmailHandler)).Handler()
 		miruken.Batch(handler, func(batch miruken.Handler) {
 			b := miruken.GetBatch[*EmailBatcher](batch)
 			suite.NotNil(b)

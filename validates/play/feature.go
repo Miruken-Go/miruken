@@ -3,7 +3,7 @@ package playvalidator
 import (
 	ut "github.com/go-playground/universal-translator"
 	play "github.com/go-playground/validator/v10"
-	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/setup"
 	"github.com/miruken-go/miruken/validates"
 )
 
@@ -22,11 +22,11 @@ func (i *Installer) UseTranslator(translator ut.Translator) {
 	i.translator = translator
 }
 
-func (i *Installer) DependsOn() []miruken.Feature {
-	return []miruken.Feature{validates.Feature()}
+func (i *Installer) DependsOn() []setup.Feature {
+	return []setup.Feature{validates.Feature()}
 }
 
-func (i *Installer) Install(setup *miruken.SetupBuilder) error {
+func (i *Installer) Install(setup *setup.Builder) error {
 	if setup.Tag(&featureTag) {
 		setup.Specs(&validator{}).With(i.validate)
 		if translator := i.translator; translator != nil {
@@ -36,7 +36,7 @@ func (i *Installer) Install(setup *miruken.SetupBuilder) error {
 	return nil
 }
 
-func Feature(config ...func(*Installer)) miruken.Feature {
+func Feature(config ...func(*Installer)) setup.Feature {
 	installer := &Installer{validate: play.New()}
 	for _, configure := range config {
 		if configure != nil {
