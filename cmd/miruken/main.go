@@ -20,7 +20,7 @@ var (
     norecursFlag bool   // -norecurs
     stdoutFlag   bool   // -stdout
     outputFlag   string // -output [y.go]
-    suffixFlag   string // -suffix [Handler,Provider]
+    suffixFlag   string // -suffix [Context,Provider]
     testsFlag    bool   // -tests
     unexportFlag bool   // -unexported
 )
@@ -40,7 +40,7 @@ func main() {
     outFile := strings.TrimSuffix(outputFlag, ".go")
 
     suffixes := []string{
-        "Handler", "Provider", "Consumer", "Receiver",
+        "Context", "Provider", "Consumer", "Receiver",
         "Controller", "Manager", "Mapper", "Factory",
         "Filter", "Validator", "Integrity", "Service",
         "Policy",

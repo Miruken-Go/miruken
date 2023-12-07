@@ -184,7 +184,7 @@ func (suite *ConstraintTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
-	return setup.New().Specs(specs...).Handler()
+	return setup.New().Specs(specs...).Context()
 }
 
 func (suite *ConstraintTestSuite) TestConstraints() {
@@ -204,7 +204,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 			suite.Len(appSettings, 2)
 		})
 
-		suite.Run("Handler", func() {
+		suite.Run("Context", func() {
 			handler, _ := suite.Setup(&NoConstraintProvider{})
 			person, _, ok, err := miruken.Resolve[Person](handler)
 			suite.True(ok)

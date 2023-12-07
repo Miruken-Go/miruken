@@ -6,6 +6,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/json/stdjson"
+	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/setup"
@@ -76,13 +77,13 @@ type StdJsonTestSuite struct {
 	suite.Suite
 }
 
-func (suite *StdJsonTestSuite) Setup() miruken.Handler {
-	handler, _ := setup.New(
+func (suite *StdJsonTestSuite) Setup() *context.Context {
+	ctx, _ := setup.New(
 		TestFeature,
 		stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
-		Handler()
-	return handler
+		Context()
+	return ctx
 }
 
 func (suite *StdJsonTestSuite) TestJson() {

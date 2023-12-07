@@ -29,7 +29,7 @@ func (suite *LoginTestSuite) TestLogin() {
 		suite.Nil(err)
 		handler, _ := setup.New(
 			config.Feature(koanfp.P(k)),
-			password.Feature()).Handler()
+			password.Feature()).Context()
 
 		suite.Run("Login", func() {
 			suite.Run("Succeed", func() {
@@ -82,7 +82,7 @@ func (suite *LoginTestSuite) TestLogin() {
 		suite.Nil(err)
 		handler, _ := setup.New(
 			config.Feature(koanfp.P(k)),
-			password.Feature()).Handler()
+			password.Feature()).Context()
 
 		suite.Run("Login", func() {
 			suite.Run("Succeed", func() {

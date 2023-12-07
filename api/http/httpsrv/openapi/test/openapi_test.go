@@ -3,7 +3,6 @@ package test
 import (
 	"fmt"
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/http"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
@@ -100,13 +99,13 @@ type OpenApiTestSuite struct {
 	srv *httptest.Server
 }
 
-func (suite *OpenApiTestSuite) Setup(specs ...any) miruken.Handler {
-	handler, _ := setup.New(
+func (suite *OpenApiTestSuite) Setup(specs ...any) *context.Context {
+	ctx, _ := setup.New(
 		TestFeature, http.Feature(), stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
 		Specs(specs...).
-		Handler()
-	return handler
+		Context()
+	return ctx
 }
 
 func (suite *OpenApiTestSuite) SetupTest() {
@@ -129,11 +128,11 @@ func (suite *OpenApiTestSuite) SetupTest() {
 			},
 		},
 	})
-	handler, _ := setup.New(
+	ctx, _ := setup.New(
 		TestFeature, stdjson.Feature(), suite.openapi).
 		Specs(&api.GoPolymorphism{}).
-		Handler()
-	suite.ctx = context.New(handler)
+		Context()
+	suite.ctx = ctx
 	suite.srv = httptest.NewServer(httpsrv.Api(suite.ctx))
 }
 

@@ -139,21 +139,21 @@ type ApiHandlerTestSuite struct {
 	srv *httptest.Server
 }
 
-func (suite *ApiHandlerTestSuite) Setup(specs ...any) miruken.Handler {
-	handler, _ := setup.New(
+func (suite *ApiHandlerTestSuite) Setup(specs ...any) *context.Context {
+	ctx, _ := setup.New(
 		TestFeature, http.Feature(), stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
 		Specs(specs...).
-		Handler()
-	return handler
+		Context()
+	return ctx
 }
 
 func (suite *ApiHandlerTestSuite) SetupTest() {
-	handler, _ := setup.New(
+	ctx, _ := setup.New(
 		TestFeature, httpsrv.Feature(), stdjson.Feature()).
 		Specs(&api.GoPolymorphism{}).
-		Handler()
-	suite.ctx = context.New(handler)
+		Context()
+	suite.ctx = ctx
 	suite.srv = httptest.NewServer(httpsrv.Api(suite.ctx))
 }
 

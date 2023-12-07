@@ -10,6 +10,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/config"
 	koanfp "github.com/miruken-go/miruken/config/koanf"
+	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/security"
@@ -153,11 +154,11 @@ func (suite *LoginTestSuite) SetupTest() {
 	}
 }
 
-func (suite *LoginTestSuite) Setup(specs ...any) (miruken.Handler, error) {
+func (suite *LoginTestSuite) Setup(specs ...any) (*context.Context, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
-	return setup.New().Specs(specs...).Handler()
+	return setup.New().Specs(specs...).Context()
 }
 
 func (suite *LoginTestSuite) TestLogin() {
@@ -256,7 +257,7 @@ func (suite *LoginTestSuite) TestLogin() {
 			var k = koanf.New(".")
 			err := k.Load(file.Provider("./login.json"), json.Parser())
 			suite.Nil(err)
-			handler, _ := setup.New(config.Feature(koanfp.P(k))).Handler()
+			handler, _ := setup.New(config.Feature(koanfp.P(k))).Context()
 			cfg, _, ok, err := provides.Type[login.Configuration](handler, &config.Load{Path: "login"})
 			suite.True(ok)
 			suite.Nil(err)
@@ -286,7 +287,7 @@ func (suite *LoginTestSuite) TestLogin() {
 			err := k.Load(env.Provider("Login", "__", nil), nil,
 				koanf.WithMergeFunc(koanfp.Merge))
 			suite.Nil(err)
-			handler, _ := setup.New(config.Feature(koanfp.P(k))).Handler()
+			handler, _ := setup.New(config.Feature(koanfp.P(k))).Context()
 			cfg, _, ok, err := provides.Type[login.Configuration](handler, &config.Load{Path: "Login"})
 			suite.True(ok)
 			suite.Nil(err)
@@ -314,7 +315,7 @@ func (suite *LoginTestSuite) TestLogin() {
 			err := k.Load(env.Provider("Login", "__", nil), nil,
 				koanf.WithMergeFunc(koanfp.Merge))
 			suite.Nil(err)
-			handler, _ := setup.New(config.Feature(koanfp.P(k))).Handler()
+			handler, _ := setup.New(config.Feature(koanfp.P(k))).Context()
 			ctx := login.New("login.flow")
 			ps := ctx.Login(handler)
 			suite.NotNil(ps)

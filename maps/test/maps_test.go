@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	context2 "github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/provides"
@@ -224,8 +225,8 @@ func (suite *MapsTestSuite) SetupTest() {
 	}
 }
 
-func (suite *MapsTestSuite) Setup() (miruken.Handler, error) {
-	return setup.New().Specs(suite.specs...).Handler()
+func (suite *MapsTestSuite) Setup() (*context2.Context, error) {
+	return setup.New().Specs(suite.specs...).Context()
 }
 
 func (suite *MapsTestSuite) TestMap() {
@@ -269,7 +270,7 @@ func (suite *MapsTestSuite) TestMap() {
 		})
 
 		suite.Run("Open", func() {
-			handler, _ := setup.New().Specs(&OpenMapper{}).Handler()
+			handler, _ := setup.New().Specs(&OpenMapper{}).Context()
 			entity := PlayerEntity{
 				Entity{ Id: 1 },
 				"Tim Howard",
@@ -305,7 +306,7 @@ func (suite *MapsTestSuite) TestMap() {
 		})
 
 		suite.Run("Format", func() {
-			handler, _ := setup.New().Specs(&FormatMapper{}).Handler()
+			handler, _ := setup.New().Specs(&FormatMapper{}).Context()
 
 			data  := PlayerData{
 				Id:   1,
@@ -377,7 +378,7 @@ func (suite *MapsTestSuite) TestMap() {
 					}
 				}
 			}()
-			_, err := setup.New().Specs(&InvalidMapper{}).Handler()
+			_, err := setup.New().Specs(&InvalidMapper{}).Context()
 			suite.Nil(err)
 			suite.Fail("should cause panic")
 		})
@@ -385,7 +386,7 @@ func (suite *MapsTestSuite) TestMap() {
 
 	suite.Run("Format", func () {
 		suite.Run("StartsWith", func () {
-			handler, _ := setup.New().Specs(&FormatMapper{}).Handler()
+			handler, _ := setup.New().Specs(&FormatMapper{}).Context()
 			var data PlayerData
 			res, _, _, err := maps.Out[string](handler, &data, maps.To("hello", nil))
 			suite.Nil(err)
@@ -403,7 +404,7 @@ func (suite *MapsTestSuite) TestMap() {
 		})
 
 		suite.Run("EndsWith", func () {
-			handler, _ := setup.New().Specs(&FormatMapper{}).Handler()
+			handler, _ := setup.New().Specs(&FormatMapper{}).Context()
 			var data PlayerData
 			res, _, _, err := maps.Out[string](handler, &data, maps.To("world", nil))
 			suite.Nil(err)
@@ -421,7 +422,7 @@ func (suite *MapsTestSuite) TestMap() {
 		})
 
 		suite.Run("Pattern", func () {
-			handler, _ := setup.New().Specs(&FormatMapper{}).Handler()
+			handler, _ := setup.New().Specs(&FormatMapper{}).Context()
 			var data PlayerData
 			res, _, _, err := maps.Out[string](handler, &data, maps.To("J9!P3", nil))
 			suite.Nil(err)

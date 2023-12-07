@@ -83,23 +83,23 @@ func (suite *AuthorizesTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
-	return setup.New().Specs(specs...).Handler()
+	return setup.New().Specs(specs...).Context()
 }
 
 func (suite *AuthorizesTestSuite) TestAuthorizes() {
 	suite.Run("Authorize", func () {
 		suite.Run("Default", func() {
-			handler, _ := setup.New().Handler()
+			ctx, _ := setup.New().Context()
 			transfer := TransferFunds{Amount: 1000}
-			handler = miruken.BuildUp(handler, provides.With(security.NewSubject()))
+			handler := miruken.BuildUp(ctx, provides.With(security.NewSubject()))
 			grant, _, err := authorizes.Access(handler, transfer)
 			suite.Nil(err)
 			suite.True(grant)
 		})
 
 		suite.Run("RequiresPolicy", func() {
-			handler, _ := setup.New().Handler()
-			handler = miruken.BuildUp(handler,
+			ctx, _ := setup.New().Context()
+			handler := miruken.BuildUp(ctx,
 				provides.With(security.NewSubject()),
 				miruken.Options(authorizes.Options{RequirePolicy: true}))
 			transfer := TransferFunds{Amount: 1000}

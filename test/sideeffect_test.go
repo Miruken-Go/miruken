@@ -152,7 +152,7 @@ func (suite *SideEffectTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
-	return setup.New().Specs(specs...).Handler()
+	return setup.New().Specs(specs...).Context()
 }
 
 func (suite *SideEffectTestSuite) TestSideEffects() {

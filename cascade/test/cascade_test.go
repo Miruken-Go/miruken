@@ -3,9 +3,9 @@ package test
 import (
 	"errors"
 	"github.com/google/uuid"
-	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/cascade"
+	context2 "github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
@@ -154,11 +154,11 @@ func (suite *CascadeTestSuite) SetupTest() {
 	}
 }
 
-func (suite *CascadeTestSuite) Setup(specs ...any) (miruken.Handler, error) {
+func (suite *CascadeTestSuite) Setup(specs ...any) (*context2.Context, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
-	return setup.New().Specs(specs...).Handler()
+	return setup.New().Specs(specs...).Context()
 }
 
 func (suite *CascadeTestSuite) TestCascade() {

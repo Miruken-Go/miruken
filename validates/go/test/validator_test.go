@@ -57,7 +57,7 @@ func (suite *ValidatorTestSuite) SetupTest() {
 	suite.handler, _ = setup.New(
 		TestFeature,
 		govalidator.Feature()).
-		Handler()
+		Context()
 }
 
 func (suite *ValidatorTestSuite) TestValidator() {

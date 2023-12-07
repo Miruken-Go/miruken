@@ -2,8 +2,8 @@ package test
 
 import (
 	"errors"
-	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/either"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
@@ -59,12 +59,12 @@ type ScheduleTestSuite struct {
 	suite.Suite
 }
 
-func (suite *ScheduleTestSuite) Setup() miruken.Handler {
-	handler, _ := setup.New(
+func (suite *ScheduleTestSuite) Setup() *context.Context {
+	ctx, _ := setup.New(
 		TestFeature,
 		api.Feature(),
-	).Handler()
-	return handler
+	).Context()
+	return ctx
 }
 
 func (suite *ScheduleTestSuite) TestSchedule() {

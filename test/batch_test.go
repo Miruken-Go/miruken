@@ -128,12 +128,12 @@ type BatchTestSuite struct {
 func (suite *BatchTestSuite) Setup() (miruken.Handler, error) {
 	return setup.New(api.Feature()).
 		Specs(&EmailHandler{}).
-		Handler()
+		Context()
 }
 
 func (suite *BatchTestSuite) TestBatch() {
 	suite.Run("Uses Same Batcher", func() {
-		handler, _ := setup.New().Handlers(new(EmailHandler)).Handler()
+		handler, _ := setup.New().Handlers(new(EmailHandler)).Context()
 		miruken.Batch(handler, func(batch miruken.Handler) {
 			b := miruken.GetBatch[*EmailBatcher](batch)
 			suite.NotNil(b)

@@ -46,7 +46,7 @@ type (
 	}
 
 	// scopedCovar is a miruken.Filter that caches covariant instances
-	// per Context.  When a Handler provides any results, a map of
+	// per Context.  When a Context provides any results, a map of
 	// key to instance is maintained using copy-on-write idiom.
 	scopedCovar struct {
 		miruken.Lifestyle

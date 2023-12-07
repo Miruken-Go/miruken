@@ -59,7 +59,7 @@ func (suite *LogTestSuite) TestLogging() {
 	suite.Run("Build", func() {
 		handler, _ := setup.New(
 			logs.Feature(testr.New(suite.T())),
-		).Handler()
+		).Context()
 		logger, _, ok, err:= provides.Type[logr.Logger](handler)
 		suite.True(ok)
 		suite.Nil(err)
@@ -71,7 +71,7 @@ func (suite *LogTestSuite) TestLogging() {
 			logs.Feature(
 				testr.NewWithOptions(suite.T(), testr.Options{Verbosity: 1}),
 			),
-		).Handler()
+		).Context()
 		logger, _, ok, err:= provides.Type[logr.Logger](handler)
 		suite.True(ok)
 		suite.Nil(err)
@@ -82,7 +82,7 @@ func (suite *LogTestSuite) TestLogging() {
 		handler, _ := setup.New(
 			logs.Feature(testr.New(suite.T()))).
 			Specs(&Service{}).
-			Handler()
+			Context()
 		svc, _, ok, err := provides.Type[*Service](handler)
 		suite.True(ok)
 		suite.Nil(err)
@@ -96,7 +96,7 @@ func (suite *LogTestSuite) TestLogging() {
 				Verbosity:    1,
 			}))).
 			Specs(&Service{}).
-			Handler()
+			Context()
 		next, _, err := handles.Request[Command](handler, Command(1))
 		suite.Nil(err)
 		suite.Equal(Command(2), next)
@@ -112,7 +112,7 @@ func (suite *LogTestSuite) TestLogging() {
 				Verbosity:    1,
 			}))).
 			Specs(&Service{}).
-			Handler()
+			Context()
 		next, np, err := handles.Request[LongCommand](handler, LongCommand(8))
 		suite.Nil(err)
 		suite.NotNil(np)
@@ -128,7 +128,7 @@ func (suite *LogTestSuite) TestLogging() {
 				Verbosity:    1,
 			}), logs.Verbosity(2))).
 			Specs(&Service{}).
-			Handler()
+			Context()
 		next, _, err := handles.Request[Command](handler, Command(2))
 		suite.Nil(err)
 		suite.Equal(Command(3), next)

@@ -79,10 +79,10 @@ type PipelineTestSuite struct {
 }
 
 func (suite *PipelineTestSuite) Setup(specs ...any) *context.Context {
-	handler, _ := setup.New(logs.Feature(NewStdoutLogger())).
+	ctx, _ := setup.New(logs.Feature(NewStdoutLogger())).
 		Specs(specs...).
-		Handler()
-	return context.New(handler)
+		Context()
+	return ctx
 }
 
 func (suite *PipelineTestSuite) TestPipeline() {

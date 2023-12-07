@@ -128,7 +128,7 @@ func (suite *ValidatorTestSuite) SetupTest() {
 	suite.handler, _ = setup.New(
 		TestFeature,
 		play.Feature(),
-	).Handler()
+	).Context()
 }
 
 func (suite *ValidatorTestSuite) TestValidator() {

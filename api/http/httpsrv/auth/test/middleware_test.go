@@ -23,8 +23,8 @@ type MiddlewareTestSuite struct {
 }
 
 func (suite *MiddlewareTestSuite) Setup(specs ...any) *context.Context {
-	handler, _ := setup.New(password.Feature()).Specs(specs...).Handler()
-	return context.New(handler)
+	ctx, _ := setup.New(password.Feature()).Specs(specs...).Context()
+	return ctx
 }
 
 func (suite *MiddlewareTestSuite) TestHandler() {

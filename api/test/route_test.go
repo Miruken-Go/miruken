@@ -3,6 +3,7 @@ package test
 import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
+	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/promise"
@@ -48,13 +49,13 @@ type RouteTestSuite struct {
 	suite.Suite
 }
 
-func (suite *RouteTestSuite) Setup() miruken.Handler {
-	handler, _ := setup.New(
+func (suite *RouteTestSuite) Setup() *context.Context {
+	ctx, _ := setup.New(
 		TestFeature,
 		api.Feature()).
 		Specs(&Trash{}).
-		Handler()
-	return handler
+		Context()
+	return ctx
 }
 
 func (suite *RouteTestSuite) TestRoute() {

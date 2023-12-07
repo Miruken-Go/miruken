@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/internal"
 )
 
@@ -120,8 +121,8 @@ func (s *Builder) Tag(tag any) bool {
 	return false
 }
 
-func (s *Builder) Handler() (handler miruken.Handler, buildErrors error) {
-	buildErrors = s.installGraph(s.features)
+func (s *Builder) Context() (*context.Context, error) {
+	buildErrors := s.installGraph(s.features)
 
 	var factory miruken.HandlerInfoFactory
 	if f := s.factory; f != nil {
@@ -135,7 +136,7 @@ func (s *Builder) Handler() (handler miruken.Handler, buildErrors error) {
 			Build()
 	}
 
-	handler = &miruken.CurrentHandlerInfoFactoryProvider{Factory: factory}
+	var handler miruken.Handler = &miruken.CurrentHandlerInfoFactoryProvider{Factory: factory}
 
 	if specs := s.specs; len(specs) > 0 {
 		hs := make([]miruken.HandlerSpec, 0, len(specs))
@@ -159,7 +160,7 @@ func (s *Builder) Handler() (handler miruken.Handler, buildErrors error) {
 		}
 	}
 
-	// Handler overrides
+	// Context overrides
 	if explicit := s.handlers; len(explicit) > 0 {
 		handler = miruken.AddHandlers(handler, explicit...)
 	}
@@ -168,18 +169,20 @@ func (s *Builder) Handler() (handler miruken.Handler, buildErrors error) {
 		handler = miruken.BuildUp(handler, builders...)
 	}
 
+	ctx := context.New(handler)
+
 	// call after setup hooks
 	for _, feature := range s.features {
 		if after, ok := feature.(interface{
 			AfterInstall(*Builder, miruken.Handler) error
 		}); ok {
-			if err := after.AfterInstall(s, handler); err != nil {
+			if err := after.AfterInstall(s, ctx); err != nil {
 				buildErrors = multierror.Append(buildErrors, err)
 			}
 		}
 	}
 
-	return handler, buildErrors
+	return ctx, buildErrors
 }
 
 func (s *Builder) installGraph(

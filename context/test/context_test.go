@@ -107,8 +107,8 @@ func (suite *ContextTestSuite) RootContext() *context.Context {
 }
 
 func (suite *ContextTestSuite) RootContextWith(specs ...any) *context.Context {
-	handler, _ := setup.New().Specs(specs...).Handler()
-	return context.New(handler)
+	ctx, _ := setup.New().Specs(specs...).Context()
+	return ctx
 }
 
 func (suite *ContextTestSuite) TestContext() {
@@ -160,7 +160,7 @@ func (suite *ContextTestSuite) TestContext() {
 		handler, _ := setup.New().
 			WithoutInference().
 			Specs(&Service{}).
-			Handler()
+			Context()
 		ctx := context.New(handler, new(Service))
 		var foo Foo
 		result := ctx.Handle(&foo, false, nil)

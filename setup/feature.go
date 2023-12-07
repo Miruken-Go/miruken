@@ -15,7 +15,7 @@ func (f FeatureFunc) Install(setup *Builder) error {
 }
 
 
-// FeatureSet combines one or more Feature's into a single Feature.
+// FeatureSet combines one or more Feature's into a single logical Feature.
 func FeatureSet(features ...Feature) FeatureFunc {
 	return func(setup *Builder) error {
 		for _, feature := range features {

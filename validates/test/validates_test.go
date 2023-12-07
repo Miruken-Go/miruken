@@ -202,7 +202,7 @@ func (suite *ValidatesTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
-	return setup.New().Specs(specs...).Handler()
+	return setup.New().Specs(specs...).Context()
 }
 
 type (
@@ -326,7 +326,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 		handler, _ := setup.New(
 			validates.Feature(validates.Output)).
 			Specs(suite.specs...).
-			Handler()
+			Context()
 		suite.Run("Accepts Command", func() {
 			create := CreateTeam{TeamAction{ Team: Team{
 				Name: "Liverpool",

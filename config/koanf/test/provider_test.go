@@ -10,6 +10,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/config"
 	koanfp "github.com/miruken-go/miruken/config/koanf"
+	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/setup"
@@ -112,7 +113,7 @@ func (suite *ProviderTestSuite) SetupTest() {
 	}
 }
 
-func (suite *ProviderTestSuite) Setup(specs ...any) (miruken.Handler, error) {
+func (suite *ProviderTestSuite) Setup(specs ...any) (*context.Context, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
@@ -120,7 +121,7 @@ func (suite *ProviderTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	err := k.Load(file.Provider("../../test/configs/appconfig.json"), json.Parser())
 	suite.Nil(err)
 	return setup.New(config.Feature(koanfp.P(k))).
-		Specs(specs...).Handler()
+		Specs(specs...).Context()
 }
 
 func (suite *ProviderTestSuite) TestProvider() {
@@ -205,7 +206,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 		err := k.Load(env.Provider("Miruken", "__", nil), nil,
 			koanf.WithMergeFunc(koanfp.Merge))
 		suite.Nil(err)
-		handler, _ := setup.New(config.Feature(koanfp.P(k))).Handler()
+		handler, _ := setup.New(config.Feature(koanfp.P(k))).Context()
 
 		suite.Run("Resolve", func() {
 			cfg, _, ok, err := provides.Type[AppConfig](handler, &config.Load{Path: "Miruken"})

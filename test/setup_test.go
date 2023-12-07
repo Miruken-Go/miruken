@@ -57,7 +57,7 @@ type SetupTestSuite struct {
 
 func (suite *SetupTestSuite) TestSetup() {
 	suite.Run("Specs", func () {
-		handler, _ := setup.New().Specs(&MultiHandler{}).Handler()
+		handler, _ := setup.New().Specs(&MultiHandler{}).Context()
 
 		result := handler.Handle(&Foo{}, false, nil)
 		suite.False(result.IsError())
@@ -84,7 +84,7 @@ func (suite *SetupTestSuite) TestSetup() {
 						return ts.Type() == internal.TypeOf[*EverythingHandler]()
 					}
 					return false
-				}).Handler()
+				}).Context()
 
 		m, _, ok, err := miruken.Resolve[*MultiHandler](handler)
 		suite.False(ok)
@@ -101,7 +101,7 @@ func (suite *SetupTestSuite) TestSetup() {
 		handler, _ := setup.New().
 			WithoutInference().
 			Specs(&MultiHandler{}).
-			Handler()
+			Context()
 
 		result := handler.Handle(&Foo{}, false, nil)
 		suite.False(result.IsError())
@@ -115,7 +115,7 @@ func (suite *SetupTestSuite) TestSetup() {
 
 	suite.Run("Installs once", func () {
 		installer := &MyInstaller{}
-		handler, err := setup.New(installer, installer).Handler()
+		handler, err := setup.New(installer, installer).Context()
 		suite.Nil(err)
 		suite.Equal(1, installer.count)
 		result := handler.Handle(&Foo{}, false, nil)
@@ -124,7 +124,7 @@ func (suite *SetupTestSuite) TestSetup() {
 	})
 
 	suite.Run("Installs Dependencies", func () {
-		handler, err := setup.New(&RootInstaller{}).Handler()
+		handler, err := setup.New(&RootInstaller{}).Context()
 		suite.Nil(err)
 		result := handler.Handle(&Foo{}, false, nil)
 		suite.False(result.IsError())
@@ -137,7 +137,7 @@ func (suite *SetupTestSuite) TestSetup() {
 
 	suite.Run("Overrides Dependencies", func () {
 		installer := &MyInstaller{10}
-		handler, err := setup.New(&RootInstaller{}, installer).Handler()
+		handler, err := setup.New(&RootInstaller{}, installer).Context()
 		suite.Nil(err)
 		suite.NotNil(handler)
 		suite.Equal(11, installer.count)
@@ -145,7 +145,7 @@ func (suite *SetupTestSuite) TestSetup() {
 
 	suite.Run("Errors", func () {
 		installer := BadInstaller{}
-		_, err := setup.New(installer).Handler()
+		_, err := setup.New(installer).Context()
 		suite.Equal("2 errors occurred:\n\t* insufficient resources\n\t* process failed to start\n\n", err.Error())
 	})
 }

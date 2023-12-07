@@ -124,10 +124,10 @@ type HandlerTestSuite struct {
 }
 
 func (suite *HandlerTestSuite) Setup(specs ...any) *context.Context {
-	handler, _ := setup.New(logs.Feature(NewStdoutLogger())).
+	ctx, _ := setup.New(logs.Feature(NewStdoutLogger())).
 		Specs(specs...).
-		Handler()
-	return context.New(handler)
+		Context()
+	return ctx
 }
 
 func (suite *HandlerTestSuite) TestHandler() {
@@ -145,7 +145,7 @@ func (suite *HandlerTestSuite) TestHandler() {
 		suite.Equal("Hello World", string(body))
 	})
 
-	suite.Run("Handler", func() {
+	suite.Run("Context", func() {
 		handler := httpsrv.Use(suite.Setup(),
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				_, _ = fmt.Fprint(w, "Hello Goodbye")
@@ -174,7 +174,7 @@ func (suite *HandlerTestSuite) TestHandler() {
 		suite.Equal("Hello World", string(body))
 	})
 
-	suite.Run("Extended Handler", func() {
+	suite.Run("Extended Context", func() {
 		handler := httpsrv.Use(suite.Setup(),
 			httpsrv.HandlerFunc(func(w http.ResponseWriter, r *http.Request, c miruken.Handler) {
 				suite.NotNil(c)
@@ -206,7 +206,7 @@ func (suite *HandlerTestSuite) TestHandler() {
 	})
 
 	suite.Run("Resolve", func() {
-		suite.Run("Handler", func() {
+		suite.Run("Context", func() {
 			handler := httpsrv.Use(suite.Setup(SayHello{}), httpsrv.H[SayHello]())
 			req := httptest.NewRequest("GET", "http://hello.com?name=Craig", nil)
 			w := httptest.NewRecorder()
@@ -217,7 +217,7 @@ func (suite *HandlerTestSuite) TestHandler() {
 			suite.Equal("Hello Craig", string(body))
 		})
 
-		suite.Run("Extended Handler", func() {
+		suite.Run("Extended Context", func() {
 			handler := httpsrv.Use(suite.Setup(&GetWeather{}), httpsrv.H[*GetWeather]())
 			req := httptest.NewRequest("GET", "http://weather.com?zip=11580", nil)
 			w := httptest.NewRecorder()
@@ -228,7 +228,7 @@ func (suite *HandlerTestSuite) TestHandler() {
 			suite.Equal("The weather in Valley Stream NY is 44.0°F", string(body))
 		})
 
-		suite.Run("Extended Handler with Options", func() {
+		suite.Run("Extended Context with Options", func() {
 			handler := httpsrv.Use(suite.Setup(&GetWeather{}),
 				httpsrv.H[*GetWeather](WeatherOptions{Unit: WeatherUnitCelsius}))
 			req := httptest.NewRequest("GET", "http://weather.com?zip=11580", nil)
@@ -241,7 +241,7 @@ func (suite *HandlerTestSuite) TestHandler() {
 		})
 
 
-		suite.Run("Dynamic Handler", func() {
+		suite.Run("Dynamic Context", func() {
 			handler := httpsrv.Use(suite.Setup(Fibonacci{}), httpsrv.H[Fibonacci]())
 			req := httptest.NewRequest("GET", "http://fibonacci.com?n=5", nil)
 			w := httptest.NewRecorder()

@@ -14,7 +14,7 @@ type CallbackTestSuite struct {
 }
 
 func (suite *CallbackTestSuite) SetupSuite() {
-	suite.composer, _ = setup.New().Handler()
+	suite.composer, _ = setup.New().Context()
 }
 
 func (suite *CallbackTestSuite) TestCallback() {
