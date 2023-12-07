@@ -7,34 +7,20 @@ import (
 	"github.com/miruken-go/miruken/internal"
 )
 
-type (
-	// Feature encapsulates custom setup.
-	Feature interface {
-		Install(*Builder) error
-	}
-	FeatureFunc func(*Builder) error
-
-	// Builder orchestrates the setup process.
-	Builder struct {
-		noInfer   bool
-		handlers  []any
-		specs     []any
-		features  []Feature
-		builders  []miruken.Builder
-		exclude   miruken.Predicate[miruken.HandlerSpec]
-		factory   func([]miruken.BindingParser, []miruken.HandlerInfoObserver) miruken.HandlerInfoFactory
-		parsers   []miruken.BindingParser
-		observers []miruken.HandlerInfoObserver
-		tags      map[any]struct{}
-	}
-)
-
-func (f FeatureFunc) Install(setup *Builder) error {
-	return f(setup)
+// Builder orchestrates the setup process.
+type Builder struct {
+	noInfer   bool
+	handlers  []any
+	specs     []any
+	features  []Feature
+	builders  []miruken.Builder
+	exclude   miruken.Predicate[miruken.HandlerSpec]
+	factory   func([]miruken.BindingParser, []miruken.HandlerInfoObserver) miruken.HandlerInfoFactory
+	parsers   []miruken.BindingParser
+	observers []miruken.HandlerInfoObserver
+	tags      map[any]struct{}
 }
 
-
-// Builder
 
 func (s *Builder) Features(
 	features ...Feature,
@@ -226,21 +212,10 @@ func (s *Builder) installGraph(
 	return err
 }
 
-// FeatureSet combines one or more Feature's into a single Feature.
-func FeatureSet(features ...Feature) FeatureFunc {
-	return func(setup *Builder) error {
-		for _, feature := range features {
-			if !internal.IsNil(feature) {
-				if err := feature.Install(setup); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
 
 // New returns a new Builder with initial Feature's.
 func New(features ...Feature) *Builder {
 	return &Builder{features: features}
 }
+
+
