@@ -14,11 +14,14 @@ import (
 )
 
 type (
-	// TypeRules express the validation constraints for a type
+	// Constraints express the validation rules
 	// without depending on validation struct tags.
+	Constraints map[string]string
+
+	// TypeRules express the validation Constraints for a type.
 	TypeRules struct{
 		Type        any
-		Constraints map[string]string
+		Constraints Constraints
 	}
 
 	// Rules express the validation constraints for a set of types.

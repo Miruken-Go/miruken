@@ -80,13 +80,13 @@ func (v *CreateUserIntegrity) Constructor(
 ) error {
 	return v.WithRules(
 		play.Rules{
-			play.Type[AddressNoTags](map[string]string{
+			play.Type[AddressNoTags](play.Constraints{
 				"Street": "required",
 				"City":   "required",
 				"Planet": "required",
 				"Phone":  "required",
 			}),
-			play.Type[UserNoTags](map[string]string{
+			play.Type[UserNoTags](play.Constraints{
 				"Id":             "eq=0",
 				"FirstName":      "required",
 				"LastName":       "required",
