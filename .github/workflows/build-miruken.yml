@@ -24,6 +24,7 @@ jobs:
         repositoryPath:  ${{ github.workspace }}
         repository:      ${{ github.repository }}
         repositoryOwner: ${{ github.repository_owner }}
+        ref:             ${{ github.event.client_payload.ref || github.ref }}
         
     steps:
     - name: Checkout repository
