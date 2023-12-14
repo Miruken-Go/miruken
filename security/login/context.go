@@ -3,6 +3,7 @@ package login
 import (
 	"errors"
 	"fmt"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/config"
 	"github.com/miruken-go/miruken/creates"
@@ -27,7 +28,6 @@ type (
 	}
 )
 
-
 // Error
 
 func (e Error) Error() string {
@@ -40,7 +40,6 @@ func (e Error) Error() string {
 func (e Error) Unwrap() error {
 	return e.Cause
 }
-
 
 // Context
 
@@ -69,7 +68,7 @@ func (c *Context) Login(
 		for i, mod := range c.modules {
 			err := mod.Login(subject, handler)
 			if err != nil {
-				for ii := i-1; ii >= 0; ii-- {
+				for ii := i - 1; ii >= 0; ii-- {
 					// Remove principals from successful modules
 					_ = c.modules[ii].Logout(subject, handler)
 				}
@@ -140,7 +139,6 @@ func (c *Context) initFlow(
 	c.modules = modules
 	return nil
 }
-
 
 // New creates a Context from the configured flow reference.
 // `flow` is used as the path into the application configuration.

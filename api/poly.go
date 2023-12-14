@@ -2,14 +2,15 @@ package api
 
 import (
 	"fmt"
-	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/creates"
-	"github.com/miruken-go/miruken/maps"
 	maps2 "maps"
 	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/creates"
+	"github.com/miruken-go/miruken/maps"
 )
 
 type (
@@ -29,7 +30,7 @@ type (
 	// UnknownTypeIdError reports an invalid type discriminator.
 	UnknownTypeIdError struct {
 		TypeId string
-		Cause error
+		Cause  error
 	}
 
 	// Late is a container for late polymorphic results.
@@ -38,15 +39,12 @@ type (
 	Late struct {
 		Value any
 	}
-
 )
-
 
 const (
 	PolymorphismNone Polymorphism = 0
 	PolymorphismRoot Polymorphism = 1 << iota
 )
-
 
 var (
 	// Polymorphic instructs type information to be included.
@@ -65,9 +63,9 @@ var (
 
 // TypeInfo uses package and name to generate type metadata.
 func (m *GoPolymorphism) TypeInfo(
-	_*struct{
+	_ *struct {
 		maps.Format `to:"type:info"`
-	  }, maps *maps.It,
+	}, maps *maps.It,
 ) (TypeFieldInfo, error) {
 	val := reflect.TypeOf(maps.Source()).String()
 	if strings.HasPrefix(val, "*") {
@@ -84,7 +82,7 @@ func (m *GoPolymorphism) TypeInfo(
 }
 
 func (m *GoPolymorphism) Static(
-	_*struct{
+	_ *struct {
 		creates.Strict
 		_ creates.It `key:"bool"`
 		_ creates.It `key:"int"`
@@ -116,7 +114,7 @@ func (m *GoPolymorphism) Static(
 		_ creates.It `key:"[]float64"`
 		_ creates.It `key:"[]string"`
 		_ creates.It `key:"[]interface {}"`
-	  }, create *creates.It,
+	}, create *creates.It,
 ) any {
 	if key, ok := create.Key().(string); ok {
 		if proto, ok := staticTypeMap[key]; ok {
@@ -127,7 +125,7 @@ func (m *GoPolymorphism) Static(
 }
 
 func (m *GoPolymorphism) Dynamic(
-	_*struct{creates.Strict}, create *creates.It,
+	_ *struct{ creates.Strict }, create *creates.It,
 	ctx miruken.HandleContext,
 ) any {
 	if key, ok := create.Key().(string); ok {
@@ -167,7 +165,6 @@ func (m *GoPolymorphism) Dynamic(
 	return nil
 }
 
-
 func (e *UnknownTypeIdError) Error() string {
 	return fmt.Sprintf("unknown type id %q: %s", e.TypeId, e.Cause.Error())
 }
@@ -175,7 +172,6 @@ func (e *UnknownTypeIdError) Error() string {
 func (e *UnknownTypeIdError) Unwrap() error {
 	return e.Cause
 }
-
 
 var (
 	staticTypeMap = map[string]any{
@@ -212,5 +208,5 @@ var (
 	}
 
 	dynamicTypeLock sync.Mutex
-	dynamicTypeMap = atomic.Pointer[map[string]any]{}
+	dynamicTypeMap  = atomic.Pointer[map[string]any]{}
 )

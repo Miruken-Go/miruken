@@ -3,6 +3,10 @@ package test
 import (
 	"errors"
 	"fmt"
+	"os"
+	"strconv"
+	"testing"
+
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/providers/env"
@@ -19,9 +23,6 @@ import (
 	"github.com/miruken-go/miruken/security/principal"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"os"
-	"strconv"
-	"testing"
 )
 
 type (
@@ -35,15 +36,14 @@ type (
 		debug bool
 	}
 
-	FailLoginModule struct {}
+	FailLoginModule struct{}
 )
-
 
 // MyCallbackHandler
 
 func (h *MyCallbackHandler) Handle(
-	c        any,
-	greedy   bool,
+	c any,
+	greedy bool,
 	composer miruken.Handler,
 ) miruken.HandleResult {
 	switch cb := c.(type) {
@@ -57,11 +57,12 @@ func (h *MyCallbackHandler) Handle(
 	return miruken.Handled
 }
 
-
 // MyLoginModule
 
 func (l *MyLoginModule) Constructor(
-	_*struct{creates.It `key:"my"`},
+	_ *struct {
+		creates.It `key:"my"`
+	},
 	opts map[string]any,
 ) error {
 	switch d := opts["debug"].(type) {
@@ -119,11 +120,12 @@ func (l *MyLoginModule) Logout(
 	return nil
 }
 
-
 // FailLoginModule
 
 func (l *FailLoginModule) Constructor(
-	_*struct{creates.It `key:"fail"`},
+	_ *struct {
+		creates.It `key:"fail"`
+	},
 ) {
 }
 
@@ -140,7 +142,6 @@ func (l *FailLoginModule) Logout(
 ) error {
 	return nil
 }
-
 
 type LoginTestSuite struct {
 	suite.Suite
@@ -180,8 +181,8 @@ func (suite *LoginTestSuite) TestLogin() {
 		suite.Run("Fail", func() {
 			handler, _ := suite.Setup()
 			ctx := login.NewFlow(login.Flow{{Module: "my"}})
-			ch  := &MyCallbackHandler{"user", []byte("1234")}
-			ps  := ctx.Login(miruken.AddHandlers(handler, ch))
+			ch := &MyCallbackHandler{"user", []byte("1234")}
+			ps := ctx.Login(miruken.AddHandlers(handler, ch))
 			suite.NotNil(ps)
 			sub, err := ps.Await()
 			suite.NotNil(err)
@@ -195,7 +196,7 @@ func (suite *LoginTestSuite) TestLogin() {
 			handler, _ := suite.Setup()
 			ctx := login.NewFlow(login.Flow{{Module: "my"}, {Module: "fail"}})
 			ch := &MyCallbackHandler{"test", []byte("password")}
-			ps  := ctx.Login(miruken.AddHandlers(handler, ch))
+			ps := ctx.Login(miruken.AddHandlers(handler, ch))
 			suite.NotNil(ps)
 			sub, err := ps.Await()
 			suite.NotNil(err)

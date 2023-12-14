@@ -3,10 +3,11 @@ package maps
 import (
 	"errors"
 	"fmt"
-	"github.com/miruken-go/miruken"
 	"reflect"
 	"regexp"
 	"strings"
+
+	"github.com/miruken-go/miruken"
 )
 
 type (
@@ -26,7 +27,6 @@ type (
 	}
 )
 
-
 const (
 	DirectionNone Direction = 0
 	DirectionTo   Direction = 1 << iota
@@ -39,12 +39,10 @@ const (
 	FormatRuleAll
 )
 
-
 var (
-	ErrInvalidFormat          = errors.New("invalid format tag")
-	ErrEmptyFormatIdentifier  = errors.New("empty format name")
+	ErrInvalidFormat         = errors.New("invalid format tag")
+	ErrEmptyFormatIdentifier = errors.New("empty format name")
 )
-
 
 func (f *Format) Name() string {
 	return f.name
@@ -192,17 +190,17 @@ func (f *Format) parse(format string) error {
 	if strings.HasPrefix(format, "//") {
 		start = 1
 	} else if strings.HasPrefix(format, "/") {
-		start      = 1
+		start = 1
 		startsWith = true
 	}
 	if strings.HasSuffix(format, "//") {
 		end = 1
 	} else if strings.HasSuffix(format, "/") {
-		end      = 1
+		end = 1
 		endsWith = true
 	}
 	if start > 0 || end > 0 {
-		format = strings.TrimSpace(format[start:len(format)-end])
+		format = strings.TrimSpace(format[start : len(format)-end])
 	}
 	if len(format) == 0 {
 		return ErrEmptyFormatIdentifier
@@ -224,7 +222,6 @@ func (f *Format) parse(format string) error {
 	f.name = format
 	return nil
 }
-
 
 // To maps to a format.
 func To(format string, params map[string]string) *Format {

@@ -3,12 +3,13 @@ package password
 import (
 	"bytes"
 	"errors"
+	"strings"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/security"
 	"github.com/miruken-go/miruken/security/login/callback"
 	"github.com/miruken-go/miruken/security/principal"
-	"strings"
 )
 
 type (
@@ -28,7 +29,6 @@ type (
 	}
 )
 
-
 var (
 	ErrInvalidCredentialsOption = errors.New("invalid credentials option")
 	ErrInvalidUsername          = errors.New("invalid username option")
@@ -36,7 +36,6 @@ var (
 	ErrMissingUsername          = errors.New("missing username")
 	ErrMissingPassword          = errors.New("missing password")
 )
-
 
 // Map
 
@@ -47,25 +46,26 @@ func (m Map) VerifyPassword(username string, password []byte) bool {
 	return false
 }
 
-
 // LoginModule
 
 func (l *LoginModule) Constructor(
-	_*struct{creates.It `key:"login.pwd"`},
+	_ *struct {
+		creates.It `key:"login.pwd"`
+	},
 	verifiers []Verifier,
 ) {
 	l.verifiers = verifiers
 }
 
 func (l *LoginModule) Init(opts map[string]any) error {
-	for k,opt := range opts {
+	for k, opt := range opts {
 		switch strings.ToLower(k) {
 		case "credentials":
 			var credentials Map
 			switch o := opt.(type) {
 			case map[string]any:
 				credentials = make(Map, len(o))
-				for u,p := range o {
+				for u, p := range o {
 					username := strings.TrimSpace(u)
 					if username == "" {
 						return ErrInvalidUsername
@@ -140,7 +140,7 @@ func (l *LoginModule) Login(
 	user := username.Name()
 	for _, verifier := range l.verifiers {
 		if verifier.VerifyPassword(user, password.Password()) {
-			l.user     = principal.User(user)
+			l.user = principal.User(user)
 			l.password = password
 			subject.AddPrincipals(l.user)
 			subject.AddCredentials(l.password)

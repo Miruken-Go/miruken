@@ -2,6 +2,11 @@ package test
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/miruken-go/miruken/api/http/httpsrv"
 	"github.com/miruken-go/miruken/api/http/httpsrv/auth"
 	"github.com/miruken-go/miruken/context"
@@ -12,10 +17,6 @@ import (
 	"github.com/miruken-go/miruken/security/principal"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 type MiddlewareTestSuite struct {
@@ -34,12 +35,12 @@ func (suite *MiddlewareTestSuite) TestHandler() {
 				user := slices.OfType[security.Principal, principal.User](sub.Principals())
 				_, _ = fmt.Fprintf(w, "Hello %s", user[0])
 			}, auth.WithFlow([]login.ModuleEntry{
-				{ Module: "login.pwd", Options: map[string]any{
+				{Module: "login.pwd", Options: map[string]any{
 					"credentials": map[string]any{
 						"user": "password",
 					},
 				},
-			}}).Basic())
+				}}).Basic())
 		req := httptest.NewRequest("GET", "http://hello.com", nil)
 		req.SetBasicAuth("user", "password")
 		w := httptest.NewRecorder()
@@ -57,7 +58,7 @@ func (suite *MiddlewareTestSuite) TestHandler() {
 				suite.Len(user, 0)
 				_, _ = fmt.Fprint(w, "Hello World")
 			}, auth.WithFlow([]login.ModuleEntry{
-				{ Module: "login.pwd", Options: map[string]any{
+				{Module: "login.pwd", Options: map[string]any{
 					"credentials": map[string]any{
 						"user": "foo",
 					},
@@ -78,7 +79,7 @@ func (suite *MiddlewareTestSuite) TestHandler() {
 			func(w http.ResponseWriter, r *http.Request, sub security.Subject) {
 				_, _ = fmt.Fprint(w, "Hello World")
 			}, auth.WithFlow([]login.ModuleEntry{
-				{ Module: "login.pwd", Options: map[string]any{
+				{Module: "login.pwd", Options: map[string]any{
 					"credentials": map[string]any{
 						"user": "password",
 					},

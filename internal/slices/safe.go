@@ -10,15 +10,13 @@ import (
 // It is optimized for reads using the copy-on-write idiom.
 type Safe[T any] struct {
 	items atomic.Pointer[[]T]
-	lock sync.Mutex
+	lock  sync.Mutex
 }
-
 
 // NewSafe create a Safe slice with initial items.
 func NewSafe[T any](initial ...T) *Safe[T] {
 	return (&Safe[T]{}).Reset(initial...)
 }
-
 
 func (s *Safe[T]) Items() []T {
 	if items := s.items.Load(); items != nil {

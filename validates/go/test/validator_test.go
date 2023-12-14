@@ -1,13 +1,14 @@
 package test
 
 import (
+	"testing"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/miruken-go/miruken/validates"
-	"github.com/miruken-go/miruken/validates/go"
+	govalidator "github.com/miruken-go/miruken/validates/go"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 //go:generate $GOPATH/bin/miruken -tests

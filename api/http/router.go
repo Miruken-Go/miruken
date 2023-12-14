@@ -4,33 +4,34 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"time"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/promise"
-	"io"
-	"net/http"
-	"net/url"
-	"time"
 )
 
 type (
 	// Policy defines custom behavior for http requests.
 	Policy interface {
 		Apply(
-			req      *http.Request,
+			req *http.Request,
 			composer miruken.Handler,
-			next     func() (*http.Response, error),
+			next func() (*http.Response, error),
 		) (*http.Response, error)
 	}
 
 	// PolicyFunc promotes a function to Policy.
 	PolicyFunc func(
-		req      *http.Request,
+		req *http.Request,
 		composer miruken.Handler,
-		next     func() (*http.Response, error),
+		next func() (*http.Response, error),
 	) (*http.Response, error)
 
 	// Options customize http operations.
@@ -42,34 +43,31 @@ type (
 	}
 
 	// Router routes messages over a http transport.
-	Router struct {}
+	Router struct{}
 )
 
-
 const (
-	defaultFormat = "application/json"
+	defaultFormat  = "application/json"
 	defaultTimeout = 30 * time.Second
 )
 
-
 func (f PolicyFunc) Apply(
-	req      *http.Request,
+	req *http.Request,
 	composer miruken.Handler,
-	next     func() (*http.Response, error),
+	next func() (*http.Response, error),
 ) (*http.Response, error) {
 	return f(req, composer, next)
 }
 
-
 func (r *Router) Route(
-	_*struct{
+	_ *struct {
 		handles.It
 		api.Routes `scheme:"http,https"`
-	  }, routed api.Routed,
-	_*struct{
+	}, routed api.Routed,
+	_ *struct {
 		args.Optional
 		args.FromOptions
-	  }, options Options,
+	}, options Options,
 	ctx miruken.HandleContext,
 ) *promise.Promise[any] {
 	return promise.New(func(resolve func(any), reject func(error)) {
@@ -98,7 +96,7 @@ func (r *Router) Route(
 			reject(fmt.Errorf("http router: %w", err))
 		}
 
-		req, err  := http.NewRequest(http.MethodPost, uri, &b)
+		req, err := http.NewRequest(http.MethodPost, uri, &b)
 		if err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 			return
@@ -145,7 +143,7 @@ func (r *Router) Route(
 }
 
 func (r *Router) invoke(
-	req      *http.Request,
+	req *http.Request,
 	composer miruken.Handler,
 	pipeline []Policy,
 ) (*http.Response, error) {
@@ -166,8 +164,8 @@ func (r *Router) invoke(
 }
 
 func (r *Router) decodeError(
-	res      *http.Response,
-	format   string,
+	res *http.Response,
+	format string,
 	composer miruken.Handler,
 ) error {
 	contentType := res.Header.Get("Content-Type")
@@ -192,9 +190,9 @@ func (r *Router) decodeError(
 }
 
 func (r *Router) resourceUri(
-	routed  api.Routed,
+	routed api.Routed,
 	options *Options,
-	ctx     *miruken.HandleContext,
+	ctx *miruken.HandleContext,
 ) (string, error) {
 	var path string
 	if ctx.Greedy {
@@ -207,14 +205,13 @@ func (r *Router) resourceUri(
 	return url.JoinPath(routed.Route, path)
 }
 
-
 // Client returns a Policy to use the supplied http.Client.
 // This should be the last Policy in the pipeline.
 func Client(client *http.Client) Policy {
 	return PolicyFunc(func(
 		req *http.Request,
-		_   miruken.Handler,
-		_   func() (*http.Response, error),
+		_ miruken.Handler,
+		_ func() (*http.Response, error),
 	) (*http.Response, error) {
 		return client.Do(req)
 	})
@@ -231,13 +228,12 @@ func Pipeline(policies ...Policy) miruken.Builder {
 	return miruken.Options(Options{Pipeline: policies})
 }
 
-
 // newDefaultHttpClient creates an optimized http.Client
 // https://www.loginradius.com/blog/engineering/tune-the-go-http-client-for-high-performance/
 func newDefaultHttpClient() *http.Client {
 	t := http.DefaultTransport.(*http.Transport).Clone()
-	t.MaxIdleConns        = 100
-	t.MaxConnsPerHost     = 100
+	t.MaxIdleConns = 100
+	t.MaxConnsPerHost = 100
 	t.MaxIdleConnsPerHost = 100
 
 	return &http.Client{
@@ -245,6 +241,5 @@ func newDefaultHttpClient() *http.Client {
 		Transport: t,
 	}
 }
-
 
 var defaultHttpClient = newDefaultHttpClient()

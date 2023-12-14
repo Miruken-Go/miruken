@@ -26,12 +26,12 @@ func IsNil(val any) bool {
 	v := reflect.ValueOf(val)
 	switch v.Type().Kind() {
 	case reflect.Chan,
-		 reflect.Func,
-		 reflect.Interface,
-		 reflect.Map,
-		 reflect.Ptr,
-		 reflect.Slice:
-			 return v.IsNil()
+		reflect.Func,
+		reflect.Interface,
+		reflect.Map,
+		reflect.Ptr,
+		reflect.Slice:
+		return v.IsNil()
 	default:
 		return false
 	}
@@ -57,7 +57,7 @@ func IsAny(typ reflect.Type) bool {
 // New creates a new T and optionally initializes it.
 func New[T any]() *T {
 	var (
-		t = new(T)
+		t     = new(T)
 		a any = t
 	)
 	if init, ok := a.(objInit); ok {
@@ -146,7 +146,7 @@ func CopySliceIndirect(src []any, target any) {
 		return
 	}
 	elemTyp := typ.Elem()
-	slice  := reflect.MakeSlice(typ, len(src), len(src))
+	slice := reflect.MakeSlice(typ, len(src), len(src))
 	for i, element := range src {
 		elVal := reflect.ValueOf(element)
 		elTyp := elVal.Type()
@@ -162,7 +162,7 @@ func CopySliceIndirect(src []any, target any) {
 // and return the newly promoted slice and true if successful.
 // If elemType is nil, the most specific type will be inferred.
 func CoerceSlice(
-	slice   reflect.Value,
+	slice reflect.Value,
 	elemTyp reflect.Type,
 ) (reflect.Value, bool) {
 	st := slice.Type()
@@ -224,7 +224,7 @@ func Exported(t any) bool {
 }
 
 func CoerceToPtr(
-	givenType   reflect.Type,
+	givenType reflect.Type,
 	desiredType reflect.Type,
 ) reflect.Type {
 	if givenType.AssignableTo(desiredType) {
@@ -276,8 +276,7 @@ func tryInitObj(obj any, tag reflect.StructTag) error {
 	return nil
 }
 
-
 type (
-	objInit interface{Init() error}
-	objInitWithTag interface{InitWithTag(reflect.StructTag) error}
+	objInit        interface{ Init() error }
+	objInitWithTag interface{ InitWithTag(reflect.StructTag) error }
 )

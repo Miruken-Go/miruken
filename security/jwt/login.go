@@ -3,6 +3,9 @@ package jwt
 import (
 	"encoding/json"
 	"errors"
+	"reflect"
+	"strings"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/creates"
@@ -10,8 +13,6 @@ import (
 	"github.com/miruken-go/miruken/security"
 	"github.com/miruken-go/miruken/security/login/callback"
 	"github.com/miruken-go/miruken/security/principal"
-	"reflect"
-	"strings"
 )
 
 type (
@@ -37,7 +38,6 @@ type (
 	Scope string
 )
 
-
 var (
 	ErrScopeNameRequired     = errors.New("scope name is required")
 	ErrInvalidAudOption      = errors.New("invalid audience option")
@@ -49,7 +49,6 @@ var (
 	ErrInvalidToken          = errors.New("invalid security token")
 	ErrInvalidClaims         = errors.New("invalid security claims")
 )
-
 
 //goland:noinspection GoMixedReceiverTypes
 func (s Scope) Name() string {
@@ -67,15 +66,16 @@ func (s *Scope) InitWithTag(tag reflect.StructTag) error {
 	return nil
 }
 
-
 func (l *LoginModule) Constructor(
-	_*struct{creates.It `key:"login.jwt"`}, jwks KeySet,
+	_ *struct {
+		creates.It `key:"login.jwt"`
+	}, jwks KeySet,
 ) {
 	l.jwks = jwks
 }
 
 func (l *LoginModule) Init(opts map[string]any) error {
-	for k,opt := range opts {
+	for k, opt := range opts {
 		switch strings.ToLower(k) {
 		case "issuer":
 			if iss, ok := opt.(string); !ok {
@@ -93,7 +93,7 @@ func (l *LoginModule) Init(opts map[string]any) error {
 			if jwks, ok := opt.(map[string]any); !ok {
 				return ErrInvalidJwksOption
 			} else {
-				for jk,jv := range jwks {
+				for jk, jv := range jwks {
 					switch strings.ToLower(jk) {
 					case "uri":
 						if uri, ok := jv.(string); !ok {
@@ -183,7 +183,7 @@ func (l *LoginModule) keys() (k jwt.Keyfunc, err error) {
 
 func (l *LoginModule) addScopes(
 	subject security.Subject,
-	claims  jwt.MapClaims,
+	claims jwt.MapClaims,
 ) {
 	if scp, ok := claims["scp"]; ok {
 		scopes := strings.Split(scp.(string), " ")
@@ -197,7 +197,7 @@ func (l *LoginModule) addScopes(
 
 func (l *LoginModule) addKnownPrincipals(
 	subject security.Subject,
-	claims  jwt.MapClaims,
+	claims jwt.MapClaims,
 ) {
 	for key, val := range claims {
 		switch strings.ToLower(key) {

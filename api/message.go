@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/internal"
@@ -32,11 +33,9 @@ type (
 	}
 )
 
-
 func (e *MalformedErrorError) Error() string {
 	return fmt.Sprintf("malformed error: %T", e.Culprit)
 }
-
 
 // Post sends a message without an expected response.
 // A new Stash is created to manage any transit state.

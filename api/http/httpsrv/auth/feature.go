@@ -6,15 +6,15 @@ import (
 )
 
 // Installer configures http server support
-type Installer struct {}
+type Installer struct{}
 
 func (i *Installer) DependsOn() []setup.Feature {
 	return []setup.Feature{httpsrv.Feature()}
 }
 
-func (i *Installer) Install(setup *setup.Builder) error {
-	if setup.Tag(&featureTag) {
-		setup.Specs()
+func (i *Installer) Install(b *setup.Builder) error {
+	if b.Tag(&featureTag) {
+		b.Specs()
 	}
 	return nil
 }

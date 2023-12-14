@@ -3,11 +3,12 @@ package validates
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
-	"strings"
 )
 
 type (
@@ -22,7 +23,6 @@ type (
 	// Strict alias for validation
 	Strict = miruken.Strict
 )
-
 
 func (v *It) Source() any {
 	return v.source
@@ -57,8 +57,8 @@ func (v *It) Policy() miruken.Policy {
 }
 
 func (v *It) Dispatch(
-	handler  any,
-	greedy   bool,
+	handler any,
+	greedy bool,
 	composer miruken.Handler,
 ) miruken.HandleResult {
 	return miruken.DispatchPolicy(handler, v, greedy, composer)
@@ -67,7 +67,6 @@ func (v *It) Dispatch(
 func (v *It) String() string {
 	return fmt.Sprintf("validates %+v", v.source)
 }
-
 
 // Group marks a set of related validations.
 type Group struct {
@@ -161,8 +160,8 @@ func (b *Builder) New() *It {
 
 // Constraints performs all validations on `source`.
 func Constraints(
-	handler     miruken.Handler,
-	source      any,
+	handler miruken.Handler,
+	source any,
 	constraints ...any,
 ) (o *Outcome, po *promise.Promise[*Outcome], err error) {
 	if internal.IsNil(handler) {
@@ -170,7 +169,7 @@ func Constraints(
 	}
 	var builder Builder
 	builder.ForSource(source).
-			WithConstraints(constraints...)
+		WithConstraints(constraints...)
 	val := builder.New()
 	if result := handler.Handle(val, true, nil); result.IsError() {
 		err = result.Error()
@@ -191,7 +190,7 @@ func Constraints(
 }
 
 func setValidationOutcome(
-	source  any,
+	source any,
 	outcome *Outcome,
 ) {
 	if v, ok := source.(interface {
@@ -202,6 +201,6 @@ func setValidationOutcome(
 }
 
 var (
-	policy miruken.Policy = &miruken.ContravariantPolicy{}
-	anyGroup              = "*"
+	policy   miruken.Policy = &miruken.ContravariantPolicy{}
+	anyGroup                = "*"
 )

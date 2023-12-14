@@ -18,7 +18,6 @@ type (
 	}
 )
 
-
 func (p *Password) Prompt() string {
 	return p.prompt
 }
@@ -41,12 +40,11 @@ func (p *Password) ClearPassword() {
 	}
 }
 
-
 // PasswordHandler
 
 func (h PasswordHandler) Handle(
-	c        any,
-	greedy   bool,
+	c any,
+	greedy bool,
 	composer miruken.Handler,
 ) miruken.HandleResult {
 	if n, ok := c.(*Password); ok {
@@ -55,7 +53,6 @@ func (h PasswordHandler) Handle(
 	}
 	return miruken.NotHandled
 }
-
 
 func NewPassword(prompt string, display bool) *Password {
 	return &Password{prompt: prompt, display: display}

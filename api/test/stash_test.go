@@ -1,6 +1,8 @@
 package test
 
 import (
+	"testing"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/context"
@@ -10,7 +12,6 @@ import (
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 //go:generate $GOPATH/bin/miruken -tests
@@ -32,9 +33,9 @@ type (
 		orderId int
 	}
 
-	CancelOrderFilter struct {}
+	CancelOrderFilter struct{}
 
-	OrderHandler struct {}
+	OrderHandler struct{}
 )
 
 func (c *CancelOrderFilter) Order() int {
@@ -42,13 +43,13 @@ func (c *CancelOrderFilter) Order() int {
 }
 
 func (c *CancelOrderFilter) Next(
-	self     miruken.Filter,
-	next     miruken.Next,
-	ctx      miruken.HandleContext,
+	self miruken.Filter,
+	next miruken.Next,
+	ctx miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  ([]any, *promise.Promise[[]any], error) {
+) ([]any, *promise.Promise[[]any], error) {
 	cancel := ctx.Callback.Source().(*CancelOrder)
-	order  := &Order{cancel.orderId, OrderCreated}
+	order := &Order{cancel.orderId, OrderCreated}
 	if err := api.StashPut(ctx, order); err != nil {
 		return next.Fail(err)
 	}
@@ -56,11 +57,11 @@ func (c *CancelOrderFilter) Next(
 }
 
 func (o *OrderHandler) Cancel(
-	_*struct{
+	_ *struct {
 		handles.It
 		CancelOrderFilter
-      }, cancel *CancelOrder,
-	order  *Order,
+	}, cancel *CancelOrder,
+	order *Order,
 ) (*Order, error) {
 	order.status = OrderCanceled
 	return order, nil
@@ -155,7 +156,7 @@ func (suite *StashTestSuite) TestStash() {
 
 	suite.Run("Access", func() {
 		handler := suite.Setup()
-		order , _, err := handles.Request[*Order](handler, &CancelOrder{1})
+		order, _, err := handles.Request[*Order](handler, &CancelOrder{1})
 		suite.Nil(err)
 		suite.NotNil(order)
 	})
@@ -164,4 +165,3 @@ func (suite *StashTestSuite) TestStash() {
 func TestStashTestSuite(t *testing.T) {
 	suite.Run(t, new(StashTestSuite))
 }
-

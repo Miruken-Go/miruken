@@ -3,21 +3,22 @@ package test
 import (
 	"errors"
 	"fmt"
+	"testing"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 type (
-	SendEmail any
-	ConfirmSend string
-	FailSend    string
-	FailConfirm string
-	EmailHandler struct {}
+	SendEmail    any
+	ConfirmSend  string
+	FailSend     string
+	FailConfirm  string
+	EmailHandler struct{}
 	EmailBatcher struct {
 		messages []string
 		promises []*promise.Promise[any]
@@ -71,7 +72,7 @@ func (e *EmailBatcher) Send(
 
 func (e *EmailBatcher) ConfirmSend(
 	_ *handles.It, confirm ConfirmSend,
-) *promise.Promise[any]  {
+) *promise.Promise[any] {
 	e.messages = append(e.messages, string(confirm))
 	d := promise.Defer[any]()
 	e.resolves = append(e.resolves, func() {
@@ -83,7 +84,7 @@ func (e *EmailBatcher) ConfirmSend(
 }
 
 func (e *EmailBatcher) FailConfirm(
-	_*handles.It, fail FailConfirm,
+	_ *handles.It, fail FailConfirm,
 ) *promise.Promise[any] {
 	d := promise.Defer[any]()
 	e.resolves = append(e.resolves, func() {

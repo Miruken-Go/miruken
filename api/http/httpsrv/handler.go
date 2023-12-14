@@ -3,15 +3,16 @@ package httpsrv
 import (
 	context2 "context"
 	"fmt"
-	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/context"
-	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/provides"
 	"maps"
 	"net/http"
 	"reflect"
 	"sync"
 	"sync/atomic"
+
+	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/context"
+	"github.com/miruken-go/miruken/internal"
+	"github.com/miruken-go/miruken/provides"
 )
 
 type (
@@ -32,20 +33,20 @@ type (
 	)
 )
 
-
 func (f HandlerFunc) ServeHTTP(
 	w http.ResponseWriter,
 	r *http.Request,
 	h miruken.Handler,
-) { f(w, r, h) }
-
+) {
+	f(w, r, h)
+}
 
 // Use builds an enhanced http.Handler for processing
 // requests through a Middleware pipeline and terminating
 // at a provided handler.
 func Use(
-	ctx        *context.Context,
-	handler    any,
+	ctx *context.Context,
+	handler any,
 	middleware ...any,
 ) http.Handler {
 	pipeline := Pipe(middleware...)
@@ -57,7 +58,7 @@ func Use(
 		return &extHandler{baseHandler{ctx, pipeline}, h}
 	case func(http.ResponseWriter, *http.Request):
 		return &rawAHandler{baseHandler{ctx, pipeline}, http.HandlerFunc(h)}
-	case func(http.ResponseWriter, *http.Request,  miruken.Handler):
+	case func(http.ResponseWriter, *http.Request, miruken.Handler):
 		return &extHandler{baseHandler{ctx, pipeline}, HandlerFunc(h)}
 	default:
 		fun := &funHandler{baseHandler: baseHandler{ctx, pipeline}}
@@ -73,12 +74,11 @@ func Use(
 // Api builds a http.Handler for processing polymorphic api calls
 // through a Middleware pipeline.
 func Api(
-	ctx        *context.Context,
+	ctx *context.Context,
 	middleware ...any,
 ) http.Handler {
 	return Use(ctx, H[*PolyHandler](), middleware...)
 }
-
 
 // H builds a typed Handler wrapper for dynamic http processing.
 func H[H any](opts ...any) Handler {
@@ -90,7 +90,7 @@ func H[H any](opts ...any) Handler {
 		return &extResHandler{resHandler[Handler]{typ: typ, opts: opts}}
 	}
 	if binding, err := getHandlerBinding(typ); err == nil {
-		return &dynResHandler{resHandler[any]{typ: typ, opts: opts},binding}
+		return &dynResHandler{resHandler[any]{typ: typ, opts: opts}, binding}
 	}
 	panic(fmt.Errorf(
 		"httpsrv: %v is not a http.Context, httpsrv.Context or compatible handler type", typ))
@@ -120,7 +120,7 @@ func getHandlerBinding(
 	}
 	for i := 0; i < typ.NumMethod(); i++ {
 		method := typ.Method(i)
-		binding, err := makeHandlerBinding(method.Type, method.Func,1)
+		binding, err := makeHandlerBinding(method.Type, method.Func, 1)
 		if binding != nil {
 			(*bindings)[typ] = binding
 			handlerBindingMap.Store(bindings)
@@ -131,7 +131,6 @@ func getHandlerBinding(
 	}
 	return nil, fmt.Errorf(`httpsrv: handler %v has no compatible dynamic method`, typ)
 }
-
 
 func makeHandlerBinding(
 	typ reflect.Type,
@@ -152,7 +151,6 @@ func makeHandlerBinding(
 		return handlerBinding(caller), nil
 	}
 }
-
 
 type (
 	// baseHandler provides common behavior for adapting a pipeline.
@@ -212,7 +210,6 @@ type (
 
 // ComposerKey is used to access the miruken.Handler from the context.
 const ComposerKey contextKey = 0
-
 
 func (a *baseHandler) serve(
 	w http.ResponseWriter,
@@ -329,7 +326,7 @@ func (a *dynResHandler) ServeHTTP(
 }
 
 func (b handlerBinding) invoke(
-	c        miruken.Handler,
+	c miruken.Handler,
 	initArgs ...any,
 ) error {
 	_, pr, err := b(c, initArgs...)
@@ -339,12 +336,11 @@ func (b handlerBinding) invoke(
 	return err
 }
 
-
 var (
 	handlerType    = internal.TypeOf[http.Handler]()
 	extHandlerType = internal.TypeOf[Handler]()
 
-	handlerLock sync.Mutex
+	handlerLock       sync.Mutex
 	handlerFuncType   = internal.TypeOf[http.HandlerFunc]()
 	handlerBindingMap = atomic.Pointer[map[reflect.Type]handlerBinding]{}
 )

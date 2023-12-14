@@ -1,9 +1,10 @@
 package test
 
 import (
+	"testing"
+
 	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 type SafeTestSuite struct {

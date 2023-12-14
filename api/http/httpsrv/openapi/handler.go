@@ -2,10 +2,11 @@ package openapi
 
 import (
 	"encoding/json"
-	"github.com/getkin/kin-openapi/openapi3"
 	"net/http"
 	"net/url"
 	"sync"
+
+	"github.com/getkin/kin-openapi/openapi3"
 )
 
 func Handler(docs map[string]*openapi3.T, enableCors bool) http.HandlerFunc {

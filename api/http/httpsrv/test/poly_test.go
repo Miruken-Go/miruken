@@ -3,6 +3,12 @@ package test
 import (
 	json2 "encoding/json"
 	"errors"
+	"io"
+	http2 "net/http"
+	"net/http/httptest"
+	"sync/atomic"
+	"testing"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/http"
@@ -18,11 +24,6 @@ import (
 	"github.com/miruken-go/miruken/setup"
 	"github.com/miruken-go/miruken/validates"
 	"github.com/stretchr/testify/suite"
-	"io"
-	http2 "net/http"
-	"net/http/httptest"
-	"sync/atomic"
-	"testing"
 )
 
 //go:generate $GOPATH/bin/miruken -tests
@@ -48,7 +49,7 @@ type (
 		Team TeamData
 	}
 
-	GetTeamNotifications struct {}
+	GetTeamNotifications struct{}
 
 	TeamApiHandler struct {
 		nextId int32
@@ -58,7 +59,7 @@ type (
 		notifications []any
 	}
 
-	BadFormatter struct {}
+	BadFormatter struct{}
 )
 
 // TeamApiHandler
@@ -77,19 +78,19 @@ func (t *TeamApiHandler) CreateTeam(
 	_ *handles.It, create *CreateTeam,
 	ctx miruken.HandleContext,
 ) *promise.Promise[*TeamData] {
-	id := atomic.AddInt32(&t.nextId,1)
-	team := &TeamData{id,create.Name, create.Players}
+	id := atomic.AddInt32(&t.nextId, 1)
+	team := &TeamData{id, create.Name, create.Players}
 	_, _ = api.Publish(ctx, &TeamCreated{Team: *team})
 	return promise.Resolve(team)
 }
 
 func (t *TeamApiHandler) New(
-	_*struct{
+	_ *struct {
 		_ creates.It `key:"test.CreateTeam"`
 		_ creates.It `key:"test.TeamCreated"`
-	    _ creates.It `key:"test.GetTeamNotifications"`
+		_ creates.It `key:"test.GetTeamNotifications"`
 		_ creates.It `key:"test.TeamData"`
-	  }, create *creates.It,
+	}, create *creates.It,
 ) any {
 	switch create.Key() {
 	case "test.CreateTeam":
@@ -118,11 +119,12 @@ func (t *TeamApiConsumer) TeamNotifications(
 	return t.notifications
 }
 
-
 // BadFormatter
 
 func (f *BadFormatter) Bad(
-	_*struct{maps.Format `to:"bad"`}, msg api.Message,
+	_ *struct {
+		maps.Format `to:"bad"`
+	}, msg api.Message,
 	m *maps.It,
 ) (io.Writer, error) {
 	if writer, ok := m.Target().(*io.Writer); ok && !internal.IsNil(writer) {
@@ -189,7 +191,7 @@ func (suite *ApiHandlerTestSuite) TestApiHandler() {
 		suite.Run("Publish", func() {
 			handler := suite.Setup()
 			created := &TeamCreated{TeamData{8, "Liverpool", nil}}
-			notify  := api.RouteTo(created, suite.srv.URL)
+			notify := api.RouteTo(created, suite.srv.URL)
 			pv, err := api.Publish(handler, notify)
 			suite.Nil(err)
 			suite.NotNil(pv)
@@ -209,7 +211,7 @@ func (suite *ApiHandlerTestSuite) TestApiHandler() {
 
 		suite.Run("ConcurrentSingle", func() {
 			handler := suite.Setup()
-			batch   := api.RouteTo(api.ConcurrentBatch{
+			batch := api.RouteTo(api.ConcurrentBatch{
 				Requests: []any{&CreateTeam{Name: "Tottenham"}},
 			}, suite.srv.URL)
 			r, pr, err := api.Send[api.ScheduledResult](handler, batch)
@@ -230,27 +232,27 @@ func (suite *ApiHandlerTestSuite) TestApiHandler() {
 			handler := suite.Setup()
 			var team *TeamData
 			results, err := miruken.BatchAsync(handler,
-				func(batch miruken.Handler) *promise.Promise[*TeamData]{
+				func(batch miruken.Handler) *promise.Promise[*TeamData] {
 					r, pr, err := api.Send[*TeamData](batch,
 						api.RouteTo(&CreateTeam{Name: "Chelsea"}, suite.srv.URL))
-				suite.Nil(err)
-				suite.Zero(r)
-				suite.NotNil(pr)
-				return promise.Then(pr, func(t *TeamData) *TeamData {
-					team = t
-					return t
-				})
-			}).Await()
+					suite.Nil(err)
+					suite.Zero(r)
+					suite.NotNil(pr)
+					return promise.Then(pr, func(t *TeamData) *TeamData {
+						team = t
+						return t
+					})
+				}).Await()
 			suite.Nil(err)
 			suite.Len(results, 1)
 			suite.Equal([]any{
-				api.RouteReply{Uri: suite.srv.URL, Responses: []any {team}},
+				api.RouteReply{Uri: suite.srv.URL, Responses: []any{team}},
 			}, results[0])
 		})
 
 		suite.Run("ConcurrentSingleError", func() {
 			handler := suite.Setup()
-			batch   := api.RouteTo(api.ConcurrentBatch{
+			batch := api.RouteTo(api.ConcurrentBatch{
 				Requests: []any{&CreateTeam{Name: ""}},
 			}, suite.srv.URL)
 			r, pr, err := api.Send[api.ScheduledResult](handler, batch)
@@ -272,27 +274,27 @@ func (suite *ApiHandlerTestSuite) TestApiHandler() {
 			handler := suite.Setup()
 			var ex error
 			results, err := miruken.BatchAsync(handler,
-				func(batch miruken.Handler) *promise.Promise[*TeamData]{
+				func(batch miruken.Handler) *promise.Promise[*TeamData] {
 					r, pr, err := api.Send[*TeamData](batch,
 						api.RouteTo(&CreateTeam{Name: ""}, suite.srv.URL))
-				suite.Nil(err)
-				suite.Zero(r)
-				suite.NotNil(pr)
-				return promise.Catch(pr, func(e error) error {
-					ex = e
-					return nil
-				})
-			}).Await()
+					suite.Nil(err)
+					suite.Zero(r)
+					suite.NotNil(pr)
+					return promise.Catch(pr, func(e error) error {
+						ex = e
+						return nil
+					})
+				}).Await()
 			suite.Nil(err)
 			suite.Len(results, 1)
 			suite.Equal([]any{
-				api.RouteReply{Uri: suite.srv.URL, Responses: []any {ex}},
+				api.RouteReply{Uri: suite.srv.URL, Responses: []any{ex}},
 			}, results[0])
 		})
 
 		suite.Run("ConcurrentMixed", func() {
 			handler := suite.Setup()
-			batch   := api.RouteTo(api.ConcurrentBatch{
+			batch := api.RouteTo(api.ConcurrentBatch{
 				Requests: []any{
 					&CreateTeam{Name: "Liverpool"},
 					&CreateTeam{Name: ""},
@@ -336,7 +338,7 @@ func (suite *ApiHandlerTestSuite) TestApiHandler() {
 
 		suite.Run("ValidationError", func() {
 			handler := suite.Setup()
-			create  := api.RouteTo(CreateTeam{}, suite.srv.URL)
+			create := api.RouteTo(CreateTeam{}, suite.srv.URL)
 			_, pp, err := api.Send[*TeamData](handler, create)
 			suite.Nil(err)
 			suite.NotNil(pp)
@@ -354,7 +356,7 @@ func (suite *ApiHandlerTestSuite) TestApiHandler() {
 			handler := miruken.BuildUp(
 				suite.Setup(&BadFormatter{}),
 				http.Format("bad"))
-			create  := api.RouteTo(CreateTeam{}, suite.srv.URL)
+			create := api.RouteTo(CreateTeam{}, suite.srv.URL)
 			_, pp, err := api.Send[*TeamData](handler, create)
 			suite.Nil(err)
 			suite.NotNil(pp)
@@ -371,10 +373,10 @@ func TestApiHandlerTestSuite(t *testing.T) {
 }
 
 func authenticate(
-	req      *http2.Request,
+	req *http2.Request,
 	composer miruken.Handler,
-	next     func() (*http2.Response, error),
-)  (*http2.Response, error) {
+	next func() (*http2.Response, error),
+) (*http2.Response, error) {
 	req.Header.Set("Authorization", "Bearer token")
 	return next()
 }

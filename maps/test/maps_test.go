@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
+	"testing"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	context2 "github.com/miruken-go/miruken/context"
@@ -12,8 +15,6 @@ import (
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"reflect"
-	"testing"
 )
 
 //go:generate $GOPATH/bin/miruken -tests
@@ -28,8 +29,8 @@ type (
 		count int
 	}
 
-	Foo struct { Counted }
-	Bar struct { Counted }
+	Foo struct{ Counted }
+	Bar struct{ Counted }
 )
 
 func (c *Counted) Count() int {
@@ -59,11 +60,11 @@ type PlayerData struct {
 type EntityMapper struct{}
 
 func (m *EntityMapper) MapPlayerData(
-	maps   *maps.It,
+	maps *maps.It,
 	entity *PlayerEntity,
 ) *PlayerData {
 	if data, ok := maps.Target().(**PlayerData); ok && *data != nil {
-		(*data).Id   = entity.Id
+		(*data).Id = entity.Id
 		(*data).Name = entity.Name
 		return *data
 	}
@@ -77,7 +78,7 @@ func (m *EntityMapper) MapIntoPlayerData(
 	maps *maps.It, entity *PlayerEntity,
 ) PlayerData {
 	if data, ok := maps.Target().(*PlayerData); ok && data != nil {
-		data.Id   = entity.Id
+		data.Id = entity.Id
 		data.Name = entity.Name
 		return *data
 	}
@@ -113,7 +114,7 @@ func (m *OpenMapper) Map(
 ) any {
 	if entity, ok := maps.Source().(*PlayerEntity); ok {
 		if data, ok := maps.Target().(**PlayerData); ok && *data != nil {
-			(*data).Id   = entity.Id
+			(*data).Id = entity.Id
 			(*data).Name = entity.Name
 			return *data
 		}
@@ -131,58 +132,58 @@ type (
 )
 
 func (m *FormatMapper) ToPlayerJson(
-	_*struct{
+	_ *struct {
 		maps.It
 		maps.Format `to:"application/json"`
-	  }, data *PlayerData,
+	}, data *PlayerData,
 ) string {
 	return fmt.Sprintf("{\"id\":%v,\"name\":%q}", data.Id, data.Name)
 }
 
 func (m *FormatMapper) FromPlayerJson(
-	_*struct{
+	_ *struct {
 		maps.It
 		maps.Format `from:"application/json"`
-	  }, jsonString string,
+	}, jsonString string,
 ) (PlayerData, error) {
 	data := PlayerData{}
-	err  := json.Unmarshal([]byte(jsonString), &data)
+	err := json.Unmarshal([]byte(jsonString), &data)
 	return data, err
 }
 
 func (m *FormatMapper) StartsWith(
-	_*struct{
+	_ *struct {
 		maps.It
 		maps.Format `to:"/hello"`
-	  }, _ *PlayerData,
+	}, _ *PlayerData,
 ) string {
 	return "startsWith"
 }
 
 func (m *FormatMapper) EndsWith(
-	_*struct{
+	_ *struct {
 		maps.It
 		maps.Format `to:"world/"`
-	  }, _ *PlayerData,
+	}, _ *PlayerData,
 ) string {
 	return "endsWith"
 }
 
 func (m *FormatMapper) Pattern(
-	_*struct{
+	_ *struct {
 		maps.It
 		maps.Format `to:"/J\\d+![A-Z]+\\d/"`
-	  }, _ *PlayerData,
+	}, _ *PlayerData,
 ) string {
 	return "pattern"
 }
 
 // InvalidMapper
-type InvalidMapper struct {}
+type InvalidMapper struct{}
 
 func (m *InvalidMapper) MissingDependency(
 	_ *handles.It, _ *Bar,
-	_*struct{ },
+	_ *struct{},
 ) {
 }
 
@@ -209,7 +210,7 @@ func (m *InvalidMapper) UntypedInterfaceDependency(
 }
 
 func (m *InvalidMapper) MissingCallbackArgument(
-	_*struct{handles.It},
+	_ *struct{ handles.It },
 ) miruken.HandleResult {
 	return miruken.Handled
 }
@@ -230,11 +231,11 @@ func (suite *MapsTestSuite) Setup() (*context2.Context, error) {
 }
 
 func (suite *MapsTestSuite) TestMap() {
-	suite.Run("It", func () {
+	suite.Run("It", func() {
 		suite.Run("Out", func() {
 			handler, _ := suite.Setup()
 			entity := PlayerEntity{
-				Entity{ Id: 1 },
+				Entity{Id: 1},
 				"Tim Howard",
 			}
 			data, _, _, err := maps.Out[*PlayerData](handler, &entity)
@@ -246,7 +247,7 @@ func (suite *MapsTestSuite) TestMap() {
 		suite.Run("Into", func() {
 			handler, _ := suite.Setup()
 			entity := PlayerEntity{
-				Entity{ Id: 2 },
+				Entity{Id: 2},
 				"David Silva",
 			}
 			var data PlayerData
@@ -259,7 +260,7 @@ func (suite *MapsTestSuite) TestMap() {
 		suite.Run("IntoPtr", func() {
 			handler, _ := suite.Setup()
 			entity := PlayerEntity{
-				Entity{ Id: 3 },
+				Entity{Id: 3},
 				"Franz Beckenbauer",
 			}
 			data := new(PlayerData)
@@ -272,7 +273,7 @@ func (suite *MapsTestSuite) TestMap() {
 		suite.Run("Open", func() {
 			handler, _ := setup.New().Specs(&OpenMapper{}).Context()
 			entity := PlayerEntity{
-				Entity{ Id: 1 },
+				Entity{Id: 1},
 				"Tim Howard",
 			}
 			data, _, _, err := maps.Out[*PlayerData](handler, &entity)
@@ -284,7 +285,7 @@ func (suite *MapsTestSuite) TestMap() {
 		suite.Run("ToMap", func() {
 			handler, _ := suite.Setup()
 			entity := PlayerEntity{
-				Entity{ Id: 1 },
+				Entity{Id: 1},
 				"Marco Royce",
 			}
 			data, _, _, err := maps.Out[map[string]any](handler, &entity)
@@ -296,7 +297,7 @@ func (suite *MapsTestSuite) TestMap() {
 		suite.Run("FromMap", func() {
 			handler, _ := suite.Setup()
 			data := map[string]any{
-				"Id":    2,
+				"Id":   2,
 				"Name": "George Best",
 			}
 			entity, _, _, err := maps.Out[*PlayerEntity](handler, data)
@@ -308,7 +309,7 @@ func (suite *MapsTestSuite) TestMap() {
 		suite.Run("Format", func() {
 			handler, _ := setup.New().Specs(&FormatMapper{}).Context()
 
-			data  := PlayerData{
+			data := PlayerData{
 				Id:   1,
 				Name: "Tim Howard",
 			}
@@ -330,15 +331,15 @@ func (suite *MapsTestSuite) TestMap() {
 			handler, _ := suite.Setup()
 			entities := []*PlayerEntity{
 				{
-					Entity{ Id: 1 },
+					Entity{Id: 1},
 					"Christian Pulisic",
 				},
 				{
-					Entity{ Id: 2 },
+					Entity{Id: 2},
 					"Weston Mckennie",
 				},
 				{
-					Entity{ Id: 3 },
+					Entity{Id: 3},
 					"Josh Sargent",
 				},
 			}
@@ -352,24 +353,23 @@ func (suite *MapsTestSuite) TestMap() {
 					Name: "Christian Pulisic",
 				},
 				{
-					Id: 2,
+					Id:   2,
 					Name: "Weston Mckennie",
 				},
 				{
-					Id: 3,
+					Id:   3,
 					Name: "Josh Sargent",
 				},
 			}))
 		})
 
-		suite.Run("Invalid", func () {
+		suite.Run("Invalid", func() {
 			failures := 0
 			defer func() {
 				if r := recover(); r != nil {
 					if err, ok := r.(*miruken.HandlerInfoError); ok {
 						var errMethod *miruken.MethodBindingError
-						for cause := errors.Unwrap(err.Cause);
-							errors.As(cause, &errMethod); cause = errors.Unwrap(cause) {
+						for cause := errors.Unwrap(err.Cause); errors.As(cause, &errMethod); cause = errors.Unwrap(cause) {
 							failures++
 						}
 						suite.Equal(6, failures)
@@ -384,8 +384,8 @@ func (suite *MapsTestSuite) TestMap() {
 		})
 	})
 
-	suite.Run("Format", func () {
-		suite.Run("StartsWith", func () {
+	suite.Run("Format", func() {
+		suite.Run("StartsWith", func() {
 			handler, _ := setup.New().Specs(&FormatMapper{}).Context()
 			var data PlayerData
 			res, _, _, err := maps.Out[string](handler, &data, maps.To("hello", nil))
@@ -403,7 +403,7 @@ func (suite *MapsTestSuite) TestMap() {
 			suite.Nil(err)
 		})
 
-		suite.Run("EndsWith", func () {
+		suite.Run("EndsWith", func() {
 			handler, _ := setup.New().Specs(&FormatMapper{}).Context()
 			var data PlayerData
 			res, _, _, err := maps.Out[string](handler, &data, maps.To("world", nil))
@@ -421,7 +421,7 @@ func (suite *MapsTestSuite) TestMap() {
 			suite.NotNil(err)
 		})
 
-		suite.Run("Pattern", func () {
+		suite.Run("Pattern", func() {
 			handler, _ := setup.New().Specs(&FormatMapper{}).Context()
 			var data PlayerData
 			res, _, _, err := maps.Out[string](handler, &data, maps.To("J9!P3", nil))

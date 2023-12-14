@@ -3,6 +3,7 @@ package stdjson
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/either"
@@ -24,7 +25,7 @@ func (s Either[L, R]) Original(
 	} else {
 		if sur, ok := v.(api.Surrogate); ok {
 			if v, err = sur.Original(composer); err != nil {
-				return  nil, err
+				return nil, err
 			}
 		}
 		if s.Left {

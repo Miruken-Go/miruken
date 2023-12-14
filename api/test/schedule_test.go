@@ -2,6 +2,9 @@ package test
 
 import (
 	"errors"
+	"math/rand"
+	"testing"
+
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/either"
@@ -9,8 +12,6 @@ import (
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"math/rand"
-	"testing"
 )
 
 type (
@@ -28,7 +29,7 @@ type (
 		NumberShares int
 	}
 
-	StockQuoteHandler struct {}
+	StockQuoteHandler struct{}
 )
 
 func (s *StockQuoteHandler) Quote(
@@ -40,7 +41,7 @@ func (s *StockQuoteHandler) Quote(
 	} else {
 		return promise.Resolve(StockQuote{
 			symbol,
-			(rand.Float64()*10)+1,
+			(rand.Float64() * 10) + 1,
 		})
 	}
 }
@@ -111,7 +112,7 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 					func(err error) string { return err.Error() },
 					func(quote any) string { return quote.(StockQuote).Symbol })
 			}
-			suite.Equal([]string { "APPL", "MSFT", "GOOGL"}, symbols)
+			suite.Equal([]string{"APPL", "MSFT", "GOOGL"}, symbols)
 		})
 
 		suite.Run("First Failure", func() {
@@ -135,7 +136,7 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 					func(err error) string { return err.Error() },
 					func(quote any) string { return quote.(StockQuote).Symbol })
 			}
-			suite.Equal([]string { "APPL", "stock exchange is down"}, symbols)
+			suite.Equal([]string{"APPL", "stock exchange is down"}, symbols)
 		})
 	})
 
@@ -161,7 +162,7 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 					func(err error) string { return err.Error() },
 					func(quote any) string { return quote.(StockQuote).Symbol })
 			}
-			suite.Equal([]string { "APPL", "MSFT", "GOOGL"}, symbols)
+			suite.Equal([]string{"APPL", "MSFT", "GOOGL"}, symbols)
 		})
 
 		suite.Run("Variadic", func() {
@@ -180,7 +181,7 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 					func(err error) string { return err.Error() },
 					func(quote any) string { return quote.(StockQuote).Symbol })
 			}
-			suite.Equal([]string { "APPL", "MSFT", "GOOGL"}, symbols)
+			suite.Equal([]string{"APPL", "MSFT", "GOOGL"}, symbols)
 		})
 
 		suite.Run("Single Failure", func() {
@@ -204,7 +205,7 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 					func(err error) string { return err.Error() },
 					func(quote any) string { return quote.(StockQuote).Symbol })
 			}
-			suite.Equal([]string { "APPL", "stock exchange is down", "GOOGL"}, symbols)
+			suite.Equal([]string{"APPL", "stock exchange is down", "GOOGL"}, symbols)
 		})
 
 		suite.Run("Multiple Failures", func() {
@@ -228,7 +229,7 @@ func (suite *ScheduleTestSuite) TestSchedule() {
 					func(err error) string { return err.Error() },
 					func(quote any) string { return quote.(StockQuote).Symbol })
 			}
-			suite.Equal([]string { "APPL", "stock exchange is down", "stock exchange is down"}, symbols)
+			suite.Equal([]string{"APPL", "stock exchange is down", "stock exchange is down"}, symbols)
 		})
 	})
 }

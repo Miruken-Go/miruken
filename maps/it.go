@@ -2,19 +2,20 @@ package maps
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
 )
 
 type (
 	// It maps callbacks bivariantly.
 	It struct {
 		miruken.CallbackBase
-		key     any
-		source  any
-		match   *Format
+		key    any
+		source any
+		match  *Format
 	}
 
 	// Builder builds It callbacks.
@@ -27,7 +28,6 @@ type (
 	// Strict alias for mapping
 	Strict = miruken.Strict
 )
-
 
 func (m *It) Source() any {
 	return m.source
@@ -55,8 +55,8 @@ func (m *It) SetMatched(format *Format) {
 }
 
 func (m *It) Dispatch(
-	handler  any,
-	greedy   bool,
+	handler any,
+	greedy bool,
 	composer miruken.Handler,
 ) miruken.HandleResult {
 	return miruken.DispatchPolicy(handler, m, greedy, composer)
@@ -65,7 +65,6 @@ func (m *It) Dispatch(
 func (m *It) String() string {
 	return fmt.Sprintf("maps %+v", m.source)
 }
-
 
 // Builder
 
@@ -98,8 +97,8 @@ func (b *Builder) New() *It {
 }
 
 func Out[T any](
-	handler     miruken.Handler,
-	source      any,
+	handler miruken.Handler,
+	source any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], m *It, err error) {
 	if internal.IsNil(handler) {
@@ -107,8 +106,8 @@ func Out[T any](
 	}
 	var builder Builder
 	builder.FromSource(source).
-		    IntoTarget(&t).
-			WithConstraints(constraints...)
+		IntoTarget(&t).
+		WithConstraints(constraints...)
 	m = builder.New()
 	if result := handler.Handle(m, false, nil); result.IsError() {
 		err = result.Error()
@@ -123,9 +122,9 @@ func Out[T any](
 }
 
 func Into[T any](
-	handler     miruken.Handler,
-	source      any,
-	target      *T,
+	handler miruken.Handler,
+	source any,
+	target *T,
 	constraints ...any,
 ) (p *promise.Promise[any], m *It, err error) {
 	if internal.IsNil(handler) {
@@ -136,7 +135,7 @@ func Into[T any](
 	}
 	var builder Builder
 	builder.FromSource(source).
-			WithConstraints(constraints...)
+		WithConstraints(constraints...)
 	if internal.TypeOf[T]() == internal.AnyType {
 		builder.IntoTarget(*target)
 	} else {
@@ -154,8 +153,8 @@ func Into[T any](
 }
 
 func Key[T any](
-	handler     miruken.Handler,
-	key         any,
+	handler miruken.Handler,
+	key any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], m *It, err error) {
 	if internal.IsNil(handler) {
@@ -163,8 +162,8 @@ func Key[T any](
 	}
 	var builder Builder
 	builder.WithKey(key).
-		    IntoTarget(&t).
-			WithConstraints(constraints...)
+		IntoTarget(&t).
+		WithConstraints(constraints...)
 	m = builder.New()
 	if result := handler.Handle(m, false, nil); result.IsError() {
 		err = result.Error()
@@ -180,7 +179,7 @@ func Key[T any](
 
 func All[T any](
 	handler miruken.Handler,
-	source      any,
+	source any,
 	constraints ...any,
 ) (t []T, _ *promise.Promise[[]T], _ error) {
 	if internal.IsNil(handler) {
@@ -190,13 +189,13 @@ func All[T any](
 		panic("source must be a non-nil slice")
 	}
 	ts := reflect.ValueOf(source)
-	t   = make([]T, ts.Len())
+	t = make([]T, ts.Len())
 	var promises []*promise.Promise[T]
 	for i := 0; i < ts.Len(); i++ {
 		var builder Builder
 		builder.FromSource(ts.Index(i).Interface()).
-			    IntoTarget(&t[i]).
-				WithConstraints(constraints...)
+			IntoTarget(&t[i]).
+			WithConstraints(constraints...)
 		m := builder.New()
 		if result := handler.Handle(m, false, nil); result.IsError() {
 			return nil, nil, result.Error()

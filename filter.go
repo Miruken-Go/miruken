@@ -2,14 +2,15 @@ package miruken
 
 import (
 	"fmt"
-	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/promise"
 	"maps"
 	"math"
 	"reflect"
 	"sort"
 	"sync"
 	"sync/atomic"
+
+	"github.com/miruken-go/miruken/internal"
+	"github.com/miruken-go/miruken/promise"
 )
 
 // Filter stage priorities.
@@ -20,15 +21,14 @@ const (
 	FilterStageValidation    = 50
 )
 
-
 type (
 	// Next advances to the next step in a pipeline.
 	// The optional composer replaces the Handler in the next step.
 	// The optional values provide dependencies to the next step.
-	Next func (
+	Next func(
 		composer Handler,
-		proceed  bool,
-		values   ...any,
+		proceed bool,
+		values ...any,
 	) ([]any, *promise.Promise[[]any], error)
 
 	// Filter defines a middleware step in a pipeline.
@@ -36,9 +36,9 @@ type (
 		Order() int
 		Next(
 			// self provided to facilitate late bindings
-			self     Filter,
-			next     Next,
-			ctx      HandleContext,
+			self Filter,
+			next Next,
+			ctx HandleContext,
 			provider FilterProvider,
 		) ([]any, *promise.Promise[[]any], error)
 	}
@@ -47,7 +47,7 @@ type (
 	FilterProvider interface {
 		Required() bool
 		Filters(
-			binding  Binding,
+			binding Binding,
 			callback any,
 			composer Handler,
 		) ([]Filter, error)
@@ -55,7 +55,7 @@ type (
 
 	// FilterAdapter is an adapter for implementing a
 	// Filter using late binding method resolution.
-	FilterAdapter struct {}
+	FilterAdapter struct{}
 
 	// FilterInstanceProvider provides existing Filters.
 	FilterInstanceProvider struct {
@@ -77,7 +77,6 @@ type (
 	}
 )
 
-
 // Next
 
 func (n Next) Pipe(values ...any) ([]any, *promise.Promise[[]any], error) {
@@ -90,21 +89,21 @@ func (n Next) PipeAwait(values ...any) []any {
 
 func (n Next) PipeComposer(
 	composer Handler,
-	values   ...any,
+	values ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	return mergeOutput(n(composer, true, values...))
 }
 
 func (n Next) PipeComposerAwait(
 	composer Handler,
-	values   ...any,
+	values ...any,
 ) []any {
 	return mergeOutputAwait(n(composer, true, values...))
 }
 
 func (n Next) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) ([]any, *promise.Promise[[]any], error) {
 	var cb Callback
@@ -137,13 +136,12 @@ func (n Next) Fail(err error) ([]any, *promise.Promise[[]any], error) {
 	return nil, nil, err
 }
 
-
 // FilterAdapter
 
 func (l FilterAdapter) Next(
-	self     Filter,
-	next     Next,
-	ctx      HandleContext,
+	self Filter,
+	next Next,
+	ctx HandleContext,
 	provider FilterProvider,
 ) ([]any, *promise.Promise[[]any], error) {
 	if group, err := getFilterBinding(self); err == nil {
@@ -152,7 +150,6 @@ func (l FilterAdapter) Next(
 		return nil, nil, err
 	}
 }
-
 
 type (
 	// filterSpec describes a Filter.
@@ -168,7 +165,6 @@ type (
 	}
 )
 
-
 // filterSpecProvider
 
 func (f *filterSpecProvider) Required() bool {
@@ -176,7 +172,7 @@ func (f *filterSpecProvider) Required() bool {
 }
 
 func (f *filterSpecProvider) Filters(
-	binding  Binding,
+	binding Binding,
 	callback any,
 	composer Handler,
 ) ([]Filter, error) {
@@ -203,7 +199,6 @@ func (f *filterSpecProvider) Filters(
 	return nil, err
 }
 
-
 // FilterInstanceProvider
 
 func (f *FilterInstanceProvider) Required() bool {
@@ -211,7 +206,7 @@ func (f *FilterInstanceProvider) Required() bool {
 }
 
 func (f *FilterInstanceProvider) Filters(
-	binding  Binding,
+	binding Binding,
 	callback any,
 	composer Handler,
 ) ([]Filter, error) {
@@ -220,11 +215,10 @@ func (f *FilterInstanceProvider) Filters(
 
 func NewFilterInstanceProvider(
 	required bool,
-	filters  ...Filter,
+	filters ...Filter,
 ) *FilterInstanceProvider {
 	return &FilterInstanceProvider{filters, required}
 }
-
 
 // FilteredScope
 
@@ -236,7 +230,7 @@ func (f *FilteredScope) AddFilters(providers ...FilterProvider) {
 	if len(providers) == 0 {
 		return
 	}
-	Loop:
+Loop:
 	for _, fp := range providers {
 		if fp == nil {
 			panic("provider cannot be nil")
@@ -294,7 +288,6 @@ func ProvideFilters(providers ...FilterProvider) Builder {
 	return Options(FilterOptions{Providers: providers})
 }
 
-
 type (
 	// providedFilter models a Filter and its FilterProvider.
 	providedFilter struct {
@@ -303,18 +296,17 @@ type (
 	}
 )
 
-
 func orderFilters(
-	handler   Handler,
-	binding   Binding,
-	callback  Callback,
+	handler Handler,
+	binding Binding,
+	callback Callback,
 	providers ...[]FilterProvider,
 ) ([]providedFilter, error) {
-	options, _  := GetOptions[FilterOptions](handler)
+	options, _ := GetOptions[FilterOptions](handler)
 	skipFilters := options.SkipFilters
 	bindingSkip := binding.SkipFilters()
 	var allProviders []FilterProvider
-	var addProvider = func (p FilterProvider) {
+	var addProvider = func(p FilterProvider) {
 		if p == nil {
 			return
 		}
@@ -390,18 +382,17 @@ func orderFilters(
 	return allFilters, nil
 }
 
-
 func pipeline(
-	ctx      HandleContext,
-	filters  []providedFilter,
+	ctx HandleContext,
+	filters []providedFilter,
 	complete func(HandleContext) ([]any, *promise.Promise[[]any], error),
 ) (r []any, pr *promise.Promise[[]any], err error) {
 	index, length := 0, len(filters)
 	var next Next
 	next = func(
 		composer Handler,
-		proceed  bool,
-		values   ...any,
+		proceed bool,
+		values ...any,
 	) ([]any, *promise.Promise[[]any], error) {
 		if !proceed {
 			return nil, nil, &RejectedError{ctx.Callback}
@@ -414,7 +405,7 @@ func pipeline(
 		}
 		if index < length {
 			pf := filters[index]
-			f  := pf.filter
+			f := pf.filter
 			index++
 			return f.Next(f, next, ctx, pf.provider)
 		}
@@ -423,7 +414,6 @@ func pipeline(
 
 	return next(nil, true)
 }
-
 
 type (
 	// filterBinding executes a Filter method dynamically.
@@ -445,11 +435,10 @@ type (
 	}
 )
 
-
 func (n filterBinding) invoke(
-	filter   any,
-	ctx      HandleContext,
-	next     Next,
+	filter any,
+	ctx HandleContext,
+	next Next,
 	provider FilterProvider,
 ) (out []any, pout *promise.Promise[[]any], err error) {
 	var initArgs []any
@@ -483,8 +472,8 @@ func (n filterBinding) invoke(
 		return
 	} else if pout == nil {
 		pout, _ = out[1].(*promise.Promise[[]any])
-		err,  _ = out[2].(error)
-		out,  _ = out[0].([]any)
+		err, _ = out[2].(error)
+		out, _ = out[0].([]any)
 		return
 	} else {
 		pout = promise.Then(pout, func(o []any) []any {
@@ -499,11 +488,10 @@ func (n filterBinding) invoke(
 	return
 }
 
-
 func (g filterBindingGroup) invoke(
-	filter   any,
-	ctx      HandleContext,
-	next     Next,
+	filter any,
+	ctx HandleContext,
+	next Next,
 	provider FilterProvider,
 ) ([]any, *promise.Promise[[]any], error) {
 	if len(g) == 1 {
@@ -513,8 +501,8 @@ func (g filterBindingGroup) invoke(
 	var n Next
 	n = func(
 		composer Handler,
-		proceed  bool,
-		values   ...any,
+		proceed bool,
+		values ...any,
 	) ([]any, *promise.Promise[[]any], error) {
 		if !proceed {
 			return nil, nil, &RejectedError{ctx.Callback}
@@ -535,15 +523,14 @@ func (g filterBindingGroup) invoke(
 	return n(nil, true)
 }
 
-
 func (c compoundHandler) Order() int {
 	return math.MaxInt32
 }
 
 func (c compoundHandler) Next(
-	self     Filter,
-	next     Next,
-	ctx      HandleContext,
+	self Filter,
+	next Next,
+	ctx HandleContext,
 	provider FilterProvider,
 ) ([]any, *promise.Promise[[]any], error) {
 	if filters := c.filters; filters != nil {
@@ -552,7 +539,6 @@ func (c compoundHandler) Next(
 		return next(nil, true)
 	}
 }
-
 
 // getFilterBinding discovers a suitable dynamic Filter binding.
 // Uses the copy-on-write idiom since reads should be more frequent than writes.
@@ -601,14 +587,15 @@ func getFilterBinding(
 
 // parseFilterMethod parses a method to see if it's a suitable dynamic Filter.
 // A compatible filter method must have the following signature:
-//    The first or second argument must be the "Next" filter function.
-//    If the second, the first is the callback used to select the filter.
-//    The return type must be ([]any, *promise.Promise[[]any], error).
+//
+//	The first or second argument must be the "Next" filter function.
+//	If the second, the first is the callback used to select the filter.
+//	The return type must be ([]any, *promise.Promise[[]any], error).
 func parseFilterMethod(
 	method reflect.Method,
 ) (*filterBinding, error) {
 	funcType := method.Type
-	numArgs  := funcType.NumIn()
+	numArgs := funcType.NumIn()
 	if numArgs < 2 || funcType.NumOut() < 3 {
 		return nil, nil
 	} else if funcType.Out(0) != internal.AnySliceType ||
@@ -616,9 +603,9 @@ func parseFilterMethod(
 		funcType.Out(2) != internal.ErrorType {
 		return nil, nil
 	}
-	skip     := 2 // skip receiver
-	nextIdx  := 1 // must be 1 or 2
-	binding  := filterBinding{}
+	skip := 2    // skip receiver
+	nextIdx := 1 // must be 1 or 2
+	binding := filterBinding{}
 	firstArg := funcType.In(1)
 	if firstArg != nextFuncType {
 		if numArgs < 3 || funcType.In(2) != nextFuncType {
@@ -628,7 +615,7 @@ func parseFilterMethod(
 		nextIdx = 2
 		skip++
 	}
-	for i := nextIdx+1; i <= nextIdx+2 && i < numArgs; i++ {
+	for i := nextIdx + 1; i <= nextIdx+2 && i < numArgs; i++ {
 		if funcType.In(i) == handleCtxType {
 			if binding.ctxIdx > 0 {
 				return nil, &MethodBindingError{method,
@@ -654,14 +641,13 @@ func parseFilterMethod(
 		err = fmt.Errorf("filter: %v %q: %w", funcType.In(0), method.Name, err)
 		return nil, &MethodBindingError{method, err}
 	}
-	binding.funcCall.fun  = method.Func
+	binding.funcCall.fun = method.Func
 	binding.funcCall.args = args
 	return &binding, nil
 }
 
-
 var (
-	filterBindingLock sync.Mutex
+	filterBindingLock   sync.Mutex
 	nextFuncType        = internal.TypeOf[Next]()
 	filterProviderType  = internal.TypeOf[FilterProvider]()
 	filterBindingMap    = atomic.Pointer[map[reflect.Type]filterBindingGroup]{}

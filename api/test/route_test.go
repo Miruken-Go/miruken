@@ -1,6 +1,9 @@
 package test
 
 import (
+	"sync/atomic"
+	"testing"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/context"
@@ -10,8 +13,6 @@ import (
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"sync/atomic"
-	"testing"
 )
 
 type (
@@ -19,7 +20,7 @@ type (
 		items []any
 	}
 
-	TrashHandler struct {}
+	TrashHandler struct{}
 )
 
 func (t *Trash) Add(items ...any) {
@@ -35,10 +36,10 @@ func (t *Trash) Empty() {
 }
 
 func (t *TrashHandler) Trash(
-	_*struct{
+	_ *struct {
 		handles.It
 		api.Routes `scheme:"trash"`
-	  }, routed api.Routed,
+	}, routed api.Routed,
 	trash *Trash,
 ) *promise.Promise[any] {
 	trash.Add(routed.Message)
@@ -128,7 +129,7 @@ func (suite *RouteTestSuite) TestRoute() {
 						called = true
 						return nil
 					})
-			})
+				})
 			results, err := pb.Await()
 			suite.Nil(err)
 			suite.True(called)
@@ -161,7 +162,7 @@ func (suite *RouteTestSuite) TestRoute() {
 						return quote
 					})
 					return promise.All(p1, p2)
-			})
+				})
 			results, err := pb.Await()
 			suite.Nil(err)
 			suite.Equal(int32(2), counter)

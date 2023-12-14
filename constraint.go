@@ -3,10 +3,11 @@ package miruken
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/go-multierror"
-	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"strings"
+
+	"github.com/hashicorp/go-multierror"
+	"github.com/miruken-go/miruken/promise"
 )
 
 type (
@@ -35,9 +36,8 @@ type (
 	}
 
 	// constraintFilter enforces constraints.
- 	constraintFilter struct{}
+	constraintFilter struct{}
 )
-
 
 // ConstraintProvider
 
@@ -50,13 +50,12 @@ func (c *ConstraintProvider) Required() bool {
 }
 
 func (c *ConstraintProvider) Filters(
-	binding  Binding,
+	binding Binding,
 	callback any,
 	composer Handler,
 ) ([]Filter, error) {
 	return checkConstraints, nil
 }
-
 
 // Named matches against a name.
 type Named string
@@ -85,7 +84,6 @@ func (n *Named) Satisfies(required Constraint, _ Callback) bool {
 	rn, ok := required.(*Named)
 	return ok && *n == *rn
 }
-
 
 type (
 	// Metadata matches against kev/value pairs.
@@ -140,10 +138,9 @@ func (m *Metadata) metadata() *Metadata {
 	return m
 }
 
-
 type (
 	// Qualifier matches against a type.
-	Qualifier[T any] struct {}
+	Qualifier[T any] struct{}
 
 	qualifierOwner[T any] interface {
 		qualifier() Qualifier[T]
@@ -167,7 +164,6 @@ func (q Qualifier[T]) qualifier() Qualifier[T] {
 	return q
 }
 
-
 // constraintFilter
 
 func (f constraintFilter) Order() int {
@@ -175,15 +171,15 @@ func (f constraintFilter) Order() int {
 }
 
 func (f constraintFilter) Next(
-	self     Filter,
-	next     Next,
-	ctx      HandleContext,
+	self Filter,
+	next Next,
+	ctx HandleContext,
 	provider FilterProvider,
-)  ([]any, *promise.Promise[[]any], error) {
+) ([]any, *promise.Promise[[]any], error) {
 	if cp, ok := provider.(ConstraintSource); ok {
-		callback    := ctx.Callback
+		callback := ctx.Callback
 		constraints := cp.Constraints()
-		required    := callback.Constraints()
+		required := callback.Constraints()
 		if len(required) == 0 {
 			// if no required input constraints
 			//   implied receiver constraint must be satisfied or
@@ -202,7 +198,7 @@ func (f constraintFilter) Next(
 			return next.Abort()
 		} else {
 			var matched map[Constraint]struct{}
-			Loop:
+		Loop:
 			for _, rc := range required {
 				for _, c := range constraints {
 					if !c.Implied() && c.Satisfies(rc, callback) {
@@ -235,8 +231,7 @@ func (f constraintFilter) Next(
 	return next.Pipe()
 }
 
-
 var (
 	ErrConstraintNameMissing = errors.New("the Named constraint requires a non-empty `name:[name]` tag")
-	checkConstraints = []Filter{constraintFilter{}}
+	checkConstraints         = []Filter{constraintFilter{}}
 )

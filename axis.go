@@ -5,15 +5,15 @@ type (
 	HandlerAxis interface {
 		Handler
 		HandleAxis(
-			axis     TraversingAxis,
+			axis TraversingAxis,
 			callback any,
-			greedy   bool,
+			greedy bool,
 			composer Handler,
 		) HandleResult
 	}
 
 	// axisScope applies axis traversal to a Handler.
- 	axisScope struct {
+	axisScope struct {
 		HandlerAxis
 		axis TraversingAxis
 	}
@@ -21,7 +21,7 @@ type (
 
 func (a *axisScope) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if composer == nil {
@@ -42,20 +42,18 @@ func Axis(axis TraversingAxis) BuilderFunc {
 	}
 }
 
-var SelfAxis                    = Axis(TraverseSelf)
-var RootAxis                    = Axis(TraverseRoot)
-var ChildAxis                   = Axis(TraverseChild)
-var SiblingAxis                 = Axis(TraverseSibling)
-var AncestorAxis                = Axis(TraverseAncestor)
-var DescendantAxis              = Axis(TraverseDescendant)
-var DescendantReverseAxis       = Axis(TraverseDescendantReverse)
-var SelfOrChildAxis             = Axis(TraverseSelfOrChild)
-var SelfOrSiblingAxis           = Axis(TraverseSelfOrSibling)
-var SelfOrAncestorAxis          = Axis(TraverseSelfOrAncestor)
-var SelfOrDescendantAxis        = Axis(TraverseSelfOrDescendant)
+var SelfAxis = Axis(TraverseSelf)
+var RootAxis = Axis(TraverseRoot)
+var ChildAxis = Axis(TraverseChild)
+var SiblingAxis = Axis(TraverseSibling)
+var AncestorAxis = Axis(TraverseAncestor)
+var DescendantAxis = Axis(TraverseDescendant)
+var DescendantReverseAxis = Axis(TraverseDescendantReverse)
+var SelfOrChildAxis = Axis(TraverseSelfOrChild)
+var SelfOrSiblingAxis = Axis(TraverseSelfOrSibling)
+var SelfOrAncestorAxis = Axis(TraverseSelfOrAncestor)
+var SelfOrDescendantAxis = Axis(TraverseSelfOrDescendant)
 var SelfOrDescendantReverseAxis = Axis(TraverseSelfOrDescendant)
-var SelfSiblingOrAncestorAxis   = Axis(TraverseSelfSiblingOrAncestor)
+var SelfSiblingOrAncestorAxis = Axis(TraverseSelfSiblingOrAncestor)
 
 var Publish = ComposeBuilders(SelfOrDescendantAxis, Notify)
-
-

@@ -2,15 +2,16 @@ package api
 
 import (
 	"errors"
+	"net/url"
+	"reflect"
+	"strings"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/either"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/promise"
-	"net/url"
-	"reflect"
-	"strings"
 )
 
 type (
@@ -31,10 +32,10 @@ type (
 		Responses []any
 	}
 
-	PassThroughRouter struct {}
+	PassThroughRouter struct{}
 
 	// routesFilter coordinates miruken.Callback's participating in a batch.
-	routesFilter struct {}
+	routesFilter struct{}
 
 	// batchRouter handles Routed batch requests.
 	batchRouter struct {
@@ -47,9 +48,8 @@ type (
 	}
 )
 
-
 var ErrMissingResponse = errors.New("missing batch response")
-var ErrMissingScheme   = errors.New("the Routes filter requires a non-empty `schemes` tag")
+var ErrMissingScheme = errors.New("the Routes filter requires a non-empty `schemes` tag")
 
 // Routes
 
@@ -78,7 +78,7 @@ func (r *Routes) AppliesTo(
 }
 
 func (r *Routes) Filters(
-	binding  miruken.Binding,
+	binding miruken.Binding,
 	callback any,
 	composer miruken.Handler,
 ) ([]miruken.Filter, error) {
@@ -100,15 +100,14 @@ func (r *Routes) Satisfies(routed Routed) bool {
 	return false
 }
 
-
 // PassThroughRouter
 
 func (p *PassThroughRouter) Pass(
-	_*struct{
+	_ *struct {
 		handles.It
 		miruken.SkipFilters
 		Routes `scheme:"pass-through"`
-	  }, routed Routed,
+	}, routed Routed,
 	composer miruken.Handler,
 ) (any, miruken.HandleResult) {
 	if r, pr, err := Send[any](composer, routed.Message); err != nil {
@@ -127,14 +126,14 @@ func (r routesFilter) Order() int {
 }
 
 func (r routesFilter) Next(
-	self     miruken.Filter,
-	next     miruken.Next,
-	ctx      miruken.HandleContext,
+	self miruken.Filter,
+	next miruken.Next,
+	ctx miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  (out []any, po *promise.Promise[[]any], err error) {
+) (out []any, po *promise.Promise[[]any], err error) {
 	if routes, ok := provider.(*Routes); ok {
 		callback := ctx.Callback
-		routed   := callback.Source().(Routed)
+		routed := callback.Source().(Routed)
 		if routes.Satisfies(routed) {
 			composer := ctx.Composer
 			if batch := miruken.GetBatch[*batchRouter](composer); batch != nil {
@@ -149,7 +148,6 @@ func (r routesFilter) Next(
 	}
 	return next.Pipe()
 }
-
 
 // batchRouter
 
@@ -175,7 +173,7 @@ func (b *batchRouter) CompleteBatch(
 	var complete []*promise.Promise[any]
 	for route, group := range b.groups {
 		uri := route
-		messages := slices.Map[pending, any](group, func (p pending) any {
+		messages := slices.Map[pending, any](group, func(p pending) any {
 			return p.message
 		})
 		routeTo := RouteTo(ConcurrentBatch{messages}, route)
@@ -188,29 +186,29 @@ func (b *batchRouter) CompleteBatch(
 					}
 					for i, response := range results {
 						responses[i] = either.Fold(response,
-							func (err error) any {
+							func(err error) any {
 								group[i].deferred.Reject(err)
 								return err
 							},
-							func (success any) any {
+							func(success any) any {
 								group[i].deferred.Resolve(success)
 								return success
 							})
 					}
-				return RouteReply{ uri, responses }
-			}).Catch(func(err error) error {
+					return RouteReply{uri, responses}
+				}).Catch(func(err error) error {
 				canceled := &miruken.CanceledError{Message: "batch canceled", Cause: err}
 				for _, p := range group {
 					p.deferred.Reject(canceled)
 				}
-			return err
-		}))
+				return err
+			}))
 	}
 	return nil, promise.Coerce[any](promise.All(complete...)), nil
 }
 
 func (b *batchRouter) batch(
-	routed  Routed,
+	routed Routed,
 	publish bool,
 ) *promise.Promise[any] {
 	route := routed.Route
@@ -247,4 +245,4 @@ func RouteTo(message any, route string) Routed {
 	return Routed{message, route}
 }
 
-var routesFilterSlice  = []miruken.Filter{routesFilter{}}
+var routesFilterSlice = []miruken.Filter{routesFilter{}}

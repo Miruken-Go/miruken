@@ -2,9 +2,10 @@ package miruken
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
 )
 
 type (
@@ -12,8 +13,8 @@ type (
 	MethodBinder interface {
 		NewMethodBinding(
 			method reflect.Method,
-			spec   *bindingSpec,
-			key    any,
+			spec *bindingSpec,
+			key any,
 		) (Binding, error)
 	}
 
@@ -33,7 +34,6 @@ type (
 	}
 )
 
-
 func (b *methodBinding) Key() any {
 	return b.key
 }
@@ -51,7 +51,7 @@ func (b *methodBinding) Method() reflect.Method {
 }
 
 func (b *methodBinding) Invoke(
-	ctx      HandleContext,
+	ctx HandleContext,
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	if initArgs == nil {
@@ -62,7 +62,6 @@ func (b *methodBinding) Invoke(
 	initArgs[0] = ctx.Handler
 	return b.funcCall.Invoke(ctx, initArgs...)
 }
-
 
 // MethodBindingError
 

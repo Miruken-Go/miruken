@@ -5,11 +5,11 @@ import (
 )
 
 // Installer enables core api support.
-type Installer struct {}
+type Installer struct{}
 
-func (i *Installer) Install(setup *setup.Builder) error {
-	if setup.Tag(&featureTag) {
-		setup.Specs(
+func (i *Installer) Install(b *setup.Builder) error {
+	if b.Tag(&featureTag) {
+		b.Specs(
 			&Stash{},
 			&Scheduler{},
 			&PassThroughRouter{},

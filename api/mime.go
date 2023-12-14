@@ -2,20 +2,20 @@ package api
 
 import (
 	"fmt"
-	"github.com/miruken-go/miruken/maps"
 	"mime"
 	"net/textproto"
 	"reflect"
+
+	"github.com/miruken-go/miruken/maps"
 )
 
 // Content is information produced or consumed by an api.
 type Content interface {
 	MediaType() string
-	Metadata()  map[string]any
-	Body()      any
+	Metadata() map[string]any
+	Body() any
 	// optional WriteBody() any
 }
-
 
 var (
 	// ToJson encodes a model into json format
@@ -24,7 +24,6 @@ var (
 	// FromJson decodes json into a corresponding model
 	FromJson = maps.From("application/json", nil)
 )
-
 
 // ParseMediaType parses the mediaType into a maps.Format suitable
 // for mapping in the requested direction.
@@ -51,7 +50,7 @@ func FormatMediaType(format *maps.Format) string {
 	case maps.FormatRuleEquals:
 		return mime.FormatMediaType(format.Name(), format.Params())
 	case maps.FormatRuleStartsWith:
-		return mime.FormatMediaType(format.Name() + "/*", format.Params())
+		return mime.FormatMediaType(format.Name()+"/*", format.Params())
 	default:
 		return ""
 	}
@@ -68,7 +67,7 @@ func NewHeader(
 
 // MergeHeader merges the supplied key values into the existing mime header.
 func MergeHeader(
-	header   textproto.MIMEHeader,
+	header textproto.MIMEHeader,
 	metadata map[string]any,
 ) {
 	if header == nil {

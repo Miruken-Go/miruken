@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"reflect"
+	"strings"
+
 	"github.com/Rican7/conjson/transform"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/maps"
-	"io"
-	"reflect"
-	"strings"
 )
 
 type (
@@ -36,7 +37,6 @@ var (
 	KnownValuesFields = []string{"$values", "@values"}
 )
 
-
 func (c *typeContainer) typeInfo() *maps.Format {
 	if typeInfo := c.typInfo; len(typeInfo) > 0 {
 		return maps.To(typeInfo, nil)
@@ -45,17 +45,17 @@ func (c *typeContainer) typeInfo() *maps.Format {
 }
 
 func (c *typeContainer) MarshalJSON() ([]byte, error) {
-	v   := c.v
+	v := c.v
 	typ := reflect.TypeOf(v)
 	if typ != nil && typ.Kind() == reflect.Slice {
-		et  := typ.Elem()
-		s   := reflect.ValueOf(v)
+		et := typ.Elem()
+		s := reflect.ValueOf(v)
 		arr := make([]*json.RawMessage, 0, s.Len())
 		for i := 0; i < s.Len(); i++ {
 			var b bytes.Buffer
 			writer := io.Writer(&b)
-			enc    := json.NewEncoder(writer)
-			elem   := s.Index(i).Interface()
+			enc := json.NewEncoder(writer)
+			elem := s.Index(i).Interface()
 			if internal.IsAny(et) || reflect.TypeOf(elem) != et {
 				elem = &typeContainer{
 					v:        elem,
@@ -129,10 +129,10 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 						arr = reflect.ValueOf(make([]any, len(raw), len(raw)))
 					}
 					for i, elem := range raw {
-						r   := bytes.NewReader(*elem)
+						r := bytes.NewReader(*elem)
 						dec := json.NewDecoder(r)
-						tc  := typeContainer{
-							v:        arr.Index(i).Addr().Interface(),  // &arr[0]
+						tc := typeContainer{
+							v:        arr.Index(i).Addr().Interface(), // &arr[0]
 							typInfo:  c.typInfo,
 							trans:    c.trans,
 							composer: c.composer,
@@ -181,7 +181,7 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 			for _, field = range KnownValuesFields {
 				if values := fields[field]; values != nil {
 					data = *values
-					vm   = &typeContainer{
+					vm = &typeContainer{
 						v:        v,
 						typInfo:  c.typInfo,
 						trans:    c.trans,

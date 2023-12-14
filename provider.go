@@ -11,13 +11,13 @@ type provider struct {
 
 func (p *provider) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if comp, ok := callback.(*Composition); ok {
 		callback = comp.Callback()
 	}
-	if provides, ok := callback.(* Provides); ok {
+	if provides, ok := callback.(*Provides); ok {
 		if typ, ok := provides.Key().(reflect.Type); ok {
 			if p.typ.AssignableTo(typ) {
 				return provides.ReceiveResult(p.value, true, composer)
@@ -29,16 +29,15 @@ func (p *provider) Handle(
 
 func (p *provider) SuppressDispatch() {}
 
-
 func NewProvider(value any) Handler {
 	if value == nil {
 		panic("value cannot be nil")
 	}
-	return &provider{value: value, typ:reflect.TypeOf(value)}
+	return &provider{value: value, typ: reflect.TypeOf(value)}
 }
 
 func With(values ...any) BuilderFunc {
-	return func (handler Handler) Handler {
+	return func(handler Handler) Handler {
 		var valueHandlers []any
 		for _, val := range values {
 			if val != nil {

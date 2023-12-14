@@ -4,12 +4,12 @@ import "github.com/miruken-go/miruken/creates"
 
 // SurrogateMapper maps concepts to values that are more suitable
 // for transmission over a standard polymorphic json api.
-type SurrogateMapper struct {}
+type SurrogateMapper struct{}
 
 func (m *SurrogateMapper) New(
-	_*struct{
+	_ *struct {
 		creates.It `key:"stdjson.ScheduledResult"`
-	  }, create *creates.It,
+	}, create *creates.It,
 ) any {
 	switch create.Key() {
 	case "stdjson.ScheduledResult":

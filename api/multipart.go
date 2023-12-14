@@ -4,25 +4,25 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/constraints"
-	"github.com/miruken-go/miruken/maps"
 	"io"
 	"mime/multipart"
 	"time"
+
+	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/constraints"
+	"github.com/miruken-go/miruken/maps"
 )
 
 // MultipartMapper reads and writes 'multipart/*'
 // mime messages from a PartContainer.
 type MultipartMapper struct{}
 
-
 func (m *MultipartMapper) Read(
-	_*struct{
+	_ *struct {
 		maps.Format `from:"/multipart//"`
-	  }, reader io.Reader,
-	  it  *maps.It,
-	  ctx miruken.HandleContext,
+	}, reader io.Reader,
+	it *maps.It,
+	ctx miruken.HandleContext,
 ) (Message, error) {
 	var msg Message
 	_, boundary, start := extractMultipartParams(it)
@@ -34,9 +34,9 @@ func (m *MultipartMapper) Read(
 	var rpb ReadPartsBuilder
 	composer := ctx.Composer
 	now := time.Now().UnixNano()
-	mr  := multipart.NewReader(reader, boundary)
+	mr := multipart.NewReader(reader, boundary)
 
-	for i := 0;; i++ {
+	for i := 0; ; i++ {
 		p, err := mr.NextPart()
 		if err == io.EOF {
 			break
@@ -51,8 +51,8 @@ func (m *MultipartMapper) Read(
 		}
 
 		addPart := true
-		header  := p.Header
-		ct      := header.Get("Content-Type")
+		header := p.Header
+		ct := header.Get("Content-Type")
 
 		filename := p.FileName()
 		if filename == "" {
@@ -60,8 +60,8 @@ func (m *MultipartMapper) Read(
 		}
 		var pb PartBuilder
 		pb.MediaType(ct).
-		   MetadataStrings(header).
-		   Filename(filename)
+			MetadataStrings(header).
+			Filename(filename)
 
 		var key string
 		if key = p.FormName(); key == "" {
@@ -109,10 +109,10 @@ func (m *MultipartMapper) Read(
 }
 
 func (m *MultipartMapper) Write(
-	_*struct{
+	_ *struct {
 		maps.Format `to:"/multipart//"`
-	  }, msg Message,
-	it  *maps.It,
+	}, msg Message,
+	it *maps.It,
 	ctx miruken.HandleContext,
 ) (io.Writer, error) {
 	if parts, ok := msg.Payload.(PartContainer); ok {
@@ -122,10 +122,10 @@ func (m *MultipartMapper) Write(
 }
 
 func (m *MultipartMapper) WriteParts(
-	_*struct{
+	_ *struct {
 		maps.Format `to:"/multipart//"`
-	  }, pc PartContainer,
-	it  *maps.It,
+	}, pc PartContainer,
+	it *maps.It,
 	ctx miruken.HandleContext,
 ) (io.Writer, error) {
 	if writer, ok := it.Target().(*io.Writer); ok {
@@ -161,11 +161,11 @@ func (m *MultipartMapper) WriteParts(
 }
 
 func addPart(
-	key    string,
-	typ    string,
-	part   Part,
+	key string,
+	typ string,
+	part Part,
 	writer *multipart.Writer,
-	ctx    miruken.HandleContext,
+	ctx miruken.HandleContext,
 ) error {
 	contentType := part.MediaType()
 	header := NewHeader(part.Metadata())

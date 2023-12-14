@@ -1,24 +1,25 @@
 package test
 
 import (
+	"strings"
+	"testing"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"strings"
-	"testing"
 )
 
 // KeyFactory
 
-type KeyFactory struct {}
+type KeyFactory struct{}
 
 func (f *KeyFactory) Create(
-	_*struct{
-	    creates.It
+	_ *struct {
+		creates.It
 		_ creates.It `key:"foo"`
-	  },
+	},
 ) *Foo {
 	return &Foo{Counted{1}}
 }
@@ -31,13 +32,13 @@ type MultiKeyFactory struct {
 }
 
 func (f *MultiKeyFactory) Create(
-	_*struct{
+	_ *struct {
 		provides.Single
 		_ creates.It  `key:"foo"`
 		_ creates.It  `key:"bar"`
 		_ provides.It `key:"foo"`
 		_ provides.It `key:"bar"`
-	  },
+	},
 	c *creates.It,
 	p *provides.It,
 ) any {
@@ -69,7 +70,7 @@ type CreatesTestSuite struct {
 
 func (suite *CreatesTestSuite) Setup() (miruken.Handler, error) {
 	return setup.New(TestFeature).ExcludeSpecs(
-		func (spec miruken.HandlerSpec) bool {
+		func(spec miruken.HandlerSpec) bool {
 			switch ts := spec.(type) {
 			case miruken.TypeSpec:
 				return strings.Contains(ts.Name(), "Invalid")
@@ -111,7 +112,7 @@ func (suite *CreatesTestSuite) TestCreates() {
 		suite.Equal(2, c.bar.Count())
 	})
 
-	suite.Run("Key", func () {
+	suite.Run("Key", func() {
 		handler, _ := setup.New().
 			Specs(&KeyFactory{}).
 			Context()
@@ -120,7 +121,7 @@ func (suite *CreatesTestSuite) TestCreates() {
 		suite.Equal(1, foo.Count())
 	})
 
-	suite.Run("InferKey", func () {
+	suite.Run("InferKey", func() {
 		handler, _ := setup.New().
 			Specs(&KeyFactory{}).
 			Context()

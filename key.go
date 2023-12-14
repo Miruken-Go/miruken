@@ -2,14 +2,14 @@ package miruken
 
 import (
 	"fmt"
-	"github.com/miruken-go/miruken/promise"
 	"reflect"
+
+	"github.com/miruken-go/miruken/promise"
 )
 
 // Key is a miruken.DependencyResolver for resolving
 // values referenced by a string key.
 type Key string
-
 
 //goland:noinspection GoMixedReceiverTypes
 func (k *Key) InitWithTag(tag reflect.StructTag) error {
@@ -52,4 +52,3 @@ func (k Key) Resolve(
 	}
 	return
 }
-

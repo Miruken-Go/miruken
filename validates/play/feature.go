@@ -26,11 +26,11 @@ func (i *Installer) DependsOn() []setup.Feature {
 	return []setup.Feature{validates.Feature()}
 }
 
-func (i *Installer) Install(setup *setup.Builder) error {
-	if setup.Tag(&featureTag) {
-		setup.Specs(&validator{}).With(i.validate)
+func (i *Installer) Install(b *setup.Builder) error {
+	if b.Tag(&featureTag) {
+		b.Specs(&validator{}).With(i.validate)
 		if translator := i.translator; translator != nil {
-			setup.With(translator)
+			b.With(translator)
 		}
 	}
 	return nil

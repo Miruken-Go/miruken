@@ -2,10 +2,6 @@ package httpsrv
 
 import (
 	"fmt"
-	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/internal/slices"
-	"github.com/miruken-go/miruken/provides"
 	"log"
 	"maps"
 	"net/http"
@@ -13,6 +9,11 @@ import (
 	"runtime"
 	"sync"
 	"sync/atomic"
+
+	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/internal"
+	"github.com/miruken-go/miruken/internal/slices"
+	"github.com/miruken-go/miruken/provides"
 )
 
 type (
@@ -36,14 +37,14 @@ type (
 	)
 )
 
-
 func (f MiddlewareFunc) ServeHTTP(
 	w http.ResponseWriter,
 	r *http.Request,
 	h miruken.Handler,
 	n func(miruken.Handler),
-) { f(w, r, h, n) }
-
+) {
+	f(w, r, h, n)
+}
 
 // Pipe builds a Middleware chain for pre and post processing of http requests.
 func Pipe(middleware ...any) Middleware {
@@ -86,7 +87,6 @@ func Pipe(middleware ...any) Middleware {
 	})
 }
 
-
 // M builds a typed Middleware wrapper for dynamic http processing.
 func M[M any](opts ...any) Middleware {
 	typ := internal.TypeOf[M]()
@@ -99,7 +99,6 @@ func M[M any](opts ...any) Middleware {
 	panic(fmt.Errorf(
 		"httpsrv: %v is not httpsrv.Middleware or compatible middleware type", typ))
 }
-
 
 type (
 	// funMiddleware adapts a function to a pipeline.
@@ -127,7 +126,6 @@ type (
 		argIndexes []int
 	}
 )
-
 
 // getMiddlewareBinding discovers a suitable Middleware method.
 // Uses the copy-on-write idiom since reads should be more frequent than writes.
@@ -179,7 +177,7 @@ func makeMiddlewareBinding(
 		typ.In(idx+1) != middlewareFuncType.In(1) {
 		return nil, nil
 	}
-	for i := 2+idx; i < numArgs; i++ {
+	for i := 2 + idx; i < numArgs; i++ {
 		for j := 2; j < middlewareFuncType.NumIn(); j++ {
 			if typ.In(i) == middlewareFuncType.In(j) {
 				binding.argIndexes = append(binding.argIndexes, j)
@@ -194,7 +192,6 @@ func makeMiddlewareBinding(
 		return &binding, nil
 	}
 }
-
 
 func (a *funMiddleware) ServeHTTP(
 	w http.ResponseWriter,
@@ -267,8 +264,8 @@ func (a *dynMiddleware) ServeHTTP(
 }
 
 func (b middlewareBinding) invoke(
-	h        miruken.Handler,
-	n        func(miruken.Handler),
+	h miruken.Handler,
+	n func(miruken.Handler),
 	initArgs ...any,
 ) error {
 	for _, idx := range b.argIndexes {
@@ -286,22 +283,20 @@ func (b middlewareBinding) invoke(
 	return err
 }
 
-
 func handlePanic(w http.ResponseWriter, _ *http.Request) {
 	if rc := recover(); rc != nil {
 		buf := make([]byte, 2048)
-		n   := runtime.Stack(buf, false)
+		n := runtime.Stack(buf, false)
 		buf = buf[:n]
 		log.Printf("recovering from http panic: %v\n%s", rc, string(buf))
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
 
-
 var (
 	middlewareType = internal.TypeOf[Middleware]()
 
-	middlewareFuncLock sync.Mutex
+	middlewareFuncLock   sync.Mutex
 	middlewareFuncType   = internal.TypeOf[MiddlewareFunc]()
 	middlewareBindingMap = atomic.Pointer[map[reflect.Type]middlewareBinding]{}
 )

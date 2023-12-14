@@ -7,16 +7,16 @@ import (
 )
 
 // Installer configure json support.
-type Installer struct {}
+type Installer struct{}
 
 func (i *Installer) DependsOn() []setup.Feature {
 	return []setup.Feature{
 		api.Feature()}
 }
 
-func (i *Installer) Install(setup *setup.Builder) error {
-	if setup.Tag(&featureTag) {
-		setup.Specs(&Mapper{}, &json.SurrogateMapper{}, &SurrogateMapper{})
+func (i *Installer) Install(b *setup.Builder) error {
+	if b.Tag(&featureTag) {
+		b.Specs(&Mapper{}, &json.SurrogateMapper{}, &SurrogateMapper{})
 	}
 	return nil
 }

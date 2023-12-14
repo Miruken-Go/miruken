@@ -1,6 +1,9 @@
 package test
 
 import (
+	"os"
+	"testing"
+
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/providers/env"
@@ -14,8 +17,6 @@ import (
 	"github.com/miruken-go/miruken/security/principal"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"os"
-	"testing"
 )
 
 type LoginTestSuite struct {
@@ -34,7 +35,7 @@ func (suite *LoginTestSuite) TestLogin() {
 		suite.Run("Login", func() {
 			suite.Run("Succeed", func() {
 				ctx := login.New("login.flow1")
-				ch  := miruken.AddHandlers(
+				ch := miruken.AddHandlers(
 					callback.NameHandler{Name: "user"},
 					callback.PasswordHandler{Password: []byte("password")},
 				)
@@ -57,7 +58,7 @@ func (suite *LoginTestSuite) TestLogin() {
 
 			suite.Run("Fail", func() {
 				ctx := login.New("login.flow1")
-				ch  := miruken.AddHandlers(
+				ch := miruken.AddHandlers(
 					callback.NameHandler{Name: "user"},
 					callback.PasswordHandler{Password: []byte("foo")},
 				)
@@ -87,7 +88,7 @@ func (suite *LoginTestSuite) TestLogin() {
 		suite.Run("Login", func() {
 			suite.Run("Succeed", func() {
 				ctx := login.New("Login.Flow1")
-				ch  := miruken.AddHandlers(
+				ch := miruken.AddHandlers(
 					callback.NameHandler{Name: "user"},
 					callback.PasswordHandler{Password: []byte("password")},
 				)
@@ -129,4 +130,3 @@ func (suite *LoginTestSuite) TestLogin() {
 func TestLoginTestSuite(t *testing.T) {
 	suite.Run(t, new(LoginTestSuite))
 }
-

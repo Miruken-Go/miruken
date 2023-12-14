@@ -3,11 +3,12 @@ package api
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/miruken-go/miruken/internal"
 	"io"
 	"mime"
 	"path/filepath"
 	"strings"
+
+	"github.com/miruken-go/miruken/internal"
 )
 
 type (
@@ -57,7 +58,6 @@ type (
 		main      Part
 	}
 )
-
 
 // PartBuilder
 
@@ -120,7 +120,6 @@ func (b *PartBuilder) Build() Part {
 	return part
 }
 
-
 // ReadPartsBuilder
 
 func (b *ReadPartsBuilder) Metadata(
@@ -138,7 +137,7 @@ func (b *ReadPartsBuilder) MainPart(
 }
 
 func (b *ReadPartsBuilder) AddPart(
-	key  string,
+	key string,
 	part Part,
 ) *ReadPartsBuilder {
 	if len(key) == 0 {
@@ -187,7 +186,6 @@ func (b *ReadPartsBuilder) Build() PartContainer {
 	return ctr
 }
 
-
 // WritePartsBuilder
 
 func (b *WritePartsBuilder) MediaType(
@@ -197,7 +195,7 @@ func (b *WritePartsBuilder) MediaType(
 		panic(fmt.Errorf("invalid media type %q: %w", mediaType, err))
 	} else {
 		b.container.mediaType = mediaType
-		b.container.boundary  = params["boundary"]
+		b.container.boundary = params["boundary"]
 	}
 	return b
 }
@@ -221,7 +219,6 @@ func (b *WritePartsBuilder) Build() PartContainer {
 	return ctr
 }
 
-
 // part
 
 func (p part) MediaType() string {
@@ -239,7 +236,6 @@ func (p part) Filename() string {
 func (p part) Body() any {
 	return p.body
 }
-
 
 // partContainer
 

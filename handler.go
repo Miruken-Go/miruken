@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+
 	"github.com/miruken-go/miruken/internal"
 )
 
@@ -10,7 +11,7 @@ type (
 	Handler interface {
 		Handle(
 			callback any,
-			greedy   bool,
+			greedy bool,
 			composer Handler,
 		) HandleResult
 	}
@@ -35,34 +36,32 @@ type (
 	}
 
 	// CanceledError reports a canceled operation.
- 	CanceledError struct {
+	CanceledError struct {
 		Message string
 		Cause   error
 	}
 
 	// handlerAdapter adapts an ordinary type to a Handler.
 	handlerAdapter struct {
-		 handler any
+		handler any
 	}
 )
-
 
 // HandleContext
 
 func (c HandleContext) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	return c.Composer.Handle(callback, greedy, composer)
 }
 
-
 // handlerAdapter
 
 func (h handlerAdapter) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	return DispatchCallback(h.handler, callback, greedy, composer)
@@ -77,20 +76,17 @@ func ToHandler(handler any) Handler {
 	}
 }
 
-
 // NotHandledError
 
 func (e *NotHandledError) Error() string {
 	return fmt.Sprintf("unhandled \"%T\"", e.Callback)
 }
 
-
 // RejectedError
 
 func (e *RejectedError) Error() string {
 	return fmt.Sprintf("callback \"%T\" was rejected", e.Callback)
 }
-
 
 // CanceledError
 
@@ -105,11 +101,10 @@ func (e *CanceledError) Unwrap() error {
 	return e.Cause
 }
 
-
 func DispatchCallback(
-	handler  any,
+	handler any,
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if internal.IsNil(handler) {

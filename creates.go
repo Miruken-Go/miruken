@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 )
@@ -20,7 +21,6 @@ type (
 	}
 )
 
-
 // Creates
 
 func (c *Creates) Key() any {
@@ -32,8 +32,8 @@ func (c *Creates) Policy() Policy {
 }
 
 func (c *Creates) Dispatch(
-	handler  any,
-	greedy   bool,
+	handler any,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	count := c.ResultCount()
@@ -44,7 +44,6 @@ func (c *Creates) Dispatch(
 func (c *Creates) String() string {
 	return fmt.Sprintf("creates => %+v", c.key)
 }
-
 
 // CreatesBuilder
 
@@ -61,13 +60,13 @@ func (b *CreatesBuilder) WithKey(
 func (b *CreatesBuilder) New() *Creates {
 	return &Creates{
 		CallbackBase: b.CallbackBase(),
-		key: b.key,
+		key:          b.key,
 	}
 }
 
 // Create creates a value of type parameter T.
 func Create[T any](
-	handler     Handler,
+	handler Handler,
 	constraints ...any,
 ) (T, *promise.Promise[T], error) {
 	return CreateKey[T](handler, internal.TypeOf[T](), constraints...)
@@ -75,8 +74,8 @@ func Create[T any](
 
 // CreateKey creates a value of type parameter T with the specified key.
 func CreateKey[T any](
-	handler     Handler,
-	key         any,
+	handler Handler,
+	key any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], err error) {
 	if internal.IsNil(handler) {
@@ -84,8 +83,8 @@ func CreateKey[T any](
 	}
 	var builder CreatesBuilder
 	builder.WithKey(key).
-		    IntoTarget(&t).
-			WithConstraints(constraints...)
+		IntoTarget(&t).
+		WithConstraints(constraints...)
 	creates := builder.New()
 	if result := handler.Handle(creates, false, nil); result.IsError() {
 		err = result.Error()
@@ -99,7 +98,7 @@ func CreateKey[T any](
 
 // CreateAll creates all values of type parameter T.
 func CreateAll[T any](
-	handler     Handler,
+	handler Handler,
 	constraints ...any,
 ) (t []T, tp *promise.Promise[[]T], err error) {
 	if internal.IsNil(handler) {
@@ -107,8 +106,8 @@ func CreateAll[T any](
 	}
 	var builder CreatesBuilder
 	builder.WithKey(internal.TypeOf[T]()).
-		    IntoTarget(&t).
-			WithConstraints(constraints...)
+		IntoTarget(&t).
+		WithConstraints(constraints...)
 	creates := builder.New()
 	if result := handler.Handle(creates, true, nil); result.IsError() {
 		err = result.Error()
@@ -121,6 +120,5 @@ func CreateAll[T any](
 	}
 	return
 }
-
 
 var createsPolicyIns Policy = &CovariantPolicy{}

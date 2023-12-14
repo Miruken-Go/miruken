@@ -2,9 +2,10 @@ package miruken
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
 )
 
 // Handles callbacks contravariantly.
@@ -26,9 +27,9 @@ func (h *Handles) Policy() Policy {
 }
 
 func (h *Handles) CanDispatch(
-	handler     any,
+	handler any,
 	binding Binding,
-) (reset func (), approved bool) {
+) (reset func(), approved bool) {
 	if guard, ok := h.callback.(CallbackGuard); ok {
 		return guard.CanDispatch(handler, binding)
 	}
@@ -36,29 +37,29 @@ func (h *Handles) CanDispatch(
 }
 
 func (h *Handles) CanInfer() bool {
-	if infer, ok := h.callback.(interface{CanInfer() bool}); ok {
+	if infer, ok := h.callback.(interface{ CanInfer() bool }); ok {
 		return infer.CanInfer()
 	}
 	return true
 }
 
 func (h *Handles) CanFilter() bool {
-	if filter, ok := h.callback.(interface{CanFilter() bool}); ok {
+	if filter, ok := h.callback.(interface{ CanFilter() bool }); ok {
 		return filter.CanFilter()
 	}
 	return true
 }
 
 func (h *Handles) CanBatch() bool {
-	if batch, ok := h.callback.(interface{CanBatch() bool}); ok {
+	if batch, ok := h.callback.(interface{ CanBatch() bool }); ok {
 		return batch.CanBatch()
 	}
 	return true
 }
 
 func (h *Handles) Dispatch(
-	handler  any,
-	greedy   bool,
+	handler any,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	count := h.ResultCount()
@@ -96,8 +97,8 @@ func (b *HandlesBuilder) New() *Handles {
 // Command invokes a callback with no results.
 // returns an empty promise if execution is asynchronous.
 func Command(
-	handler     Handler,
-	callback    any,
+	handler Handler,
+	callback any,
 	constraints ...any,
 ) (pv *promise.Promise[any], err error) {
 	if internal.IsNil(handler) {
@@ -105,7 +106,7 @@ func Command(
 	}
 	var builder HandlesBuilder
 	builder.WithCallback(callback).
-			WithConstraints(constraints...)
+		WithConstraints(constraints...)
 	handles := builder.New()
 	if result := handler.Handle(handles, false, nil); result.IsError() {
 		err = result.Error()
@@ -120,8 +121,8 @@ func Command(
 // Execute executes a callback with results.
 // returns the results or promise if execution is asynchronous.
 func Execute[T any](
-	handler     Handler,
-	callback    any,
+	handler Handler,
+	callback any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], err error) {
 	if internal.IsNil(handler) {
@@ -129,8 +130,8 @@ func Execute[T any](
 	}
 	var builder HandlesBuilder
 	builder.WithCallback(callback).
-		    IntoTarget(&t).
-			WithConstraints(constraints...)
+		IntoTarget(&t).
+		WithConstraints(constraints...)
 	handles := builder.New()
 	if result := handler.Handle(handles, false, nil); result.IsError() {
 		err = result.Error()
@@ -147,8 +148,8 @@ func Execute[T any](
 // CommandAll invokes a callback on all with no results.
 // returns an empty promise if execution is asynchronous.
 func CommandAll(
-	handler     Handler,
-	callback    any,
+	handler Handler,
+	callback any,
 	constraints ...any,
 ) (p *promise.Promise[any], err error) {
 	if internal.IsNil(handler) {
@@ -156,7 +157,7 @@ func CommandAll(
 	}
 	var builder HandlesBuilder
 	builder.WithCallback(callback).
-			WithConstraints(constraints...)
+		WithConstraints(constraints...)
 	handles := builder.New()
 	if result := handler.Handle(handles, true, nil); result.IsError() {
 		err = result.Error()
@@ -171,8 +172,8 @@ func CommandAll(
 // ExecuteAll executes a callback on all and collects the results.
 // returns the results or promise if execution is asynchronous.
 func ExecuteAll[T any](
-	handler     Handler,
-	callback    any,
+	handler Handler,
+	callback any,
 	constraints ...any,
 ) (t []T, tp *promise.Promise[[]T], err error) {
 	if internal.IsNil(handler) {
@@ -180,8 +181,8 @@ func ExecuteAll[T any](
 	}
 	var builder HandlesBuilder
 	builder.WithCallback(callback).
-		    IntoTarget(&t).
-			WithConstraints(constraints...)
+		IntoTarget(&t).
+		WithConstraints(constraints...)
 	handles := builder.New()
 	if result := handler.Handle(handles, true, nil); result.IsError() {
 		err = result.Error()
@@ -194,6 +195,5 @@ func ExecuteAll[T any](
 	}
 	return
 }
-
 
 var handlesPolicyIns Policy = &ContravariantPolicy{}

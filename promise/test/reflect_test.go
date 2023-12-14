@@ -2,11 +2,12 @@ package test
 
 import (
 	"fmt"
-	"github.com/miruken-go/miruken/promise"
-	"github.com/stretchr/testify/require"
 	"reflect"
 	"runtime"
 	"testing"
+
+	"github.com/miruken-go/miruken/promise"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPromise_UnderlyingType(t *testing.T) {
@@ -107,7 +108,7 @@ func TestUnwrap_Reject(t *testing.T) {
 		resolve("Hello")
 	})
 	p2 := promise.Unwrap(promise.Then(p1,
-			func(data string) *promise.Promise[string] {
+		func(data string) *promise.Promise[string] {
 			return promise.Reject[string](fmt.Errorf("%s Error", data))
 		}))
 	result, err := p2.Await()

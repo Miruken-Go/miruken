@@ -17,14 +17,12 @@ type (
 	Configuration map[string]Flow
 )
 
-
 func (m ModuleEntry) Validate() error {
 	if m.Module == "" {
 		return errors.New("module is required")
 	}
 	return nil
 }
-
 
 func (f Flow) Validate() error {
 	if len(f) == 0 {

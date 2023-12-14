@@ -16,7 +16,6 @@ type (
 	}
 )
 
-
 func (n *Name) Prompt() string {
 	return n.prompt
 }
@@ -33,12 +32,11 @@ func (n *Name) SetName(name string) {
 	n.name = name
 }
 
-
 // NameHandler
 
 func (h NameHandler) Handle(
-	c        any,
-	greedy   bool,
+	c any,
+	greedy bool,
 	composer miruken.Handler,
 ) miruken.HandleResult {
 	if n, ok := c.(*Name); ok {
@@ -47,7 +45,6 @@ func (h NameHandler) Handle(
 	}
 	return miruken.NotHandled
 }
-
 
 func NewName(prompt string, defaultName string) *Name {
 	return &Name{prompt: prompt, defaultName: defaultName}

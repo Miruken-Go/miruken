@@ -2,6 +2,8 @@ package test
 
 import (
 	"errors"
+	"testing"
+
 	"github.com/google/uuid"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/cascade"
@@ -11,7 +13,6 @@ import (
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 type (
@@ -58,7 +59,6 @@ type (
 	}
 )
 
-
 func (r *ReservationHandler) Constructor() {
 	r.res = make(map[uuid.UUID]*Reservation)
 }
@@ -67,7 +67,7 @@ func (r *ReservationHandler) Reserve(
 	_ *handles.It, reserve ReserveSeats,
 ) (Reservation, *cascade.Messages) {
 	reservationId := uuid.New()
-	reservation   := Reservation{
+	reservation := Reservation{
 		Id:       reservationId,
 		FlightNo: reserve.FlightNo,
 	}
@@ -90,14 +90,13 @@ func (r *ReservationHandler) ChangeReservedSeat(
 		return promise.Reject[struct{}](
 			errors.New("reservation not found")), nil
 	}
-	return promise.Resolve(struct {}{}),
+	return promise.Resolve(struct{}{}),
 		cascade.Publish(ReservedSeatChanged{
 			ReservationId: change.ReservationId,
 			OldSeatId:     change.OldSeatId,
 			NewSeatId:     change.NewSeatId,
-	})
+		})
 }
-
 
 func (s *SeatInventory) Constructor() {
 	s.seats = make(map[uuid.UUID][]SeatReservation)
@@ -118,16 +117,16 @@ func (s *SeatInventory) Reserved(
 	resId := reserved.ReservationId
 	if seats, ok := s.seats[resId]; ok {
 		s.seats[resId] = append(seats,
-			SeatReservation{resId,reserved.FlightNo, reserved.SeatId})
+			SeatReservation{resId, reserved.FlightNo, reserved.SeatId})
 	} else {
 		s.seats[resId] = []SeatReservation{
-			{resId,reserved.FlightNo, reserved.SeatId}}
+			{resId, reserved.FlightNo, reserved.SeatId}}
 	}
 	return nil
 }
 
 func (s *SeatInventory) Changed(
-	_*handles.It, changed ReservedSeatChanged,
+	_ *handles.It, changed ReservedSeatChanged,
 ) *promise.Promise[struct{}] {
 	resId := changed.ReservationId
 	if seats, ok := s.seats[resId]; ok {
@@ -138,9 +137,8 @@ func (s *SeatInventory) Changed(
 			}
 		}
 	}
-	return promise.Resolve(struct {}{})
+	return promise.Resolve(struct{}{})
 }
-
 
 type CascadeTestSuite struct {
 	suite.Suite
@@ -189,9 +187,9 @@ func (suite *CascadeTestSuite) TestCascade() {
 		handler, _ := suite.Setup()
 		reservation, _, err := api.Send[Reservation](handler,
 			ReserveSeats{
-			FlightNo: "AA 139",
-			Count:    3,
-		})
+				FlightNo: "AA 139",
+				Count:    3,
+			})
 		suite.Nil(err)
 		suite.NotNil(reservation)
 
@@ -202,8 +200,8 @@ func (suite *CascadeTestSuite) TestCascade() {
 		pc, err := api.Post(handler,
 			ChangeReservedSeat{
 				ReservationId: reservation.Id,
-				OldSeatId: seats[0].SeatId,
-				NewSeatId: newSeatId,
+				OldSeatId:     seats[0].SeatId,
+				NewSeatId:     newSeatId,
 			})
 		suite.Nil(err)
 		suite.NotNil(pc)

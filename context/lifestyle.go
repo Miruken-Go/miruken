@@ -3,15 +3,16 @@ package context
 import (
 	"errors"
 	"fmt"
-	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/promise"
-	"github.com/miruken-go/miruken/provides"
 	"maps"
 	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/internal"
+	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/provides"
 )
 
 type (
@@ -55,11 +56,9 @@ type (
 	}
 )
 
-
 var (
 	ErrScopeInactiveContext = errors.New("scoped: cannot scope instances to an inactive context")
 )
-
 
 // Scoped
 
@@ -77,7 +76,7 @@ func (s *Scoped) InitWithTag(tag reflect.StructTag) error {
 	return nil
 }
 
-func (s *Scoped)InitLifestyle(binding miruken.Binding) error {
+func (s *Scoped) InitLifestyle(binding miruken.Binding) error {
 	if !s.FiltersAssigned() {
 		covar := s.covar
 		if !covar {
@@ -93,15 +92,14 @@ func (s *Scoped)InitLifestyle(binding miruken.Binding) error {
 	return nil
 }
 
-
 // scoped
 
 func (s *scoped) Next(
-	self     miruken.Filter,
-	next     miruken.Next,
-	ctx      miruken.HandleContext,
+	self miruken.Filter,
+	next miruken.Next,
+	ctx miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  (out []any, po *promise.Promise[[]any], err error) {
+) (out []any, po *promise.Promise[[]any], err error) {
 	key := ctx.Callback.(*provides.It).Key()
 	context, abort, err := getContext(key, ctx, provider)
 	if err != nil {
@@ -143,8 +141,8 @@ func (s *scoped) Next(
 
 func (s *scoped) ContextChanging(
 	contextual Contextual,
-	oldCtx     *Context,
-	newCtx     **Context,
+	oldCtx *Context,
+	newCtx **Context,
 ) {
 	if oldCtx == *newCtx {
 		return
@@ -182,13 +180,12 @@ func (s *scoped) removeContext(context *Context) {
 	}
 }
 
-
 // scopedCovar
 
 func (s *scopedCovar) Next(
-	self     miruken.Filter,
-	next     miruken.Next,
-	ctx      miruken.HandleContext,
+	self miruken.Filter,
+	next miruken.Next,
+	ctx miruken.HandleContext,
 	provider miruken.FilterProvider,
 ) (out []any, po *promise.Promise[[]any], err error) {
 	key := ctx.Callback.(*provides.It).Key()
@@ -218,7 +215,7 @@ func (s *scopedCovar) Next(
 					// If the key is not found, check if any existing instances
 					// can satisfy the key before a new instance is provided.
 					if typ, ok := key.(reflect.Type); ok {
-						for _,v := range keys {
+						for _, v := range keys {
 							if instance := v.instance; len(instance) > 0 {
 								if o := instance[0]; o != nil && reflect.TypeOf(o).AssignableTo(typ) {
 									entry = v
@@ -249,8 +246,8 @@ func (s *scopedCovar) Next(
 
 func (s *scopedCovar) ContextChanging(
 	contextual Contextual,
-	oldCtx     *Context,
-	newCtx     **Context,
+	oldCtx *Context,
+	newCtx **Context,
 ) {
 	if oldCtx == *newCtx {
 		return
@@ -281,14 +278,13 @@ func (s *scopedCovar) removeContext(context *Context) {
 	delete(s.cache, context)
 }
 
-
 // scopedEntry
 
 func (s *scopedEntry) get(
-	context       *Context,
-	observer      Observer,
+	context *Context,
+	observer Observer,
 	removeContext func(*Context),
-	next          miruken.Next,
+	next miruken.Next,
 ) (out []any, po *promise.Promise[[]any], err error) {
 	s.once.Do(func() {
 		defer func() {
@@ -328,10 +324,9 @@ func (s *scopedEntry) get(
 	return s.instance, nil, nil
 }
 
-
 func getContext(
-	key      any,
-	ctx      miruken.HandleContext,
+	key any,
+	ctx miruken.HandleContext,
 	provider miruken.FilterProvider,
 ) (*Context, bool, error) {
 	if key == contextType {
@@ -362,7 +357,7 @@ func getContext(
 }
 
 func isCompatibleWithParent(
-	ctx    miruken.HandleContext,
+	ctx miruken.HandleContext,
 	rooted bool,
 ) bool {
 	if parent := ctx.Callback.(*provides.It).Parent(); parent != nil {
@@ -382,6 +377,5 @@ func tryDispose(instance any) {
 		disposable.Dispose()
 	}
 }
-
 
 var contextType = internal.TypeOf[*Context]()

@@ -8,8 +8,10 @@ func CombinePredicates[T any](
 	predicates ...Predicate[T],
 ) Predicate[T] {
 	switch len(predicates) {
-	case 0: return predicate
-	case 1: return combinePredicate2(predicate, predicates[0])
+	case 0:
+		return predicate
+	case 1:
+		return combinePredicate2(predicate, predicates[0])
 	default:
 		for _, p := range predicates {
 			predicate = combinePredicate2(predicate, p)

@@ -2,10 +2,11 @@ package miruken
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
 )
 
 type (
@@ -21,8 +22,8 @@ type (
 		Result(many bool) (any, *promise.Promise[any])
 		SetResult(result any)
 		ReceiveResult(
-			result   any,
-			strict   bool,
+			result any,
+			strict bool,
 			composer Handler,
 		) HandleResult
 	}
@@ -32,12 +33,12 @@ type (
 		CanDispatch(
 			handler any,
 			binding Binding,
-		) (reset func (), approved bool)
+		) (reset func(), approved bool)
 	}
 
 	// AcceptResultFunc accepts or rejects callback results.
 	AcceptResultFunc func(
-		result   any,
+		result any,
 		composer Handler,
 	) HandleResult
 
@@ -59,7 +60,7 @@ type (
 	}
 
 	// CallbackBuilder builds common CallbackBase.
- 	CallbackBuilder struct {
+	CallbackBuilder struct {
 		target      any
 		constraints []Constraint
 	}
@@ -67,8 +68,8 @@ type (
 	// customizeDispatch customizes Callback dispatch.
 	customizeDispatch interface {
 		Dispatch(
-			handler  any,
-			greedy   bool,
+			handler any,
+			greedy bool,
 			composer Handler,
 		) HandleResult
 	}
@@ -81,7 +82,6 @@ type (
 	// marks a list of results to be expanded.
 	expandResults []any
 )
-
 
 // CallbackBase
 
@@ -143,7 +143,7 @@ func (c *CallbackBase) SetAcceptPromiseResult(
 }
 
 func (c *CallbackBase) AddResult(
-	result   any,
+	result any,
 	composer Handler,
 ) HandleResult {
 	if internal.IsNil(result) {
@@ -157,9 +157,9 @@ func (c *CallbackBase) AddResult(
 		// expandResults type is used when the promise Resolves
 		// in a list of results.
 		idx := len(c.results)
-		c.results  = append(c.results, result)
+		c.results = append(c.results, result)
 		c.promises = append(c.promises, pr.Then(func(res any) any {
-			if accept != nil  {
+			if accept != nil {
 				if l := len(c.results); l > idx {
 					c.results[idx] = nil
 				}
@@ -181,8 +181,8 @@ func (c *CallbackBase) AddResult(
 }
 
 func (c *CallbackBase) ReceiveResult(
-	result   any,
-	strict   bool,
+	result any,
+	strict bool,
 	composer Handler,
 ) HandleResult {
 	if internal.IsNil(result) {
@@ -242,8 +242,8 @@ func (c *CallbackBase) ensureResult(many bool, expand bool) any {
 }
 
 func (c *CallbackBase) includeResult(
-	result   any,
-	strict   bool,
+	result any,
+	strict bool,
 	composer Handler,
 ) HandleResult {
 	if internal.IsNil(result) {
@@ -282,8 +282,8 @@ func (c *CallbackBase) includeResult(
 // expandResults type that is expanded when results are requested.
 // This is used to allow in-place replacement to avoid locking the results.
 func (c *CallbackBase) processResults(
-	squash   bool,
-	results  any,
+	squash bool,
+	results any,
 	composer Handler,
 ) (expandResults, HandleResult) {
 	res := NotHandled
@@ -301,7 +301,6 @@ func (c *CallbackBase) processResults(
 	}
 	return expand, res
 }
-
 
 // CallbackBuilder
 
@@ -345,7 +344,8 @@ func (b *CallbackBuilder) CallbackBase() CallbackBase {
 // unwrapResult unwraps the result if it's a promise.
 // During processing of a callback, it may be  promoted
 // to an asynchronous operation, so it must be unwrapped.
-//   e.g.  async filter, async args
+//
+//	e.g.  async filter, async args
 func unwrapResult(result any) any {
 	if result == nil {
 		return nil

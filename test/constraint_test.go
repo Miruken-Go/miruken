@@ -1,19 +1,20 @@
 package test
 
 import (
+	"testing"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/constraints"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 type (
 	Person interface {
 		FirstName() string
-		LastName()  string
+		LastName() string
 	}
 
 	PersonData struct {
@@ -36,7 +37,7 @@ type (
 
 	PersonProvider struct{}
 
-	NoConstraintProvider struct {}
+	NoConstraintProvider struct{}
 
 	AppSettings interface {
 		ServerUrl() string
@@ -72,10 +73,10 @@ func (d *Doctor) Init() error {
 // Hospital
 
 func (h *Hospital) Constructor(
-	_*struct{Doctor},     doctor     Person,
-	_*struct{Programmer}, programmer Person,
+	_ *struct{ Doctor }, doctor Person,
+	_ *struct{ Programmer }, programmer Person,
 ) {
-	h.doctor     = doctor
+	h.doctor = doctor
 	h.programmer = programmer
 }
 
@@ -90,21 +91,21 @@ func (h *Hospital) Programmer() Person {
 // PersonProvider
 
 func (p *PersonProvider) Doctor(
-	_*struct{
+	_ *struct {
 		provides.It
 		provides.Single
 		Doctor
-      },
+	},
 ) Person {
 	return &PersonData{"Jack", "Zigler"}
 }
 
 func (p *PersonProvider) Programmer(
-	_*struct{
+	_ *struct {
 		provides.It
 		provides.Single
 		Programmer
-      },
+	},
 ) Person {
 	return &PersonData{"Paul", "Allen"}
 }
@@ -120,11 +121,11 @@ func (n *NoConstraintProvider) Person(
 // LocalSettings
 
 func (l *LocalSettings) Constructor(
-	_*struct{
+	_ *struct {
 		provides.It
 		provides.Single
 		constraints.Named `name:"local"`
-      },
+	},
 ) {
 }
 
@@ -135,11 +136,11 @@ func (l *LocalSettings) ServerUrl() string {
 // RemoteSettings
 
 func (r *RemoteSettings) Constructor(
-	_*struct{
+	_ *struct {
 		provides.It
 		provides.Single
 		constraints.Named `name:"remote"`
-      },
+	},
 ) {
 }
 
@@ -150,10 +151,14 @@ func (r *RemoteSettings) ServerUrl() string {
 // Client
 
 func (c *Client) Constructor(
-	_*struct{constraints.Named `name:"local"`},  local  AppSettings,
-	_*struct{constraints.Named `name:"remote"`}, remote AppSettings,
+	_ *struct {
+		constraints.Named `name:"local"`
+	}, local AppSettings,
+	_ *struct {
+		constraints.Named `name:"remote"`
+	}, remote AppSettings,
 ) {
-	c.local  = local
+	c.local = local
 	c.remote = remote
 }
 
@@ -188,7 +193,7 @@ func (suite *ConstraintTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 }
 
 func (suite *ConstraintTestSuite) TestConstraints() {
-	suite.Run("No Constraints", func () {
+	suite.Run("No Constraints", func() {
 		suite.Run("Resolve", func() {
 			handler, _ := suite.Setup()
 			appSettings, _, ok, err := miruken.Resolve[AppSettings](handler)
@@ -217,7 +222,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 		})
 	})
 
-	suite.Run("Named", func () {
+	suite.Run("Named", func() {
 		suite.Run("Resolve", func() {
 			handler, _ := suite.Setup()
 			appSettings, _, ok, err := miruken.Resolve[AppSettings](handler, "local")
@@ -249,7 +254,7 @@ func (suite *ConstraintTestSuite) TestConstraints() {
 		})
 	})
 
-	suite.Run("Metadata", func () {
+	suite.Run("Metadata", func() {
 		suite.Run("Resolve", func() {
 			handler, _ := suite.Setup()
 			doctor, _, ok, err := miruken.Resolve[Person](handler, internal.New[Doctor]())

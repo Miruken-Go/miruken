@@ -2,19 +2,20 @@ package miruken
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
 )
 
 type (
 	// FuncBinder creates a binding to a function.
 	FuncBinder interface {
 		NewFuncBinding(
-			fun  reflect.Value,
+			fun reflect.Value,
 			spec *bindingSpec,
-			key  any,
+			key any,
 		) (Binding, error)
 	}
 
@@ -39,7 +40,6 @@ type (
 	}
 )
 
-
 // FuncBindingError
 
 func (e *FuncBindingError) Func() reflect.Value {
@@ -53,7 +53,6 @@ func (e *FuncBindingError) Error() string {
 func (e *FuncBindingError) Unwrap() error {
 	return e.reason
 }
-
 
 // funcBinding
 
@@ -69,11 +68,10 @@ func (b *funcBinding) LogicalOutputType() reflect.Type {
 	return b.lt
 }
 
-
 // funcCall
 
 func (f *funcCall) Invoke(
-	ctx      HandleContext,
+	ctx HandleContext,
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	ra, pa, err := f.resolveArgs(len(initArgs), ctx)
@@ -89,7 +87,7 @@ func (f *funcCall) Invoke(
 
 func (f *funcCall) resolveArgs(
 	fromIndex int,
-	ctx       HandleContext,
+	ctx HandleContext,
 ) ([]reflect.Value, *promise.Promise[[]reflect.Value], error) {
 	if len(f.args) == 0 {
 		return nil, nil, nil
@@ -102,13 +100,13 @@ func (f *funcCall) resolveArgs(
 		if a, pa, err := arg.resolve(typ, ctx); err != nil {
 			return nil, nil, &UnresolvedArgError{arg, err}
 		} else if pa == nil {
-			if arg.flags() & bindingAsync == bindingAsync {
+			if arg.flags()&bindingAsync == bindingAsync {
 				// Not a promise so lift
 				resolved[i] = reflect.ValueOf(promise.Lift(typ, a.Interface()))
 			} else {
 				resolved[i] = a
 			}
-		} else if arg.flags() & bindingAsync == bindingAsync {
+		} else if arg.flags()&bindingAsync == bindingAsync {
 			// Already a promise so coerce
 			resolved[i] = reflect.ValueOf(
 				promise.CoerceType(typ, pa.Then(func(v any) any {
@@ -116,7 +114,7 @@ func (f *funcCall) resolveArgs(
 				})))
 		} else {
 			idx := i
-			promises = append(promises, promise.Then(pa, func(v reflect.Value) struct {} {
+			promises = append(promises, promise.Then(pa, func(v reflect.Value) struct{} {
 				resolved[idx] = v
 				return struct{}{}
 			}))
@@ -138,12 +136,12 @@ func (f *funcCall) resolveArgs(
 // Combines the initial ands resolved args as the function input.
 // Returns the output results slice.
 func callFuncWithArgs(
-	fun      reflect.Value,
-	ra       []reflect.Value,
+	fun reflect.Value,
+	ra []reflect.Value,
 	initArgs []any,
 ) []any {
 	cnt := len(initArgs)
-	in  := make([]reflect.Value, len(initArgs) + len(ra))
+	in := make([]reflect.Value, len(initArgs)+len(ra))
 	for i, ia := range initArgs {
 		in[i] = reflect.ValueOf(ia)
 	}
@@ -153,7 +151,6 @@ func callFuncWithArgs(
 	return slices.Map[reflect.Value, any](fun.Call(in), reflect.Value.Interface)
 }
 
-
 // mergeOutput analyzes the standard function return values and
 // normalizes them to produce immediate or asynchronous results.
 // If an error is present it is returned immediately.
@@ -161,13 +158,14 @@ func callFuncWithArgs(
 //   - last output is an error, return it immediately
 //   - first output is a promise, resolve and replace the
 //     first output element
+//
 // Otherwise, if asynchronous (2nd output is promise),
 // resolve and repeat steps above.
 // Returns the normalized output.
 func mergeOutput(
-	out  []any,
+	out []any,
 	pout *promise.Promise[[]any],
-	err  error,
+	err error,
 ) ([]any, *promise.Promise[[]any], error) {
 	if err != nil {
 		// if error, fail early
@@ -218,9 +216,9 @@ func mergeOutput(
 // results.  Should be used in Filter's that perform asynchronous
 // operations and want to normalize outputs.
 func mergeOutputAwait(
-	out  []any,
+	out []any,
 	pout *promise.Promise[[]any],
-	err  error,
+	err error,
 ) []any {
 	if err != nil {
 		// if error, fail early

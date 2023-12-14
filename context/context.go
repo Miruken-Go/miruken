@@ -1,12 +1,13 @@
 package context
 
 import (
+	"sync"
+	"sync/atomic"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/provides"
-	"sync"
-	"sync/atomic"
 )
 
 type (
@@ -38,12 +39,11 @@ type (
 
 	// ContextualBase is a base implementation for Contextual.
 	ContextualBase struct {
-		ctx        *Context
-		observers  map[contextualObserverType][]Observer
-		lock       sync.RWMutex
+		ctx       *Context
+		observers map[contextualObserverType][]Observer
+		lock      sync.RWMutex
 	}
 )
-
 
 const (
 	StateActive State = iota
@@ -56,7 +56,6 @@ const (
 	ReasonUnwinded
 	ReasonDisposed
 )
-
 
 // Context
 
@@ -74,8 +73,7 @@ func (c *Context) Children() []miruken.Traversing {
 
 func (c *Context) Root() *Context {
 	root := c
-	for parent, _ := c.Parent().(*Context); parent != nil;
-		parent, _ = parent.Parent().(*Context) {
+	for parent, _ := c.Parent().(*Context); parent != nil; parent, _ = parent.Parent().(*Context) {
 		root = parent
 	}
 	return root
@@ -108,7 +106,7 @@ func (c *Context) NewChild() *Context {
 }
 
 func (c *Context) Store(values ...any) *Context {
-	providers := slices.Map[any, any](values, func (v any) any {
+	providers := slices.Map[any, any](values, func(v any) any {
 		return miruken.NewProvider(v)
 	})
 	c.AppendHandlers(providers...)
@@ -117,14 +115,14 @@ func (c *Context) Store(values ...any) *Context {
 
 func (c *Context) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer miruken.Handler,
 ) miruken.HandleResult {
 	if composer == nil {
 		composer = &miruken.CompositionScope{Handler: c}
 	}
 	return c.MutableHandlers.Handle(callback, greedy, composer).
-		OtherwiseIf(greedy, func () miruken.HandleResult {
+		OtherwiseIf(greedy, func() miruken.HandleResult {
 			if parent := c.parent; parent != nil {
 				return parent.Handle(callback, greedy, composer)
 			}
@@ -135,7 +133,7 @@ func (c *Context) Handle(
 func (c *Context) HandleAxis(
 	axis miruken.TraversingAxis,
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer miruken.Handler,
 ) miruken.HandleResult {
 	if composer == nil {
@@ -207,7 +205,7 @@ func (c *Context) Unwind(reason any) *Context {
 		reason = ReasonUnwinded
 	}
 	children := c.children.Items()
-	for i := len(children)-1; i >= 0; i-- {
+	for i := len(children) - 1; i >= 0; i-- {
 		children[i].(*Context).End(reason)
 	}
 	return c
@@ -238,7 +236,7 @@ func (c *Context) removeChild(childCtx *Context) {
 }
 
 func (c *Context) addObserver(
-	obsType  contextObserverType,
+	obsType contextObserverType,
 	observer Observer,
 ) {
 	if obsType == contextObserverNone {
@@ -259,7 +257,7 @@ func (c *Context) addObserver(
 		obs = map[contextObserverType][]Observer{}
 	}
 	for ot := contextObserverEnding; ot < contextObserverAll; ot <<= 1 {
-		if obsType & ot == ot {
+		if obsType&ot == ot {
 			obs[ot] = append(obs[ot], observer)
 		}
 	}
@@ -267,7 +265,7 @@ func (c *Context) addObserver(
 }
 
 func (c *Context) removeObserver(
-	obsType  contextObserverType,
+	obsType contextObserverType,
 	observer Observer,
 ) {
 	if obsType == contextObserverNone {
@@ -280,7 +278,7 @@ func (c *Context) removeObserver(
 		obs := make(map[contextObserverType][]Observer, len(*observers))
 		for k, v := range *observers {
 			var os []Observer
-			if obsType & k == k {
+			if obsType&k == k {
 				for i, o := range v {
 					if o == observer {
 						os = make([]Observer, len(v)-1)
@@ -300,9 +298,9 @@ func (c *Context) removeObserver(
 }
 
 func (c *Context) notify(
-	obsType  contextObserverType,
-	ctx      *Context,
-	reason   any,
+	obsType contextObserverType,
+	ctx *Context,
+	reason any,
 ) {
 	if observers := c.observers.Load(); observers != nil {
 		if obs, ok := (*observers)[obsType]; ok && len(obs) > 0 {
@@ -342,7 +340,6 @@ func New(handlers ...any) *Context {
 	return context
 }
 
-
 // ContextualBase
 
 func (c *ContextualBase) Context() *Context {
@@ -353,7 +350,7 @@ func (c *ContextualBase) Context() *Context {
 
 func (c *ContextualBase) ChangeContext(
 	contextual Contextual,
-	ctx        *Context,
+	ctx *Context,
 ) {
 	if contextual == nil {
 		panic("contextual cannot be nil")
@@ -414,7 +411,7 @@ func (c *ContextualBase) addObserver(
 		c.observers = make(map[contextualObserverType][]Observer)
 	}
 	for typ := contextualObserverChanging; typ < contextualObserverAll; typ <<= 1 {
-		if obsType & typ == typ {
+		if obsType&typ == typ {
 			c.observers[typ] = append(c.observers[typ], observer)
 		}
 	}
@@ -430,7 +427,7 @@ func (c *ContextualBase) removeObserver(
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	for typ := contextualObserverChanging; typ < contextualObserverAll; typ <<= 1 {
-		if obsType & typ != typ {
+		if obsType&typ != typ {
 			continue
 		}
 		if observers, ok := c.observers[typ]; ok && len(observers) > 0 {
@@ -449,8 +446,8 @@ func (c *ContextualBase) removeObserver(
 func (c *ContextualBase) notify(
 	contextual Contextual,
 	obsType contextualObserverType,
-	oldCtx    *Context,
-	newCtx   **Context,
+	oldCtx *Context,
+	newCtx **Context,
 ) {
 	if observers, ok := c.observers[obsType]; ok && len(observers) > 0 {
 		switch obsType {
@@ -465,7 +462,6 @@ func (c *ContextualBase) notify(
 		}
 	}
 }
-
 
 // Context observers
 
@@ -500,45 +496,42 @@ type (
 	contextObserverType uint
 )
 
-
 const (
-	contextObserverNone contextObserverType = 0
+	contextObserverNone   contextObserverType = 0
 	contextObserverEnding contextObserverType = 1 << iota
 	contextObserverEnded
 	contextObserverChildEnding
 	contextObserverChildEnded
-	contextObserverAll = 1 << iota - 1
+	contextObserverAll = 1<<iota - 1
 )
 
-
 func (f EndingObserverFunc) ContextEnding(
-	ctx    *Context,
-	reason  any,
+	ctx *Context,
+	reason any,
 ) {
 	f(ctx, reason)
 }
 
 func (f EndedObserverFunc) ContextEnded(
-	ctx    *Context,
-	reason  any,
+	ctx *Context,
+	reason any,
 ) {
 	f(ctx, reason)
 }
 
 func (f ChildEndingObserverFunc) ChildContextEnding(
-	ctx    *Context,
-	reason  any,
+	ctx *Context,
+	reason any,
 ) {
 	f(ctx, reason)
 }
 
 func (f ChildEndedObserverFunc) ChildContextEnded(
-	ctx    *Context,
-	reason  any,
+	ctx *Context,
+	reason any,
 ) {
 	f(ctx, reason)
 }
-
 
 // Contextual observers
 
@@ -547,60 +540,56 @@ type (
 	ChangingObserver interface {
 		ContextChanging(
 			contextual Contextual,
-			oldCtx     *Context,
-			newCtx     **Context)
+			oldCtx *Context,
+			newCtx **Context)
 	}
 	ChangingObserverFunc func(
 		contextual Contextual,
-		oldCtx     *Context,
-		newCtx     **Context)
+		oldCtx *Context,
+		newCtx **Context)
 
 	// ChangedObserver reports a Context contextualObserverChanged.
 	ChangedObserver interface {
 		ContextChanged(
 			contextual Contextual,
-			oldCtx     *Context,
-			newCtx     *Context)
+			oldCtx *Context,
+			newCtx *Context)
 	}
 	ChangedObserverFunc func(
 		contextual Contextual,
-		oldCtx     *Context,
-		newCtx     *Context)
+		oldCtx *Context,
+		newCtx *Context)
 
 	contextualObserverType uint
 )
 
-
 const (
-	contextualObserverNone contextualObserverType = 0
+	contextualObserverNone     contextualObserverType = 0
 	contextualObserverChanging contextualObserverType = 1 << iota
 	contextualObserverChanged
-	contextualObserverAll = 1 << iota - 1
+	contextualObserverAll = 1<<iota - 1
 )
-
 
 func (f ChangingObserverFunc) ContextChanging(
 	contextual Contextual,
-	oldCtx     *Context,
-	newCtx     **Context,
+	oldCtx *Context,
+	newCtx **Context,
 ) {
 	f(contextual, oldCtx, newCtx)
 }
 
 func (f ChangedObserverFunc) ContextChanged(
 	contextual Contextual,
-	oldCtx     *Context,
-	newCtx     *Context,
+	oldCtx *Context,
+	newCtx *Context,
 ) {
 	f(contextual, oldCtx, newCtx)
 }
 
-
-var PublishFromRoot miruken.BuilderFunc =
-	 func (handler miruken.Handler) miruken.Handler {
-		 if context, _, ok, err := provides.Type[*Context](handler); !(ok && err == nil) {
-			 panic("root context could not be found")
-		 } else {
-			 return miruken.Publish.BuildUp(context.Root())
-		 }
+var PublishFromRoot miruken.BuilderFunc = func(handler miruken.Handler) miruken.Handler {
+	if context, _, ok, err := provides.Type[*Context](handler); !(ok && err == nil) {
+		panic("root context could not be found")
+	} else {
+		return miruken.Publish.BuildUp(context.Root())
+	}
 }

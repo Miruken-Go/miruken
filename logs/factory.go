@@ -2,6 +2,7 @@ package logs
 
 import (
 	"fmt"
+
 	"github.com/go-logr/logr"
 	"github.com/miruken-go/miruken/provides"
 )

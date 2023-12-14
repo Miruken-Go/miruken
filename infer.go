@@ -1,9 +1,10 @@
 package miruken
 
 import (
+	"reflect"
+
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
 )
 
 type (
@@ -49,19 +50,19 @@ type (
 
 func (h *inferenceHandler) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	return DispatchCallback(h, callback, greedy, composer)
 }
 
 func (h *inferenceHandler) DispatchPolicy(
-	policy   Policy,
+	policy Policy,
 	callback Callback,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
-	if test, ok := callback.(interface{CanInfer() bool}); ok && !test.CanInfer() {
+	if test, ok := callback.(interface{ CanInfer() bool }); ok && !test.CanInfer() {
 		return NotHandled
 	}
 	return h.info.Dispatch(policy, h, callback, greedy, composer, &inferenceGuard{})
@@ -84,12 +85,12 @@ func (b *methodIntercept) SkipFilters() bool {
 }
 
 func (b *methodIntercept) Invoke(
-	ctx      HandleContext,
+	ctx HandleContext,
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	handlerType := b.handlerType
-	callback    := ctx.Callback
-	parent, _   := callback.(*Provides)
+	callback := ctx.Callback
+	parent, _ := callback.(*Provides)
 	var builder ResolvesBuilder
 	builder.WithConstraints(Explicit)
 	builder.
@@ -126,11 +127,11 @@ func (b *methodIntercept) Invoke(
 func (g *inferenceGuard) CanDispatch(
 	handler any,
 	binding Binding,
-) (reset func (), approved bool) {
+) (reset func(), approved bool) {
 	if methodBinding, ok := binding.(*methodIntercept); ok {
 		handlerType := methodBinding.handlerType
 		if resolved := g.resolved; resolved == nil {
-			g.resolved = map[reflect.Type]struct{} { handlerType: {} }
+			g.resolved = map[reflect.Type]struct{}{handlerType: {}}
 		} else if _, found := resolved[handlerType]; !found {
 			resolved[handlerType] = struct{}{}
 		} else {
@@ -142,7 +143,7 @@ func (g *inferenceGuard) CanDispatch(
 
 func NewInferenceHandler(
 	factory HandlerInfoFactory,
-	specs   []HandlerSpec,
+	specs []HandlerSpec,
 ) Handler {
 	if factory == nil {
 		panic("factory cannot be nil")
@@ -162,7 +163,7 @@ func NewInferenceHandler(
 				// single binding to infer the handler type for a
 				// specific key.
 				for _, elem := range bs.index {
-					linkBinding(policy, elem.Value.(Binding), pb, handlerType,true)
+					linkBinding(policy, elem.Value.(Binding), pb, handlerType, true)
 				}
 				// Only need the first of each invariant since it is
 				// just to link the actual handler info.
@@ -181,7 +182,7 @@ func NewInferenceHandler(
 			}
 		}
 	}
-	return &inferenceHandler {
+	return &inferenceHandler{
 		&HandlerInfo{
 			spec:     TypeSpec{inferHandlerType},
 			bindings: bindings,
@@ -190,11 +191,11 @@ func NewInferenceHandler(
 }
 
 func linkBinding(
-	policy      Policy,
-	binding     Binding,
-	bindings    *policyInfo,
+	policy Policy,
+	binding Binding,
+	bindings *policyInfo,
 	handlerType reflect.Type,
-	addCtor     bool,
+	addCtor bool,
 ) {
 	switch b := binding.(type) {
 	case *ctorBinding:

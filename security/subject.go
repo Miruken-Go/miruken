@@ -45,13 +45,12 @@ type (
 		credentials []any
 	}
 
-	system struct {}
+	system struct{}
 
-	systemSubject struct{
+	systemSubject struct {
 		principals []Principal
 	}
 )
-
 
 // mutableSubject
 
@@ -91,13 +90,11 @@ func (s *mutableSubject) RemoveCredentials(cs ...any) {
 	s.credentials = slices.Remove(s.credentials, cs...)
 }
 
-
 // system
 
 func (s system) Name() string {
 	return "system"
 }
-
 
 // systemSubject
 
@@ -129,7 +126,6 @@ func (s systemSubject) RemoveCredentials(cs ...any) {
 	panic("system subject is immutable")
 }
 
-
 // WithPrincipals configures a Subject with initial principals.
 func WithPrincipals(ps ...Principal) SubjectOption {
 	return func(sub Subject) {
@@ -154,7 +150,6 @@ func NewSubject(opts ...SubjectOption) Subject {
 	}
 	return sub
 }
-
 
 var (
 	// System defines a singleton principal that can be used

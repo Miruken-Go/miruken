@@ -1,11 +1,12 @@
 package validates
 
 import (
+	"reflect"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
 )
 
 type (
@@ -16,9 +17,8 @@ type (
 
 	// filter validates the current input of the pipeline execution.
 	// if validateOutput is true, the output is validated too.
- 	filter struct {}
+	filter struct{}
 )
-
 
 // Constraints
 
@@ -45,13 +45,12 @@ func (r *Required) AppliesTo(
 }
 
 func (r *Required) Filters(
-	binding  miruken.Binding,
+	binding miruken.Binding,
 	callback any,
 	composer miruken.Handler,
 ) ([]miruken.Filter, error) {
 	return filters, nil
 }
-
 
 // filter
 
@@ -60,11 +59,11 @@ func (f filter) Order() int {
 }
 
 func (f filter) Next(
-	self     miruken.Filter,
-	next     miruken.Next,
-	ctx      miruken.HandleContext,
+	self miruken.Filter,
+	next miruken.Next,
+	ctx miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  (out []any, pout *promise.Promise[[]any], err error) {
+) (out []any, pout *promise.Promise[[]any], err error) {
 	if cp, ok := provider.(*Required); ok {
 		callback := ctx.Callback
 		composer := ctx.Composer

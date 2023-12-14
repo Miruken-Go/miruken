@@ -2,12 +2,13 @@ package miruken
 
 import (
 	"fmt"
-	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/promise"
 	"maps"
 	"reflect"
 	"sync"
 	"sync/atomic"
+
+	"github.com/miruken-go/miruken/internal"
+	"github.com/miruken-go/miruken/promise"
 )
 
 type (
@@ -25,7 +26,7 @@ type (
 
 	// SideEffectAdapter is an adapter for implementing a
 	// SideEffect using late binding method resolution.
-	SideEffectAdapter struct {}
+	SideEffectAdapter struct{}
 
 	// sideEffectBinding describes the method used by a
 	// SideEffectAdapter to apply the SideEffect dynamically.
@@ -37,11 +38,10 @@ type (
 	}
 )
 
-
 func (l SideEffectAdapter) Apply(
 	self SideEffect,
-	ctx  HandleContext,
-)  (promise.Reflect, error) {
+	ctx HandleContext,
+) (promise.Reflect, error) {
 	if binding, err := getSideEffectMethod(self); err != nil {
 		return nil, err
 	} else {
@@ -77,8 +77,7 @@ func getSideEffectMethod(
 		if method.Name == "Apply" {
 			continue
 		}
-		if lateApplyType := method.Type;
-			lateApplyType.NumIn() < 1 || lateApplyType.NumOut() > 2 {
+		if lateApplyType := method.Type; lateApplyType.NumIn() < 1 || lateApplyType.NumOut() > 2 {
 			continue
 		} else {
 			// Output can be promise, error or both with error last
@@ -100,7 +99,7 @@ func getSideEffectMethod(
 					continue
 				}
 			}
-			skip    := 1 // skip receiver
+			skip := 1 // skip receiver
 			numArgs := lateApplyType.NumIn()
 			binding := sideEffectBinding{refIdx: refIdx, errIdx: errIdx}
 			for i := 1; i < 2 && i < numArgs; i++ {
@@ -117,9 +116,9 @@ func getSideEffectMethod(
 			args := make([]arg, numArgs-skip)
 			if err := buildDependencies(lateApplyType, skip, numArgs, args, 0); err != nil {
 				err = fmt.Errorf("side-effect: %v %q: %w", typ, method.Name, err)
-				return  nil, &MethodBindingError{method, err}
+				return nil, &MethodBindingError{method, err}
 			}
-			binding.funcCall.fun  = method.Func
+			binding.funcCall.fun = method.Func
 			binding.funcCall.args = args
 			(*bindings)[typ] = binding
 			sideEffBindingMap.Store(bindings)
@@ -129,9 +128,8 @@ func getSideEffectMethod(
 	return nil, fmt.Errorf(`side-effect: %v has no compatible dynamic method`, typ)
 }
 
-
 func (a sideEffectBinding) invoke(
-	se  SideEffect,
+	se SideEffect,
 	ctx HandleContext,
 ) (promise.Reflect, error) {
 	initArgs := []any{se}
@@ -172,7 +170,6 @@ func (a sideEffectBinding) invoke(
 		return nil
 	}), nil
 }
-
 
 var (
 	sideEffBindingLock sync.Mutex

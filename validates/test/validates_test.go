@@ -2,15 +2,16 @@ package test
 
 import (
 	"errors"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/bearbin/go-age"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/miruken-go/miruken/validates"
 	"github.com/stretchr/testify/suite"
-	"reflect"
-	"testing"
-	"time"
 )
 
 type Model struct {
@@ -91,9 +92,9 @@ func (v *PlayerValidator) MustHaveNameAndDOB(
 }
 
 func (v *PlayerValidator) MustBeTenOrUnder(
-	_*struct{
+	_ *struct {
 		validates.Group `name:"Recreational"`
-	  }, player *Player,
+	}, player *Player,
 	it *validates.It,
 ) {
 	if dob := player.DOB; !dob.IsZero() {
@@ -116,9 +117,9 @@ func (v *TeamValidator) MustHaveName(
 }
 
 func (v *TeamValidator) MustHaveLicensedCoach(
-	_*struct{
+	_ *struct {
 		validates.Group `name:"ECNL"`
-	  }, team *Team,
+	}, team *Team,
 	it *validates.It,
 ) {
 	outcome := it.Outcome()
@@ -150,7 +151,7 @@ func (v *TeamValidator) RemoveTeam(
 }
 
 // OpenValidator
-type OpenValidator struct {}
+type OpenValidator struct{}
 
 func (v *OpenValidator) Validate(
 	it *validates.It, target any,
@@ -171,7 +172,7 @@ func (h *TeamHandler) CreateTeam(
 ) Team {
 	team := create.Team
 	h.teamId++
-	team.Id     = h.teamId
+	team.Id = h.teamId
 	team.Active = true
 	return team
 }
@@ -214,8 +215,9 @@ type (
 		Name string
 	}
 )
+
 func (suite *ValidatesTestSuite) TestValidation() {
-	suite.Run("Outcome", func () {
+	suite.Run("Outcome", func() {
 		suite.Run("Root Errors", func() {
 			outcome := &validates.Outcome{}
 			outcome.AddError("", errors.New("player not found"))
@@ -290,11 +292,11 @@ func (suite *ValidatesTestSuite) TestValidation() {
 		})
 	})
 
-	suite.Run("Validate", func () {
+	suite.Run("Validate", func() {
 		suite.Run("Default", func() {
 			handler, _ := suite.Setup()
-			player := Player{DOB:  time.Date(2007, time.June,
-				14, 13, 26, 00, 0, time.Local) }
+			player := Player{DOB: time.Date(2007, time.June,
+				14, 13, 26, 00, 0, time.Local)}
 			outcome, _, err := validates.Constraints(handler, &player)
 			suite.Nil(err)
 			suite.NotNil(outcome)
@@ -309,7 +311,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 			player := Player{
 				FirstName: "Matthew",
 				LastName:  "Dudley",
-				DOB:       time.Date(2007, time.June, 14,
+				DOB: time.Date(2007, time.June, 14,
 					13, 26, 00, 0, time.Local),
 			}
 			outcome, _, err := validates.Constraints(handler, &player, validates.Groups("Recreational"))
@@ -322,13 +324,13 @@ func (suite *ValidatesTestSuite) TestValidation() {
 		})
 	})
 
-	suite.Run("Filter", func () {
+	suite.Run("Filter", func() {
 		handler, _ := setup.New(
 			validates.Feature(validates.Output)).
 			Specs(suite.specs...).
 			Context()
 		suite.Run("Accepts Command", func() {
-			create := CreateTeam{TeamAction{ Team: Team{
+			create := CreateTeam{TeamAction{Team: Team{
 				Name: "Liverpool",
 				Coach: Coach{
 					FirstName: "Zinedine",
@@ -375,7 +377,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 			}
 
 			suite.Run("Build Open", func() {
-				create := CreateTeam{TeamAction{ Team: Team{
+				create := CreateTeam{TeamAction{Team: Team{
 					Name: "Breakaway",
 					Coach: Coach{
 						FirstName: "Frank",

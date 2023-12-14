@@ -1,9 +1,10 @@
 package test
 
 import (
+	"testing"
+
 	"github.com/miruken-go/miruken/promise"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestPromise_Defer(t *testing.T) {

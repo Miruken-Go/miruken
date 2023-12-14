@@ -3,12 +3,13 @@ package ui
 import (
 	"embed"
 	"fmt"
-	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/miruken-go/miruken/api/http/httpsrv/openapi"
 	"io/fs"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/miruken-go/miruken/api/http/httpsrv/openapi"
 )
 
 //go:embed static
@@ -19,7 +20,7 @@ const mirukenMod = "github.com/miruken-go/miruken"
 func Handler(prefix string, docs map[string]*openapi3.T, config openapi.Config) http.HandlerFunc {
 	dir, _ := fs.Sub(static, "static")
 	server := http.StripPrefix(prefix, http.FileServer(http.FS(dir)))
-	h      := openapi.Handler(docs, false)
+	h := openapi.Handler(docs, false)
 	return func(rw http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "openapi.json") {
 			h(rw, r)

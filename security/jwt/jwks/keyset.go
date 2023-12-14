@@ -2,13 +2,14 @@ package jwks
 
 import (
 	"encoding/json"
-	"github.com/MicahParks/keyfunc/v2"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/miruken-go/miruken/promise"
 	"maps"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/MicahParks/keyfunc/v2"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/miruken-go/miruken/promise"
 )
 
 type (
@@ -18,7 +19,6 @@ type (
 		lock sync.Mutex
 	}
 )
-
 
 func (f *KeySet) At(
 	jwksURI string,
@@ -66,7 +66,6 @@ func (f *KeySet) From(
 	}
 	return jwks.Keyfunc, nil
 }
-
 
 var getOptions = keyfunc.Options{
 	RefreshRateLimit:  time.Minute * 5,

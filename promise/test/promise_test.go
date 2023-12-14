@@ -3,13 +3,13 @@ package test
 import (
 	"context"
 	"errors"
-	"github.com/miruken-go/miruken/promise"
 	"testing"
 	"time"
 
+	"github.com/miruken-go/miruken/promise"
+
 	"github.com/stretchr/testify/require"
 )
-
 
 var errExpected = errors.New("expected error")
 

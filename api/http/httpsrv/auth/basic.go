@@ -1,9 +1,10 @@
 package auth
 
 import (
+	"net/http"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/security/login/callback"
-	"net/http"
 )
 
 // Basic is a http authentication Scheme that uses a
@@ -11,7 +12,6 @@ import (
 type Basic struct {
 	Realm string
 }
-
 
 func (b Basic) Accept(
 	r *http.Request,
@@ -26,14 +26,13 @@ func (b Basic) Accept(
 }
 
 func (b Basic) Challenge(
-	w   http.ResponseWriter,
-	r   *http.Request,
+	w http.ResponseWriter,
+	r *http.Request,
 	err error,
 ) int {
-	WriteWWWAuthenticateHeader(w,"Bearer", b.Realm, nil, err)
+	WriteWWWAuthenticateHeader(w, "Bearer", b.Realm, nil, err)
 	return http.StatusUnauthorized
 }
-
 
 // Basic configures an authentication flow to use `Basic` auth.
 func (b *FlowBuilder) Basic() *Authentication {

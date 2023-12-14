@@ -13,9 +13,9 @@ func (i *Installer) DependsOn() []setup.Feature {
 	return []setup.Feature{validates.Feature()}
 }
 
-func (i *Installer) Install(setup *setup.Builder) error {
-	if setup.Tag(&featureTag) {
-		setup.Specs(&validator{})
+func (i *Installer) Install(b *setup.Builder) error {
+	if b.Tag(&featureTag) {
+		b.Specs(&validator{})
 	}
 	return nil
 }

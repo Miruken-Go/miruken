@@ -1,0 +1,105 @@
+linters-settings:
+  run:
+    concurrency: 8
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  goconst:
+    min-len: 2
+    min-occurrences: 3
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+  govet:
+    check-shadowing: true
+  nolintlint:
+    require-explanation: true
+    require-specific: true
+  depguard:
+    rules:
+      main:
+        files:
+          - "$all"
+        list-mode: strict
+        allow:
+          - $gostd
+          - github.com/jonmol/http-skeleton
+          - "github.com/go-playground/validator/v10"
+          - github.com/gofrs/uuid/v5
+          - github.com/gorilla/mux
+          - github.com/spf13/viper
+          - github.com/prometheus/client_golang
+          - github.com/spf13/cobra
+          - github.com/jub0bs/fcors
+          - github.com/gorilla/schema
+          - github.com/stretchr/testify
+          - github.com/redis/go-redis/v9
+          - github.com/dgraph-io/badger/v4
+        deny:
+          - pkg: "github.com/sagikazarmark/slog-shim"
+            desc: Use log/slog
+  decorder:
+    dec-order:
+      - type
+      - const
+      - var
+      - func
+    ignore-underscore-vars: false
+    disable-dec-order-check: false
+    disable-init-func-first-check: false
+    disable-dec-num-check: false
+    disable-type-dec-num-check: true
+    disable-const-dec-num-check: false
+    disable-var-dec-num-check: false
+linters:
+  disable-all: true
+  enable:
+    - asasalint
+    - bodyclose
+    - bidichk
+    - containedctx
+    - contextcheck
+    - cyclop
+#    - decorder
+    - depguard
+    - dogsled
+    - dupl
+    - dupword
+    - durationcheck
+    - errchkjson
+    - errname
+    - errcheck
+    - errorlint
+    - exportloopref
+    - exhaustive
+    - goconst
+    - gocritic
+    - gofmt
+    - goimports
+    - gocyclo
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - nolintlint
+#    - nakedret
+    - prealloc
+    - predeclared
+    - revive
+    - staticcheck
+    - stylecheck
+    - thelper
+    - tparallel
+    - typecheck
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - whitespace
+#    - wsl
+run:
+  issues-exit-code: 1

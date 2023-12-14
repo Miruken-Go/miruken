@@ -3,27 +3,28 @@ package test
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"testing"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"strings"
-	"testing"
 )
 
 type (
 	Account struct {
 		Id    int
-		Name  string``
+		Name  string ``
 		Email string
 	}
 
 	Database interface {
 		NewAccount(
-			id    int,
-			name  string,
+			id int,
+			name string,
 			email string,
 		) (*promise.Promise[*Account], error)
 	}
@@ -68,14 +69,13 @@ type (
 	}
 )
 
-
 func (d *DatabaseStub) Constructor() {
 	d.Accounts = make(map[int]*Account)
 }
 
 func (d *DatabaseStub) NewAccount(
-	id    int,
-	name  string,
+	id int,
+	name string,
 	email string,
 ) (*promise.Promise[*Account], error) {
 	switch name {
@@ -84,18 +84,16 @@ func (d *DatabaseStub) NewAccount(
 	case "FailAsync":
 		return promise.Reject[*Account](errors.New("database is busy")), nil
 	}
-	account := &Account{id,name,email}
+	account := &Account{id, name, email}
 	d.Accounts[id] = account
 	return promise.Resolve(account), nil
 }
-
 
 func (e NewEntity) NewEntity(
 	database Database,
 ) (promise.Reflect, error) {
 	return database.NewAccount(e.Id, e.Name, e.Email)
 }
-
 
 func (m *MailerStub) Constructor() {
 	m.Log = make(map[string]string)
@@ -109,13 +107,11 @@ func (m *MailerStub) SendMail(to string, msg string) error {
 	return nil
 }
 
-
 func (s SendMail) SendMail(
 	mailer Mailer,
 ) error {
 	return mailer.SendMail(s.To, s.Msg)
 }
-
 
 func (a *AccountHandler) CreateAccount(
 	_ *handles.It, create CreateAccount,
@@ -156,7 +152,7 @@ func (suite *SideEffectTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 }
 
 func (suite *SideEffectTestSuite) TestSideEffects() {
-	suite.Run("Single", func () {
+	suite.Run("Single", func() {
 		handler, _ := suite.Setup()
 		confirm := ConfirmAccount{"John Doe", "jd@gmail.com"}
 		r, pr, err := handles.Request[string](handler, confirm)
@@ -167,7 +163,7 @@ func (suite *SideEffectTestSuite) TestSideEffects() {
 		suite.Equal("Confirm your account John Doe", mailer.Log["jd@gmail.com"])
 	})
 
-	suite.Run("Multiple", func () {
+	suite.Run("Multiple", func() {
 		handler, _ := suite.Setup()
 		create := CreateAccount{"John Doe", "jd@gmail.com"}
 		id, pid, err := handles.Request[int](handler, create)
@@ -184,7 +180,7 @@ func (suite *SideEffectTestSuite) TestSideEffects() {
 		suite.Equal("Welcome John Doe", mailer.Log["jd@gmail.com"])
 	})
 
-	suite.Run("Error", func () {
+	suite.Run("Error", func() {
 		handler, _ := suite.Setup()
 		create := CreateAccount{"Fail", "fail@gmail.com"}
 		_, pid, err := handles.Request[int](handler, create)
@@ -193,7 +189,7 @@ func (suite *SideEffectTestSuite) TestSideEffects() {
 		suite.Equal("database is unavailable", err.Error())
 	})
 
-	suite.Run("ErrorAsync", func () {
+	suite.Run("ErrorAsync", func() {
 		handler, _ := suite.Setup()
 		create := CreateAccount{"FailAsync", "fail@gmail.com"}
 		_, pid, err := handles.Request[int](handler, create)

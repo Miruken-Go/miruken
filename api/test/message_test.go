@@ -3,6 +3,10 @@ package test
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"testing"
+	"time"
+
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/either"
@@ -10,14 +14,11 @@ import (
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"strconv"
-	"testing"
-	"time"
 )
 
 type (
 	Launch struct {
-		Missile  string
+		Missile string
 	}
 
 	MissileTracked struct {
@@ -27,7 +28,7 @@ type (
 
 	MissionControlHandler struct{}
 
-	PresidentHandler struct {}
+	PresidentHandler struct{}
 )
 
 func (m *MissionControlHandler) Launch(
@@ -78,8 +79,8 @@ func (suite *MessageTestSuite) Setup() *context.Context {
 
 func (suite *MessageTestSuite) TestMessage() {
 	suite.Run("Success", func() {
-		red    := api.Success("red")
-		blue   := api.Success("blue")
+		red := api.Success("red")
+		blue := api.Success("blue")
 		result := either.FlatMap(red, func(r1 string) either.Monad[error, string] {
 			return either.FlatMap(blue, func(r2 string) either.Monad[error, string] {
 				return api.Success(fmt.Sprintf("%v %v", r1, r2))
@@ -91,8 +92,8 @@ func (suite *MessageTestSuite) TestMessage() {
 	})
 
 	suite.Run("Failure", func() {
-		red    := api.Success("red")
-		blue   := api.Success("blue")
+		red := api.Success("red")
+		blue := api.Success("blue")
 		result := either.FlatMap(red, func(r1 string) either.Monad[error, string] {
 			return either.FlatMap(blue, func(r2 string) either.Monad[error, string] {
 				return api.Failure(errors.New("broken"))
@@ -114,7 +115,7 @@ func (suite *MessageTestSuite) TestMessage() {
 
 	suite.Run("Send", func() {
 		handler := suite.Setup()
-		launch  := Launch{Missile: "Patriot"}
+		launch := Launch{Missile: "Patriot"}
 		_, pc, err := api.Send[string](handler, launch)
 		suite.Nil(err)
 		suite.NotNil(pc)
@@ -125,7 +126,7 @@ func (suite *MessageTestSuite) TestMessage() {
 
 	suite.Run("Send Panic", func() {
 		handler := suite.Setup()
-		launch  := Launch{Missile: "Tomahawk"}
+		launch := Launch{Missile: "Tomahawk"}
 		_, _, err := api.Send[string](handler, launch)
 		suite.NotNil(err)
 		suite.Equal("send: panic: launch misfire: Tomahawk", err.Error())
@@ -133,7 +134,7 @@ func (suite *MessageTestSuite) TestMessage() {
 
 	suite.Run("Publish", func() {
 		handler := suite.Setup()
-		launch  := Launch{Missile: "Patriot"}
+		launch := Launch{Missile: "Patriot"}
 		_, pc, err := api.Send[string](handler, launch)
 		suite.Nil(err)
 		code, err := pc.Await()

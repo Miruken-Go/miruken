@@ -13,9 +13,9 @@ func (i *Installer) Output() {
 	i.output = true
 }
 
-func (i *Installer) Install(setup *setup.Builder) error {
-	if setup.Tag(&_featureTag) {
-		setup.Filters(&Required{i.output})
+func (i *Installer) Install(b *setup.Builder) error {
+	if b.Tag(&_featureTag) {
+		b.Filters(&Required{i.output})
 	}
 	return nil
 }

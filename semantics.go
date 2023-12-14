@@ -14,21 +14,18 @@ type (
 	}
 )
 
-
 const (
 	SemanticNone      SemanticFlags = 0
 	SemanticBroadcast SemanticFlags = 1 << iota
 	SemanticBestEffort
-	SemanticNotify  = SemanticBroadcast | SemanticBestEffort
+	SemanticNotify = SemanticBroadcast | SemanticBestEffort
 )
-
 
 var (
 	Broadcast  = CallWith(SemanticBroadcast)
 	BestEffort = CallWith(SemanticBestEffort)
 	Notify     = CallWith(SemanticNotify)
 )
-
 
 func (c *CallbackSemantics) CanInfer() bool {
 	return false
@@ -42,7 +39,7 @@ func (c *CallbackSemantics) CanBatch() bool {
 	return false
 }
 
-func (c *CallbackSemantics) HasOption(options SemanticFlags) bool  {
+func (c *CallbackSemantics) HasOption(options SemanticFlags) bool {
 	return (c.options & options) == options
 }
 
@@ -55,7 +52,7 @@ func (c *CallbackSemantics) SetOption(options SemanticFlags, enabled bool) {
 	c.specified = c.specified | options
 }
 
-func (c *CallbackSemantics) IsSpecified(options SemanticFlags) bool  {
+func (c *CallbackSemantics) IsSpecified(options SemanticFlags) bool {
 	return (c.specified & options) == options
 }
 
@@ -81,7 +78,7 @@ type callSemantics struct {
 
 func (c *callSemantics) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {
@@ -110,9 +107,12 @@ func (c *callSemantics) Handle(
 		c.semantics.HasOption(SemanticBestEffort) {
 		if result := c.Handler.Handle(callback, greedy, composer); result.IsError() {
 			switch result.Error().(type) {
-			case *NotHandledError: return Handled
-			case *RejectedError: return Handled
-			default: return result
+			case *NotHandledError:
+				return Handled
+			case *RejectedError:
+				return Handled
+			default:
+				return result
 			}
 		} else {
 			return Handled
@@ -120,7 +120,6 @@ func (c *callSemantics) Handle(
 	}
 	return c.Handler.Handle(callback, greedy, composer)
 }
-
 
 func GetSemantics(handler Handler) *CallbackSemantics {
 	if internal.IsNil(handler) {
@@ -138,7 +137,7 @@ func CallWith(semantics SemanticFlags) Builder {
 		options:   semantics,
 		specified: semantics,
 	}
-	return BuilderFunc(func (handler Handler) Handler {
+	return BuilderFunc(func(handler Handler) Handler {
 		return &callSemantics{handler, options}
 	})
 }

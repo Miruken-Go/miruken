@@ -12,7 +12,6 @@ type (
 	ScheduledResult []Either[error, any]
 )
 
-
 func (s ScheduledResult) Original(composer miruken.Handler) (any, error) {
 	responses := make([]either.Monad[error, any], len(s))
 	for i, resp := range s {
@@ -25,14 +24,13 @@ func (s ScheduledResult) Original(composer miruken.Handler) (any, error) {
 	return &api.ScheduledResult{Responses: responses}, nil
 }
 
-
 // SurrogateMapper
 
 func (m *SurrogateMapper) ReplaceScheduledResult(
-	_*struct{
+	_ *struct {
 		maps.It
 		maps.Format `to:"application/json"`
-	  }, result api.ScheduledResult,
+	}, result api.ScheduledResult,
 	ctx miruken.HandleContext,
 ) ([]byte, error) {
 	sur := make(ScheduledResult, len(result.Responses))

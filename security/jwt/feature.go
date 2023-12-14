@@ -6,15 +6,15 @@ import (
 )
 
 // Installer enables jwt authentication.
-type Installer struct {}
+type Installer struct{}
 
 func (i *Installer) DependsOn() []setup.Feature {
 	return []setup.Feature{jwks.Feature()}
 }
 
-func (i *Installer) Install(setup *setup.Builder) error {
-	if setup.Tag(&featureTag) {
-		setup.Specs(&LoginModule{})
+func (i *Installer) Install(b *setup.Builder) error {
+	if b.Tag(&featureTag) {
+		b.Specs(&LoginModule{})
 	}
 	return nil
 }
@@ -30,4 +30,3 @@ func Feature(config ...func(*Installer)) setup.Feature {
 }
 
 var featureTag byte
-

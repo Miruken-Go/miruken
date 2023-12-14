@@ -2,6 +2,7 @@ package json
 
 import (
 	"errors"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/maps"
@@ -20,10 +21,10 @@ func (s Outcome) Original(miruken.Handler) (any, error) {
 }
 
 func (m *SurrogateMapper) ReplaceOutcome(
-	_*struct{
+	_ *struct {
 		maps.It
 		maps.Format `to:"application/json"`
-	  }, outcome *validates.Outcome,
+	}, outcome *validates.Outcome,
 	ctx miruken.HandleContext,
 ) ([]byte, error) {
 	sur := outcomeToSurrogate(outcome)
@@ -45,12 +46,12 @@ func outcomeToSurrogate(outcome *validates.Outcome) Outcome {
 		}
 		sur = append(sur, struct {
 			PropertyName string
-			Errors []string
-			Nested Outcome
+			Errors       []string
+			Nested       Outcome
 		}{
 			PropertyName: field,
-			Errors: 	  messages,
-			Nested: 	  children,
+			Errors:       messages,
+			Nested:       children,
 		})
 	}
 	return sur
@@ -82,10 +83,10 @@ func (s *Error) Original(miruken.Handler) (any, error) {
 }
 
 func (m *SurrogateMapper) ReplaceError(
-	_*struct{
+	_ *struct {
 		maps.It
 		maps.Format `to:"application/json"`
-	  }, err error,
+	}, err error,
 	ctx miruken.HandleContext,
 ) ([]byte, error) {
 	sur := Error{err.Error()}

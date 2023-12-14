@@ -31,7 +31,6 @@ type (
 	Entitlement string
 )
 
-
 //goland:noinspection GoMixedReceiverTypes
 func (i Id) Name() string {
 	return string(i)
@@ -47,7 +46,6 @@ func (i *Id) InitWithTag(tag reflect.StructTag) error {
 	}
 	return nil
 }
-
 
 //goland:noinspection GoMixedReceiverTypes
 func (u User) Name() string {
@@ -65,7 +63,6 @@ func (u *User) InitWithTag(tag reflect.StructTag) error {
 	return nil
 }
 
-
 //goland:noinspection GoMixedReceiverTypes
 func (e Email) Name() string {
 	return string(e)
@@ -81,7 +78,6 @@ func (e *Email) InitWithTag(tag reflect.StructTag) error {
 	}
 	return nil
 }
-
 
 //goland:noinspection GoMixedReceiverTypes
 func (r Role) Name() string {
@@ -99,7 +95,6 @@ func (r *Role) InitWithTag(tag reflect.StructTag) error {
 	return nil
 }
 
-
 //goland:noinspection GoMixedReceiverTypes
 func (g Group) Name() string {
 	return string(g)
@@ -115,7 +110,6 @@ func (g *Group) InitWithTag(tag reflect.StructTag) error {
 	}
 	return nil
 }
-
 
 //goland:noinspection GoMixedReceiverTypes
 func (e Entitlement) Name() string {

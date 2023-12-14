@@ -2,23 +2,24 @@ package miruken
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
-	"strings"
 )
 
 type (
 	// Binding connects a Callback to a handler.
 	Binding interface {
 		Filtered
-		Key()               any
-		Strict()            bool
-		SkipFilters()       bool
-		Async()             bool
-		Exported()          bool
-		Metadata()          []any
+		Key() any
+		Strict() bool
+		SkipFilters() bool
+		Async() bool
+		Exported() bool
+		Metadata() []any
 		LogicalOutputType() reflect.Type
 		Invoke(
 			ctx HandleContext,
@@ -36,22 +37,22 @@ type (
 	// BindingReducer aggregates Binding results.
 	BindingReducer func(
 		binding Binding,
-		result  HandleResult,
+		result HandleResult,
 	) (HandleResult, bool)
 
 	// BindingParser is an extension for binding customizations.
 	BindingParser interface {
 		parse(
-			index   int,
-			field   reflect.StructField,
+			index int,
+			field reflect.StructField,
 			binding any,
 		) (bound bool, err error)
 	}
 
 	// BindingParserFunc implements a BindingParser using a function.
-	BindingParserFunc func (
-		index   int,
-		field   reflect.StructField,
+	BindingParserFunc func(
+		index int,
+		field reflect.StructField,
 		binding any,
 	) (bound bool, err error)
 
@@ -66,44 +67,40 @@ type (
 
 	// BindingGroup marks bindings that aggregate
 	// one or more binding metadata.
-	BindingGroup struct {}
+	BindingGroup struct{}
 )
-
 
 // BindingParserFunc
 
 func (b BindingParserFunc) parse(
-	index   int,
-	field   reflect.StructField,
+	index int,
+	field reflect.StructField,
 	binding any,
 ) (bound bool, err error) {
 	return b(index, field, binding)
 }
 
-
 // BindingGroup
 
 func (BindingGroup) DefinesBindingGroup() {}
 
-
 // BindingBase
 
 func (b *BindingBase) Strict() bool {
-	return b.flags & bindingStrict == bindingStrict
+	return b.flags&bindingStrict == bindingStrict
 }
 
 func (b *BindingBase) SkipFilters() bool {
-	return b.flags & bindingSkipFilters == bindingSkipFilters
+	return b.flags&bindingSkipFilters == bindingSkipFilters
 }
 
 func (b *BindingBase) Async() bool {
-	return b.flags & bindingAsync == bindingAsync
+	return b.flags&bindingAsync == bindingAsync
 }
 
 func (b *BindingBase) Metadata() []any {
 	return b.metadata
 }
-
 
 type (
 	// bindingSpec captures a Binding specification.
@@ -133,19 +130,18 @@ type (
 )
 
 const (
-	bindingNone bindingFlags = 0
+	bindingNone   bindingFlags = 0
 	bindingStrict bindingFlags = 1 << iota
 	bindingOptional
 	bindingSkipFilters
 	bindingAsync
 )
 
-
 // bindingSpec
 
 func (b *bindingSpec) addPolicy(
 	policy Policy,
-	field  reflect.StructField,
+	field reflect.StructField,
 ) error {
 	pk := policyKey{policy: policy}
 	if key, ok := field.Tag.Lookup("key"); ok {
@@ -190,8 +186,8 @@ func (b *bindingSpec) addConstraint(
 }
 
 func (b *bindingSpec) setStrict(
-	index  int,
-	field  reflect.StructField,
+	index int,
+	field reflect.StructField,
 	strict bool,
 ) error {
 	b.flags = b.flags | bindingStrict
@@ -199,8 +195,8 @@ func (b *bindingSpec) setStrict(
 }
 
 func (b *bindingSpec) setSkipFilters(
-	index  int,
-	field  reflect.StructField,
+	index int,
+	field reflect.StructField,
 	strict bool,
 ) error {
 	b.flags = b.flags | bindingSkipFilters
@@ -216,7 +212,8 @@ func (b *bindingSpec) addMetadata(
 
 func (b *bindingSpec) setLogicalOutputType(lt reflect.Type) {
 	switch lt {
-	case internal.ErrorType, handleResType: break
+	case internal.ErrorType, handleResType:
+		break
 	default:
 		b.lt = lt
 	}
@@ -228,22 +225,21 @@ func (b *bindingSpec) complete() error {
 	return nil
 }
 
-
 // bindingSpecFactory
 
 func (p *bindingSpecFactory) createSpec(
-	typ     reflect.Type,
+	typ reflect.Type,
 	minArgs int,
 ) (spec *bindingSpec, err error) {
 	if typ.Kind() != reflect.Func || typ.NumIn() < minArgs {
 		return nil, nil
 	}
-	specType := typ.In(minArgs-1)
+	specType := typ.In(minArgs - 1)
 	// Is it a policy spec?
 	if specType.Kind() == reflect.Ptr {
 		if at := specType.Elem(); // anonymous struct
-				at.Name() == "" &&
-				at.Kind() == reflect.Struct {
+		at.Name() == "" &&
+			at.Kind() == reflect.Struct {
 			spec = &bindingSpec{}
 			if err = parseSpec(at, spec, p.parsers); err != nil {
 				return nil, err
@@ -303,8 +299,8 @@ func (p *bindingSpecFactory) policyOf(
 }
 
 func (p *bindingSpecFactory) parse(
-	index   int,
-	field   reflect.StructField,
+	index int,
+	field reflect.StructField,
 	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
@@ -326,8 +322,8 @@ func (p *bindingSpecFactory) parse(
 }
 
 func parseSpec(
-	source  reflect.Type,
-	spec    any,
+	source reflect.Type,
+	spec any,
 	parsers []BindingParser,
 ) (err error) {
 	if err = parseStruct(source, spec, parsers); err == nil {
@@ -341,7 +337,7 @@ func parseSpec(
 }
 
 func parseStruct(
-	typ     reflect.Type,
+	typ reflect.Type,
 	binding any,
 	parsers []BindingParser,
 ) (err error) {
@@ -349,7 +345,7 @@ func parseStruct(
 	var metadataOwner interface {
 		addMetadata(metadata any) error
 	}
-	NextField:
+NextField:
 	for i := 0; i < typ.NumField(); i++ {
 		bound := false
 		field := typ.Field(i)
@@ -390,8 +386,8 @@ func parseStruct(
 }
 
 func parseFilters(
-	index   int,
-	field   reflect.StructField,
+	index int,
+	field reflect.StructField,
 	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
@@ -440,8 +436,8 @@ func parseFilters(
 }
 
 func parseConstraints(
-	index   int,
-	field   reflect.StructField,
+	index int,
+	field reflect.StructField,
 	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
@@ -463,8 +459,8 @@ func parseConstraints(
 }
 
 func parseOptions(
-	index   int,
-	field   reflect.StructField,
+	index int,
+	field reflect.StructField,
 	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
@@ -506,8 +502,8 @@ func parseOptions(
 }
 
 func addMetadata(
-	typ   reflect.Type,
-	tag   reflect.StructTag,
+	typ reflect.Type,
+	tag reflect.StructTag,
 	owner interface {
 		addMetadata(metadata any) error
 	},
@@ -525,7 +521,6 @@ func addMetadata(
 		return err
 	}
 }
-
 
 const (
 	filterTag   = "filter"

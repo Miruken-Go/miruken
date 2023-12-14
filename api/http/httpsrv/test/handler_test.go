@@ -2,6 +2,12 @@ package test
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
+	"testing"
+
 	"github.com/go-logr/logr"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api/http/httpsrv"
@@ -10,17 +16,12 @@ import (
 	"github.com/miruken-go/miruken/logs"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"strconv"
-	"testing"
 )
 
 type (
-	SayHello struct {}
+	SayHello struct{}
 
-	WeatherUnit uint
+	WeatherUnit    uint
 	WeatherOptions struct {
 		Unit WeatherUnit
 	}
@@ -28,7 +29,7 @@ type (
 		opts WeatherOptions
 	}
 
-	Fibonacci struct {}
+	Fibonacci struct{}
 )
 
 const (
@@ -36,14 +37,12 @@ const (
 	WeatherUnitCelsius
 )
 
-
 func (h SayHello) ServeHTTP(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
 	_, _ = fmt.Fprintf(w, "Hello %s", r.URL.Query().Get("name"))
 }
-
 
 func (u WeatherUnit) FromFahrenheit(f float64) float64 {
 	switch u {
@@ -68,7 +67,7 @@ func (u WeatherUnit) Abbrev() string {
 }
 
 func (h *GetWeather) Constructor(
-	_*struct{args.Optional}, options WeatherOptions,
+	_ *struct{ args.Optional }, options WeatherOptions,
 ) {
 	h.opts = options
 }
@@ -95,10 +94,9 @@ func (h *GetWeather) ServeHTTP(
 	}
 }
 
-
 func (h Fibonacci) Calculate(
-	w   http.ResponseWriter,
-	r   *http.Request,
+	w http.ResponseWriter,
+	r *http.Request,
 	log logr.Logger,
 ) {
 	n, err := strconv.Atoi(r.URL.Query().Get("n"))
@@ -118,7 +116,6 @@ func fibonacci(n int) int {
 	return fibonacci(n-1) + fibonacci(n-2)
 }
 
-
 type HandlerTestSuite struct {
 	suite.Suite
 }
@@ -137,7 +134,7 @@ func (suite *HandlerTestSuite) TestHandler() {
 				_, _ = fmt.Fprint(w, "Hello World")
 			})
 		req := httptest.NewRequest("GET", "http://hello.com", nil)
-		w   := httptest.NewRecorder()
+		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 		resp := w.Result()
 		suite.Equal(200, resp.StatusCode)
@@ -151,7 +148,7 @@ func (suite *HandlerTestSuite) TestHandler() {
 				_, _ = fmt.Fprint(w, "Hello Goodbye")
 			}))
 		req := httptest.NewRequest("GET", "http://hello.com", nil)
-		w   := httptest.NewRecorder()
+		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 		resp := w.Result()
 		suite.Equal(200, resp.StatusCode)
@@ -166,7 +163,7 @@ func (suite *HandlerTestSuite) TestHandler() {
 				_, _ = fmt.Fprint(w, "Hello World")
 			})
 		req := httptest.NewRequest("GET", "http://hello.com", nil)
-		w   := httptest.NewRecorder()
+		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 		resp := w.Result()
 		suite.Equal(200, resp.StatusCode)
@@ -181,7 +178,7 @@ func (suite *HandlerTestSuite) TestHandler() {
 				_, _ = fmt.Fprint(w, "Hello Goodbye")
 			}))
 		req := httptest.NewRequest("GET", "http://hello.com", nil)
-		w   := httptest.NewRecorder()
+		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 		resp := w.Result()
 		suite.Equal(200, resp.StatusCode)
@@ -197,7 +194,7 @@ func (suite *HandlerTestSuite) TestHandler() {
 				_, _ = fmt.Fprint(w, "Hello World")
 			})
 		req := httptest.NewRequest("GET", "http://hello.com", nil)
-		w   := httptest.NewRecorder()
+		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 		resp := w.Result()
 		suite.Equal(200, resp.StatusCode)
@@ -239,7 +236,6 @@ func (suite *HandlerTestSuite) TestHandler() {
 			body, _ := io.ReadAll(resp.Body)
 			suite.Equal("The weather in Valley Stream NY is 6.7°C", string(body))
 		})
-
 
 		suite.Run("Dynamic Context", func() {
 			handler := httpsrv.Use(suite.Setup(Fibonacci{}), httpsrv.H[Fibonacci]())

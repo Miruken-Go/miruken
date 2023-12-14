@@ -1,8 +1,9 @@
 package miruken
 
 import (
-	"github.com/miruken-go/miruken/promise"
 	"reflect"
+
+	"github.com/miruken-go/miruken/promise"
 )
 
 // CallerFunc is a function that invokes a handler method.
@@ -24,7 +25,7 @@ func MakeCaller(fun any) (CallerFunc, error) {
 		panic("fun is not a valid function")
 	} else {
 		numArgs := typ.NumIn()
-		args    := make([]arg, numArgs)
+		args := make([]arg, numArgs)
 		if err := buildDependencies(typ, 0, numArgs, args, 0); err != nil {
 			return nil, err
 		}

@@ -1,19 +1,20 @@
 package miruken
 
 import (
-	"github.com/miruken-go/miruken/promise"
 	"reflect"
+
+	"github.com/miruken-go/miruken/promise"
 )
 
 type (
 	// ConstructorBinder creates constructor Binding's.
 	ConstructorBinder interface {
 		NewCtorBinding(
-			typ   reflect.Type,
-			ctor  *reflect.Method,
+			typ reflect.Type,
+			ctor *reflect.Method,
 			inits []reflect.Method,
-			spec  *bindingSpec,
-			key   any,
+			spec *bindingSpec,
+			key any,
 		) (Binding, error)
 	}
 
@@ -24,7 +25,6 @@ type (
 		key any
 	}
 )
-
 
 func (b *ctorBinding) Key() any {
 	if key := b.key; key != nil {
@@ -46,7 +46,7 @@ func (b *ctorBinding) LogicalOutputType() reflect.Type {
 }
 
 func (b *ctorBinding) Invoke(
-	ctx      HandleContext,
+	ctx HandleContext,
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	// ctorBinding's will be called on existing

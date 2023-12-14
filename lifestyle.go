@@ -2,12 +2,13 @@ package miruken
 
 import (
 	"fmt"
-	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/promise"
 	"math"
 	"reflect"
 	"sync"
 	"sync/atomic"
+
+	"github.com/miruken-go/miruken/internal"
+	"github.com/miruken-go/miruken/promise"
 )
 
 type (
@@ -25,13 +26,11 @@ type (
 	}
 )
 
-
 // Lifestyle
 
 func (l *Lifestyle) Order() int {
 	return math.MaxInt32 - 1000
 }
-
 
 // LifestyleProvider
 
@@ -61,7 +60,6 @@ func (l *LifestyleProvider) FiltersAssigned() bool {
 func (l *LifestyleProvider) SetFilters(filters ...Filter) {
 	l.filters = filters
 }
-
 
 // Single
 
@@ -97,7 +95,6 @@ type (
 	}
 )
 
-
 // Single
 
 func (s *Single) InitWithTag(tag reflect.StructTag) error {
@@ -107,8 +104,8 @@ func (s *Single) InitWithTag(tag reflect.StructTag) error {
 	return nil
 }
 
-func (s *Single)InitLifestyle(binding Binding) error {
-	if !s.FiltersAssigned(){
+func (s *Single) InitLifestyle(binding Binding) error {
+	if !s.FiltersAssigned() {
 		covar := s.covar
 		if !covar {
 			typ, ok := binding.Key().(reflect.Type)
@@ -123,25 +120,23 @@ func (s *Single)InitLifestyle(binding Binding) error {
 	return nil
 }
 
-
 // single
 
 func (s *single) Next(
-	self     Filter,
-	next     Next,
-	ctx      HandleContext,
+	self Filter,
+	next Next,
+	ctx HandleContext,
 	provider FilterProvider,
 ) (out []any, po *promise.Promise[[]any], err error) {
 	return s.entry.get(next)
 }
 
-
 // singleCovar
 
 func (s *singleCovar) Next(
-	self     Filter,
-	next     Next,
-	ctx      HandleContext,
+	self Filter,
+	next Next,
+	ctx HandleContext,
 	provider FilterProvider,
 ) (out []any, po *promise.Promise[[]any], err error) {
 	key := ctx.Callback.(*Provides).Key()
@@ -168,7 +163,7 @@ func (s *singleCovar) Next(
 						if instance := v.instance; len(instance) > 0 {
 							if o := instance[0]; o != nil {
 								if ot := reflect.TypeOf(o); ot.AssignableTo(typ) {
-									entry   = v
+									entry = v
 									kc[key] = v
 									break
 								}
@@ -191,7 +186,6 @@ func (s *singleCovar) Next(
 
 	return entry.get(next)
 }
-
 
 // singleEntry
 

@@ -2,6 +2,7 @@ package govalidator
 
 import (
 	"errors"
+
 	"github.com/asaskevich/govalidator"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/internal"
@@ -29,9 +30,9 @@ func (v *validator) Validate(
 	return miruken.Handled
 }
 
-func  (v *validator) addErrors(
+func (v *validator) addErrors(
 	outcome *validates.Outcome,
-	errors  govalidator.Errors,
+	errors govalidator.Errors,
 ) {
 	for _, err := range errors {
 		switch actual := err.(type) {
@@ -46,8 +47,8 @@ func  (v *validator) addErrors(
 }
 
 func pathOutcome(
-	outcome  *validates.Outcome,
-	err      govalidator.Error,
+	outcome *validates.Outcome,
+	err govalidator.Error,
 ) *validates.Outcome {
 	if path := err.Path; len(path) > 0 {
 		for _, field := range path {

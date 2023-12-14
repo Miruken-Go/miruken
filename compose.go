@@ -12,12 +12,11 @@ type (
 	}
 )
 
-
 // Composition
 
 func (c *Composition) Dispatch(
-	handler  any,
-	greedy   bool,
+	handler any,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if cb := c.callback; cb != nil {
@@ -32,7 +31,7 @@ func (c *Composition) Dispatch(
 
 func (c *CompositionScope) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if composer == nil {

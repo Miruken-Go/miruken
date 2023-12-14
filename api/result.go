@@ -11,4 +11,3 @@ func Failure(val error) either.Monad[error, any] {
 func Success[R any](val R) either.Monad[error, R] {
 	return either.Right(val)
 }
-

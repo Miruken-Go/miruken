@@ -1,11 +1,12 @@
 package miruken
 
 import (
-	"dario.cat/mergo"
 	"fmt"
+	"reflect"
+
+	"dario.cat/mergo"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
 )
 
 type (
@@ -18,10 +19,10 @@ type (
 	}
 
 	// FromOptions is a DependencyResolver for option arguments.
-	FromOptions struct {}
+	FromOptions struct{}
 
 	// optCallback captures option values.
- 	optCallback struct {
+	optCallback struct {
 		options any
 	}
 
@@ -29,19 +30,18 @@ type (
 	// during an option resolution.
 	optionsHandler struct {
 		Handler
-		options any
+		options     any
 		optionsType reflect.Type
 	}
 
 	// optionMerger defines customer merging behavior.
-	optionMerger struct {}
+	optionMerger struct{}
 
 	// mergeable enables custom merge behavior.
 	mergeable interface {
 		MergeFrom(options any) bool
 	}
 )
-
 
 // Option[T]
 
@@ -81,7 +81,6 @@ func Set[T any](val T) Option[T] {
 	return Option[T]{true, val}
 }
 
-
 // Options returns a BuilderFunc that makes the provided
 // options available for merging into matching options.
 func Options(options any) BuilderFunc {
@@ -95,11 +94,10 @@ func Options(options any) BuilderFunc {
 	if optType.Kind() != reflect.Struct {
 		panic("options must be a struct or *struct")
 	}
-	return func (handler Handler) Handler {
+	return func(handler Handler) Handler {
 		return &optionsHandler{handler, options, optType}
 	}
 }
-
 
 func GetOptions[T any](handler Handler) (t T, ok bool) {
 	ok = GetOptionsInto(handler, &t)
@@ -149,7 +147,6 @@ func MergeOptions(from, into any) bool {
 		mergo.WithTransformers(mergeOptions)) == nil
 }
 
-
 // optCallback
 
 func (o optCallback) CanInfer() bool {
@@ -164,12 +161,11 @@ func (o optCallback) CanBatch() bool {
 	return false
 }
 
-
 // optionsHandler
 
 func (c *optionsHandler) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {
@@ -201,7 +197,6 @@ func (c *optionsHandler) Handle(
 	}
 	return c.Handler.Handle(callback, greedy, composer)
 }
-
 
 // FromOptions
 
@@ -237,7 +232,6 @@ func (o FromOptions) Resolve(
 	return v, nil, fmt.Errorf("FromOptions: unable to resolve options %v", typ)
 }
 
-
 // optionMerger
 
 func (t optionMerger) Transformer(
@@ -263,7 +257,6 @@ func (t optionMerger) Transformer(
 	}
 	return nil
 }
-
 
 var (
 	mergeableType = internal.TypeOf[mergeable]()

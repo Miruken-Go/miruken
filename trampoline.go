@@ -42,21 +42,21 @@ func (t *Trampoline) SetResult(result any) {
 }
 
 func (t *Trampoline) CanInfer() bool {
-	if infer, ok := t.callback.(interface{CanInfer() bool}); ok {
+	if infer, ok := t.callback.(interface{ CanInfer() bool }); ok {
 		return infer.CanInfer()
 	}
 	return true
 }
 
 func (t *Trampoline) CanFilter() bool {
-	if filter, ok := t.callback.(interface{CanFilter() bool}); ok {
+	if filter, ok := t.callback.(interface{ CanFilter() bool }); ok {
 		return filter.CanFilter()
 	}
 	return true
 }
 
 func (t *Trampoline) CanBatch() bool {
-	if batch, ok := t.callback.(interface{CanBatch() bool}); ok {
+	if batch, ok := t.callback.(interface{ CanBatch() bool }); ok {
 		return batch.CanBatch()
 	}
 	return true
@@ -65,7 +65,7 @@ func (t *Trampoline) CanBatch() bool {
 func (t *Trampoline) CanDispatch(
 	handler any,
 	binding Binding,
-) (reset func (), approved bool) {
+) (reset func(), approved bool) {
 	if cb := t.callback; cb != nil {
 		if guard, ok := cb.(CallbackGuard); ok {
 			return guard.CanDispatch(handler, binding)
@@ -76,8 +76,8 @@ func (t *Trampoline) CanDispatch(
 
 func (t *Trampoline) Dispatch(
 	callback any,
-	handler  any,
-	greedy   bool,
+	handler any,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {

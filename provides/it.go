@@ -13,32 +13,29 @@ type (
 	Init    = miruken.Init
 )
 
-
 var (
-	With   = miruken.With
+	With     = miruken.With
 	New      = miruken.NewProvider
 	Explicit = miruken.Explicit
 )
 
-
-
 func Type[T any](
-	handler     miruken.Handler,
+	handler miruken.Handler,
 	constraints ...any,
 ) (T, *promise.Promise[T], bool, error) {
 	return miruken.Resolve[T](handler, constraints...)
 }
 
 func Key[T any](
-	handler     miruken.Handler,
-	key         any,
+	handler miruken.Handler,
+	key any,
 	constraints ...any,
 ) (T, *promise.Promise[T], bool, error) {
 	return miruken.ResolveKey[T](handler, key, constraints...)
 }
 
 func All[T any](
-	handler     miruken.Handler,
+	handler miruken.Handler,
 	constraints ...any,
 ) ([]T, *promise.Promise[[]T], error) {
 	return miruken.ResolveAll[T](handler, constraints...)

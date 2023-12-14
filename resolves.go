@@ -18,7 +18,6 @@ type (
 	}
 )
 
-
 // Resolves
 
 func (r *Resolves) Callback() Callback {
@@ -32,7 +31,7 @@ func (r *Resolves) Succeeded() bool {
 func (r *Resolves) CanDispatch(
 	handler any,
 	binding Binding,
-) (reset func (), approved bool) {
+) (reset func(), approved bool) {
 	if outer, ok := r.Provides.CanDispatch(handler, binding); !ok {
 		return outer, false
 	} else if guard, ok := r.callback.(CallbackGuard); !ok {
@@ -49,7 +48,7 @@ func (r *Resolves) CanDispatch(
 }
 
 func (r *Resolves) accept(
-	result   any,
+	result any,
 	composer Handler,
 ) HandleResult {
 	if greedy := r.greedy; !greedy && r.succeeded {
@@ -60,7 +59,6 @@ func (r *Resolves) accept(
 		return hr
 	}
 }
-
 
 // ResolvesBuilder
 

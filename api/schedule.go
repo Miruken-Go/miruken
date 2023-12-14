@@ -1,6 +1,8 @@
 package api
 
 import (
+	"sync"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/either"
@@ -8,7 +10,6 @@ import (
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
-	"sync"
 )
 
 type (
@@ -38,17 +39,16 @@ type (
 	}
 
 	// Scheduler performs the scheduling of requests.
-	Scheduler struct {}
+	Scheduler struct{}
 )
-
 
 // Scheduler
 
 func (s *Scheduler) Constructor(
-	_*struct{
+	_ *struct {
 		provides.It
 		provides.Single
-	  },
+	},
 ) {
 }
 
@@ -104,12 +104,12 @@ func (s *Scheduler) Publish(
 }
 
 func (s *Scheduler) New(
-	_*struct{
+	_ *struct {
 		_ creates.It `key:"api.ConcurrentBatch"`
 		_ creates.It `key:"api.SequentialBatch"`
 		_ creates.It `key:"api.ScheduledResult"`
 		_ creates.It `key:"api.Published"`
-	  }, create *creates.It,
+	}, create *creates.It,
 ) any {
 	switch create.Key() {
 	case "api.ConcurrentBatch":
@@ -124,11 +124,10 @@ func (s *Scheduler) New(
 	return nil
 }
 
-
 // Sequential processes a batch of requests sequentially.
 // Returns a batch of corresponding responses (or errors).
 func Sequential(
-	handler  miruken.Handler,
+	handler miruken.Handler,
 	requests ...any,
 ) *promise.Promise[[]either.Monad[error, any]] {
 	if internal.IsNil(handler) {
@@ -140,7 +139,7 @@ func Sequential(
 // Concurrent processes a batch of requests concurrently.
 // Returns a batch of corresponding responses (or errors).
 func Concurrent(
-	handler  miruken.Handler,
+	handler miruken.Handler,
 	requests ...any,
 ) *promise.Promise[[]either.Monad[error, any]] {
 	if internal.IsNil(handler) {
@@ -167,7 +166,7 @@ func process(
 
 func sendBatch(
 	handler miruken.Handler,
-	batch   any,
+	batch any,
 ) *promise.Promise[[]either.Monad[error, any]] {
 	if r, pr, err := Send[ScheduledResult](handler, batch); err != nil {
 		return promise.Reject[[]either.Monad[error, any]](err)

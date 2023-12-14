@@ -2,10 +2,11 @@ package miruken
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
 )
 
 type (
@@ -19,9 +20,8 @@ type (
 	}
 )
 
-
 // zeroArg returns the Zero value of the argument type.
-type zeroArg struct {}
+type zeroArg struct{}
 
 func (z zeroArg) flags() bindingFlags {
 	return bindingNone
@@ -35,7 +35,7 @@ func (z zeroArg) resolve(
 }
 
 // CallbackArg returns the raw callback.
-type CallbackArg struct {}
+type CallbackArg struct{}
 
 func (c CallbackArg) flags() bindingFlags {
 	return bindingNone
@@ -53,7 +53,7 @@ func (c CallbackArg) resolve(
 }
 
 // sourceArg returns the callback source.
-type sourceArg struct {}
+type sourceArg struct{}
 
 func (s sourceArg) flags() bindingFlags {
 	return bindingNone
@@ -87,8 +87,8 @@ type dependencySpec struct {
 }
 
 func (s *dependencySpec) setStrict(
-	index  int,
-	field  reflect.StructField,
+	index int,
+	field reflect.StructField,
 	strict bool,
 ) error {
 	s.flags = s.flags | bindingStrict
@@ -96,8 +96,8 @@ func (s *dependencySpec) setStrict(
 }
 
 func (s *dependencySpec) setOptional(
-	index  int,
-	field  reflect.StructField,
+	index int,
+	field reflect.StructField,
 	strict bool,
 ) error {
 	s.flags = s.flags | bindingOptional
@@ -142,15 +142,15 @@ func (d DependencyArg) flags() bindingFlags {
 }
 
 func (d DependencyArg) Optional() bool {
-	return d.spec != nil && d.spec.flags & bindingOptional == bindingOptional
+	return d.spec != nil && d.spec.flags&bindingOptional == bindingOptional
 }
 
 func (d DependencyArg) Strict() bool {
-	return d.spec != nil && d.spec.flags & bindingStrict == bindingStrict
+	return d.spec != nil && d.spec.flags&bindingStrict == bindingStrict
 }
 
 func (d DependencyArg) Promise() bool {
-	return d.spec != nil && d.spec.flags &bindingAsync == bindingAsync
+	return d.spec != nil && d.spec.flags&bindingAsync == bindingAsync
 }
 
 func (d DependencyArg) Metadata() []any {
@@ -265,7 +265,6 @@ func (r *defaultDependencyResolver) Resolve(
 	return
 }
 
-
 // UnresolvedArgError reports a failed resolve an arg.
 type UnresolvedArgError struct {
 	arg    arg
@@ -280,7 +279,6 @@ func (e *UnresolvedArgError) Unwrap() error {
 	return e.Reason
 }
 
-
 // Dependency typed
 
 var dependencyParsers = []BindingParser{
@@ -290,14 +288,14 @@ var dependencyParsers = []BindingParser{
 }
 
 func buildDependencies(
-	funTyp     reflect.Type,
+	funTyp reflect.Type,
 	startIndex int,
-	endIndex   int,
-	args       []arg,
-	offset     int,
+	endIndex int,
+	args []arg,
+	offset int,
 ) (invalid error) {
 	var lastSpec *dependencySpec
-	for i, j := startIndex, 0; i < endIndex; i, j = i + 1, j + 1 {
+	for i, j := startIndex, 0; i < endIndex; i, j = i+1, j+1 {
 		argType := funTyp.In(i)
 		if arg, err := buildDependency(argType); err == nil {
 			if arg.spec != nil {
@@ -306,7 +304,7 @@ func buildDependencies(
 						"expected dependency at index %v, but found spec", i))
 				} else {
 					lastSpec = arg.spec // capture spec for actual dependency
-					args[j + offset] = zeroArg{}
+					args[j+offset] = zeroArg{}
 				}
 			} else {
 				if lastSpec != nil {
@@ -330,7 +328,7 @@ func buildDependencies(
 					}
 					arg.spec.logicalType = lt
 				}
-				args[j + offset] = arg
+				args[j+offset] = arg
 			}
 		} else {
 			invalid = multierror.Append(invalid, fmt.Errorf(
@@ -358,7 +356,7 @@ func buildDependency(
 	}
 	argType = argType.Elem()
 	if argType.Kind() == reflect.Struct &&
-		argType.Name() == "" {  // anonymous
+		argType.Name() == "" { // anonymous
 		spec := &dependencySpec{}
 		if err = parseSpec(argType, spec, dependencyParsers); err != nil {
 			return arg, err
@@ -369,8 +367,8 @@ func buildDependency(
 }
 
 func parseResolver(
-	index   int,
-	field   reflect.StructField,
+	index int,
+	field reflect.StructField,
 	binding any,
 ) (bound bool, err error) {
 	if dr := internal.CoerceToPtr(field.Type, depResolverType); dr != nil {

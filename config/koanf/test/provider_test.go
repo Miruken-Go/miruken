@@ -3,6 +3,11 @@ package test
 import (
 	"errors"
 	"fmt"
+	"os"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/providers/env"
@@ -15,10 +20,6 @@ import (
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"os"
-	"reflect"
-	"testing"
-	"time"
 )
 
 type (
@@ -39,17 +40,17 @@ type (
 		Timeout          time.Duration
 	}
 
-	LoadCustomer struct {}
-	CreateCustomer struct {}
-	CustomerCreated struct {}
+	LoadCustomer    struct{}
+	CreateCustomer  struct{}
+	CustomerCreated struct{}
 
 	EventStore struct {
 		cfg AppConfig
 	}
 
-	Gateway struct {}
+	Gateway struct{}
 
-	Repository struct {}
+	Repository struct{}
 )
 
 // AppConfig
@@ -64,7 +65,7 @@ func (a AppConfig) Validate() error {
 // EventStore
 
 func (e *EventStore) Constructor(
-	_*struct{config.Load}, cfg AppConfig,
+	_ *struct{ config.Load }, cfg AppConfig,
 ) {
 	e.cfg = cfg
 }
@@ -74,8 +75,8 @@ func (e *EventStore) Env() string {
 }
 
 func (e *EventStore) Publish(
-	_*struct{handles.It}, _ CustomerCreated,
-	_*struct{config.Load}, cfg map[string]any,
+	_ *struct{ handles.It }, _ CustomerCreated,
+	_ *struct{ config.Load }, cfg map[string]any,
 ) {
 	fmt.Println(cfg["services"].(map[string]any)["eventStoreUrl"])
 }
@@ -83,8 +84,8 @@ func (e *EventStore) Publish(
 // Gateway
 
 func (g *Gateway) CreateCustomer(
-	_*struct{handles.It}, _ CreateCustomer,
-	_*struct{config.Load}, cfg AppConfig,
+	_ *struct{ handles.It }, _ CreateCustomer,
+	_ *struct{ config.Load }, cfg AppConfig,
 	ctx miruken.HandleContext,
 ) error {
 	fmt.Println(cfg.Services.CustomerUrl)
@@ -95,8 +96,10 @@ func (g *Gateway) CreateCustomer(
 // Repository
 
 func (r *Repository) LoadCustomer(
-	_*struct{handles.It}, _ LoadCustomer,
-	_*struct{config.Load `path:",flat"`}, cfg struct {
+	_ *struct{ handles.It }, _ LoadCustomer,
+	_ *struct {
+		config.Load `path:",flat"`
+	}, cfg struct {
 		Databases []DatabaseConfig `path:"databases"`
 	},
 ) {
@@ -109,8 +112,7 @@ type ProviderTestSuite struct {
 }
 
 func (suite *ProviderTestSuite) SetupTest() {
-	suite.specs = []any{
-	}
+	suite.specs = []any{}
 }
 
 func (suite *ProviderTestSuite) Setup(specs ...any) (*context.Context, error) {
@@ -247,7 +249,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 			s, ok := koanfp.ConvertSlices(m)
 			suite.True(ok)
 			suite.NotNil(s)
-			suite.Equal([]any{12,37,22}, s)
+			suite.Equal([]any{12, 37, 22}, s)
 		})
 
 		suite.Run("Sparse", func() {

@@ -7,7 +7,7 @@ import (
 )
 
 // Installer configure http client support.
-type Installer struct {}
+type Installer struct{}
 
 func (i *Installer) DependsOn() []setup.Feature {
 	return []setup.Feature{
@@ -15,9 +15,9 @@ func (i *Installer) DependsOn() []setup.Feature {
 		api.Feature()}
 }
 
-func (i *Installer) Install(setup *setup.Builder) error {
-	if setup.Tag(&featureTag) {
-		setup.Specs(&Router{})
+func (i *Installer) Install(b *setup.Builder) error {
+	if b.Tag(&featureTag) {
+		b.Specs(&Router{})
 	}
 	return nil
 }

@@ -3,14 +3,15 @@ package playvalidator
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
+
 	ut "github.com/go-playground/universal-translator"
 	play "github.com/go-playground/validator/v10"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/validates"
-	"reflect"
-	"strings"
 )
 
 type (
@@ -19,7 +20,7 @@ type (
 	Constraints map[string]string
 
 	// TypeRules express the validation Constraints for a type.
-	TypeRules struct{
+	TypeRules struct {
 		Type        any
 		Constraints Constraints
 	}
@@ -90,23 +91,22 @@ type (
 	}
 
 	// validator performs default tag based validation.
-	validator struct { Validator }
+	validator struct{ Validator }
 )
-
 
 // Validator
 
 func (v *Validator) Constructor(
 	validate *play.Validate,
-	_*struct{args.Optional}, translator ut.Translator,
+	_ *struct{ args.Optional }, translator ut.Translator,
 ) {
-	v.validate   = validate
+	v.validate = validate
 	v.translator = translator
 }
 
 func (v *Validator) WithRules(
-	rules      Rules,
-	configure  func(*play.Validate) error,
+	rules Rules,
+	configure func(*play.Validate) error,
 	translator ut.Translator,
 ) error {
 	if v.validate != nil {
@@ -124,13 +124,13 @@ func (v *Validator) WithRules(
 		validate.RegisterStructValidationMapRules(rule.Constraints, rule.Type)
 	}
 
-	v.validate   = validate
+	v.validate = validate
 	v.translator = translator
 	return nil
 }
 
 func (v *Validator) Validate(
-	target  any,
+	target any,
 	outcome *validates.Outcome,
 ) miruken.HandleResult {
 	if !internal.IsStruct(target) {
@@ -158,7 +158,7 @@ func (v *Validator) Validate(
 }
 
 func (v *Validator) ValidateAndStop(
-	target  any,
+	target any,
 	outcome *validates.Outcome,
 ) miruken.HandleResult {
 	result := v.Validate(target, outcome)
@@ -170,37 +170,39 @@ func (v *Validator) ValidateAndStop(
 }
 
 func (v *Validator) addErrors(
-	outcome     *validates.Outcome,
+	outcome *validates.Outcome,
 	fieldErrors play.ValidationErrors,
 ) {
 	for _, err := range fieldErrors {
 		var path string
-		ns    := err.StructNamespace()
+		ns := err.StructNamespace()
 		parts := strings.SplitN(ns, ".", 2)
-		if len(parts) > 1 { path = parts[1] }
+		if len(parts) > 1 {
+			path = parts[1]
+		}
 		outcome.AddError(path, err)
 	}
 }
 
 func (v *Validator) translateErrors(
-	outcome     *validates.Outcome,
+	outcome *validates.Outcome,
 	fieldErrors play.ValidationErrors,
 ) {
 	for field, msg := range fieldErrors.Translate(v.translator) {
 		var path string
 		parts := strings.SplitN(field, ".", 2)
-		if len(parts) > 1 { path = parts[1] }
+		if len(parts) > 1 {
+			path = parts[1]
+		}
 		outcome.AddError(path, errors.New(msg))
 	}
 }
-
 
 // Type is a helper function to define the constraints for a type.
 func Type[T any](constraints map[string]string) TypeRules {
 	typ := reflect.Zero(internal.TypeOf[T]()).Interface()
 	return TypeRules{Type: typ, Constraints: constraints}
 }
-
 
 // Validates
 
@@ -210,7 +212,6 @@ func (v *Validates[T]) Validate(
 	return v.ValidateAndStop(t, validate.Outcome())
 }
 
-
 // Validates1
 
 func (v *Validates1[T]) Validate1(
@@ -218,7 +219,6 @@ func (v *Validates1[T]) Validate1(
 ) miruken.HandleResult {
 	return v.ValidateAndStop(t, validate.Outcome())
 }
-
 
 // Validates2
 
@@ -228,7 +228,6 @@ func (v *Validates2[T]) Validate2(
 	return v.ValidateAndStop(t, validate.Outcome())
 }
 
-
 // Validates3
 
 func (v *Validates3[T]) Validate3(
@@ -237,7 +236,6 @@ func (v *Validates3[T]) Validate3(
 	return v.ValidateAndStop(t, validate.Outcome())
 }
 
-
 // Validates4
 
 func (v *Validates4[T]) Validate4(
@@ -245,7 +243,6 @@ func (v *Validates4[T]) Validate4(
 ) miruken.HandleResult {
 	return v.ValidateAndStop(t, validate.Outcome())
 }
-
 
 // Validates5
 
@@ -286,7 +283,6 @@ func (v *Validates9[T]) Validate9(
 ) miruken.HandleResult {
 	return v.ValidateAndStop(t, validate.Outcome())
 }
-
 
 // validator
 

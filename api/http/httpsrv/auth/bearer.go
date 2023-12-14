@@ -1,10 +1,11 @@
 package auth
 
 import (
-	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/security/login/callback"
 	"net/http"
 	"strings"
+
+	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/security/login/callback"
 )
 
 // Bearer is a http authentication Scheme that uses an
@@ -12,7 +13,6 @@ import (
 type Bearer struct {
 	Realm string
 }
-
 
 func (b Bearer) Accept(
 	r *http.Request,
@@ -25,14 +25,13 @@ func (b Bearer) Accept(
 }
 
 func (b Bearer) Challenge(
-	w   http.ResponseWriter,
-	r   *http.Request,
+	w http.ResponseWriter,
+	r *http.Request,
 	err error,
 ) int {
-	WriteWWWAuthenticateHeader(w,"Bearer", b.Realm, nil, err)
+	WriteWWWAuthenticateHeader(w, "Bearer", b.Realm, nil, err)
 	return http.StatusUnauthorized
 }
-
 
 // Bearer configures an authentication flow to use `Bearer` tokens.
 func (b *FlowBuilder) Bearer() *Authentication {

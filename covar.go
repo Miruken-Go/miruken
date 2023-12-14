@@ -3,11 +3,12 @@ package miruken
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
-	"strings"
 )
 
 // CovariantPolicy matches related output values.
@@ -15,12 +16,10 @@ type CovariantPolicy struct {
 	FilteredScope
 }
 
-
 var (
 	ErrCovResultsExceeded = errors.New("covariant: cannot accept more than 2 results")
 	ErrCovMissingReturn   = errors.New("covariant: must have a return value")
 )
-
 
 func (p *CovariantPolicy) VariantKey(
 	key any,
@@ -33,7 +32,7 @@ func (p *CovariantPolicy) VariantKey(
 
 func (p *CovariantPolicy) MatchesKey(
 	key, otherKey any,
-	invariant     bool,
+	invariant bool,
 ) (matches bool, exact bool) {
 	if key == otherKey {
 		return true, true
@@ -48,7 +47,6 @@ func (p *CovariantPolicy) MatchesKey(
 	}
 	return false, false
 }
-
 
 func (p *CovariantPolicy) Strict() bool {
 	return false
@@ -104,11 +102,11 @@ func (p *CovariantPolicy) AcceptResults(
 }
 
 func (p *CovariantPolicy) NewCtorBinding(
-	typ   reflect.Type,
-	ctor  *reflect.Method,
+	typ reflect.Type,
+	ctor *reflect.Method,
 	inits []reflect.Method,
-	spec  *bindingSpec,
-	key   any,
+	spec *bindingSpec,
+	key any,
 ) (Binding, error) {
 	binding := &ctorBinding{typ: typ, key: key}
 	if spec != nil {
@@ -136,10 +134,10 @@ func (p *CovariantPolicy) NewCtorBinding(
 
 func (p *CovariantPolicy) NewMethodBinding(
 	method reflect.Method,
-	spec   *bindingSpec,
-	key    any,
+	spec *bindingSpec,
+	key any,
 ) (Binding, error) {
-	if args, key, err := validateCovariantFunc(method.Type, spec, key,1); err != nil {
+	if args, key, err := validateCovariantFunc(method.Type, spec, key, 1); err != nil {
 		return nil, &MethodBindingError{method, err}
 	} else {
 		return &methodBinding{
@@ -153,11 +151,11 @@ func (p *CovariantPolicy) NewMethodBinding(
 }
 
 func (p *CovariantPolicy) NewFuncBinding(
-	fun  reflect.Value,
+	fun reflect.Value,
 	spec *bindingSpec,
-	key  any,
+	key any,
 ) (Binding, error) {
-	if args, key, err := validateCovariantFunc(fun.Type(), spec, key,0); err != nil {
+	if args, key, err := validateCovariantFunc(fun.Type(), spec, key, 0); err != nil {
 		return nil, &FuncBindingError{fun, err}
 	} else {
 		return &funcBinding{
@@ -170,17 +168,16 @@ func (p *CovariantPolicy) NewFuncBinding(
 	}
 }
 
-
 func validateCovariantFunc(
 	funType reflect.Type,
-	spec    *bindingSpec,
-	key     any,
-	skip    int,
+	spec *bindingSpec,
+	key any,
+	skip int,
 ) (args []arg, ck any, err error) {
 	numArgs := funType.NumIn()
-	numOut  := funType.NumOut()
-	args     = make([]arg, numArgs-skip)
-	args[0]  = spec.arg
+	numOut := funType.NumOut()
+	args = make([]arg, numArgs-skip)
+	args[0] = spec.arg
 
 	if err = buildDependencies(funType, skip+1, numArgs, args, 1); err != nil {
 		err = fmt.Errorf("covariant: %w", err)
@@ -212,7 +209,7 @@ func validateCovariantFunc(
 					spec.flags = spec.flags | bindingAsync
 					out = lt
 				}
-				if spec.flags & bindingStrict != bindingStrict {
+				if spec.flags&bindingStrict != bindingStrict {
 					switch out.Kind() {
 					case reflect.Slice, reflect.Array:
 						out = out.Elem()
@@ -220,7 +217,7 @@ func validateCovariantFunc(
 				}
 				key = out
 			}
-			ck  = key
+			ck = key
 			spec.setLogicalOutputType(out)
 		}
 	}
@@ -232,15 +229,15 @@ func validateCovariantFunc(
 }
 
 func addInitializer(
-	init      reflect.Method,
-	ci        *initializer,
+	init reflect.Method,
+	ci *initializer,
 	zeroFirst bool,
-	label     string,
+	label string,
 ) error {
 	startIndex := 0
-	initType   := init.Type
-	numArgs    := initType.NumIn()
-	args       := make([]arg, numArgs-1)  // skip receiver
+	initType := init.Type
+	numArgs := initType.NumIn()
+	args := make([]arg, numArgs-1) // skip receiver
 	if zeroFirst {
 		startIndex = 1
 		args[0] = zeroArg{}

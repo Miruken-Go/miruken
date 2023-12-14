@@ -4,6 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"net/textproto"
+	"runtime"
+	"strings"
+
 	"github.com/go-logr/logr"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
@@ -13,11 +19,6 @@ import (
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/timewasted/go-accept-headers"
-	"io"
-	"net/http"
-	"net/textproto"
-	"runtime"
-	"strings"
 )
 
 // PolyHandler is a Handler for processing polymorphic http requests.
@@ -25,9 +26,8 @@ type PolyHandler struct {
 	logger logr.Logger
 }
 
-
 func (a *PolyHandler) Constructor(
-	_*struct{args.Optional}, logger logr.Logger,
+	_ *struct{ args.Optional }, logger logr.Logger,
 ) {
 	if logger == a.logger {
 		a.logger = logr.Discard()
@@ -115,10 +115,10 @@ func (a *PolyHandler) acceptRequest(
 	path := r.RequestURI
 	if path == "/process" || strings.HasPrefix(path, "/process/") {
 		accepted = true
-		publish  = false
+		publish = false
 	} else if path == "/publish" || strings.HasPrefix(path, "/publish/") {
 		accepted = true
-		publish  = false
+		publish = false
 	} else {
 		http.Error(w, "404 not found", http.StatusNotFound)
 	}
@@ -126,9 +126,9 @@ func (a *PolyHandler) acceptRequest(
 }
 
 func (a *PolyHandler) encodeResult(
-	result  any,
-	r       *http.Request,
-	w       http.ResponseWriter,
+	result any,
+	r *http.Request,
+	w http.ResponseWriter,
 	handler miruken.Handler,
 ) {
 	header := w.Header()
@@ -190,10 +190,10 @@ func (a *PolyHandler) encodeResult(
 }
 
 func (a *PolyHandler) encodeError(
-	err                  error,
+	err error,
 	notHandledStatusCode int,
-	w                    http.ResponseWriter,
-	handler              miruken.Handler,
+	w http.ResponseWriter,
+	handler miruken.Handler,
 ) {
 	if notHandledStatusCode > 0 {
 		var nh *miruken.NotHandledError
@@ -243,6 +243,5 @@ func (a *PolyHandler) handlePanic(w http.ResponseWriter) {
 		http.Error(w, msg, http.StatusInternalServerError)
 	}
 }
-
 
 var toStatusCode = maps.To("http:status-code", nil)

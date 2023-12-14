@@ -2,9 +2,10 @@ package miruken
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
 )
 
 type (
@@ -20,23 +21,22 @@ type (
 	}
 
 	// ProvidesBuilder builds Provides callbacks.
- 	ProvidesBuilder struct {
+	ProvidesBuilder struct {
 		CallbackBuilder
 		key      any
 		explicit bool
-		parent  *Provides
+		parent   *Provides
 		owner    any
 	}
 
 	// providesPolicy provides values covariantly with lifestyle.
- 	providesPolicy struct {
+	providesPolicy struct {
 		CovariantPolicy
 	}
 
 	// Explicit suppresses implied resolution.
-	explicit struct {}
+	explicit struct{}
 )
-
 
 // Provides
 
@@ -63,13 +63,13 @@ func (p *Provides) Owner() any {
 func (p *Provides) CanDispatch(
 	handler any,
 	binding Binding,
-) (reset func (), approved bool) {
+) (reset func(), approved bool) {
 	if p.inProgress(handler, binding) {
 		return nil, false
 	}
-	return func(h any, b Binding) func () {
+	return func(h any, b Binding) func() {
 		p.handler, p.binding = handler, binding
-		return func () {
+		return func() {
 			p.handler, p.binding = h, b
 		}
 	}(p.handler, p.binding), true
@@ -89,8 +89,8 @@ func (p *Provides) inProgress(
 }
 
 func (p *Provides) Dispatch(
-	handler  any,
-	greedy   bool,
+	handler any,
+	greedy bool,
 	composer Handler,
 ) (result HandleResult) {
 	result = NotHandled
@@ -115,7 +115,7 @@ func (p *Provides) String() string {
 
 func (p *Provides) Resolve(
 	handler Handler,
-	many    bool,
+	many bool,
 ) (any, *promise.Promise[any], error) {
 	if result := handler.Handle(p, many, nil); result.IsError() {
 		return nil, nil, result.Error()
@@ -131,7 +131,6 @@ func (p *Provides) acceptPromise(
 		return nil
 	})
 }
-
 
 // ProvidesBuilder
 
@@ -194,11 +193,10 @@ func (b *ProvidesBuilder) New() *Provides {
 	return p
 }
 
-
 // Resolve retrieves a value of type parameter T.
 // Applies any lifestyle if present.
 func Resolve[T any](
-	handler     Handler,
+	handler Handler,
 	constraints ...any,
 ) (T, *promise.Promise[T], bool, error) {
 	return ResolveKey[T](handler, internal.TypeOf[T](), constraints...)
@@ -207,8 +205,8 @@ func Resolve[T any](
 // ResolveKey retrieves a value of type parameter T with the specified key.
 // Applies any lifestyle if present.
 func ResolveKey[T any](
-	handler     Handler,
-	key         any,
+	handler Handler,
+	key any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], ok bool, err error) {
 	if internal.IsNil(handler) {
@@ -217,7 +215,7 @@ func ResolveKey[T any](
 	var builder ProvidesBuilder
 	builder.WithConstraints(constraints...)
 	builder.WithKey(key).
-		    IntoTarget(&t)
+		IntoTarget(&t)
 	p := builder.New()
 	if result := handler.Handle(p, false, nil); result.IsError() {
 		err = result.Error()
@@ -235,7 +233,7 @@ func ResolveKey[T any](
 // ResolveAll retrieves all values of type parameter T.
 // Applies any lifestyle if present.
 func ResolveAll[T any](
-	handler     Handler,
+	handler Handler,
 	constraints ...any,
 ) (t []T, tp *promise.Promise[[]T], err error) {
 	if internal.IsNil(handler) {
@@ -244,7 +242,7 @@ func ResolveAll[T any](
 	var builder ProvidesBuilder
 	builder.WithConstraints(constraints...)
 	builder.WithKey(internal.TypeOf[T]()).
-		    IntoTarget(&t)
+		IntoTarget(&t)
 	p := builder.New()
 	if result := handler.Handle(p, true, nil); result.IsError() {
 		err = result.Error()
@@ -258,15 +256,14 @@ func ResolveAll[T any](
 	return
 }
 
-
 // providesPolicy
 
 func (p *providesPolicy) NewCtorBinding(
-	typ   reflect.Type,
-	ctor  *reflect.Method,
+	typ reflect.Type,
+	ctor *reflect.Method,
 	inits []reflect.Method,
-	spec  *bindingSpec,
-	key   any,
+	spec *bindingSpec,
+	key any,
 ) (Binding, error) {
 	binding, err := p.CovariantPolicy.NewCtorBinding(typ, ctor, inits, spec, key)
 	if err == nil {
@@ -282,8 +279,8 @@ func (p *providesPolicy) NewCtorBinding(
 
 func (p *providesPolicy) NewMethodBinding(
 	method reflect.Method,
-	spec   *bindingSpec,
-	key    any,
+	spec *bindingSpec,
+	key any,
 ) (Binding, error) {
 	binding, err := p.CovariantPolicy.NewMethodBinding(method, spec, key)
 	if err == nil {
@@ -295,9 +292,9 @@ func (p *providesPolicy) NewMethodBinding(
 }
 
 func (p *providesPolicy) NewFuncBinding(
-	fun  reflect.Value,
+	fun reflect.Value,
 	spec *bindingSpec,
-	key  any,
+	key any,
 ) (Binding, error) {
 	binding, err := p.CovariantPolicy.NewFuncBinding(fun, spec, key)
 	if err == nil {
@@ -307,7 +304,6 @@ func (p *providesPolicy) NewFuncBinding(
 	}
 	return binding, err
 }
-
 
 func initLifestyles(binding Binding) error {
 	for _, filter := range binding.Filters() {
@@ -319,7 +315,6 @@ func initLifestyles(binding Binding) error {
 	}
 	return nil
 }
-
 
 var (
 	providesPolicyIns Policy = &providesPolicy{}

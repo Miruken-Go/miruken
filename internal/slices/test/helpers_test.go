@@ -1,11 +1,12 @@
 package test
 
 import (
-	"github.com/miruken-go/miruken/internal/slices"
-	"github.com/stretchr/testify/suite"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/miruken-go/miruken/internal/slices"
+	"github.com/stretchr/testify/suite"
 )
 
 type HelperTestSuite struct {
@@ -59,7 +60,7 @@ func (suite *HelperTestSuite) TestHelper() {
 		s := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}
 		result := slices.Reduce(s, "0", func(acc string, i int, s string) string {
 			accumulator, _ := strconv.Atoi(acc)
-			current,     _ := strconv.Atoi(s)
+			current, _ := strconv.Atoi(s)
 			s = strconv.Itoa(accumulator + current)
 			return s
 		})
@@ -76,14 +77,14 @@ func (suite *HelperTestSuite) TestHelper() {
 		suite.Equal(1, first)
 		suite.Equal(true, ok)
 		first2, ok := slices.First([]string{})
-		suite.Equal( "", first2)
-		suite.Equal( false, ok)
+		suite.Equal("", first2)
+		suite.Equal(false, ok)
 	})
 
 	suite.Run("Last", func() {
 		last, ok := slices.Last([]int{1, 2, 3})
 		suite.Equal(3, last)
-		suite.Equal( true, ok)
+		suite.Equal(true, ok)
 		last, ok = slices.Last([]int{})
 		suite.Equal(0, last)
 		suite.Equal(false, ok)

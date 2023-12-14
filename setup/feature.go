@@ -10,17 +10,16 @@ type (
 	FeatureFunc func(*Builder) error
 )
 
-func (f FeatureFunc) Install(setup *Builder) error {
-	return f(setup)
+func (f FeatureFunc) Install(b *Builder) error {
+	return f(b)
 }
-
 
 // FeatureSet combines one or more Feature's into a single logical Feature.
 func FeatureSet(features ...Feature) FeatureFunc {
-	return func(setup *Builder) error {
+	return func(b *Builder) error {
 		for _, feature := range features {
 			if !internal.IsNil(feature) {
-				if err := feature.Install(setup); err != nil {
+				if err := feature.Install(b); err != nil {
 					return err
 				}
 			}

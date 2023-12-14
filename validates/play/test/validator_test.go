@@ -1,6 +1,8 @@
 package test
 
 import (
+	"testing"
+
 	ut "github.com/go-playground/universal-translator"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/args"
@@ -9,7 +11,6 @@ import (
 	"github.com/miruken-go/miruken/validates"
 	play "github.com/miruken-go/miruken/validates/play"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 //go:generate $GOPATH/bin/miruken -tests
@@ -72,11 +73,10 @@ type UserHandler struct {
 	userId int
 }
 
-
 // CreateUserIntegrity
 
 func (v *CreateUserIntegrity) Constructor(
-	_*struct{args.Optional}, translator ut.Translator,
+	_ *struct{ args.Optional }, translator ut.Translator,
 ) error {
 	return v.WithRules(
 		play.Rules{
@@ -97,7 +97,6 @@ func (v *CreateUserIntegrity) Constructor(
 			}),
 		}, nil, translator)
 }
-
 
 // UserHandler
 

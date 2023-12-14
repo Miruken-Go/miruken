@@ -2,16 +2,17 @@ package config
 
 import (
 	"fmt"
-	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/args"
-	"github.com/miruken-go/miruken/constraints"
-	"github.com/miruken-go/miruken/internal/slices"
-	"github.com/miruken-go/miruken/provides"
 	"maps"
 	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/args"
+	"github.com/miruken-go/miruken/constraints"
+	"github.com/miruken-go/miruken/internal/slices"
+	"github.com/miruken-go/miruken/provides"
 )
 
 type (
@@ -28,13 +29,12 @@ type (
 		Flat bool
 	}
 
-	loadKey struct{
+	loadKey struct {
 		typ  reflect.Type
 		path string
 		flat bool
 	}
 )
-
 
 // Load
 
@@ -60,7 +60,6 @@ func (l *Load) Satisfies(required miruken.Constraint, _ miruken.Callback) bool {
 	return ok
 }
 
-
 // Factory
 
 // NoConstructor prevents Factory from being created implicitly.
@@ -71,7 +70,10 @@ func (f *Factory) NoConstructor() {}
 // NewConfiguration return a new configuration instance
 // populated from the designated Provider.
 func (f *Factory) NewConfiguration(
-	_*struct{args.Strict; Load}, p *provides.It,
+	_ *struct {
+		args.Strict
+		Load
+	}, p *provides.It,
 ) (any, error) {
 	if typ, ok := p.Key().(reflect.Type); ok {
 		var path string

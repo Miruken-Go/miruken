@@ -2,9 +2,10 @@ package validates
 
 import (
 	"fmt"
-	"github.com/miruken-go/miruken/internal/maps"
 	"sort"
 	"strings"
+
+	"github.com/miruken-go/miruken/internal/maps"
 )
 
 type (
@@ -13,7 +14,6 @@ type (
 		errors map[string][]error
 	}
 )
-
 
 // Outcome
 
@@ -31,7 +31,7 @@ func (o *Outcome) Fields() []string {
 
 func (o *Outcome) AddError(
 	path string,
-	err  error,
+	err error,
 ) {
 	if err == nil {
 		panic("err cannot be nil")
@@ -117,7 +117,7 @@ func (o *Outcome) Error() string {
 }
 
 func (o *Outcome) childPath(
-	key     string,
+	key string,
 	require bool,
 ) *Outcome {
 	if o.errors == nil {
@@ -145,7 +145,7 @@ func (o *Outcome) childPath(
 }
 
 func (o *Outcome) parsePath(
-	path    string,
+	path string,
 	require bool,
 ) (parent *Outcome, key string) {
 	parent = o
@@ -156,12 +156,12 @@ func (o *Outcome) parsePath(
 			}
 			parent, path = parent.childPath(index, require), rest
 		} else {
-			dot  := strings.IndexRune(path, '.')
+			dot := strings.IndexRune(path, '.')
 			open := strings.IndexRune(path, '[')
 			if dot > 0 || open > 0 {
 				var rest string
 				if dot > 0 && (open < 0 || dot < open) {
-					rest, path = path[(dot + 1):], path[0:dot]
+					rest, path = path[(dot+1):], path[0:dot]
 				} else {
 					rest, path = path[open:], path[0:open]
 				}
@@ -188,7 +188,7 @@ func (o *Outcome) parseIndexer(
 		if index := path[1:end]; len(index) == 0 {
 			panic("missing property index")
 		} else {
-			return index, strings.Trim(path[end + 1:], ".")
+			return index, strings.Trim(path[end+1:], ".")
 		}
 	}
 }

@@ -1,13 +1,14 @@
 package miruken
 
 import (
-	"github.com/miruken-go/miruken/promise"
 	"math"
+
+	"github.com/miruken-go/miruken/promise"
 )
 
 type (
 	// Init marks a method as an initializer.
-	Init struct {}
+	Init struct{}
 
 	// initializer is a Filter that invokes a 'Constructor'
 	// method and optional 'Init' methods on the current output
@@ -24,7 +25,6 @@ type (
 	}
 )
 
-
 // initializer
 
 func (i *initializer) Order() int {
@@ -32,11 +32,11 @@ func (i *initializer) Order() int {
 }
 
 func (i *initializer) Next(
-	self     Filter,
-	next     Next,
-	ctx      HandleContext,
+	self Filter,
+	next Next,
+	ctx HandleContext,
 	provider FilterProvider,
-)  (out []any, pout *promise.Promise[[]any], err error) {
+) (out []any, pout *promise.Promise[[]any], err error) {
 	// Receiver is always created synchronously
 	if out, _, err = next.Pipe(); err == nil && len(out) > 0 {
 		pout, err = i.construct(ctx, out[0])
@@ -51,7 +51,7 @@ func (i *initializer) Next(
 }
 
 func (i *initializer) construct(
-	ctx  HandleContext,
+	ctx HandleContext,
 	recv any,
 ) (*promise.Promise[[]any], error) {
 	ctx.Handler = recv
@@ -72,7 +72,6 @@ func (i *initializer) construct(
 	return nil, nil
 }
 
-
 // initProvider
 
 func (i *initProvider) Required() bool {
@@ -83,13 +82,15 @@ func (i *initProvider) AppliesTo(
 	callback Callback,
 ) bool {
 	switch callback.(type) {
-	case *Provides, *Creates: return true
-	default: return false
+	case *Provides, *Creates:
+		return true
+	default:
+		return false
 	}
 }
 
 func (i *initProvider) Filters(
-	binding  Binding,
+	binding Binding,
 	callback any,
 	composer Handler,
 ) ([]Filter, error) {

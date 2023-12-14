@@ -3,10 +3,11 @@ package miruken
 import (
 	"errors"
 	"fmt"
+	"reflect"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
 )
 
 // ContravariantPolicy matches related input values.
@@ -14,12 +15,10 @@ type ContravariantPolicy struct {
 	FilteredScope
 }
 
-
 var (
 	ErrConResultsExceeded = errors.New("contravariant: cannot accept more than 2 results")
 	ErrConMissingCallback = errors.New("contravariant: missing callback argument")
 )
-
 
 func (p *ContravariantPolicy) VariantKey(
 	key any,
@@ -32,7 +31,7 @@ func (p *ContravariantPolicy) VariantKey(
 
 func (p *ContravariantPolicy) MatchesKey(
 	key, otherKey any,
-	invariant     bool,
+	invariant bool,
 ) (matches bool, exact bool) {
 	if key == otherKey {
 		return true, true
@@ -100,10 +99,10 @@ func (p *ContravariantPolicy) AcceptResults(
 
 func (p *ContravariantPolicy) NewMethodBinding(
 	method reflect.Method,
-	spec   *bindingSpec,
-	key    any,
+	spec *bindingSpec,
+	key any,
 ) (Binding, error) {
-	if args, key, err := validateContravariantFunc(method.Type, spec, key,1); err != nil {
+	if args, key, err := validateContravariantFunc(method.Type, spec, key, 1); err != nil {
 		return nil, &MethodBindingError{method, err}
 	} else {
 		return &methodBinding{
@@ -117,11 +116,11 @@ func (p *ContravariantPolicy) NewMethodBinding(
 }
 
 func (p *ContravariantPolicy) NewFuncBinding(
-	fun  reflect.Value,
+	fun reflect.Value,
 	spec *bindingSpec,
-	key  any,
+	key any,
 ) (Binding, error) {
-	if args, key, err := validateContravariantFunc(fun.Type(), spec, key,0); err != nil {
+	if args, key, err := validateContravariantFunc(fun.Type(), spec, key, 0); err != nil {
 		return nil, &FuncBindingError{fun, err}
 	} else {
 		return &funcBinding{
@@ -134,23 +133,22 @@ func (p *ContravariantPolicy) NewFuncBinding(
 	}
 }
 
-
 func validateContravariantFunc(
 	funType reflect.Type,
-	spec    *bindingSpec,
-	key     any,
-	skip    int,
+	spec *bindingSpec,
+	key any,
+	skip int,
 ) (args []arg, ck any, err error) {
-	ck       = key
+	ck = key
 	numArgs := funType.NumIn()
-	numOut  := funType.NumOut()
-	args     = make([]arg, numArgs-skip)
-	args[0]  = spec.arg
-	index   := 1
+	numOut := funType.NumOut()
+	args = make([]arg, numArgs-skip)
+	args[0] = spec.arg
+	index := 1
 
 	// Source argument must be present if spec
 	if len(args) > 1 {
-		if arg := funType.In(1+skip); arg.AssignableTo(callbackType) {
+		if arg := funType.In(1 + skip); arg.AssignableTo(callbackType) {
 			args[1] = CallbackArg{}
 			if ck == nil {
 				ck = internal.AnyType

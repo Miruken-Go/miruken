@@ -1,14 +1,15 @@
 package auth
 
 import (
+	"net/http"
+	"strings"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/security"
 	"github.com/miruken-go/miruken/security/login"
-	"net/http"
-	"strings"
 )
 
 type (
@@ -42,7 +43,6 @@ type (
 	}
 )
 
-
 func (b *FlowBuilder) Scheme(scheme Scheme) *Authentication {
 	if internal.IsNil(scheme) {
 		panic("scheme cannot be nil")
@@ -52,9 +52,8 @@ func (b *FlowBuilder) Scheme(scheme Scheme) *Authentication {
 	return b.a
 }
 
-
 func (a *Authentication) Constructor(
-	_*struct{args.Optional}, options Options,
+	_ *struct{ args.Optional }, options Options,
 ) {
 	a.options = options
 }
@@ -77,7 +76,6 @@ func (a *Authentication) Required() *Authentication {
 	a.options.required = true
 	return a
 }
-
 
 func (a *Authentication) ServeHTTP(
 	w http.ResponseWriter,
@@ -126,15 +124,14 @@ func (a *Authentication) ServeHTTP(
 	n(miruken.BuildUp(h, provides.With(security.NewSubject())))
 }
 
-
 // WriteWWWAuthenticateHeader writes the `WWW-Authenticate`
 // http response header for the supplied scheme.
 func WriteWWWAuthenticateHeader(
-	w      http.ResponseWriter,
+	w http.ResponseWriter,
 	scheme string,
-	realm  string,
+	realm string,
 	params map[string]string,
-	err    error,
+	err error,
 ) {
 	if scheme == "" {
 		panic("scheme is required")
@@ -146,7 +143,7 @@ func WriteWWWAuthenticateHeader(
 		h.WriteString(realm)
 		h.WriteString("\"")
 	}
-	for k,v := range params {
+	for k, v := range params {
 		if h.Len() > len(scheme) {
 			h.WriteString(",")
 		}

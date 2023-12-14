@@ -3,6 +3,8 @@ package stdjson
 import (
 	"bytes"
 	"encoding/json"
+	"io"
+
 	"github.com/Rican7/conjson"
 	"github.com/Rican7/conjson/transform"
 	"github.com/miruken-go/miruken"
@@ -10,7 +12,6 @@ import (
 	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/maps"
-	"io"
 )
 
 type (
@@ -26,7 +27,6 @@ type (
 	Mapper struct{}
 )
 
-
 var (
 	// CamelCase directs the json encoding of keys to use camelcase notation.
 	CamelCase = miruken.Options(Options{
@@ -38,19 +38,18 @@ var (
 	})
 )
 
-
 func (m *Mapper) ToJson(
-	_*struct{
+	_ *struct {
 		maps.Format `to:"application/json"`
-	  }, it *maps.It,
-	_*struct{
+	}, it *maps.It,
+	_ *struct {
 		args.Optional
 		args.FromOptions
-	  }, options Options,
-	_*struct{
+	}, options Options,
+	_ *struct {
 		args.Optional
 		args.FromOptions
-	  }, apiOptions api.Options,
+	}, apiOptions api.Options,
 	ctx miruken.HandleContext,
 ) (json any, err error) {
 	switch t := it.Target().(type) {
@@ -68,47 +67,47 @@ func (m *Mapper) ToJson(
 }
 
 func (m *Mapper) FromBytes(
-	_*struct{
+	_ *struct {
 		maps.Format `from:"application/json"`
-	  }, byt []byte,
-	_*struct{
+	}, byt []byte,
+	_ *struct {
 		args.Optional
 		args.FromOptions
-	  }, options Options,
-	_*struct{
+	}, options Options,
+	_ *struct {
 		args.Optional
 		args.FromOptions
-	  }, apiOptions api.Options,
+	}, apiOptions api.Options,
 	maps *maps.It,
-	ctx  miruken.HandleContext,
+	ctx miruken.HandleContext,
 ) (any, error) {
 	return unmarshal(maps, byt, &options, &apiOptions, ctx.Composer)
 }
 
 func (m *Mapper) FromReader(
-	_*struct{
+	_ *struct {
 		maps.Format `from:"application/json"`
-	  }, reader io.Reader,
-	_*struct{
+	}, reader io.Reader,
+	_ *struct {
 		args.Optional
 		args.FromOptions
-	  }, options Options,
-	_*struct{
+	}, options Options,
+	_ *struct {
 		args.Optional
 		args.FromOptions
-	  }, apiOptions api.Options,
+	}, apiOptions api.Options,
 	maps *maps.It,
-	ctx  miruken.HandleContext,
+	ctx miruken.HandleContext,
 ) (any, error) {
 	return decode(maps, reader, &options, &apiOptions, ctx.Composer)
 }
 
 func marshal(
-	it         *maps.It,
-	byt        *[]byte,
-	options    *Options,
+	it *maps.It,
+	byt *[]byte,
+	options *Options,
 	apiOptions *api.Options,
-	composer   miruken.Handler,
+	composer miruken.Handler,
 ) ([]byte, error) {
 	src := it.Source()
 	it.TargetForWrite()
@@ -132,11 +131,11 @@ func marshal(
 }
 
 func unmarshal(
-	maps       *maps.It,
-	byt        []byte,
-	options    *Options,
+	maps *maps.It,
+	byt []byte,
+	options *Options,
 	apiOptions *api.Options,
-	composer   miruken.Handler,
+	composer miruken.Handler,
 ) (target any, err error) {
 	target = maps.TargetForWrite()
 	if apiOptions.Polymorphism == miruken.Set(api.PolymorphismRoot) {
@@ -157,11 +156,11 @@ func unmarshal(
 }
 
 func encode(
-	it         *maps.It,
-	writer     io.Writer,
-	options    *Options,
+	it *maps.It,
+	writer io.Writer,
+	options *Options,
 	apiOptions *api.Options,
-	composer   miruken.Handler,
+	composer miruken.Handler,
 ) error {
 	it.TargetForWrite()
 	enc := json.NewEncoder(writer)
@@ -186,11 +185,11 @@ func encode(
 }
 
 func decode(
-	it         *maps.It,
-	reader     io.Reader,
-	options    *Options,
+	it *maps.It,
+	reader io.Reader,
+	options *Options,
 	apiOptions *api.Options,
-	composer   miruken.Handler,
+	composer miruken.Handler,
 ) (target any, err error) {
 	target = it.TargetForWrite()
 	dec := json.NewDecoder(reader)
@@ -210,7 +209,6 @@ func decode(
 	}
 	return
 }
-
 
 // transformer applies transformations to json serialization.
 type transformer struct {

@@ -7,7 +7,7 @@ type Deferred[T any] struct {
 	promise *Promise[T]
 }
 
-func (d Deferred[T]) Promise() *Promise[T]{
+func (d Deferred[T]) Promise() *Promise[T] {
 	return d.promise
 }
 
@@ -24,7 +24,7 @@ func Defer[T any]() Deferred[T] {
 	p := &Promise[T]{
 		ch: make(chan struct{}),
 	}
-	return Deferred[T]{ p }
+	return Deferred[T]{p}
 }
 
 // DeferWithContext creates a Deferred computation in a context.

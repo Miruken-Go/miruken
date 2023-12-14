@@ -2,6 +2,11 @@ package test
 
 import (
 	"fmt"
+	"net/http/httptest"
+	"sync/atomic"
+	"testing"
+	"time"
+
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/api/http"
@@ -13,10 +18,6 @@ import (
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"net/http/httptest"
-	"sync/atomic"
-	"testing"
-	"time"
 )
 
 //go:generate $GOPATH/bin/miruken -tests
@@ -68,7 +69,7 @@ func (p *PlayerHandler) Constructor() {
 func (p *PlayerHandler) CreatePlayer(
 	_ *handles.It, create CreatePlayer,
 ) *promise.Promise[PlayerResult] {
-	id     := atomic.AddInt32(&p.nextId,1)
+	id := atomic.AddInt32(&p.nextId, 1)
 	player := PlayerData{
 		Id:        id,
 		Name:      create.Name,
@@ -95,8 +96,8 @@ func (p *PlayerHandler) UpdatePlayer(
 type OpenApiTestSuite struct {
 	suite.Suite
 	openapi *openapi.Installer
-	ctx *context.Context
-	srv *httptest.Server
+	ctx     *context.Context
+	srv     *httptest.Server
 }
 
 func (suite *OpenApiTestSuite) Setup(specs ...any) *context.Context {

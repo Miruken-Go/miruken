@@ -1,10 +1,11 @@
 package koanf
 
 import (
+	"strconv"
+
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/maps"
 	"github.com/miruken-go/miruken/config"
-	"strconv"
 )
 
 // provider of configurations populated by the koanf library.
@@ -26,7 +27,6 @@ func P(k *koanf.Koanf) config.Provider {
 	return &provider{k}
 }
 
-
 // Merge extends the default merge to include slice conversions.
 func Merge(src, dest map[string]any) error {
 	ConvertSlices(src)
@@ -39,7 +39,6 @@ func MergeStrict(src, dest map[string]any) error {
 	ConvertSlices(src)
 	return maps.MergeStrict(src, dest)
 }
-
 
 // ConvertSlices converts maps with all integral keys into a
 // slice with corresponding indices.

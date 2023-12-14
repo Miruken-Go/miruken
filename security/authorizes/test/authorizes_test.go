@@ -1,6 +1,8 @@
 package test
 
 import (
+	"testing"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/constraints"
 	"github.com/miruken-go/miruken/handles"
@@ -11,7 +13,6 @@ import (
 	"github.com/miruken-go/miruken/security/principal"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 //go:generate $GOPATH/bin/miruken -tests
@@ -23,13 +24,12 @@ type (
 		Amount Money
 	}
 
-	TransferFundsAccessPolicy struct {}
+	TransferFundsAccessPolicy struct{}
 
 	Account struct {
 		Balance Money
 	}
 )
-
 
 // TransferFundsAccessPolicy
 
@@ -44,10 +44,10 @@ func (t *TransferFundsAccessPolicy) AuthorizeTransfer(
 }
 
 func (t *TransferFundsAccessPolicy) AuthorizeTransferFast(
-	_*struct{
+	_ *struct {
 		authorizes.It
 		constraints.Named `name:"fast"`
-	  }, transfer TransferFunds,
+	}, transfer TransferFunds,
 	subject security.Subject,
 ) *promise.Promise[bool] {
 	return promise.Resolve(transfer.Amount < 1000 &&
@@ -57,15 +57,14 @@ func (t *TransferFundsAccessPolicy) AuthorizeTransferFast(
 // Account
 
 func (a *Account) Transfer(
-	_*struct{
+	_ *struct {
 		handles.It
 		authorizes.Required
-	  }, transfer TransferFunds,
+	}, transfer TransferFunds,
 ) Money {
 	a.Balance += transfer.Amount
 	return a.Balance
 }
-
 
 type AuthorizesTestSuite struct {
 	suite.Suite
@@ -87,7 +86,7 @@ func (suite *AuthorizesTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 }
 
 func (suite *AuthorizesTestSuite) TestAuthorizes() {
-	suite.Run("Authorize", func () {
+	suite.Run("Authorize", func() {
 		suite.Run("Default", func() {
 			ctx, _ := setup.New().Context()
 			transfer := TransferFunds{Amount: 1000}
@@ -129,7 +128,7 @@ func (suite *AuthorizesTestSuite) TestAuthorizes() {
 		suite.Run("GrantedWithRole", func() {
 			handler, _ := suite.Setup()
 			transfer := TransferFunds{Amount: 1000000}
-			subject  := security.NewSubject(
+			subject := security.NewSubject(
 				security.WithPrincipals(principal.Role("manager")))
 			handler = miruken.BuildUp(handler, provides.With(subject))
 			grant, _, err := authorizes.Access(handler, transfer)
@@ -140,7 +139,7 @@ func (suite *AuthorizesTestSuite) TestAuthorizes() {
 		suite.Run("ConstrainedPolicy", func() {
 			handler, _ := suite.Setup()
 			transfer := TransferFunds{Amount: 500}
-			subject  := security.NewSubject()
+			subject := security.NewSubject()
 			handler = miruken.BuildUp(handler, provides.With(subject))
 			g, gp, err := authorizes.Access(handler, transfer, "fast")
 			suite.Nil(err)
@@ -176,7 +175,7 @@ func (suite *AuthorizesTestSuite) TestAuthorizes() {
 			suite.Run("DeniedWithoutRole", func() {
 				handler, _ := suite.Setup()
 				transfer := TransferFunds{Amount: 20000}
-				subject  := security.NewSubject(
+				subject := security.NewSubject(
 					security.WithPrincipals(principal.Role("manager")))
 				handler = miruken.BuildUp(handler, provides.With(subject))
 				balance, _, err := handles.Request[int](handler, transfer)

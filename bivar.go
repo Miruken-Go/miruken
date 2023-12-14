@@ -3,10 +3,11 @@ package miruken
 import (
 	"errors"
 	"fmt"
+	"reflect"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
 )
 
 type (
@@ -24,12 +25,10 @@ type (
 	}
 )
 
-
 var (
 	ErrBivMissingCallback = errors.New("bivariant: missing callback argument")
 	ErrBivMissingReturn   = errors.New("bivariant: must have a return value")
 )
-
 
 func (p *BivariantPolicy) VariantKey(
 	key any,
@@ -40,7 +39,7 @@ func (p *BivariantPolicy) VariantKey(
 
 func (p *BivariantPolicy) MatchesKey(
 	key, otherKey any,
-	invariant     bool,
+	invariant bool,
 ) (matches bool, exact bool) {
 	if bk, valid := key.(DiKey); valid {
 		if ok, valid := otherKey.(DiKey); valid {
@@ -86,10 +85,10 @@ func (p *BivariantPolicy) AcceptResults(
 
 func (p *BivariantPolicy) NewMethodBinding(
 	method reflect.Method,
-	spec   *bindingSpec,
-	key    any,
+	spec *bindingSpec,
+	key any,
 ) (Binding, error) {
-	if args, key, err := validateBivariantFunc(method.Type, spec, key,1); err != nil {
+	if args, key, err := validateBivariantFunc(method.Type, spec, key, 1); err != nil {
 		return nil, &MethodBindingError{method, err}
 	} else {
 		return &methodBinding{
@@ -103,11 +102,11 @@ func (p *BivariantPolicy) NewMethodBinding(
 }
 
 func (p *BivariantPolicy) NewFuncBinding(
-	fun  reflect.Value,
+	fun reflect.Value,
 	spec *bindingSpec,
-	key  any,
+	key any,
 ) (Binding, error) {
-	if args, key, err := validateBivariantFunc(fun.Type(), spec, key,0); err != nil {
+	if args, key, err := validateBivariantFunc(fun.Type(), spec, key, 0); err != nil {
 		return nil, &FuncBindingError{fun, err}
 	} else {
 		return &funcBinding{
@@ -120,29 +119,28 @@ func (p *BivariantPolicy) NewFuncBinding(
 	}
 }
 
-
 func validateBivariantFunc(
 	funType reflect.Type,
-	spec    *bindingSpec,
-	key     any,
-	skip    int,
+	spec *bindingSpec,
+	key any,
+	skip int,
 ) (args []arg, dk any, err error) {
 	numArgs := funType.NumIn()
-	numOut  := funType.NumOut()
-	args     = make([]arg, numArgs-skip)
-	args[0]  = spec.arg
-	dk       = key
-	in      := internal.AnyType
-	out     := internal.AnyType
-	index   := 1
+	numOut := funType.NumOut()
+	args = make([]arg, numArgs-skip)
+	args[0] = spec.arg
+	dk = key
+	in := internal.AnyType
+	out := internal.AnyType
+	index := 1
 
 	// Callback argument must be present if spec
 	if len(args) > 1 {
-		if arg := funType.In(1+skip); arg.AssignableTo(callbackType) {
+		if arg := funType.In(1 + skip); arg.AssignableTo(callbackType) {
 			args[1] = CallbackArg{}
 		} else {
 			args[1] = sourceArg{}
-			in      = arg
+			in = arg
 		}
 		index++
 	} else if _, isSpec := spec.arg.(zeroArg); isSpec {
@@ -190,10 +188,9 @@ func validateBivariantFunc(
 	if err != nil {
 		return nil, dk, err
 	} else if dk == nil {
-		dk = DiKey{ In: in, Out: out }
+		dk = DiKey{In: in, Out: out}
 	} else if _, ok := dk.(DiKey); !ok {
-		dk = DiKey{ In: dk, Out: out }
+		dk = DiKey{In: dk, Out: out}
 	}
 	return
 }
-

@@ -2,10 +2,11 @@ package miruken
 
 import (
 	"container/list"
-	"github.com/miruken-go/miruken/internal"
 	"maps"
 	"sync"
 	"sync/atomic"
+
+	"github.com/miruken-go/miruken/internal"
 )
 
 type (
@@ -22,9 +23,9 @@ type (
 	// PolicyDispatch customizes Callback Policy dispatch.
 	PolicyDispatch interface {
 		DispatchPolicy(
-			policy   Policy,
+			policy Policy,
 			callback Callback,
-			greedy   bool,
+			greedy bool,
 			composer Handler,
 		) HandleResult
 	}
@@ -45,7 +46,6 @@ type (
 	// policyInfoMap maps Policy instances to policyInfo.
 	policyInfoMap map[Policy]*policyInfo
 )
-
 
 func (p *policyInfo) insert(policy Policy, binding Binding) {
 	key := binding.Key()
@@ -86,8 +86,8 @@ func (p *policyInfo) insert(policy Policy, binding Binding) {
 }
 
 func (p *policyInfo) reduce(
-	key     any,
-	policy  Policy,
+	key any,
+	policy Policy,
 	reducer BindingReducer,
 ) (result HandleResult) {
 	if reducer == nil {
@@ -125,7 +125,7 @@ func (p *policyInfo) reduce(
 					if dynIndex != nil {
 						if _, ok := (*dynIndex)[key]; !ok {
 							di := maps.Clone(*dynIndex)
-							di[key]  = elem
+							di[key] = elem
 							dynIndex = &di
 						}
 					} else {
@@ -172,11 +172,10 @@ func (p policyInfoMap) forPolicy(policy Policy) *policyInfo {
 	return bindings
 }
 
-
 func DispatchPolicy(
-	handler  any,
+	handler any,
 	callback Callback,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	policy := callback.Policy()
@@ -190,7 +189,6 @@ func DispatchPolicy(
 	}
 	return NotHandled
 }
-
 
 var (
 	callbackType  = internal.TypeOf[Callback]()

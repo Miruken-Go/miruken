@@ -14,11 +14,11 @@ type (
 	BuilderFunc func(Handler) Handler
 )
 
-
 func (f BuilderFunc) BuildUp(
 	handler Handler,
-) Handler { return f(handler) }
-
+) Handler {
+	return f(handler)
+}
 
 func BuildUp(handler Handler, builders ...Builder) Handler {
 	for _, b := range builders {
@@ -30,7 +30,7 @@ func BuildUp(handler Handler, builders ...Builder) Handler {
 }
 
 func AddHandlers(
-	parent   Handler,
+	parent Handler,
 	handlers ...any,
 ) Handler {
 	if parent == nil {
@@ -51,8 +51,10 @@ func AddHandlers(
 
 func ComposeBuilders(builder Builder, builders ...Builder) Builder {
 	switch len(builders) {
-	case 0: return builder
-	case 1: return composeBuilder2(builder, builders[0])
+	case 0:
+		return builder
+	case 1:
+		return composeBuilder2(builder, builders[0])
 	default:
 		for _, b := range builders {
 			builder = composeBuilder2(builder, b)
@@ -63,11 +65,13 @@ func ComposeBuilders(builder Builder, builders ...Builder) Builder {
 
 func PipeBuilders(builder Builder, builders ...Builder) Builder {
 	switch len(builders) {
-	case 0: return builder
-	case 1: return composeBuilder2(builders[0], builder)
+	case 0:
+		return builder
+	case 1:
+		return composeBuilder2(builders[0], builder)
 	default:
 		b := builders[len(builders)-1]
-		for i := len(builders)-2; i >= 0; i-- {
+		for i := len(builders) - 2; i >= 0; i-- {
 			b = composeBuilder2(b, builders[i])
 		}
 		return composeBuilder2(b, builder)
@@ -85,7 +89,6 @@ func composeBuilder2(builder1, builder2 Builder) Builder {
 	})
 }
 
-
 // withHandler composes two Handlers.
 type withHandler struct {
 	Handler
@@ -94,7 +97,7 @@ type withHandler struct {
 
 func (w *withHandler) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {
@@ -102,13 +105,12 @@ func (w *withHandler) Handle(
 	}
 	tryInitializeComposer(&composer, w)
 	return w.handler.Handle(callback, greedy, composer).
-		OtherwiseIf(greedy, func () HandleResult {
+		OtherwiseIf(greedy, func() HandleResult {
 			return w.Handler.Handle(callback, greedy, composer)
 		})
 }
 
 func (w *withHandler) SuppressDispatch() {}
-
 
 // withHandlers composes any number of Handlers.
 type withHandlers struct {
@@ -118,7 +120,7 @@ type withHandlers struct {
 
 func (w *withHandlers) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {
@@ -134,13 +136,12 @@ func (w *withHandlers) Handle(
 		}
 		result = result.Or(h.Handle(callback, greedy, composer))
 	}
-	return result.OtherwiseIf(greedy, func () HandleResult {
+	return result.OtherwiseIf(greedy, func() HandleResult {
 		return w.Handler.Handle(callback, greedy, composer)
 	})
 }
 
 func (w *withHandlers) SuppressDispatch() {}
-
 
 // MutableHandlers manages a mutable list of Handlers.
 type MutableHandlers struct {
@@ -173,7 +174,7 @@ func (m *MutableHandlers) AppendHandlers(
 }
 
 func (m *MutableHandlers) InsertHandlers(
-	index    int,
+	index int,
 	handlers ...any,
 ) *MutableHandlers {
 	if index < 0 {
@@ -206,7 +207,7 @@ func (m *MutableHandlers) RemoveHandlers(
 
 func (m *MutableHandlers) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {
@@ -226,7 +227,6 @@ func (m *MutableHandlers) Handle(
 
 func (m *MutableHandlers) SuppressDispatch() {}
 
-
 type (
 	// ProceedFunc calls the next filter in the pipeline.
 	ProceedFunc func() HandleResult
@@ -234,9 +234,9 @@ type (
 	// FilterFunc defines a function that can intercept a callback.
 	FilterFunc func(
 		callback any,
-		greedy   bool,
+		greedy bool,
 		composer Handler,
-		proceed  ProceedFunc,
+		proceed ProceedFunc,
 	) HandleResult
 
 	// filterHandler applies a filter to a Handler.
@@ -249,7 +249,7 @@ type (
 
 func (f *filterHandler) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {
@@ -268,7 +268,9 @@ func (f *filterHandler) Handle(
 }
 
 func (f FilterFunc) BuildUp(handler Handler) Handler {
-	if f == nil { return handler }
+	if f == nil {
+		return handler
+	}
 	return &filterHandler{handler, f, false}
 }
 
@@ -276,15 +278,14 @@ func Reentrant(filter FilterFunc) BuilderFunc {
 	if filter == nil {
 		panic("filter cannot be nil")
 	}
-	return func (handler Handler) Handler {
+	return func(handler Handler) Handler {
 		return &filterHandler{handler, filter, true}
 	}
 }
 
-
 func tryInitializeComposer(
 	incoming *Handler,
-	receiver  Handler,
+	receiver Handler,
 ) {
 	if *incoming == nil {
 		*incoming = &CompositionScope{receiver}

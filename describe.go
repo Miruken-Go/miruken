@@ -2,11 +2,12 @@ package miruken
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
-	"reflect"
-	"strings"
 )
 
 type (
@@ -25,7 +26,7 @@ type (
 		key() any
 		suppress() bool
 		describe(
-			builder   bindingSpecFactory,
+			builder bindingSpecFactory,
 			observers []HandlerInfoObserver,
 		) (*HandlerInfo, error)
 	}
@@ -47,7 +48,6 @@ type (
 		Cause error
 	}
 )
-
 
 // TypeSpec
 
@@ -84,12 +84,12 @@ func (s TypeSpec) suppress() bool {
 }
 
 func (s TypeSpec) describe(
-	factory   bindingSpecFactory,
+	factory bindingSpecFactory,
 	observers []HandlerInfoObserver,
 ) (info *HandlerInfo, invalid error) {
-	typ      := s.typ
+	typ := s.typ
 	bindings := make(policyInfoMap)
-	info      = &HandlerInfo{spec: s}
+	info = &HandlerInfo{spec: s}
 	isFilter := typ.Implements(filterType)
 
 	var ctorSpec *bindingSpec
@@ -103,7 +103,7 @@ func (s TypeSpec) describe(
 		ctorType := ctor.Type
 		if spec, err := factory.createSpec(ctorType, 2); err == nil {
 			if spec != nil {
-				ctorSpec     = spec
+				ctorSpec = spec
 				ctorPolicies = spec.policies
 			}
 		} else {
@@ -189,7 +189,6 @@ func (s TypeSpec) describe(
 	return info, nil
 }
 
-
 // FuncSpec
 
 func (s FuncSpec) Func() reflect.Value {
@@ -213,11 +212,11 @@ func (s FuncSpec) suppress() bool {
 }
 
 func (s FuncSpec) describe(
-	factory   bindingSpecFactory,
+	factory bindingSpecFactory,
 	observers []HandlerInfoObserver,
 ) (info *HandlerInfo, invalid error) {
-	funType    := s.fun.Type()
-	bindings   := make(policyInfoMap)
+	funType := s.fun.Type()
+	bindings := make(policyInfoMap)
 	info = &HandlerInfo{spec: s}
 
 	if spec, err := factory.createSpec(funType, 1); err == nil {
@@ -251,7 +250,6 @@ func (s FuncSpec) describe(
 	return info, nil
 }
 
-
 // HandlerInfoError
 
 func (e *HandlerInfoError) Error() string {
@@ -262,7 +260,6 @@ func (e *HandlerInfoError) Unwrap() error {
 	return e.Cause
 }
 
-
 // HandlerInfo
 
 func (h *HandlerInfo) Spec() HandlerSpec {
@@ -270,18 +267,18 @@ func (h *HandlerInfo) Spec() HandlerSpec {
 }
 
 func (h *HandlerInfo) Dispatch(
-	policy   Policy,
-	handler  any,
+	policy Policy,
+	handler any,
 	callback Callback,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
-	guard    CallbackGuard,
+	guard CallbackGuard,
 ) (result HandleResult) {
 	if pb, found := h.bindings[policy]; found {
 		key := callback.Key()
-		return pb.reduce(key, policy, func (
+		return pb.reduce(key, policy, func(
 			binding Binding,
-			result  HandleResult,
+			result HandleResult,
 		) (HandleResult, bool) {
 			if result.stop || (result.handled && !greedy) {
 				return result, true
@@ -294,7 +291,9 @@ func (h *HandlerInfo) Dispatch(
 							reset()
 						}
 					}()
-					if !approve { return result, false }
+					if !approve {
+						return result, false
+					}
 				}
 				if guard, ok := callback.(CallbackGuard); ok {
 					reset, approve := guard.CanDispatch(handler, binding)
@@ -303,10 +302,12 @@ func (h *HandlerInfo) Dispatch(
 							reset()
 						}
 					}()
-					if !approve { return result, false }
+					if !approve {
+						return result, false
+					}
 				}
 				var filters []providedFilter
-				if check, ok := callback.(interface{
+				if check, ok := callback.(interface {
 					CanFilter() bool
 				}); !ok || check.CanFilter() {
 					var tp []FilterProvider
@@ -326,16 +327,15 @@ func (h *HandlerInfo) Dispatch(
 					}
 					if orderedFilters, err := orderFilters(
 						composer, binding, callback, binding.Filters(),
-						h.Filters(), policy.Filters(), tp);
-						orderedFilters != nil && err == nil {
+						h.Filters(), policy.Filters(), tp); orderedFilters != nil && err == nil {
 						filters = orderedFilters
 					} else {
 						return result, false
 					}
 				}
-				var out  []any
+				var out []any
 				var pout *promise.Promise[[]any]
-				var err  error
+				var err error
 				ctx := HandleContext{
 					Handler:  handler,
 					Callback: callback,
@@ -349,7 +349,7 @@ func (h *HandlerInfo) Dispatch(
 					out, pout, err = pipeline(ctx, filters,
 						func(ctx HandleContext) ([]any, *promise.Promise[[]any], error) {
 							return applySideEffects(binding, &ctx)
-					})
+						})
 				}
 				if err == nil {
 					if pout != nil {
@@ -383,10 +383,9 @@ func (h *HandlerInfo) Dispatch(
 	return NotHandled
 }
 
-
 func applySideEffects(
-    binding Binding,
-	ctx     *HandleContext,
+	binding Binding,
+	ctx *HandleContext,
 ) (out []any, pout *promise.Promise[[]any], err error) {
 	out, pout, err = binding.Invoke(*ctx)
 	if err != nil {
@@ -406,8 +405,8 @@ func applySideEffects(
 }
 
 func processSideEffects(
-	out   []any,
-	ctx   *HandleContext,
+	out []any,
+	ctx *HandleContext,
 	await bool,
 ) ([]any, *promise.Promise[[]any], error) {
 	temp := out[:0]
@@ -448,7 +447,6 @@ func processSideEffects(
 	}
 }
 
-
 type (
 	// HandlerInfoProvider returns HandlerInfo's.
 	HandlerInfoProvider interface {
@@ -465,24 +463,22 @@ type (
 	// HandlerInfoObserver observes HandlerInfo creation.
 	HandlerInfoObserver interface {
 		BindingCreated(
-			policy      Policy,
+			policy Policy,
 			handlerInfo *HandlerInfo,
-			binding     Binding,
+			binding Binding,
 		)
 		HandlerInfoCreated(handlerInfo *HandlerInfo)
 	}
 	HandlerInfoObserverFunc func(Policy, *HandlerInfo, Binding)
 )
 
-
 func (f HandlerInfoObserverFunc) BindingCreated(
-	policy      Policy,
+	policy Policy,
 	handlerInfo *HandlerInfo,
-	binding     Binding,
+	binding Binding,
 ) {
 	f(policy, handlerInfo, binding)
 }
-
 
 // mutableHandlerFactory creates HandlerInfo's on demand.
 type mutableHandlerFactory struct {
@@ -490,7 +486,6 @@ type mutableHandlerFactory struct {
 	handlers  map[any]*HandlerInfo
 	observers []HandlerInfoObserver
 }
-
 
 func (f *mutableHandlerFactory) Spec(
 	src any,
@@ -550,13 +545,11 @@ func (f *mutableHandlerFactory) Register(
 	}
 }
 
-
 // HandlerInfoFactoryBuilder build the HandlerInfoFactory.
 type HandlerInfoFactoryBuilder struct {
 	parsers   []BindingParser
 	observers []HandlerInfoObserver
 }
-
 
 func (b *HandlerInfoFactoryBuilder) Parsers(
 	parsers ...BindingParser,
@@ -589,7 +582,6 @@ func (b *HandlerInfoFactoryBuilder) Build() HandlerInfoFactory {
 	return factory
 }
 
-
 // CurrentHandlerInfoFactory retrieves the current HandlerInfoFactory
 // assigned to the Handler context.
 func CurrentHandlerInfoFactory(
@@ -610,7 +602,7 @@ type CurrentHandlerInfoFactoryProvider struct {
 
 func (f *CurrentHandlerInfoFactoryProvider) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if comp, ok := callback.(*Composition); ok {
@@ -628,7 +620,6 @@ func (f *CurrentHandlerInfoFactoryProvider) SuppressDispatch() {}
 func (f *CurrentHandlerInfoFactoryProvider) CabBatch() bool {
 	return false
 }
-
 
 var (
 	suppressDispatchType = internal.TypeOf[suppressDispatch]()

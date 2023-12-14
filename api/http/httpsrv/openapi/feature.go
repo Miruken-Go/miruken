@@ -3,6 +3,16 @@ package openapi
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"path/filepath"
+	"reflect"
+	"runtime/debug"
+	"sort"
+	"strconv"
+	"strings"
+	"unicode"
+	"unicode/utf8"
+
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3gen"
 	"github.com/miruken-go/miruken"
@@ -14,15 +24,6 @@ import (
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/setup"
-	"net/http"
-	"path/filepath"
-	"reflect"
-	"runtime/debug"
-	"sort"
-	"strconv"
-	"strings"
-	"unicode"
-	"unicode/utf8"
 )
 
 type (
@@ -48,7 +49,6 @@ type (
 	}
 )
 
-
 func (i *Installer) Docs() map[string]*openapi3.T {
 	return i.apiDocs
 }
@@ -57,12 +57,12 @@ func (i *Installer) DependsOn() []setup.Feature {
 	return []setup.Feature{httpsrv.Feature()}
 }
 
-func (i *Installer) Install(setup *setup.Builder) error {
-	if setup.Tag(&featureTag) {
+func (i *Installer) Install(b *setup.Builder) error {
+	if b.Tag(&featureTag) {
 		var h handles.It
 		i.policy = h.Policy()
 		i.apiProfiles = make(map[string]*apiProfile)
-		setup.Observers(i)
+		b.Observers(i)
 
 		if bi, ok := debug.ReadBuildInfo(); ok {
 			if i.modules = bi.Deps; i.modules != nil {
@@ -93,7 +93,7 @@ func (i *Installer) AfterInstall(
 	}
 	i.apiDocs = make(map[string]*openapi3.T, len(i.apiProfiles))
 	for path, ap := range i.apiProfiles {
-		doc  := base
+		doc := base
 		info := *doc.Info
 		info.Title = info.Title + " (" + filepath.Base(path) + ")"
 		if mod := ap.module; mod != nil {
@@ -143,7 +143,7 @@ func (i *Installer) AfterInstall(
 				doc.Paths = new(openapi3.Paths)
 			}
 			for name, path := range ap.paths.Map() {
-				if p := doc.Paths.Value(name); p == nil{
+				if p := doc.Paths.Value(name); p == nil {
 					doc.Paths.Set(name, path)
 				}
 			}
@@ -151,14 +151,14 @@ func (i *Installer) AfterInstall(
 		i.apiDocs[path] = &doc
 	}
 	i.apiProfiles = nil
-	i.modules    = nil
+	i.modules = nil
 	return nil
 }
 
 func (i *Installer) BindingCreated(
-	policy      miruken.Policy,
+	policy miruken.Policy,
 	handlerInfo *miruken.HandlerInfo,
-	binding     miruken.Binding,
+	binding miruken.Binding,
 ) {
 	if !(policy == i.policy && binding.Exported()) {
 		return
@@ -168,7 +168,7 @@ func (i *Installer) BindingCreated(
 			inType = inType.Elem()
 		}
 		spec := handlerInfo.Spec()
-		ap   := i.apiProfile(spec.PkgPath())
+		ap := i.apiProfile(spec.PkgPath())
 		if schema, inputName, created := i.generateTypeSchema(ap, inType, false); created {
 			requestBody := &openapi3.RequestBodyRef{
 				Value: openapi3.NewRequestBody().
@@ -176,8 +176,8 @@ func (i *Installer) BindingCreated(
 					WithRequired(true).
 					WithJSONSchema(openapi3.NewSchema().
 						WithPropertyRef("payload", schema)),
-				}
-			requestName := inputName+"Request"
+			}
+			requestName := inputName + "Request"
 			ap.requestBodies[requestName] = requestBody
 
 			responseName := "NoResponse"
@@ -201,11 +201,11 @@ func (i *Installer) BindingCreated(
 					OperationID: inputName,
 					Description: fmt.Sprintf("Handled by %s", spec),
 					RequestBody: &openapi3.RequestBodyRef{
-						Ref: "#/components/requestBodies/"+requestName,
+						Ref: "#/components/requestBodies/" + requestName,
 					},
 					Responses: openapi3.NewResponses(
 						openapi3.WithStatus(http.StatusOK, &openapi3.ResponseRef{
-							Ref: "#/components/responses/"+responseName,
+							Ref: "#/components/responses/" + responseName,
 						}),
 						openapi3.WithStatus(http.StatusUnprocessableEntity, &openapi3.ResponseRef{
 							Ref: "#/components/responses/ValidationError",
@@ -288,7 +288,7 @@ func (i *Installer) initializeDefinitions(ap *apiProfile) {
 		Post: &openapi3.Operation{
 			OperationID: "process",
 			RequestBody: payload,
-			Responses:   openapi3.NewResponses(
+			Responses: openapi3.NewResponses(
 				openapi3.WithStatus(http.StatusOK, &openapi3.ResponseRef{
 					Ref: "#/components/responses/NoResponse",
 				}),
@@ -312,7 +312,7 @@ func (i *Installer) initializeDefinitions(ap *apiProfile) {
 		Post: &openapi3.Operation{
 			OperationID: "publish",
 			RequestBody: payload,
-			Responses:   openapi3.NewResponses(
+			Responses: openapi3.NewResponses(
 				openapi3.WithStatus(http.StatusOK, &openapi3.ResponseRef{
 					Ref: "#/components/responses/NoResponse",
 				}),
@@ -373,7 +373,7 @@ func (i *Installer) apiProfile(
 }
 
 func (i *Installer) generateExampleJson(
-	ap      *apiProfile,
+	ap *apiProfile,
 	handler miruken.Handler,
 ) {
 	for _, schema := range ap.components {
@@ -400,8 +400,8 @@ func (i *Installer) generateExampleJson(
 }
 
 func (i *Installer) generateTypeSchema(
-	ma      *apiProfile,
-	typ    reflect.Type,
+	ma *apiProfile,
+	typ reflect.Type,
 	shared bool,
 ) (*openapi3.SchemaRef, string, bool) {
 	var component reflect.Value
@@ -415,14 +415,14 @@ func (i *Installer) generateTypeSchema(
 }
 
 func (i *Installer) generateComponentSchema(
-	ap        *apiProfile,
+	ap *apiProfile,
 	component any,
-	shared    bool,
+	shared bool,
 ) (*openapi3.SchemaRef, string, bool) {
 	if internal.IsNil(component) {
 		return nil, "", false
 	}
-	typ  := reflect.TypeOf(component)
+	typ := reflect.TypeOf(component)
 	if sur, ok := i.surrogates[typ]; ok {
 		component = sur
 	}
@@ -479,7 +479,7 @@ func (i *Installer) generateComponentSchema(
 }
 
 func (i *Installer) uniqueName(
-	ap   *apiProfile,
+	ap *apiProfile,
 	name string,
 ) string {
 	id := 0
@@ -494,9 +494,9 @@ func (i *Installer) uniqueName(
 }
 
 func (ap *apiProfile) customize(
-	name   string,
-	typ    reflect.Type,
-	tag    reflect.StructTag,
+	name string,
+	typ reflect.Type,
+	tag reflect.StructTag,
 	schema *openapi3.Schema,
 ) error {
 	if props := schema.Properties; props != nil {
@@ -508,7 +508,7 @@ func (ap *apiProfile) customize(
 				sc.Items.Ref == "#/components/schemas/" {
 				sn := "schema" + strconv.Itoa(len(ap.schemas))
 				sc.Items.Ref = "#/components/schemas/" + sn
-				ap.schemas[sn] =  &openapi3.SchemaRef{Value: schema}
+				ap.schemas[sn] = &openapi3.SchemaRef{Value: schema}
 			}
 			camel := camelcase(key)
 			if camel != key {
@@ -546,7 +546,7 @@ func Surrogates(surrogates map[reflect.Type]any) func(*Installer) {
 
 // Feature configures http server support
 func Feature(
-	base   openapi3.T,
+	base openapi3.T,
 	config ...func(*Installer),
 ) *Installer {
 	installer := &Installer{

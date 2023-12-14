@@ -2,6 +2,11 @@ package test
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/go-logr/logr"
 	"github.com/go-logr/logr/funcr"
 	"github.com/miruken-go/miruken"
@@ -10,17 +15,13 @@ import (
 	"github.com/miruken-go/miruken/logs"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 type (
 	Logger struct {
 		log logr.Logger
 	}
-	LoggerDyn struct {}
+	LoggerDyn struct{}
 )
 
 func AddHeader(key, value string) httpsrv.Middleware {
@@ -35,7 +36,6 @@ func AddHeader(key, value string) httpsrv.Middleware {
 	})
 }
 
-
 func (l *Logger) Constructor(
 	log logr.Logger,
 ) {
@@ -43,20 +43,20 @@ func (l *Logger) Constructor(
 }
 
 func (l *Logger) ServeHTTP(
-	w   http.ResponseWriter,
-	r   *http.Request,
-	h   miruken.Handler,
-	n   func(miruken.Handler),
+	w http.ResponseWriter,
+	r *http.Request,
+	h miruken.Handler,
+	n func(miruken.Handler),
 ) {
 	l.log.Info("Logger", "method", r.Method, "url", r.URL)
 	n(h)
 }
 
 func (l LoggerDyn) Log(
-	w   http.ResponseWriter,
-	r   *http.Request,
-	h   miruken.Handler,
-	n   func(miruken.Handler),
+	w http.ResponseWriter,
+	r *http.Request,
+	h miruken.Handler,
+	n func(miruken.Handler),
 	log logr.Logger,
 ) {
 	log.Info("LoggerDyn", "method", r.Method, "url", r.URL)
@@ -72,7 +72,6 @@ func NewStdoutLogger() logr.Logger {
 		}
 	}, funcr.Options{})
 }
-
 
 type PipelineTestSuite struct {
 	suite.Suite
@@ -93,7 +92,7 @@ func (suite *PipelineTestSuite) TestPipeline() {
 			},
 		)
 		req := httptest.NewRequest("GET", "http://hello.com", nil)
-		w   := httptest.NewRecorder()
+		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 		resp := w.Result()
 		suite.Equal(200, resp.StatusCode)
@@ -108,7 +107,7 @@ func (suite *PipelineTestSuite) TestPipeline() {
 			}, &Logger{logr.Discard()},
 		)
 		req := httptest.NewRequest("GET", "http://hello.com", nil)
-		w   := httptest.NewRecorder()
+		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 		resp := w.Result()
 		suite.Equal(200, resp.StatusCode)
@@ -123,7 +122,7 @@ func (suite *PipelineTestSuite) TestPipeline() {
 			}, AddHeader("X-Test", "World"),
 		)
 		req := httptest.NewRequest("GET", "http://hello.com", nil)
-		w   := httptest.NewRecorder()
+		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 		resp := w.Result()
 		suite.Equal(200, resp.StatusCode)
@@ -169,10 +168,10 @@ func (suite *PipelineTestSuite) TestPipeline() {
 			func(w http.ResponseWriter, r *http.Request, composer miruken.Handler) {
 				_, _ = fmt.Fprint(w, "Hello")
 			}, httpsrv.M[LoggerDyn](),
-			   AddHeader("X-Test", "Goodbye"),
+			AddHeader("X-Test", "Goodbye"),
 		)
 		req := httptest.NewRequest("GET", "http://hello.com", nil)
-		w   := httptest.NewRecorder()
+		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 		resp := w.Result()
 		suite.Equal(200, resp.StatusCode)

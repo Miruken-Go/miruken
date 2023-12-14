@@ -1,11 +1,11 @@
 package provides
 
 import (
+	"reflect"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/internal"
-	"reflect"
 )
-
 
 type (
 	// For matches dependencies against a parent receiver.
@@ -19,7 +19,6 @@ type (
 		For[T]
 	}
 )
-
 
 // For
 
@@ -71,7 +70,6 @@ func (f *For[T]) matches(p *It, graph bool) bool {
 	}
 	return false
 }
-
 
 // ForGraph
 

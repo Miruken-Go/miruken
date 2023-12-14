@@ -1,10 +1,11 @@
 package miruken
 
 import (
-	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"sync/atomic"
+
+	"github.com/miruken-go/miruken/internal"
+	"github.com/miruken-go/miruken/promise"
 )
 
 type (
@@ -37,7 +38,6 @@ type (
 		Callback Callback
 	}
 )
-
 
 // batch
 
@@ -74,14 +74,13 @@ func (b *noBatch) CanBatch() bool {
 	return false
 }
 
-
 // batchHandler
 
 func (b *batchHandler) NoConstructor() {}
 
 func (b *batchHandler) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {
@@ -115,11 +114,10 @@ func (b *batchHandler) Handle(
 		}
 	default:
 		if batch := b.batch; batch != nil {
-			if check, ok := callback.(interface{
+			if check, ok := callback.(interface {
 				CanBatch() bool
 			}); !ok || check.CanBatch() {
-				if r := batch.Handle(callback, greedy, composer);
-					r.Handled() && !r.Stop() {
+				if r := batch.Handle(callback, greedy, composer); r.Handled() && !r.Stop() {
 					return r
 				}
 			}
@@ -151,7 +149,7 @@ func (b *batchHandler) Complete(
 
 func (b *noBatchHandler) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {
@@ -162,7 +160,7 @@ func (b *noBatchHandler) Handle(
 	if comp, ok := callback.(*Composition); ok {
 		cb = comp.Callback()
 	}
-	if p, ok := cb.(*Provides); ok &&  p.Key() == batchType {
+	if p, ok := cb.(*Provides); ok && p.Key() == batchType {
 		return NotHandled
 	}
 	nb := &noBatch{}
@@ -171,9 +169,9 @@ func (b *noBatchHandler) Handle(
 }
 
 func Batch(
-	handler   Handler,
+	handler Handler,
 	configure func(Handler),
-	tags      ...any,
+	tags ...any,
 ) *promise.Promise[[]any] {
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
@@ -186,11 +184,10 @@ func Batch(
 	return batch.Complete()
 }
 
-
 func BatchAsync[T any](
-	handler   Handler,
+	handler Handler,
 	configure func(Handler) *promise.Promise[T],
-	tags      ...any,
+	tags ...any,
 ) *promise.Promise[[]any] {
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
@@ -203,14 +200,14 @@ func BatchAsync[T any](
 }
 
 func BatchTag[T any](
-	handler   Handler,
+	handler Handler,
 	configure func(Handler),
 ) *promise.Promise[[]any] {
 	return Batch(handler, configure, internal.TypeOf[T]())
 }
 
 func BatchTagAsync[T any, E any](
-	handler   Handler,
+	handler Handler,
 	configure func(Handler) *promise.Promise[T],
 ) *promise.Promise[[]any] {
 	return BatchAsync(handler, configure, internal.TypeOf[E]())

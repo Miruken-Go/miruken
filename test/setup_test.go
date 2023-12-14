@@ -2,13 +2,14 @@ package test
 
 import (
 	"errors"
+	"reflect"
+	"strings"
+	"testing"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"reflect"
-	"strings"
-	"testing"
 )
 
 type MyInstaller struct {
@@ -25,7 +26,7 @@ func (i *MyInstaller) Install(
 	return nil
 }
 
-type RootInstaller struct {}
+type RootInstaller struct{}
 
 func (i *RootInstaller) DependsOn() []setup.Feature {
 	return []setup.Feature{&MyInstaller{}}
@@ -37,7 +38,7 @@ func (i *RootInstaller) Install(
 	return nil
 }
 
-type BadInstaller struct {}
+type BadInstaller struct{}
 
 func (i BadInstaller) Install(
 	*setup.Builder,
@@ -56,7 +57,7 @@ type SetupTestSuite struct {
 }
 
 func (suite *SetupTestSuite) TestSetup() {
-	suite.Run("Specs", func () {
+	suite.Run("Specs", func() {
 		handler, _ := setup.New().Specs(&MultiHandler{}).Context()
 
 		result := handler.Handle(&Foo{}, false, nil)
@@ -68,23 +69,23 @@ func (suite *SetupTestSuite) TestSetup() {
 		suite.Equal(miruken.NotHandled, result)
 	})
 
-	suite.Run("ExcludeSpecs", func () {
+	suite.Run("ExcludeSpecs", func() {
 		handler, _ := setup.New(TestFeature).ExcludeSpecs(
-				func(spec miruken.HandlerSpec) bool {
-					switch ts := spec.(type) {
-					case miruken.TypeSpec:
-						name := ts.Name()
-						return name == "MultiHandler" || strings.Contains(name, "Invalid")
-					default:
-						return false
-					}
-				},
-				func(spec miruken.HandlerSpec) bool {
-					if ts, ok := spec.(miruken.TypeSpec); ok {
-						return ts.Type() == internal.TypeOf[*EverythingHandler]()
-					}
+			func(spec miruken.HandlerSpec) bool {
+				switch ts := spec.(type) {
+				case miruken.TypeSpec:
+					name := ts.Name()
+					return name == "MultiHandler" || strings.Contains(name, "Invalid")
+				default:
 					return false
-				}).Context()
+				}
+			},
+			func(spec miruken.HandlerSpec) bool {
+				if ts, ok := spec.(miruken.TypeSpec); ok {
+					return ts.Type() == internal.TypeOf[*EverythingHandler]()
+				}
+				return false
+			}).Context()
 
 		m, _, ok, err := miruken.Resolve[*MultiHandler](handler)
 		suite.False(ok)
@@ -97,7 +98,7 @@ func (suite *SetupTestSuite) TestSetup() {
 		suite.Nil(e)
 	})
 
-	suite.Run("WithoutInference", func () {
+	suite.Run("WithoutInference", func() {
 		handler, _ := setup.New().
 			WithoutInference().
 			Specs(&MultiHandler{}).
@@ -113,7 +114,7 @@ func (suite *SetupTestSuite) TestSetup() {
 		suite.Nil(m)
 	})
 
-	suite.Run("Installs once", func () {
+	suite.Run("Installs once", func() {
 		installer := &MyInstaller{}
 		handler, err := setup.New(installer, installer).Context()
 		suite.Nil(err)
@@ -123,7 +124,7 @@ func (suite *SetupTestSuite) TestSetup() {
 		suite.Equal(miruken.Handled, result)
 	})
 
-	suite.Run("Installs Dependencies", func () {
+	suite.Run("Installs Dependencies", func() {
 		handler, err := setup.New(&RootInstaller{}).Context()
 		suite.Nil(err)
 		result := handler.Handle(&Foo{}, false, nil)
@@ -135,7 +136,7 @@ func (suite *SetupTestSuite) TestSetup() {
 		suite.NotNil(multi)
 	})
 
-	suite.Run("Overrides Dependencies", func () {
+	suite.Run("Overrides Dependencies", func() {
 		installer := &MyInstaller{10}
 		handler, err := setup.New(&RootInstaller{}, installer).Context()
 		suite.Nil(err)
@@ -143,7 +144,7 @@ func (suite *SetupTestSuite) TestSetup() {
 		suite.Equal(11, installer.count)
 	})
 
-	suite.Run("Errors", func () {
+	suite.Run("Errors", func() {
 		installer := BadInstaller{}
 		_, err := setup.New(installer).Context()
 		suite.Equal("2 errors occurred:\n\t* insufficient resources\n\t* process failed to start\n\n", err.Error())

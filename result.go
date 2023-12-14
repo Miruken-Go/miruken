@@ -3,12 +3,11 @@ package miruken
 import "github.com/hashicorp/go-multierror"
 
 var (
-	Handled           = HandleResult{true,  false, nil}
-	HandledAndStop    = HandleResult{true,  true,  nil}
+	Handled           = HandleResult{true, false, nil}
+	HandledAndStop    = HandleResult{true, true, nil}
 	NotHandled        = HandleResult{false, false, nil}
-	NotHandledAndStop = HandleResult{false, true,  nil}
+	NotHandledAndStop = HandleResult{false, true, nil}
 )
-
 
 type (
 	// HandleResult describes the result of an operation.
@@ -21,7 +20,6 @@ type (
 	// HandleResultBlock provides another HandleResult.
 	HandleResultBlock func() HandleResult
 )
-
 
 func (r HandleResult) Handled() bool {
 	return r.handled
@@ -39,7 +37,7 @@ func (r HandleResult) Error() error {
 	return r.err
 }
 
-func  (r HandleResult) WithError(err error) HandleResult {
+func (r HandleResult) WithError(err error) HandleResult {
 	if err == nil {
 		return r
 	}
@@ -68,7 +66,7 @@ func (r HandleResult) Then(
 
 func (r HandleResult) ThenIf(
 	condition bool,
-	block     HandleResultBlock,
+	block HandleResultBlock,
 ) HandleResult {
 	if block == nil {
 		panic("block cannot be nil")
@@ -97,7 +95,7 @@ func (r HandleResult) Otherwise(
 
 func (r HandleResult) OtherwiseIf(
 	condition bool,
-	block     HandleResultBlock,
+	block HandleResultBlock,
 ) HandleResult {
 	if block == nil {
 		panic("block cannot be nil")
@@ -154,7 +152,7 @@ func (r HandleResult) OrBlock(block HandleResultBlock) HandleResult {
 		}
 	} else {
 		other := block()
-		err   := combineErrors(r, other)
+		err := combineErrors(r, other)
 		if r.stop || other.stop {
 			return NotHandledAndStop.WithError(err)
 		} else {
@@ -196,7 +194,6 @@ func (r HandleResult) AndBlock(other HandleResult) HandleResult {
 		}
 	}
 }
-
 
 func combineErrors(r1 HandleResult, r2 HandleResult) error {
 	if e1, e2 := r1.err, r2.err; e1 != nil && e2 != nil {

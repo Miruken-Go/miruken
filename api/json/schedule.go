@@ -14,13 +14,11 @@ type (
 	Sequential []any
 )
 
-
 // Concurrent
 
 func (c Concurrent) Original(miruken.Handler) (any, error) {
 	return &api.ConcurrentBatch{Requests: c}, nil
 }
-
 
 // Sequential
 
@@ -28,14 +26,13 @@ func (s Sequential) Original(miruken.Handler) (any, error) {
 	return &api.SequentialBatch{Requests: s}, nil
 }
 
-
 // SurrogateMapper
 
 func (m *SurrogateMapper) ReplaceConcurrent(
-	_*struct{
+	_ *struct {
 		maps.It
 		maps.Format `to:"application/json"`
-	  }, batch api.ConcurrentBatch,
+	}, batch api.ConcurrentBatch,
 	ctx miruken.HandleContext,
 ) (byt []byte, err error) {
 	sur := Concurrent(batch.Requests)
@@ -47,10 +44,10 @@ func (m *SurrogateMapper) ReplaceConcurrent(
 }
 
 func (m *SurrogateMapper) ReplaceSequential(
-	_*struct{
+	_ *struct {
 		maps.It
 		maps.Format `to:"application/json"`
-	  }, batch api.SequentialBatch,
+	}, batch api.SequentialBatch,
 	ctx miruken.HandleContext,
 ) (byt []byte, err error) {
 	sur := Sequential(batch.Requests)

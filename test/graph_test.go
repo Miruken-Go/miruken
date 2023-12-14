@@ -1,14 +1,15 @@
 package test
 
 import (
+	"testing"
+
 	"github.com/miruken-go/miruken"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 type treeNode struct {
-	data any
-	parent miruken.Traversing
+	data     any
+	parent   miruken.Traversing
 	children []miruken.Traversing
 }
 
@@ -20,7 +21,7 @@ func (t *treeNode) Children() []miruken.Traversing {
 	return t.children
 }
 
-func (t *treeNode) addChildren(children ...*treeNode) *treeNode{
+func (t *treeNode) addChildren(children ...*treeNode) *treeNode {
 	for _, child := range children {
 		child.parent = t
 		t.children = append(t.children, child)
@@ -29,7 +30,7 @@ func (t *treeNode) addChildren(children ...*treeNode) *treeNode{
 }
 
 func (t *treeNode) Traverse(
-	axis    miruken.TraversingAxis,
+	axis miruken.TraversingAxis,
 	visitor miruken.TraversalVisitor,
 ) error {
 	return miruken.TraverseAxis(t, axis, visitor)
@@ -46,13 +47,13 @@ type TraversalTestSuite struct {
 
 func (suite *TraversalTestSuite) SetupTest() {
 	suite.visited = make([]*treeNode, 0)
-	suite.root    = &treeNode{data: "root"}
-	suite.child1  = &treeNode{data: "child1"}
+	suite.root = &treeNode{data: "root"}
+	suite.child1 = &treeNode{data: "child1"}
 	suite.child11 = &treeNode{data: "child11"}
-	suite.child2  = &treeNode{data: "child2"}
+	suite.child2 = &treeNode{data: "child2"}
 	suite.child21 = &treeNode{data: "child21"}
 	suite.child22 = &treeNode{data: "child22"}
-	suite.child3  = &treeNode{data: "child3"}
+	suite.child3 = &treeNode{data: "child3"}
 	suite.child31 = &treeNode{data: "child31"}
 	suite.child32 = &treeNode{data: "child32"}
 	suite.child33 = &treeNode{data: "child33"}
@@ -77,7 +78,7 @@ func (suite *TraversalTestSuite) TestPreOrderTraversal() {
 	err := miruken.TraversePreOrder(suite.root, suite)
 	suite.Nil(err)
 	suite.Visited(
-		suite.root,   suite.child1,  suite.child11,
+		suite.root, suite.child1, suite.child11,
 		suite.child2, suite.child21, suite.child22,
 		suite.child3, suite.child31, suite.child32,
 		suite.child33)
@@ -87,8 +88,8 @@ func (suite *TraversalTestSuite) TestPostOrderTraversal() {
 	err := miruken.TraversePostOrder(suite.root, suite)
 	suite.Nil(err)
 	suite.Visited(
-		suite.child11, suite.child1,  suite.child21,
-		suite.child22, suite.child2,  suite.child31,
+		suite.child11, suite.child1, suite.child21,
+		suite.child22, suite.child2, suite.child31,
 		suite.child32, suite.child33, suite.child3,
 		suite.root)
 }
@@ -97,8 +98,8 @@ func (suite *TraversalTestSuite) TestLevelOrderTraversal() {
 	err := miruken.TraverseLevelOrder(suite.root, suite)
 	suite.Nil(err)
 	suite.Visited(
-		suite.root,    suite.child1,  suite.child2,
-		suite.child3,  suite.child11, suite.child21,
+		suite.root, suite.child1, suite.child2,
+		suite.child3, suite.child11, suite.child21,
 		suite.child22, suite.child31, suite.child32,
 		suite.child33)
 }
@@ -109,7 +110,7 @@ func (suite *TraversalTestSuite) TestReverseLevelOrderTraversal() {
 	suite.Visited(
 		suite.child11, suite.child21, suite.child22,
 		suite.child31, suite.child32, suite.child33,
-		suite.child1,  suite.child2,  suite.child3,
+		suite.child1, suite.child2, suite.child3,
 		suite.root)
 }
 
@@ -145,7 +146,7 @@ func (suite *GraphTestSuite) TestTraverseSelf() {
 }
 
 func (suite *GraphTestSuite) TestTraverseRoot() {
-	var root   = &treeNode{data: "root"}
+	var root = &treeNode{data: "root"}
 	var child1 = &treeNode{data: "child1"}
 	var child2 = &treeNode{data: "child2"}
 	var child3 = &treeNode{data: "child3"}
@@ -156,7 +157,7 @@ func (suite *GraphTestSuite) TestTraverseRoot() {
 }
 
 func (suite *GraphTestSuite) TestTraverseChildren() {
-	var root   = &treeNode{data: "root"}
+	var root = &treeNode{data: "root"}
 	var child1 = &treeNode{data: "child1"}
 	var child2 = &treeNode{data: "child2"}
 	var child3 = &treeNode{data: "child3"}
@@ -168,7 +169,7 @@ func (suite *GraphTestSuite) TestTraverseChildren() {
 }
 
 func (suite *GraphTestSuite) TestTraverseSiblings() {
-	var root   = &treeNode{data: "root"}
+	var root = &treeNode{data: "root"}
 	var child1 = &treeNode{data: "child1"}
 	var child2 = &treeNode{data: "child2"}
 	var child3 = &treeNode{data: "child3"}
@@ -180,7 +181,7 @@ func (suite *GraphTestSuite) TestTraverseSiblings() {
 }
 
 func (suite *GraphTestSuite) TestTraverseChildrenAndSelf() {
-	var root   = &treeNode{data: "root"}
+	var root = &treeNode{data: "root"}
 	var child1 = &treeNode{data: "child1"}
 	var child2 = &treeNode{data: "child2"}
 	var child3 = &treeNode{data: "child3"}
@@ -192,7 +193,7 @@ func (suite *GraphTestSuite) TestTraverseChildrenAndSelf() {
 }
 
 func (suite *GraphTestSuite) TestTraverseSiblingAndSelf() {
-	var root   = &treeNode{data: "root"}
+	var root = &treeNode{data: "root"}
 	var child1 = &treeNode{data: "child1"}
 	var child2 = &treeNode{data: "child2"}
 	var child3 = &treeNode{data: "child3"}
@@ -204,8 +205,8 @@ func (suite *GraphTestSuite) TestTraverseSiblingAndSelf() {
 }
 
 func (suite *GraphTestSuite) TestTraverseAncestors() {
-	var root       = &treeNode{data: "root"}
-	var child      = &treeNode{data: "child"}
+	var root = &treeNode{data: "root"}
+	var child = &treeNode{data: "child"}
 	var grandChild = &treeNode{data: "grandChild"}
 	root.addChildren(child)
 	child.addChildren(grandChild)
@@ -215,8 +216,8 @@ func (suite *GraphTestSuite) TestTraverseAncestors() {
 }
 
 func (suite *GraphTestSuite) TestTraverseAncestorsAndSelf() {
-	var root       = &treeNode{data: "root"}
-	var child      = &treeNode{data: "child"}
+	var root = &treeNode{data: "root"}
+	var child = &treeNode{data: "child"}
 	var grandChild = &treeNode{data: "grandChild"}
 	root.addChildren(child)
 	child.addChildren(grandChild)
@@ -226,10 +227,10 @@ func (suite *GraphTestSuite) TestTraverseAncestorsAndSelf() {
 }
 
 func (suite *GraphTestSuite) TestTraverseDescendants() {
-	var root    = &treeNode{data: "root"}
-	var child1  = &treeNode{data: "child1"}
-	var child2  = &treeNode{data: "child2"}
-	var child3  = &treeNode{data: "child3"}
+	var root = &treeNode{data: "root"}
+	var child1 = &treeNode{data: "child1"}
+	var child2 = &treeNode{data: "child2"}
+	var child3 = &treeNode{data: "child3"}
 	var child31 = &treeNode{data: "child31"}
 	child3.addChildren(child31)
 	root.addChildren(child1, child2, child3)
@@ -239,10 +240,10 @@ func (suite *GraphTestSuite) TestTraverseDescendants() {
 }
 
 func (suite *GraphTestSuite) TestTraverseDescendantsReverse() {
-	var root    = &treeNode{data: "root"}
-	var child1  = &treeNode{data: "child1"}
-	var child2  = &treeNode{data: "child2"}
-	var child3  = &treeNode{data: "child3"}
+	var root = &treeNode{data: "root"}
+	var child1 = &treeNode{data: "child1"}
+	var child2 = &treeNode{data: "child2"}
+	var child3 = &treeNode{data: "child3"}
 	var child31 = &treeNode{data: "child31"}
 	child3.addChildren(child31)
 	root.addChildren(child1, child2, child3)
@@ -252,10 +253,10 @@ func (suite *GraphTestSuite) TestTraverseDescendantsReverse() {
 }
 
 func (suite *GraphTestSuite) TestTraverseDescendantsAndSelf() {
-	var root    = &treeNode{data: "root"}
-	var child1  = &treeNode{data: "child1"}
-	var child2  = &treeNode{data: "child2"}
-	var child3  = &treeNode{data: "child3"}
+	var root = &treeNode{data: "root"}
+	var child1 = &treeNode{data: "child1"}
+	var child2 = &treeNode{data: "child2"}
+	var child3 = &treeNode{data: "child3"}
 	var child31 = &treeNode{data: "child31"}
 	child3.addChildren(child31)
 	root.addChildren(child1, child2, child3)
@@ -265,10 +266,10 @@ func (suite *GraphTestSuite) TestTraverseDescendantsAndSelf() {
 }
 
 func (suite *GraphTestSuite) TestTraverseDescendantsAndSelfReverse() {
-	var root    = &treeNode{data: "root"}
-	var child1  = &treeNode{data: "child1"}
-	var child2  = &treeNode{data: "child2"}
-	var child3  = &treeNode{data: "child3"}
+	var root = &treeNode{data: "root"}
+	var child1 = &treeNode{data: "child1"}
+	var child2 = &treeNode{data: "child2"}
+	var child3 = &treeNode{data: "child3"}
 	var child31 = &treeNode{data: "child31"}
 	child3.addChildren(child31)
 	root.addChildren(child1, child2, child3)
@@ -278,11 +279,11 @@ func (suite *GraphTestSuite) TestTraverseDescendantsAndSelfReverse() {
 }
 
 func (suite *GraphTestSuite) TestTraverseAncestorSiblingAndSelf() {
-	var root    = &treeNode{data: "root"}
-	var parent  = &treeNode{data: "parent"}
-	var child1  = &treeNode{data: "child1"}
-	var child2  = &treeNode{data: "child2"}
-	var child3  = &treeNode{data: "child3"}
+	var root = &treeNode{data: "root"}
+	var parent = &treeNode{data: "parent"}
+	var child1 = &treeNode{data: "child1"}
+	var child2 = &treeNode{data: "child2"}
+	var child3 = &treeNode{data: "child3"}
 	var child31 = &treeNode{data: "child31"}
 	child3.addChildren(child31)
 	parent.addChildren(child1, child2, child3)

@@ -2,10 +2,11 @@ package stdjson
 
 import (
 	"encoding/json"
+	"io"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/maps"
-	"io"
 )
 
 // MessageSurrogate is a json standard surrogate for api.Message.
@@ -13,11 +14,10 @@ type MessageSurrogate struct {
 	Payload json.RawMessage `json:"payload"`
 }
 
-
 func (m *SurrogateMapper) EncodeMessage(
-	_*struct{
+	_ *struct {
 		maps.Format `to:"application/json"`
-	  }, msg api.Message,
+	}, msg api.Message,
 	it *maps.It,
 	ctx miruken.HandleContext,
 ) (io.Writer, error) {
@@ -40,10 +40,10 @@ func (m *SurrogateMapper) EncodeMessage(
 }
 
 func (m *SurrogateMapper) DecodeMessage(
-	_*struct{
+	_ *struct {
 		maps.It
 		maps.Format `from:"application/json"`
-	  }, reader io.Reader,
+	}, reader io.Reader,
 	it *maps.It,
 	ctx miruken.HandleContext,
 ) (msg api.Message, err error) {

@@ -2,6 +2,7 @@ package setup
 
 import (
 	"container/list"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/context"
@@ -21,7 +22,6 @@ type Builder struct {
 	observers []miruken.HandlerInfoObserver
 	tags      map[any]struct{}
 }
-
 
 func (s *Builder) Features(
 	features ...Feature,
@@ -173,7 +173,7 @@ func (s *Builder) Context() (*context.Context, error) {
 
 	// call after setup hooks
 	for _, feature := range s.features {
-		if after, ok := feature.(interface{
+		if after, ok := feature.(interface {
 			AfterInstall(*Builder, miruken.Handler) error
 		}); ok {
 			if err := after.AfterInstall(s, ctx); err != nil {
@@ -199,7 +199,7 @@ func (s *Builder) installGraph(
 		front := queue.Front()
 		queue.Remove(front)
 		feature := front.Value.(Feature)
-		if dependsOn, ok := feature.(interface{
+		if dependsOn, ok := feature.(interface {
 			DependsOn() []Feature
 		}); ok {
 			for _, dep := range dependsOn.DependsOn() {
@@ -215,10 +215,7 @@ func (s *Builder) installGraph(
 	return err
 }
 
-
 // New returns a new Builder with initial Feature's.
 func New(features ...Feature) *Builder {
 	return &Builder{features: features}
 }
-
-

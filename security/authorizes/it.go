@@ -2,26 +2,26 @@ package authorizes
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/security"
-	"reflect"
 )
 
 type (
 	// It authorizes callbacks contravariantly.
 	It struct {
 		miruken.CallbackBase
-		action  any
+		action any
 	}
 
 	// Options control the authorization process.
- 	Options struct {
+	Options struct {
 		RequirePolicy bool
 	}
 )
-
 
 func (a *It) Source() any {
 	return a.action
@@ -36,8 +36,8 @@ func (a *It) Policy() miruken.Policy {
 }
 
 func (a *It) Dispatch(
-	handler  any,
-	greedy   bool,
+	handler any,
+	greedy bool,
 	composer miruken.Handler,
 ) miruken.HandleResult {
 	return miruken.DispatchPolicy(handler, a, greedy, composer)
@@ -46,7 +46,6 @@ func (a *It) Dispatch(
 func (a *It) String() string {
 	return fmt.Sprintf("authorizes %+v", a.action)
 }
-
 
 // Builder builds It callbacks.
 type Builder struct {
@@ -84,8 +83,8 @@ func (b *Builder) New() *It {
 
 // Access performs authorization on `action`.
 func Access(
-	handler     miruken.Handler,
-	action      any,
+	handler miruken.Handler,
+	action any,
 	constraints ...any,
 ) (bool, *promise.Promise[bool], error) {
 	if internal.IsNil(handler) {
@@ -97,7 +96,7 @@ func Access(
 	options, _ := miruken.GetOptions[Options](handler)
 	var builder Builder
 	builder.ForAction(action).
-		    WithConstraints(constraints...)
+		WithConstraints(constraints...)
 	auth := builder.New()
 	if result := handler.Handle(auth, false, nil); result.IsError() {
 		return false, nil, result.Error()
@@ -112,6 +111,4 @@ func Access(
 	}
 }
 
-
 var policy miruken.Policy = &miruken.ContravariantPolicy{}
-

@@ -11,15 +11,15 @@ type Installer struct {
 	verbosity int
 }
 
-func (i *Installer) SetVerbosity (verbosity int) {
+func (i *Installer) SetVerbosity(verbosity int) {
 	i.verbosity = verbosity
 }
 
-func (i *Installer) Install(setup *setup.Builder) error {
-	if setup.Tag(&featureTag) {
-		setup.Specs(&Factory{}).
-			  Handlers(&Factory{root: i.root}).
-			  Filters(&Emit{verbosity: i.verbosity})
+func (i *Installer) Install(b *setup.Builder) error {
+	if b.Tag(&featureTag) {
+		b.Specs(&Factory{}).
+			Handlers(&Factory{root: i.root}).
+			Filters(&Emit{verbosity: i.verbosity})
 	}
 	return nil
 }
@@ -34,7 +34,7 @@ func Verbosity(verbosity int) func(*Installer) {
 // Feature creates and configures logging support.
 func Feature(
 	rootLogger logr.Logger,
-	config     ...func(*Installer),
+	config ...func(*Installer),
 ) setup.Feature {
 	installer := &Installer{root: rootLogger}
 	for _, configure := range config {
@@ -46,4 +46,3 @@ func Feature(
 }
 
 var featureTag byte
-

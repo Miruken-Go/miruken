@@ -127,7 +127,7 @@ type AccumulatorFunc[IN, OUT any] func(out OUT, i int, item IN) OUT
 
 // Reduce reduces a []IN to a single value using an accumulator function.
 func Reduce[IN, OUT any](
-	in  []IN, initializer OUT,
+	in []IN, initializer OUT,
 	fun AccumulatorFunc[IN, OUT],
 ) OUT {
 	out := initializer
@@ -148,7 +148,7 @@ func Remove[IN comparable](in []IN, items ...IN) []IN {
 		for ii, s := range in {
 			if s == item {
 				in[ii] = in[len(in)-1]
-				in     = in[:len(in)-1]
+				in = in[:len(in)-1]
 				break
 			}
 		}
@@ -173,4 +173,3 @@ func Last[IN any](in []IN) (IN, bool) {
 	var zero IN
 	return zero, false
 }
-

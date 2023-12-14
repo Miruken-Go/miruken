@@ -7,7 +7,6 @@ import (
 	"github.com/miruken-go/miruken/promise"
 )
 
-
 type (
 	// Callbacks is a miruken.SideEffect for cascading callbacks.
 	Callbacks struct {
@@ -24,7 +23,6 @@ type (
 		publish  bool
 	}
 )
-
 
 // Callbacks
 
@@ -51,7 +49,7 @@ func (c *Callbacks) Greedy(
 
 func (c *Callbacks) Apply(
 	self miruken.SideEffect,
-	ctx  miruken.HandleContext,
+	ctx miruken.HandleContext,
 ) (promise.Reflect, error) {
 	callbacks := c.callbacks
 	if len(callbacks) == 0 {
@@ -90,7 +88,6 @@ func (c *Callbacks) Apply(
 	}
 }
 
-
 // Messages
 
 func (m *Messages) WithHandler(
@@ -100,10 +97,9 @@ func (m *Messages) WithHandler(
 	return m
 }
 
-
 func (m *Messages) Apply(
 	self miruken.SideEffect,
-	ctx  miruken.HandleContext,
+	ctx miruken.HandleContext,
 ) (promise.Reflect, error) {
 	messages := m.messages
 	if len(messages) == 0 {
@@ -142,18 +138,15 @@ func (m *Messages) Apply(
 	}
 }
 
-
 // Handle is a fluent builder for Callbacks.
 func Handle(callbacks ...any) *Callbacks {
 	return &Callbacks{callbacks: callbacks}
 }
 
-
 // Post is a fluent builder for posting Messages.
 func Post(messages ...any) *Messages {
 	return &Messages{messages: messages}
 }
-
 
 // Publish is a fluent builder for publishing Messages.
 func Publish(messages ...any) *Messages {

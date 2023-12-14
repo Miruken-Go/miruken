@@ -2,13 +2,14 @@ package logs
 
 import (
 	"fmt"
+	"reflect"
+	"time"
+
 	"github.com/go-logr/logr"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
-	"reflect"
-	"time"
 )
 
 type (
@@ -18,10 +19,10 @@ type (
 	}
 
 	// filter logs basic callback execution details.
-	filter struct {}
+	filter struct{}
 )
 
-const durationFormat = "15:04:05.000000"  // microseconds
+const durationFormat = "15:04:05.000000" // microseconds
 
 // Emit
 
@@ -45,7 +46,7 @@ func (e *Emit) AppliesTo(
 }
 
 func (e *Emit) Filters(
-	binding  miruken.Binding,
+	binding miruken.Binding,
 	callback any,
 	composer miruken.Handler,
 ) ([]miruken.Filter, error) {
@@ -59,11 +60,11 @@ func (f filter) Order() int {
 }
 
 func (f filter) Next(
-	self     miruken.Filter,
-	next     miruken.Next,
-	ctx      miruken.HandleContext,
+	self miruken.Filter,
+	next miruken.Next,
+	ctx miruken.HandleContext,
 	provider miruken.FilterProvider,
-)  (out []any, pout *promise.Promise[[]any], err error) {
+) (out []any, pout *promise.Promise[[]any], err error) {
 	if emit, ok := provider.(*Emit); ok {
 		logger, _, ok, re := provides.Type[logr.Logger](ctx)
 		if !(ok && re == nil) {
@@ -74,11 +75,11 @@ func (f filter) Next(
 		}
 		logger = logger.WithName(fmt.Sprintf("%T", ctx.Handler))
 		callback := ctx.Callback
-		source   := callback.Source()
+		source := callback.Source()
 		logger.Info("handling",
 			"callback", reflect.TypeOf(callback),
 			"source-type", reflect.TypeOf(source),
-			"source",source)
+			"source", source)
 		start := time.Now()
 		if out, pout, err = next.Pipe(); err != nil {
 			f.logError(err, start, logger)
@@ -101,7 +102,7 @@ func (f filter) Next(
 }
 
 func (f filter) logSuccess(
-	start  time.Time,
+	start time.Time,
 	logger logr.Logger,
 ) {
 	elapsed := miruken.Timespan(time.Since(start))
@@ -109,8 +110,8 @@ func (f filter) logSuccess(
 }
 
 func (f filter) logError(
-	err    error,
-	start  time.Time,
+	err error,
+	start time.Time,
 	logger logr.Logger,
 ) {
 	elapsed := miruken.Timespan(time.Since(start))

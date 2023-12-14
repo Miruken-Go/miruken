@@ -1,6 +1,9 @@
 package test
 
 import (
+	"testing"
+	"time"
+
 	"github.com/go-logr/logr"
 	"github.com/go-logr/logr/testr"
 	"github.com/miruken-go/miruken/handles"
@@ -9,8 +12,6 @@ import (
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
-	"testing"
-	"time"
 )
 
 type (
@@ -18,7 +19,7 @@ type (
 		logger logr.Logger
 	}
 
-	Command int
+	Command     int
 	LongCommand int64
 )
 
@@ -38,7 +39,7 @@ func (s *Service) Command(
 ) Command {
 	var level = int(cmd)
 	logger.V(level).Info("executed command", "level", level)
-	return cmd+1
+	return cmd + 1
 }
 
 func (s *Service) LongCommand(
@@ -48,7 +49,7 @@ func (s *Service) LongCommand(
 	duration := time.Duration(cmd) * time.Millisecond
 	logger.Info("executed long command", "duration", duration)
 	_, _ = promise.Delay(duration).Await()
-	return promise.Resolve(cmd+1)
+	return promise.Resolve(cmd + 1)
 }
 
 type LogTestSuite struct {
@@ -60,7 +61,7 @@ func (suite *LogTestSuite) TestLogging() {
 		handler, _ := setup.New(
 			logs.Feature(testr.New(suite.T())),
 		).Context()
-		logger, _, ok, err:= provides.Type[logr.Logger](handler)
+		logger, _, ok, err := provides.Type[logr.Logger](handler)
 		suite.True(ok)
 		suite.Nil(err)
 		logger.Info("Hello")
@@ -72,7 +73,7 @@ func (suite *LogTestSuite) TestLogging() {
 				testr.NewWithOptions(suite.T(), testr.Options{Verbosity: 1}),
 			),
 		).Context()
-		logger, _, ok, err:= provides.Type[logr.Logger](handler)
+		logger, _, ok, err := provides.Type[logr.Logger](handler)
 		suite.True(ok)
 		suite.Nil(err)
 		logger.V(1).Info("World")
@@ -138,4 +139,3 @@ func (suite *LogTestSuite) TestLogging() {
 func TestLogTestSuite(t *testing.T) {
 	suite.Run(t, new(LogTestSuite))
 }
-
