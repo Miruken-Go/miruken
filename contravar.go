@@ -22,7 +22,7 @@ var (
 
 func (p *ContravariantPolicy) VariantKey(
 	key any,
-) (variant bool, unknown bool) {
+) (variant, unknown bool) {
 	if typ, ok := key.(reflect.Type); ok {
 		return true, internal.IsAny(typ)
 	}
@@ -32,7 +32,7 @@ func (p *ContravariantPolicy) VariantKey(
 func (p *ContravariantPolicy) MatchesKey(
 	key, otherKey any,
 	invariant bool,
-) (matches bool, exact bool) {
+) (matches, exact bool) {
 	if key == otherKey {
 		return true, true
 	} else if invariant {
@@ -98,11 +98,11 @@ func (p *ContravariantPolicy) AcceptResults(
 }
 
 func (p *ContravariantPolicy) NewMethodBinding(
-	method reflect.Method,
-	spec *bindingSpec,
-	key any,
+	method *reflect.Method,
+	spec   *bindingSpec,
+	key    any,
 ) (Binding, error) {
-	if args, key, err := validateContravariantFunc(method.Type, spec, key, 1); err != nil {
+	if args, k, err := validateContravariantFunc(method.Type, spec, key, 1); err != nil {
 		return nil, &MethodBindingError{method, err}
 	} else {
 		return &methodBinding{
@@ -110,7 +110,7 @@ func (p *ContravariantPolicy) NewMethodBinding(
 			BindingBase{
 				FilteredScope{spec.filters},
 				spec.flags, spec.metadata,
-			}, key, method, spec.lt,
+			}, k, method, spec.lt,
 		}, nil
 	}
 }
@@ -120,7 +120,7 @@ func (p *ContravariantPolicy) NewFuncBinding(
 	spec *bindingSpec,
 	key any,
 ) (Binding, error) {
-	if args, key, err := validateContravariantFunc(fun.Type(), spec, key, 0); err != nil {
+	if args, k, err := validateContravariantFunc(fun.Type(), spec, key, 0); err != nil {
 		return nil, &FuncBindingError{fun, err}
 	} else {
 		return &funcBinding{
@@ -128,7 +128,7 @@ func (p *ContravariantPolicy) NewFuncBinding(
 			BindingBase{
 				FilteredScope{spec.filters},
 				spec.flags, spec.metadata,
-			}, key, spec.lt,
+			}, k, spec.lt,
 		}, nil
 	}
 }
@@ -192,7 +192,7 @@ func validateContravariantFunc(
 		} else {
 			resIdx = i
 			if lt, ok := promise.Inspect(out); ok {
-				spec.flags = spec.flags | bindingAsync
+				spec.flags |= bindingAsync
 				out = lt
 			}
 			spec.setLogicalOutputType(out)

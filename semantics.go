@@ -45,11 +45,11 @@ func (c *CallbackSemantics) HasOption(options SemanticFlags) bool {
 
 func (c *CallbackSemantics) SetOption(options SemanticFlags, enabled bool) {
 	if enabled {
-		c.options = c.options | options
+		c.options |= options
 	} else {
-		c.options = c.options & ^options
+		c.options &= ^options
 	}
-	c.specified = c.specified | options
+	c.specified |= options
 }
 
 func (c *CallbackSemantics) IsSpecified(options SemanticFlags) bool {

@@ -12,9 +12,9 @@ type (
 	// MethodBinder creates a binding a method.
 	MethodBinder interface {
 		NewMethodBinding(
-			method reflect.Method,
-			spec *bindingSpec,
-			key any,
+			method *reflect.Method,
+			spec   *bindingSpec,
+			key    any,
 		) (Binding, error)
 	}
 
@@ -23,13 +23,13 @@ type (
 		funcCall
 		BindingBase
 		key    any
-		method reflect.Method
+		method *reflect.Method
 		lt     reflect.Type
 	}
 
 	// MethodBindingError reports a failed method binding.
 	MethodBindingError struct {
-		Method reflect.Method
+		Method *reflect.Method
 		Cause  error
 	}
 )
@@ -46,7 +46,7 @@ func (b *methodBinding) LogicalOutputType() reflect.Type {
 	return b.lt
 }
 
-func (b *methodBinding) Method() reflect.Method {
+func (b *methodBinding) Method() *reflect.Method {
 	return b.method
 }
 

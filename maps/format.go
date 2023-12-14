@@ -202,7 +202,7 @@ func (f *Format) parse(format string) error {
 	if start > 0 || end > 0 {
 		format = strings.TrimSpace(format[start : len(format)-end])
 	}
-	if len(format) == 0 {
+	if format == "" {
 		return ErrEmptyFormatIdentifier
 	}
 	if startsWith {

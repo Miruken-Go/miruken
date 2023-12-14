@@ -79,8 +79,7 @@ func (p *policyInfo) insert(policy Policy, binding Binding) {
 			p.invariant = make(map[any][]Binding)
 			p.invariant[key] = []Binding{binding}
 		} else {
-			bindings := append(p.invariant[key], binding)
-			p.invariant[key] = bindings
+			p.invariant[key] = append(p.invariant[key], binding)
 		}
 	}
 }
@@ -97,7 +96,7 @@ func (p *policyInfo) reduce(
 	result = NotHandled
 	// Check variant keys (reflect.Type)
 	if variant, unknown := policy.VariantKey(key); variant {
-		needsIndex := false
+		var needsIndex bool
 		elem := p.index[key]
 		if elem == nil {
 			if !unknown {

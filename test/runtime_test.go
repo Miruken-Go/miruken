@@ -50,7 +50,6 @@ func (suite *RuntimeTestSuite) TestRuntime() {
 			suite.False(internal.Exported(dismiss))
 		})
 	})
-
 }
 
 func TestRuntimeTestSuite(t *testing.T) {

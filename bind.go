@@ -43,16 +43,16 @@ type (
 	// BindingParser is an extension for binding customizations.
 	BindingParser interface {
 		parse(
-			index int,
-			field reflect.StructField,
+			index   int,
+			field   *reflect.StructField,
 			binding any,
 		) (bound bool, err error)
 	}
 
 	// BindingParserFunc implements a BindingParser using a function.
 	BindingParserFunc func(
-		index int,
-		field reflect.StructField,
+		index   int,
+		field   *reflect.StructField,
 		binding any,
 	) (bound bool, err error)
 
@@ -73,8 +73,8 @@ type (
 // BindingParserFunc
 
 func (b BindingParserFunc) parse(
-	index int,
-	field reflect.StructField,
+	index   int,
+	field   *reflect.StructField,
 	binding any,
 ) (bound bool, err error) {
 	return b(index, field, binding)
@@ -141,7 +141,7 @@ const (
 
 func (b *bindingSpec) addPolicy(
 	policy Policy,
-	field reflect.StructField,
+	field  *reflect.StructField,
 ) error {
 	pk := policyKey{policy: policy}
 	if key, ok := field.Tag.Lookup("key"); ok {
@@ -186,20 +186,20 @@ func (b *bindingSpec) addConstraint(
 }
 
 func (b *bindingSpec) setStrict(
-	index int,
-	field reflect.StructField,
+	index  int,
+	field  *reflect.StructField,
 	strict bool,
 ) error {
-	b.flags = b.flags | bindingStrict
+	b.flags |= bindingStrict
 	return nil
 }
 
 func (b *bindingSpec) setSkipFilters(
-	index int,
-	field reflect.StructField,
+	index  int,
+	field  *reflect.StructField,
 	strict bool,
 ) error {
-	b.flags = b.flags | bindingSkipFilters
+	b.flags |= bindingSkipFilters
 	return nil
 }
 
@@ -241,7 +241,7 @@ func (p *bindingSpecFactory) createSpec(
 		at.Name() == "" &&
 			at.Kind() == reflect.Struct {
 			spec = &bindingSpec{}
-			if err = parseSpec(at, spec, p.parsers); err != nil {
+			if err := parseSpec(at, spec, p.parsers); err != nil {
 				return nil, err
 			}
 			spec.arg = zeroArg{} // spec is just a placeholder
@@ -299,8 +299,8 @@ func (p *bindingSpecFactory) policyOf(
 }
 
 func (p *bindingSpecFactory) parse(
-	index int,
-	field reflect.StructField,
+	index   int,
+	field   *reflect.StructField,
 	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
@@ -310,7 +310,7 @@ func (p *bindingSpecFactory) parse(
 		}
 		bound = true
 		if b, ok := binding.(interface {
-			addPolicy(Policy, reflect.StructField) error
+			addPolicy(Policy, *reflect.StructField) error
 		}); ok {
 			policy := p.policyOf(cb)
 			if inv := b.addPolicy(policy, field); inv != nil {
@@ -360,7 +360,7 @@ NextField:
 			continue
 		}
 		for _, parser := range parsers {
-			if b, inv := parser.parse(i, field, binding); inv != nil {
+			if b, inv := parser.parse(i, &field, binding); inv != nil {
 				err = multierror.Append(err, inv)
 				continue NextField
 			} else if b {
@@ -386,8 +386,8 @@ NextField:
 }
 
 func parseFilters(
-	index int,
-	field reflect.StructField,
+	index   int,
+	field   *reflect.StructField,
 	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
@@ -436,8 +436,8 @@ func parseFilters(
 }
 
 func parseConstraints(
-	index int,
-	field reflect.StructField,
+	index   int,
+	field   *reflect.StructField,
 	binding any,
 ) (bound bool, err error) {
 	typ := field.Type
@@ -459,15 +459,15 @@ func parseConstraints(
 }
 
 func parseOptions(
-	index int,
-	field reflect.StructField,
+	index   int,
+	field   *reflect.StructField,
 	binding any,
 ) (bound bool, err error) {
-	typ := field.Type
-	if typ == strictType {
+	switch field.Type {
+	case strictType:
 		bound = true
 		if b, ok := binding.(interface {
-			setStrict(int, reflect.StructField, bool) error
+			setStrict(int, *reflect.StructField, bool) error
 		}); ok {
 			if inv := b.setStrict(index, field, true); inv != nil {
 				err = multierror.Append(err, fmt.Errorf(
@@ -475,10 +475,10 @@ func parseOptions(
 					field.Name, index, inv))
 			}
 		}
-	} else if typ == optionalType {
+	case optionalType:
 		bound = true
 		if b, ok := binding.(interface {
-			setOptional(int, reflect.StructField, bool) error
+			setOptional(int, *reflect.StructField, bool) error
 		}); ok {
 			if inv := b.setOptional(index, field, true); inv != nil {
 				err = multierror.Append(err, fmt.Errorf(
@@ -486,10 +486,10 @@ func parseOptions(
 					field.Name, index, inv))
 			}
 		}
-	} else if typ == skipFiltersType {
+	case skipFiltersType:
 		bound = true
 		if b, ok := binding.(interface {
-			setSkipFilters(int, reflect.StructField, bool) error
+			setSkipFilters(int, *reflect.StructField, bool) error
 		}); ok {
 			if inv := b.setSkipFilters(index, field, true); inv != nil {
 				err = multierror.Append(err, fmt.Errorf(

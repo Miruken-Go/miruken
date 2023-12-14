@@ -10,11 +10,11 @@ type (
 	// ConstructorBinder creates constructor Binding's.
 	ConstructorBinder interface {
 		NewCtorBinding(
-			typ reflect.Type,
-			ctor *reflect.Method,
-			inits []reflect.Method,
-			spec *bindingSpec,
-			key any,
+			typ   reflect.Type,
+			ctor  *reflect.Method,
+			inits []*reflect.Method,
+			spec  *bindingSpec,
+			key   any,
 		) (Binding, error)
 	}
 

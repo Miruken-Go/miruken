@@ -23,7 +23,7 @@ var (
 
 func (p *CovariantPolicy) VariantKey(
 	key any,
-) (variant bool, unknown bool) {
+) (variant, unknown bool) {
 	if typ, ok := key.(reflect.Type); ok {
 		return true, internal.IsAny(typ)
 	}
@@ -33,7 +33,7 @@ func (p *CovariantPolicy) VariantKey(
 func (p *CovariantPolicy) MatchesKey(
 	key, otherKey any,
 	invariant bool,
-) (matches bool, exact bool) {
+) (matches, exact bool) {
 	if key == otherKey {
 		return true, true
 	} else if invariant {
@@ -102,11 +102,11 @@ func (p *CovariantPolicy) AcceptResults(
 }
 
 func (p *CovariantPolicy) NewCtorBinding(
-	typ reflect.Type,
-	ctor *reflect.Method,
-	inits []reflect.Method,
-	spec *bindingSpec,
-	key any,
+	typ   reflect.Type,
+	ctor  *reflect.Method,
+	inits []*reflect.Method,
+	spec  *bindingSpec,
+	key   any,
 ) (Binding, error) {
 	binding := &ctorBinding{typ: typ, key: key}
 	if spec != nil {
@@ -116,7 +116,7 @@ func (p *CovariantPolicy) NewCtorBinding(
 	}
 	var ctorInits initializer
 	if ctor != nil {
-		if err := addInitializer(*ctor, &ctorInits, spec != nil, "constructor"); err != nil {
+		if err := addInitializer(ctor, &ctorInits, spec != nil, "constructor"); err != nil {
 			return nil, err
 		}
 	}
@@ -133,11 +133,11 @@ func (p *CovariantPolicy) NewCtorBinding(
 }
 
 func (p *CovariantPolicy) NewMethodBinding(
-	method reflect.Method,
-	spec *bindingSpec,
-	key any,
+	method *reflect.Method,
+	spec   *bindingSpec,
+	key    any,
 ) (Binding, error) {
-	if args, key, err := validateCovariantFunc(method.Type, spec, key, 1); err != nil {
+	if args, k, err := validateCovariantFunc(method.Type, spec, key, 1); err != nil {
 		return nil, &MethodBindingError{method, err}
 	} else {
 		return &methodBinding{
@@ -145,7 +145,7 @@ func (p *CovariantPolicy) NewMethodBinding(
 			BindingBase{
 				FilteredScope{spec.filters},
 				spec.flags, spec.metadata,
-			}, key, method, spec.lt,
+			}, k, method, spec.lt,
 		}, nil
 	}
 }
@@ -155,7 +155,7 @@ func (p *CovariantPolicy) NewFuncBinding(
 	spec *bindingSpec,
 	key any,
 ) (Binding, error) {
-	if args, key, err := validateCovariantFunc(fun.Type(), spec, key, 0); err != nil {
+	if args, k, err := validateCovariantFunc(fun.Type(), spec, key, 0); err != nil {
 		return nil, &FuncBindingError{fun, err}
 	} else {
 		return &funcBinding{
@@ -163,7 +163,7 @@ func (p *CovariantPolicy) NewFuncBinding(
 			BindingBase{
 				FilteredScope{spec.filters},
 				spec.flags, spec.metadata,
-			}, key, spec.lt,
+			}, k, spec.lt,
 		}, nil
 	}
 }
@@ -206,7 +206,7 @@ func validateCovariantFunc(
 			resIdx = i
 			if key == nil {
 				if lt, ok := promise.Inspect(out); ok {
-					spec.flags = spec.flags | bindingAsync
+					spec.flags |= bindingAsync
 					out = lt
 				}
 				if spec.flags&bindingStrict != bindingStrict {
@@ -229,10 +229,10 @@ func validateCovariantFunc(
 }
 
 func addInitializer(
-	init reflect.Method,
-	ci *initializer,
+	init      *reflect.Method,
+	ci        *initializer,
 	zeroFirst bool,
-	label string,
+	label     string,
 ) error {
 	startIndex := 0
 	initType := init.Type

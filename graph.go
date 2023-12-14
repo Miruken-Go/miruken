@@ -238,7 +238,7 @@ func traversePreOrder(
 	if node == nil || visitor == nil {
 		return true, nil
 	}
-	if err = checkTraversalCircularity(node, visited); err != nil {
+	if err := checkTraversalCircularity(node, visited); err != nil {
 		return true, err
 	}
 	if stop, err = visitor.VisitTraversal(node); stop || err != nil {
@@ -268,10 +268,10 @@ func traversePostOrder(
 	if node == nil || visitor == nil {
 		return true, nil
 	}
-	if err = checkTraversalCircularity(node, history); err != nil {
+	if err := checkTraversalCircularity(node, history); err != nil {
 		return true, err
 	}
-	if err = TraverseAxis(node, TraverseChild, TraversalVisitorFunc(
+	if err := TraverseAxis(node, TraverseChild, TraversalVisitorFunc(
 		func(child Traversing) (bool, error) {
 			return traversePostOrder(child, visitor, history)
 		})); err != nil {
@@ -303,13 +303,13 @@ func traverseLevelOrder(
 		front := queue.Front()
 		queue.Remove(front)
 		next := front.Value.(Traversing)
-		if err = checkTraversalCircularity(next, history); err != nil {
+		if err := checkTraversalCircularity(next, history); err != nil {
 			return true, err
 		}
 		if stop, err := visitor.VisitTraversal(next); stop || err != nil {
 			return stop, err
 		}
-		if err = TraverseAxis(next, TraverseChild, TraversalVisitorFunc(
+		if err := TraverseAxis(next, TraverseChild, TraversalVisitorFunc(
 			func(child Traversing) (bool, error) {
 				if !internal.IsNil(child) {
 					queue.PushBack(child)
@@ -346,12 +346,12 @@ func traverseReverseLevelOrder(
 		front := queue.Front()
 		queue.Remove(front)
 		next := front.Value.(Traversing)
-		if err = checkTraversalCircularity(next, history); err != nil {
+		if err := checkTraversalCircularity(next, history); err != nil {
 			return true, err
 		}
 		stack.PushBack(next)
 		level := list.New()
-		if err = TraverseAxis(next, TraverseChild, TraversalVisitorFunc(
+		if err := TraverseAxis(next, TraverseChild, TraversalVisitorFunc(
 			func(child Traversing) (bool, error) {
 				if !internal.IsNil(child) {
 					level.PushFront(child)

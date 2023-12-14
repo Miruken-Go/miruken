@@ -117,8 +117,7 @@ func (c *Context) initFlow(
 		}
 		c.flow = f
 	}
-	modules := make([]Module, len(c.flow), len(c.flow))
-
+	modules := make([]Module, len(c.flow))
 	for i, entry := range c.flow {
 		opts := entry.Options
 		if opts == nil {

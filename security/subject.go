@@ -110,19 +110,19 @@ func (s systemSubject) Credentials() []any {
 	return nil
 }
 
-func (s systemSubject) AddPrincipals(ps ...Principal) {
+func (s systemSubject) AddPrincipals(...Principal) {
 	panic("system subject is immutable")
 }
 
-func (s systemSubject) AddCredentials(cs ...any) {
+func (s systemSubject) AddCredentials(...any) {
 	panic("system subject is immutable")
 }
 
-func (s systemSubject) removePrincipals(ps ...Principal) {
+func (s systemSubject) removePrincipals(...Principal) {
 	panic("system subject is immutable")
 }
 
-func (s systemSubject) RemoveCredentials(cs ...any) {
+func (s systemSubject) RemoveCredentials(...any) {
 	panic("system subject is immutable")
 }
 

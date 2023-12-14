@@ -105,7 +105,7 @@ func getSideEffectMethod(
 			for i := 1; i < 2 && i < numArgs; i++ {
 				if lateApplyType.In(i) == handleCtxType {
 					if binding.ctxIdx > 0 {
-						return nil, &MethodBindingError{method,
+						return nil, &MethodBindingError{&method,
 							fmt.Errorf("side-effect: %v duplicate HandleContext arg at index %v and %v",
 								typ, binding.ctxIdx, i)}
 					}
@@ -116,7 +116,7 @@ func getSideEffectMethod(
 			args := make([]arg, numArgs-skip)
 			if err := buildDependencies(lateApplyType, skip, numArgs, args, 0); err != nil {
 				err = fmt.Errorf("side-effect: %v %q: %w", typ, method.Name, err)
-				return nil, &MethodBindingError{method, err}
+				return nil, &MethodBindingError{&method, err}
 			}
 			binding.funcCall.fun = method.Func
 			binding.funcCall.args = args

@@ -49,6 +49,10 @@ type (
 	}
 )
 
+const (
+	schemas = "#/components/schemas/"
+)
+
 func (i *Installer) Docs() map[string]*openapi3.T {
 	return i.apiDocs
 }
@@ -265,7 +269,7 @@ func (i *Installer) initializeDefinitions(ap *apiProfile) {
 			WithDescription("Validation Error").
 			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
 				WithPropertyRef("payload", &openapi3.SchemaRef{
-					Ref: "#/components/schemas/Outcome",
+					Ref: schemas + "Outcome",
 				}))),
 	}
 	ap.responses["GenericError"] = &openapi3.ResponseRef{
@@ -273,7 +277,7 @@ func (i *Installer) initializeDefinitions(ap *apiProfile) {
 			WithDescription("Oops ... something went wrong").
 			WithContent(openapi3.NewContentWithJSONSchema(openapi3.NewSchema().
 				WithPropertyRef("payload", &openapi3.SchemaRef{
-					Ref: "#/components/schemas/Error",
+					Ref: schemas + "Error",
 				}))),
 	}
 	payload := &openapi3.RequestBodyRef{
@@ -462,7 +466,7 @@ func (i *Installer) generateComponentSchema(
 			}
 			schema.Value.Example = component
 			schemaRef := &openapi3.SchemaRef{
-				Ref:   "#/components/schemas/" + name,
+				Ref:   schemas + name,
 				Value: schema.Value,
 			}
 			ap.components[typ] = schemaRef
@@ -505,9 +509,9 @@ func (ap *apiProfile) customize(
 			// Fix anonymous self-referencing array
 			if sc.Type == "array" &&
 				sc.Items.Value == schema &&
-				sc.Items.Ref == "#/components/schemas/" {
+				sc.Items.Ref == schemas {
 				sn := "schema" + strconv.Itoa(len(ap.schemas))
-				sc.Items.Ref = "#/components/schemas/" + sn
+				sc.Items.Ref = schemas + sn
 				ap.schemas[sn] = &openapi3.SchemaRef{Value: schema}
 			}
 			camel := camelcase(key)

@@ -185,7 +185,7 @@ func TestRace_OnlyRejected(t *testing.T) {
 
 func TestPromise_Cancel(t *testing.T) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Minute*10))
-	p1 := promise.WithContext(func(resolve func(any), reject func(error)) {}, ctx)
+	p1 := promise.WithContext(ctx, func(resolve func(any), reject func(error)) {})
 	cancel()
 
 	val, err := p1.Await()
@@ -198,9 +198,9 @@ func TestPromise_Cancel(t *testing.T) {
 
 func TestPromise_Foo(t *testing.T) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Minute*10))
-	p1 := promise.WithContext(func(resolve func(any), reject func(error)) {
+	p1 := promise.WithContext(ctx, func(resolve func(any), reject func(error)) {
 		resolve("craig")
-	}, ctx)
+	})
 	val, err := p1.Await()
 	require.Nil(t, err)
 	require.Equal(t, "craig", val)
@@ -217,7 +217,7 @@ func TestPromise_Timeout(t *testing.T) {
 		resolve("Hello")
 	})
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10)
-	p2 := promise.WithContext(func(resolve func(any), reject func(error)) {}, ctx)
+	p2 := promise.WithContext(ctx, func(resolve func(any), reject func(error)) {})
 	defer cancel()
 
 	val, err := p1.Await()

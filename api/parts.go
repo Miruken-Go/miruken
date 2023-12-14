@@ -140,7 +140,7 @@ func (b *ReadPartsBuilder) AddPart(
 	key string,
 	part Part,
 ) *ReadPartsBuilder {
-	if len(key) == 0 {
+	if key == "" {
 		panic("key cannot be empty")
 	}
 	if internal.IsNil(part) {
@@ -148,7 +148,6 @@ func (b *ReadPartsBuilder) AddPart(
 	}
 	parts := b.container.parts
 	if parts == nil {
-		parts = make(map[string][]Part)
 		b.container.parts = map[string][]Part{
 			key: {part},
 		}
@@ -208,12 +207,12 @@ func (b *WritePartsBuilder) Build() PartContainer {
 	if ctr.metadata == nil {
 		ctr.metadata = make(map[string]any)
 	}
-	if len(ctr.mediaType) == 0 {
+	if ctr.mediaType == "" {
 		ctr.mediaType = "multipart/form-data"
 	} else if !strings.HasPrefix(ctr.mediaType, "multipart/") {
 		ctr.mediaType = "multipart/" + ctr.mediaType
 	}
-	if len(ctr.boundary) == 0 {
+	if ctr.boundary == ""{
 		ctr.mediaType = ctr.mediaType + "; boundary=" + randomBoundary()
 	}
 	return ctr

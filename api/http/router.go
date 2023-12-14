@@ -78,7 +78,7 @@ func (r *Router) Route(
 		}
 
 		var format string
-		if format = options.Format; len(format) == 0 {
+		if format = options.Format; format == "" {
 			format = defaultFormat
 		}
 		to, err := api.ParseMediaType(format, maps.DirectionTo)
@@ -129,7 +129,7 @@ func (r *Router) Route(
 		}
 
 		contentType := res.Header.Get("Content-type")
-		if len(contentType) == 0 {
+		if contentType == "" {
 			contentType = format
 		}
 		if from, err := api.ParseMediaType(contentType, maps.DirectionFrom); err != nil {
@@ -169,7 +169,7 @@ func (r *Router) decodeError(
 	composer miruken.Handler,
 ) error {
 	contentType := res.Header.Get("Content-Type")
-	if len(contentType) == 0 {
+	if contentType == "" {
 		contentType = format
 	}
 	from, err := api.ParseMediaType(contentType, maps.DirectionFrom)

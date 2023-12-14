@@ -157,7 +157,7 @@ func getMiddlewareBinding(
 			middlewareBindingMap.Store(bindings)
 			return binding, nil
 		} else if err != nil {
-			return nil, &miruken.MethodBindingError{Method: method, Cause: err}
+			return nil, &miruken.MethodBindingError{Method: &method, Cause: err}
 		}
 	}
 	return nil, fmt.Errorf(`httpsrv: middleware %v has no compatible dynamic method`, typ)

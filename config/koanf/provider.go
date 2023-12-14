@@ -57,10 +57,10 @@ func ConvertSlices(m map[string]any) (any, bool) {
 		if !invalid {
 			if i, err := strconv.Atoi(k); err == nil {
 				if slice == nil {
-					slice = make([]any, len(m), len(m))
+					slice = make([]any, len(m))
 				}
 				if i >= len(slice) {
-					ns := make([]any, i+1, i+1)
+					ns := make([]any, i+1)
 					copy(ns, slice)
 					slice = ns
 				}

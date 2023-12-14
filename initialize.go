@@ -89,10 +89,6 @@ func (i *initProvider) AppliesTo(
 	}
 }
 
-func (i *initProvider) Filters(
-	binding Binding,
-	callback any,
-	composer Handler,
-) ([]Filter, error) {
+func (i *initProvider) Filters(Binding, any, Handler) ([]Filter, error) {
 	return i.filters, nil
 }

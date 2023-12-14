@@ -118,7 +118,7 @@ func (f filter) Next(
 						}
 						if poo != nil {
 							// resolve output validation results
-							if outcomeOut, errOut = poo.Await(); errOut != nil {
+							if _, errOut = poo.Await(); errOut != nil {
 								// resolution failed so return
 								panic(errOut)
 							}
@@ -147,7 +147,7 @@ func (f filter) Next(
 				}
 				if poo != nil {
 					// resolve output validation results
-					if outcomeOut, errOut = poo.Await(); errOut != nil {
+					if _, errOut = poo.Await(); errOut != nil {
 						// resolution failed so return
 						panic(errOut)
 					}

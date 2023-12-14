@@ -36,14 +36,14 @@ func (p *Promise[T]) Then(
 	if res == nil {
 		panic("resolve cannot be nil")
 	}
-	return WithContext(func(resolve func(any), reject func(error)) {
+	return WithContext(p.ctx, func(resolve func(any), reject func(error)) {
 		result, err := p.Await()
 		if err != nil {
 			reject(err)
 			return
 		}
 		resolve(res(result))
-	}, p.ctx)
+	})
 }
 
 func (p *Promise[T]) Catch(
@@ -52,14 +52,14 @@ func (p *Promise[T]) Catch(
 	if rej == nil {
 		panic("resolve cannot be nil")
 	}
-	return WithContext(func(resolve func(any), reject func(error)) {
+	return WithContext(p.ctx, func(resolve func(any), reject func(error)) {
 		result, err := p.Await()
 		if err != nil {
 			reject(rej(err))
 			return
 		}
 		resolve(result)
-	}, p.ctx)
+	})
 }
 
 func (p *Promise[T]) AwaitAny() (any, error) {
@@ -109,7 +109,7 @@ func Lift(typ reflect.Type, result any) Reflect {
 func Coerce[T any](
 	promise Reflect,
 ) *Promise[T] {
-	return WithContext(func(resolve func(T), reject func(error)) {
+	return WithContext(promise.Context(), func(resolve func(T), reject func(error)) {
 		data, err := promise.AwaitAny()
 		if err != nil {
 			reject(err)
@@ -121,7 +121,7 @@ func Coerce[T any](
 				resolve(t)
 			}
 		}
-	}, promise.Context())
+	})
 }
 
 func CoerceType(

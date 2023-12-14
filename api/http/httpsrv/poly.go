@@ -97,8 +97,8 @@ func (a *PolyHandler) acceptRequest(
 	w http.ResponseWriter,
 	r *http.Request,
 ) (accepted bool, format *maps.Format, publish bool) {
-	if r.Method != "POST" {
-		w.Header().Set("Allow", "POST")
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
 		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -211,7 +211,9 @@ func (a *PolyHandler) encodeError(
 	w.WriteHeader(statusCode)
 	out := io.Writer(w)
 	msg := api.Message{Payload: err}
-	_, _, _ = maps.Into(handler, msg, &out, api.ToJson)
+	if _, _, err := maps.Into(handler, msg, &out, api.ToJson); err != nil {
+		a.logger.Error(err, "unable to write error response")
+	}
 }
 
 func formatAccept(a accept.Accept) *maps.Format {

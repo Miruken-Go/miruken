@@ -435,10 +435,10 @@ type (
 	}
 )
 
-func (n filterBinding) invoke(
-	filter any,
-	ctx HandleContext,
-	next Next,
+func (n *filterBinding) invoke(
+	filter   any,
+	ctx      HandleContext,
+	next     Next,
 	provider FilterProvider,
 ) (out []any, pout *promise.Promise[[]any], err error) {
 	var initArgs []any
@@ -489,9 +489,9 @@ func (n filterBinding) invoke(
 }
 
 func (g filterBindingGroup) invoke(
-	filter any,
-	ctx HandleContext,
-	next Next,
+	filter   any,
+	ctx      HandleContext,
+	next     Next,
 	provider FilterProvider,
 ) ([]any, *promise.Promise[[]any], error) {
 	if len(g) == 1 {
@@ -570,7 +570,7 @@ func getFilterBinding(
 	for i := 0; i < typ.NumMethod(); i++ {
 		method := typ.Method(i)
 		if method.Name != "Next" {
-			if binding, err := parseFilterMethod(method); err != nil {
+			if binding, err := parseFilterMethod(&method); err != nil {
 				return nil, err
 			} else if binding != nil {
 				group = append(group, *binding)
@@ -592,7 +592,7 @@ func getFilterBinding(
 //	If the second, the first is the callback used to select the filter.
 //	The return type must be ([]any, *promise.Promise[[]any], error).
 func parseFilterMethod(
-	method reflect.Method,
+	method *reflect.Method,
 ) (*filterBinding, error) {
 	funcType := method.Type
 	numArgs := funcType.NumIn()

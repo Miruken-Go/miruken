@@ -204,7 +204,7 @@ func (c *CallbackBase) Constraints() []Constraint {
 	return c.constraints
 }
 
-func (c *CallbackBase) ensureResult(many bool, expand bool) any {
+func (c *CallbackBase) ensureResult(many, expand bool) any {
 	if c.result == nil {
 		var results []any
 		if expand {
@@ -222,15 +222,16 @@ func (c *CallbackBase) ensureResult(many bool, expand bool) any {
 				return !internal.IsNil(res)
 			})
 		}
-		if many {
+		switch {
+		case many:
 			c.result = unwrapResult(results)
 			if !(c.written || internal.IsNil(c.target)) {
 				internal.CopySliceIndirect(results, c.target)
 				c.written = true
 			}
-		} else if len(results) == 0 {
+		case len(results) == 0:
 			c.result = nil
-		} else {
+		default:
 			c.result = unwrapResult(results[0])
 			if !(c.written || internal.IsNil(c.target)) {
 				internal.CopyIndirect(c.result, c.target)

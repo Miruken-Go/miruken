@@ -88,7 +88,7 @@ func (r *Routes) Filters(
 func (r *Routes) Satisfies(routed Routed) bool {
 	if u, err := url.Parse(routed.Route); err == nil {
 		s := u.Scheme
-		if len(s) == 0 {
+		if s == "" {
 			s = routed.Route
 		}
 		for _, scheme := range r.schemes {
@@ -170,7 +170,7 @@ func (b *batchRouter) RouteBatch(
 func (b *batchRouter) CompleteBatch(
 	composer miruken.Handler,
 ) (any, *promise.Promise[any], error) {
-	var complete []*promise.Promise[any]
+	complete := make([]*promise.Promise[any], 0, len(b.groups))
 	for route, group := range b.groups {
 		uri := route
 		messages := slices.Map[pending, any](group, func(p pending) any {
@@ -239,7 +239,7 @@ func RouteTo(message any, route string) Routed {
 	if internal.IsNil(message) {
 		panic("message cannot be nil")
 	}
-	if len(route) == 0 {
+	if route == "" {
 		panic("route cannot be nil or empty")
 	}
 	return Routed{message, route}

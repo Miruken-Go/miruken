@@ -126,7 +126,7 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 					if typ.Kind() == reflect.Slice {
 						arr = reflect.MakeSlice(typ, len(raw), len(raw))
 					} else {
-						arr = reflect.ValueOf(make([]any, len(raw), len(raw)))
+						arr = reflect.ValueOf(make([]any, len(raw)))
 					}
 					for i, elem := range raw {
 						r := bytes.NewReader(*elem)

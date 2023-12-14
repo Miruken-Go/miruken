@@ -180,7 +180,8 @@ func (f constraintFilter) Next(
 		callback := ctx.Callback
 		constraints := cp.Constraints()
 		required := callback.Constraints()
-		if len(required) == 0 {
+		switch {
+		case len(required) == 0:
 			// if no required input constraints
 			//   implied receiver constraint must be satisfied or
 			//   receiver constraint must not be required
@@ -193,10 +194,10 @@ func (f constraintFilter) Next(
 					return next.Abort()
 				}
 			}
-		} else if len(constraints) == 0 {
+		case  len(constraints) == 0:
 			// reject if required input constraints, but no receiver constraints.
 			return next.Abort()
-		} else {
+		default:
 			var matched map[Constraint]struct{}
 		Loop:
 			for _, rc := range required {

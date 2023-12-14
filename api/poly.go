@@ -65,12 +65,10 @@ var (
 func (m *GoPolymorphism) TypeInfo(
 	_ *struct {
 		maps.Format `to:"type:info"`
-	}, maps *maps.It,
+	}, it *maps.It,
 ) (TypeFieldInfo, error) {
-	val := reflect.TypeOf(maps.Source()).String()
-	if strings.HasPrefix(val, "*") {
-		val = val[1:]
-	}
+	val := reflect.TypeOf(it.Source()).String()
+	val = strings.TrimPrefix(val, "*")
 	if strings.HasPrefix(val, "[]*") {
 		val = "[]" + val[3:]
 	}

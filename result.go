@@ -74,9 +74,8 @@ func (r HandleResult) ThenIf(
 
 	if r.stop || !condition {
 		return r
-	} else {
-		return r.Or(block())
 	}
+	return r.Or(block())
 }
 
 func (r HandleResult) Otherwise(
@@ -195,7 +194,7 @@ func (r HandleResult) AndBlock(other HandleResult) HandleResult {
 	}
 }
 
-func combineErrors(r1 HandleResult, r2 HandleResult) error {
+func combineErrors(r1, r2 HandleResult) error {
 	if e1, e2 := r1.err, r2.err; e1 != nil && e2 != nil {
 		return multierror.Append(e1, e2)
 	} else if e1 != nil {

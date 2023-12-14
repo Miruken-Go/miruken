@@ -175,10 +175,10 @@ func addPart(
 		if header.Get("Content-Disposition") == "" {
 			if filename := part.Filename(); filename != "" {
 				header.Set("Content-Disposition",
-					fmt.Sprintf(`form-data; name="%s"; filename="%s"`, key, filename))
+					fmt.Sprintf("form-data; name=%q; filename=%q", key, filename))
 			} else {
 				header.Set("Content-Disposition",
-					fmt.Sprintf(`form-data; name="%s"`, key))
+					fmt.Sprintf("form-data; name=%q", key))
 			}
 		}
 	} else {
@@ -208,7 +208,7 @@ func addPart(
 
 func extractMultipartParams(
 	src miruken.ConstraintSource,
-) (typ string, boundary string, start string) {
+) (typ string, boundary, start string) {
 	if format, ok := constraints.First[*maps.Format](src); ok {
 		if b, ok := format.Params()["boundary"]; ok {
 			boundary = b

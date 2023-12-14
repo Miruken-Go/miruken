@@ -92,10 +92,10 @@ func (s TypeSpec) describe(
 	info = &HandlerInfo{spec: s}
 	isFilter := typ.Implements(filterType)
 
-	var ctorSpec *bindingSpec
+	var ctorSpec     *bindingSpec
 	var ctorPolicies []policyKey
-	var ctor *reflect.Method
-	var inits []reflect.Method
+	var ctor         *reflect.Method
+	var inits        []*reflect.Method
 
 	// Add ctor implicitly
 	if ctorMethod, ok := typ.MethodByName("Constructor"); ok {
@@ -139,9 +139,9 @@ func (s TypeSpec) describe(
 			if spec == nil { // not a handler method
 				if strings.HasPrefix(method.Name, "Init") ||
 					methodType.NumIn() >= 2 && methodType.In(1) == initSpecType {
-					inits = append(inits, method)
+					inits = append(inits, &method)
 				} else if !isFilter {
-					if fb, err := parseFilterMethod(method); err != nil {
+					if fb, err := parseFilterMethod(&method); err != nil {
 						invalid = multierror.Append(invalid, err)
 					} else if fb != nil {
 						info.compound = append(info.compound, *fb)
@@ -152,7 +152,7 @@ func (s TypeSpec) describe(
 			for _, pk := range spec.policies {
 				policy := pk.policy
 				if binder, ok := policy.(MethodBinder); ok {
-					if binding, err := binder.NewMethodBinding(method, spec, pk.key); binding != nil {
+					if binding, err := binder.NewMethodBinding(&method, spec, pk.key); binding != nil {
 						for _, observer := range observers {
 							observer.BindingCreated(policy, info, binding)
 						}

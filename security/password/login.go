@@ -73,7 +73,7 @@ func (l *LoginModule) Init(opts map[string]any) error {
 					if pwd, ok := p.(string); !ok {
 						return ErrInvalidPassword
 					} else {
-						pwd := strings.TrimSpace(pwd)
+						pwd = strings.TrimSpace(pwd)
 						if pwd == "" {
 							return ErrInvalidPassword
 						}

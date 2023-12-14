@@ -30,7 +30,7 @@ func Map[IN, OUT any, F MapFunc[IN, OUT]](in []IN, fun F) []OUT {
 		return out
 	}
 	f := func(i int, item IN) OUT {
-		switch typ := (any)(fun).(type) {
+		switch typ := any(fun).(type) {
 		case func(int, IN) OUT:
 			return typ(i, item)
 		case func(IN) OUT:
@@ -61,7 +61,7 @@ func FlatMap[IN, OUT any, F FlatMapFunc[IN, OUT]](in []IN, fun F) []OUT {
 		return out
 	}
 	f := func(i int, item IN) []OUT {
-		switch typ := (any)(fun).(type) {
+		switch typ := any(fun).(type) {
 		case func(int, IN) []OUT:
 			return typ(i, item)
 		case func(IN) []OUT:
@@ -71,9 +71,7 @@ func FlatMap[IN, OUT any, F FlatMapFunc[IN, OUT]](in []IN, fun F) []OUT {
 	}
 	var out []OUT
 	for i, item := range in {
-		for _, s := range f(i, item) {
-			out = append(out, s)
-		}
+		out = append(out, f(i, item)...)
 	}
 	return out
 }
@@ -91,7 +89,7 @@ func Filter[IN any, F FilterFunc[IN]](in []IN, fun F) []IN {
 		return in
 	}
 	f := func(i int, item IN) bool {
-		switch typ := (any)(fun).(type) {
+		switch typ := any(fun).(type) {
 		case func(int, IN) bool:
 			return typ(i, item)
 		case func(IN) bool:
@@ -131,10 +129,8 @@ func Reduce[IN, OUT any](
 	fun AccumulatorFunc[IN, OUT],
 ) OUT {
 	out := initializer
-	if in != nil {
-		for i, item := range in {
-			out = fun(out, i, item)
-		}
+	for i, item := range in {
+		out = fun(out, i, item)
 	}
 	return out
 }

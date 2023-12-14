@@ -95,7 +95,7 @@ func TargetSliceValue(target any) reflect.Value {
 
 // CopyIndirect copies the contents of src into the target
 // pointer or reflect.Value.
-func CopyIndirect(src any, target any) {
+func CopyIndirect(src, target any) {
 	var val reflect.Value
 	if v, ok := target.(reflect.Value); ok {
 		if v.Kind() != reflect.Ptr || val.IsNil() {
@@ -248,14 +248,13 @@ func NewWithTag(
 			return nil, err
 		}
 		return obj, nil
-	} else {
-		val := reflect.New(typ)
-		if err := tryInitObj(val.Interface(), tag); err != nil {
-			return nil, err
-		}
-		obj := val.Elem().Interface()
-		return obj, nil
 	}
+	val := reflect.New(typ)
+	if err := tryInitObj(val.Interface(), tag); err != nil {
+		return nil, err
+	}
+	obj := val.Elem().Interface()
+	return obj, nil
 }
 
 func tryInitObj(obj any, tag reflect.StructTag) error {

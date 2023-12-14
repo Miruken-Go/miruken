@@ -196,7 +196,7 @@ func (b *ProvidesBuilder) New() *Provides {
 // Resolve retrieves a value of type parameter T.
 // Applies any lifestyle if present.
 func Resolve[T any](
-	handler Handler,
+	handler     Handler,
 	constraints ...any,
 ) (T, *promise.Promise[T], bool, error) {
 	return ResolveKey[T](handler, internal.TypeOf[T](), constraints...)
@@ -205,8 +205,8 @@ func Resolve[T any](
 // ResolveKey retrieves a value of type parameter T with the specified key.
 // Applies any lifestyle if present.
 func ResolveKey[T any](
-	handler Handler,
-	key any,
+	handler     Handler,
+	key         any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], ok bool, err error) {
 	if internal.IsNil(handler) {
@@ -259,32 +259,32 @@ func ResolveAll[T any](
 // providesPolicy
 
 func (p *providesPolicy) NewCtorBinding(
-	typ reflect.Type,
-	ctor *reflect.Method,
-	inits []reflect.Method,
-	spec *bindingSpec,
-	key any,
+	typ   reflect.Type,
+	ctor  *reflect.Method,
+	inits []*reflect.Method,
+	spec  *bindingSpec,
+	key   any,
 ) (Binding, error) {
 	binding, err := p.CovariantPolicy.NewCtorBinding(typ, ctor, inits, spec, key)
 	if err == nil {
 		if spec == nil {
 			binding.AddFilters(&Single{})
 		}
-		if err = initLifestyles(binding); err != nil {
+		if err := initLifestyles(binding); err != nil {
 			return nil, err
 		}
 	}
-	return binding, err
+	return binding, nil
 }
 
 func (p *providesPolicy) NewMethodBinding(
-	method reflect.Method,
-	spec *bindingSpec,
-	key any,
+	method *reflect.Method,
+	spec   *bindingSpec,
+	key    any,
 ) (Binding, error) {
 	binding, err := p.CovariantPolicy.NewMethodBinding(method, spec, key)
 	if err == nil {
-		if err = initLifestyles(binding); err != nil {
+		if err := initLifestyles(binding); err != nil {
 			return nil, err
 		}
 	}
@@ -298,7 +298,7 @@ func (p *providesPolicy) NewFuncBinding(
 ) (Binding, error) {
 	binding, err := p.CovariantPolicy.NewFuncBinding(fun, spec, key)
 	if err == nil {
-		if err = initLifestyles(binding); err != nil {
+		if err := initLifestyles(binding); err != nil {
 			return nil, err
 		}
 	}

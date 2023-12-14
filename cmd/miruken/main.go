@@ -156,7 +156,7 @@ func parseDir(
 			newFileData := buf.Bytes()
 			oldFileData, _ := os.ReadFile(filename)
 			if !bytes.Equal(newFileData, oldFileData) {
-				err = os.WriteFile(filename, newFileData, 0660)
+				err = os.WriteFile(filename, newFileData, 0o660)
 				if err != nil {
 					panic(err)
 				}

@@ -88,19 +88,19 @@ type dependencySpec struct {
 
 func (s *dependencySpec) setStrict(
 	index int,
-	field reflect.StructField,
+	field *reflect.StructField,
 	strict bool,
 ) error {
-	s.flags = s.flags | bindingStrict
+	s.flags |= bindingStrict
 	return nil
 }
 
 func (s *dependencySpec) setOptional(
 	index int,
-	field reflect.StructField,
+	field *reflect.StructField,
 	strict bool,
 ) error {
-	s.flags = s.flags | bindingOptional
+	s.flags |= bindingOptional
 	return nil
 }
 
@@ -236,27 +236,29 @@ func (r *defaultDependencyResolver) Resolve(
 	if result, pr, err2 := p.Resolve(ctx, many); err2 != nil {
 		err = fmt.Errorf("arg: unable to resolve dependency %v: %w", typ, err2)
 	} else if pr == nil {
-		if many {
+		switch {
+		case many:
 			v = reflect.New(typ).Elem()
 			internal.CopySliceIndirect(result.([]any), v)
-		} else if result != nil {
+		case result != nil:
 			v = reflect.ValueOf(result)
-		} else if dep.Optional() {
+		case dep.Optional():
 			v = reflect.Zero(typ)
-		} else {
+		default:
 			err = fmt.Errorf("arg: unable to resolve dependency %v", typ)
 		}
 	} else {
 		pv = promise.Then(pr, func(res any) reflect.Value {
 			var val reflect.Value
-			if many {
+			switch {
+			case many:
 				val = reflect.New(typ).Elem()
 				internal.CopySliceIndirect(res.([]any), val)
-			} else if res != nil {
+			case res != nil:
 				val = reflect.ValueOf(res)
-			} else if dep.Optional() {
+			case dep.Optional():
 				val = reflect.Zero(typ)
-			} else {
+			default:
 				panic(fmt.Errorf("arg: unable to resolve dependency %v", typ))
 			}
 			return val
@@ -324,7 +326,7 @@ func buildDependencies(
 					if spec := arg.spec; spec == nil {
 						arg.spec = &dependencySpec{flags: bindingAsync}
 					} else {
-						spec.flags = spec.flags | bindingAsync
+						spec.flags |= bindingAsync
 					}
 					arg.spec.logicalType = lt
 				}
@@ -358,17 +360,16 @@ func buildDependency(
 	if argType.Kind() == reflect.Struct &&
 		argType.Name() == "" { // anonymous
 		spec := &dependencySpec{}
-		if err = parseSpec(argType, spec, dependencyParsers); err != nil {
-			return arg, err
+		if err = parseSpec(argType, spec, dependencyParsers); err == nil {
+			arg.spec = spec
 		}
-		arg.spec = spec
 	}
 	return arg, err
 }
 
 func parseResolver(
-	index int,
-	field reflect.StructField,
+	index   int,
+	field   *reflect.StructField,
 	binding any,
 ) (bound bool, err error) {
 	if dr := internal.CoerceToPtr(field.Type, depResolverType); dr != nil {

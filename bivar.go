@@ -32,7 +32,7 @@ var (
 
 func (p *BivariantPolicy) VariantKey(
 	key any,
-) (variant bool, unknown bool) {
+) (bool, bool) {
 	_, ok := key.(DiKey)
 	return ok, false
 }
@@ -40,7 +40,7 @@ func (p *BivariantPolicy) VariantKey(
 func (p *BivariantPolicy) MatchesKey(
 	key, otherKey any,
 	invariant bool,
-) (matches bool, exact bool) {
+) (matches, exact bool) {
 	if bk, valid := key.(DiKey); valid {
 		if ok, valid := otherKey.(DiKey); valid {
 			if bk == ok {
@@ -84,11 +84,11 @@ func (p *BivariantPolicy) AcceptResults(
 }
 
 func (p *BivariantPolicy) NewMethodBinding(
-	method reflect.Method,
-	spec *bindingSpec,
-	key any,
+	method *reflect.Method,
+	spec   *bindingSpec,
+	key    any,
 ) (Binding, error) {
-	if args, key, err := validateBivariantFunc(method.Type, spec, key, 1); err != nil {
+	if args, k, err := validateBivariantFunc(method.Type, spec, key, 1); err != nil {
 		return nil, &MethodBindingError{method, err}
 	} else {
 		return &methodBinding{
@@ -96,7 +96,7 @@ func (p *BivariantPolicy) NewMethodBinding(
 			BindingBase{
 				FilteredScope{spec.filters},
 				spec.flags, spec.metadata,
-			}, key, method, spec.lt,
+			}, k, method, spec.lt,
 		}, nil
 	}
 }
@@ -106,7 +106,7 @@ func (p *BivariantPolicy) NewFuncBinding(
 	spec *bindingSpec,
 	key any,
 ) (Binding, error) {
-	if args, key, err := validateBivariantFunc(fun.Type(), spec, key, 0); err != nil {
+	if args, k, err := validateBivariantFunc(fun.Type(), spec, key, 0); err != nil {
 		return nil, &FuncBindingError{fun, err}
 	} else {
 		return &funcBinding{
@@ -114,7 +114,7 @@ func (p *BivariantPolicy) NewFuncBinding(
 			BindingBase{
 				FilteredScope{spec.filters},
 				spec.flags, spec.metadata,
-			}, key, spec.lt,
+			}, k, spec.lt,
 		}, nil
 	}
 }
@@ -155,26 +155,25 @@ func validateBivariantFunc(
 
 	for i := 0; i < numOut; i++ {
 		oo := funType.Out(i)
-		if oo.AssignableTo(internal.ErrorType) {
+		switch {
+		case oo.AssignableTo(internal.ErrorType):
 			if i != numOut-1 {
 				err = multierror.Append(err, fmt.Errorf(
 					"bivariant: error found at index %v must be last return", i))
 			}
-		} else if oo.AssignableTo(handleResType) {
+		case oo.AssignableTo(handleResType):
 			if i != numOut-1 {
 				err = multierror.Append(err, fmt.Errorf(
 					"bivariant: HandleResult found at index %v must be last return", i))
 			}
-		} else if oo.AssignableTo(sideEffectType) {
-			// ignore side-effects
-		} else if resIdx >= 0 {
+		case resIdx >= 0:
 			err = multierror.Append(err, fmt.Errorf(
 				"bivariant: effective return at index %v conflicts with index %v", i, resIdx))
-		} else {
+		default:
 			out = oo
 			resIdx = i
 			if lt, ok := promise.Inspect(out); ok {
-				spec.flags = spec.flags | bindingAsync
+				spec.flags |= bindingAsync
 				out = lt
 			}
 			spec.setLogicalOutputType(out)

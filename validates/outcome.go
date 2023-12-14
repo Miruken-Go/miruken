@@ -151,7 +151,7 @@ func (o *Outcome) parsePath(
 	parent = o
 	for parent != nil {
 		if index, rest := o.parseIndexer(path); len(index) > 0 {
-			if len(rest) == 0 {
+			if rest == "" {
 				return parent, index
 			}
 			parent, path = parent.childPath(index, require), rest
@@ -165,7 +165,7 @@ func (o *Outcome) parsePath(
 				} else {
 					rest, path = path[open:], path[0:open]
 				}
-				if len(rest) == 0 {
+				if rest == "" {
 					return parent, path
 				}
 				parent, path = parent.childPath(path, require), rest
@@ -179,13 +179,13 @@ func (o *Outcome) parsePath(
 
 func (o *Outcome) parseIndexer(
 	path string,
-) (index string, rest string) {
+) (index, rest string) {
 	if start := strings.IndexRune(path, '['); start != 0 {
 		return "", path
 	} else if end := strings.IndexRune(path, ']'); end <= start {
 		panic("invalid property indexer")
 	} else {
-		if index := path[1:end]; len(index) == 0 {
+		if index := path[1:end]; index == "" {
 			panic("missing property index")
 		} else {
 			return index, strings.Trim(path[end+1:], ".")

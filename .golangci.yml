@@ -19,29 +19,6 @@ linters-settings:
   nolintlint:
     require-explanation: true
     require-specific: true
-  depguard:
-    rules:
-      main:
-        files:
-          - "$all"
-        list-mode: strict
-        allow:
-          - $gostd
-          - github.com/jonmol/http-skeleton
-          - "github.com/go-playground/validator/v10"
-          - github.com/gofrs/uuid/v5
-          - github.com/gorilla/mux
-          - github.com/spf13/viper
-          - github.com/prometheus/client_golang
-          - github.com/spf13/cobra
-          - github.com/jub0bs/fcors
-          - github.com/gorilla/schema
-          - github.com/stretchr/testify
-          - github.com/redis/go-redis/v9
-          - github.com/dgraph-io/badger/v4
-        deny:
-          - pkg: "github.com/sagikazarmark/slog-shim"
-            desc: Use log/slog
   decorder:
     dec-order:
       - type

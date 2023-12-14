@@ -19,10 +19,10 @@ type Promise[T any] struct {
 }
 
 func New[T any](executor func(resolve func(T), reject func(error))) *Promise[T] {
-	return WithContext[T](executor, nil)
+	return WithContext[T](nil, executor)
 }
 
-func WithContext[T any](executor func(resolve func(T), reject func(error)), ctx context.Context) *Promise[T] {
+func WithContext[T any](ctx context.Context, executor func(resolve func(T), reject func(error))) *Promise[T] {
 	if executor == nil {
 		panic("missing executor")
 	}
@@ -41,25 +41,25 @@ func WithContext[T any](executor func(resolve func(T), reject func(error)), ctx 
 }
 
 func Then[A, B any](p *Promise[A], resolve func(A) B) *Promise[B] {
-	return WithContext(func(internalResolve func(B), reject func(error)) {
+	return WithContext(p.ctx, func(internalResolve func(B), reject func(error)) {
 		result, err := p.Await()
 		if err != nil {
 			reject(err)
 		} else {
 			internalResolve(resolve(result))
 		}
-	}, p.ctx)
+	})
 }
 
 func Catch[T any](p *Promise[T], reject func(err error) error) *Promise[T] {
-	return WithContext(func(resolve func(T), internalReject func(error)) {
+	return WithContext(p.ctx, func(resolve func(T), internalReject func(error)) {
 		result, err := p.Await()
 		if err != nil {
 			internalReject(reject(err))
 		} else {
 			resolve(result)
 		}
-	}, p.ctx)
+	})
 }
 
 func (p *Promise[T]) Await() (T, error) {
@@ -203,7 +203,6 @@ func (e CanceledError) Error() string {
 		return "promise: canceled: " + cause.Error()
 	}
 	return "promise: canceled"
-
 }
 
 func (e CanceledError) Unwrap() error {
