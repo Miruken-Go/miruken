@@ -17,11 +17,11 @@ type MyInstaller struct {
 }
 
 func (i *MyInstaller) Install(
-	setup *setup.Builder,
+	b *setup.Builder,
 ) error {
-	if setup.Tag(reflect.TypeOf(i)) {
+	if b.Tag(reflect.TypeOf(i)) {
 		i.count++
-		setup.Specs(&MultiHandler{})
+		b.Specs(&MultiHandler{})
 	}
 	return nil
 }

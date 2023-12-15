@@ -171,7 +171,7 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 	var typeId string
 	if err := json.Unmarshal(*typeIdRaw, &typeId); err != nil {
 		return err
-	} else if len(typeId) == 0 {
+	} else if typeId == "" {
 		return fmt.Errorf("empty type id for field %q", field)
 	} else {
 		if v, _, err := creates.Key[any](c.composer, typeId); err != nil {

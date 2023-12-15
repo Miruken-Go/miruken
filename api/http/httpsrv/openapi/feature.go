@@ -440,13 +440,13 @@ func (i *Installer) generateComponentSchema(
 			elemTyp = elemTyp.Elem()
 		}
 	}
-	if len(name) == 0 {
+	if name == "" {
 		if list {
 			if name = elemTyp.Name(); len(name) > 0 {
-				name = name + "Array"
+				name += "Array"
 			}
 		}
-		if len(name) == 0 {
+		if name == "" {
 			return nil, "", false
 		}
 	}
@@ -550,11 +550,11 @@ func Surrogates(surrogates map[reflect.Type]any) func(*Installer) {
 
 // Feature configures http server support
 func Feature(
-	base openapi3.T,
+	base *openapi3.T,
 	config ...func(*Installer),
 ) *Installer {
 	installer := &Installer{
-		base: base,
+		base: *base,
 		extraComponents: []any{
 			json2.Outcome{
 				{

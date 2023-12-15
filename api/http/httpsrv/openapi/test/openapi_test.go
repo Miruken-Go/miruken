@@ -110,7 +110,7 @@ func (suite *OpenApiTestSuite) Setup(specs ...any) *context.Context {
 }
 
 func (suite *OpenApiTestSuite) SetupTest() {
-	suite.openapi = openapi.Feature(openapi3.T{
+	suite.openapi = openapi.Feature(&openapi3.T{
 		Info: &openapi3.Info{
 			Title:       "Team Api",
 			Description: "REST Api used for managing Teams",

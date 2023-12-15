@@ -462,7 +462,7 @@ func (suite *StdJsonTestSuite) TestJson() {
 					Age  int
 				}
 				b := bytes.NewBuffer(make([]byte, 0))
-				b.Write([]byte("{\"Name\":\"Ralph Hall\",\"Age\":84}"))
+				b.WriteString("{\"Name\":\"Ralph Hall\",\"Age\":84}")
 				data, _, _, err := maps.Out[Data](handler, b, api.FromJson)
 				suite.Nil(err)
 				suite.Equal(Data{Name: "Ralph Hall", Age: 84}, data)

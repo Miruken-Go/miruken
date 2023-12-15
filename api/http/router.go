@@ -196,10 +196,10 @@ func (r *Router) resourceUri(
 ) (string, error) {
 	var path string
 	if ctx.Greedy {
-		if path = options.PublishPath; len(path) == 0 {
+		if path = options.PublishPath; path == "" {
 			path = "publish"
 		}
-	} else if path = options.ProcessPath; len(path) == 0 {
+	} else if path = options.ProcessPath; path == "" {
 		path = "process"
 	}
 	return url.JoinPath(routed.Route, path)

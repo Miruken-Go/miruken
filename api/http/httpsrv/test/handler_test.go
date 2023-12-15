@@ -133,7 +133,7 @@ func (suite *HandlerTestSuite) TestHandler() {
 			func(w http.ResponseWriter, r *http.Request) {
 				_, _ = fmt.Fprint(w, "Hello World")
 			})
-		req := httptest.NewRequest("GET", "http://hello.com", nil)
+		req := httptest.NewRequest("GET", "http://hello.com", http.NoBody)
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 		resp := w.Result()
@@ -147,7 +147,7 @@ func (suite *HandlerTestSuite) TestHandler() {
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				_, _ = fmt.Fprint(w, "Hello Goodbye")
 			}))
-		req := httptest.NewRequest("GET", "http://hello.com", nil)
+		req := httptest.NewRequest("GET", "http://hello.com", http.NoBody)
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 		resp := w.Result()
@@ -162,7 +162,7 @@ func (suite *HandlerTestSuite) TestHandler() {
 				suite.NotNil(c)
 				_, _ = fmt.Fprint(w, "Hello World")
 			})
-		req := httptest.NewRequest("GET", "http://hello.com", nil)
+		req := httptest.NewRequest("GET", "http://hello.com", http.NoBody)
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 		resp := w.Result()

@@ -110,7 +110,7 @@ func (p *ContravariantPolicy) NewMethodBinding(
 			BindingBase{
 				FilteredScope{spec.filters},
 				spec.flags, spec.metadata,
-			}, k, method, spec.lt,
+			}, k, *method, spec.lt,
 		}, nil
 	}
 }

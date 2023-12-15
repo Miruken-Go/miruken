@@ -69,7 +69,7 @@ func (t *TeamApiHandler) MustHaveTeamName(
 ) {
 	outcome := v.Outcome()
 
-	if len(create.Name) == 0 {
+	if create.Name == "" {
 		outcome.AddError("Name", errors.New(`"Name" is required`))
 	}
 }

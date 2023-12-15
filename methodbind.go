@@ -23,7 +23,7 @@ type (
 		funcCall
 		BindingBase
 		key    any
-		method *reflect.Method
+		method reflect.Method
 		lt     reflect.Type
 	}
 
@@ -47,7 +47,7 @@ func (b *methodBinding) LogicalOutputType() reflect.Type {
 }
 
 func (b *methodBinding) Method() *reflect.Method {
-	return b.method
+	return &b.method
 }
 
 func (b *methodBinding) Invoke(

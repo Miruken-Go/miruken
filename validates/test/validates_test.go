@@ -78,11 +78,11 @@ func (v *PlayerValidator) MustHaveNameAndDOB(
 ) {
 	outcome := it.Outcome()
 
-	if len(player.FirstName) == 0 {
+	if player.FirstName == "" {
 		outcome.AddError("FirstName", errors.New(`"First Name" is required`))
 	}
 
-	if len(player.FirstName) == 0 {
+	if player.FirstName == "" {
 		outcome.AddError("LastName", errors.New(`"Last Name" is required`))
 	}
 
@@ -111,7 +111,7 @@ type TeamValidator struct{}
 func (v *TeamValidator) MustHaveName(
 	it *validates.It, team *Team,
 ) {
-	if name := team.Name; len(name) == 0 {
+	if name := team.Name; name == "" {
 		it.Outcome().AddError("Name", errors.New(`"Name" is required`))
 	}
 }
@@ -126,7 +126,7 @@ func (v *TeamValidator) MustHaveLicensedCoach(
 
 	if coach := team.Coach; reflect.ValueOf(coach).IsZero() {
 		outcome.AddError("Coach", errors.New(`"Coach" is required`))
-	} else if license := coach.License; len(license) == 0 {
+	} else if license := coach.License; license == "" {
 		outcome.AddError("Coach.License", errors.New("licensed Coach is required"))
 	}
 }
@@ -296,7 +296,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 		suite.Run("Default", func() {
 			handler, _ := suite.Setup()
 			player := Player{DOB: time.Date(2007, time.June,
-				14, 13, 26, 00, 0, time.Local)}
+				14, 13, 26, 0, 0, time.Local)}
 			outcome, _, err := validates.Constraints(handler, &player)
 			suite.Nil(err)
 			suite.NotNil(outcome)
@@ -312,7 +312,7 @@ func (suite *ValidatesTestSuite) TestValidation() {
 				FirstName: "Matthew",
 				LastName:  "Dudley",
 				DOB: time.Date(2007, time.June, 14,
-					13, 26, 00, 0, time.Local),
+					13, 26, 0, 0, time.Local),
 			}
 			outcome, _, err := validates.Constraints(handler, &player, validates.Groups("Recreational"))
 			suite.Nil(err)

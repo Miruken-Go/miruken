@@ -145,7 +145,7 @@ func (p *CovariantPolicy) NewMethodBinding(
 			BindingBase{
 				FilteredScope{spec.filters},
 				spec.flags, spec.metadata,
-			}, k, method, spec.lt,
+			}, k, *method, spec.lt,
 		}, nil
 	}
 }

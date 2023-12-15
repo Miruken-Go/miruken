@@ -12,7 +12,7 @@ type Config struct {
 	OpenIdConnectUrl string
 }
 
-func (c Config) ScopeNames() []string {
+func (c *Config) ScopeNames() []string {
 	ret := make([]string, len(c.Scopes))
 	for i, s := range c.Scopes {
 		ret[i] = s.Name
@@ -20,7 +20,7 @@ func (c Config) ScopeNames() []string {
 	return ret
 }
 
-func (c Config) ScopeMap() map[string]string {
+func (c *Config) ScopeMap() map[string]string {
 	ret := map[string]string{}
 	for _, s := range c.Scopes {
 		ret[s.Name] = s.Description

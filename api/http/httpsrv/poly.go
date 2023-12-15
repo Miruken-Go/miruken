@@ -103,7 +103,7 @@ func (a *PolyHandler) acceptRequest(
 		return
 	}
 	contentType := r.Header.Get("Content-Type")
-	if len(contentType) == 0 {
+	if contentType == "" {
 		http.Error(w, "400 missing 'Content-Type' header", http.StatusBadRequest)
 		return
 	}

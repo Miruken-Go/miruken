@@ -51,7 +51,7 @@ func (m *Mapper) ToJson(
 		args.FromOptions
 	}, apiOptions api.Options,
 	ctx miruken.HandleContext,
-) (json any, err error) {
+) (js any, err error) {
 	switch t := it.Target().(type) {
 	case *[]byte:
 		return marshal(it, t, &options, &apiOptions, ctx.Composer)
@@ -60,7 +60,7 @@ func (m *Mapper) ToJson(
 			*t = new(bytes.Buffer)
 		}
 		if err = encode(it, *t, &options, &apiOptions, ctx.Composer); err == nil {
-			json = *t
+			js = *t
 		}
 	}
 	return
