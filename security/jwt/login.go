@@ -203,13 +203,13 @@ func (l *LoginModule) addKnownPrincipals(
 		switch strings.ToLower(key) {
 		case "email":
 			subject.AddPrincipals(principal.Email(val.(string)))
-		case "roles":
+		case "role", "roles":
 			roles := principal.Parse[principal.Role](val)
 			subject.AddPrincipals(roles...)
-		case "groups":
+		case "group", "groups":
 			groups := principal.Parse[principal.Role](val)
 			subject.AddPrincipals(groups...)
-		case "entitlements":
+		case "entitlement", "entitlements":
 			entitlements := principal.Parse[principal.Entitlement](val)
 			subject.AddPrincipals(entitlements...)
 		}

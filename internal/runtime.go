@@ -54,6 +54,18 @@ func IsAny(typ reflect.Type) bool {
 	return AnyType.AssignableTo(typ)
 }
 
+// DefaultValue returns a default value if the supplied
+// value is the types Zero value.
+func DefaultValue[T comparable](
+	value, defaultValue T,
+) T {
+	var zero T
+	if value == zero {
+		return defaultValue
+	}
+	return value
+}
+
 // New creates a new T and optionally initializes it.
 func New[T any]() *T {
 	var (

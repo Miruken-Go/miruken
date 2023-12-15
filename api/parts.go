@@ -212,7 +212,7 @@ func (b *WritePartsBuilder) Build() PartContainer {
 	} else if !strings.HasPrefix(ctr.mediaType, "multipart/") {
 		ctr.mediaType = "multipart/" + ctr.mediaType
 	}
-	if ctr.boundary == ""{
+	if ctr.boundary == "" {
 		ctr.mediaType = ctr.mediaType + "; boundary=" + randomBoundary()
 	}
 	return ctr

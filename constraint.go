@@ -194,7 +194,7 @@ func (f constraintFilter) Next(
 					return next.Abort()
 				}
 			}
-		case  len(constraints) == 0:
+		case len(constraints) == 0:
 			// reject if required input constraints, but no receiver constraints.
 			return next.Abort()
 		default:
