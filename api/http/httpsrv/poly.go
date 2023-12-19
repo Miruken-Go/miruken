@@ -126,9 +126,9 @@ func (a *PolyHandler) acceptRequest(
 }
 
 func (a *PolyHandler) encodeResult(
-	result any,
-	r *http.Request,
-	w http.ResponseWriter,
+	result  any,
+	r       *http.Request,
+	w       http.ResponseWriter,
 	handler miruken.Handler,
 ) {
 	header := w.Header()
@@ -190,10 +190,10 @@ func (a *PolyHandler) encodeResult(
 }
 
 func (a *PolyHandler) encodeError(
-	err error,
+	err                  error,
 	notHandledStatusCode int,
-	w http.ResponseWriter,
-	handler miruken.Handler,
+	w                    http.ResponseWriter,
+	handler              miruken.Handler,
 ) {
 	if notHandledStatusCode > 0 {
 		var nh *miruken.NotHandledError

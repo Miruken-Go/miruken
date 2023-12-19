@@ -36,8 +36,8 @@ func (a *It) Policy() miruken.Policy {
 }
 
 func (a *It) Dispatch(
-	handler any,
-	greedy bool,
+	handler  any,
+	greedy   bool,
 	composer miruken.Handler,
 ) miruken.HandleResult {
 	return miruken.DispatchPolicy(handler, a, greedy, composer)
@@ -83,8 +83,8 @@ func (b *Builder) New() *It {
 
 // Access performs authorization on `action`.
 func Access(
-	handler miruken.Handler,
-	action any,
+	handler     miruken.Handler,
+	action      any,
 	constraints ...any,
 ) (bool, *promise.Promise[bool], error) {
 	if internal.IsNil(handler) {

@@ -11,7 +11,7 @@ type (
 	Handler interface {
 		Handle(
 			callback any,
-			greedy bool,
+			greedy   bool,
 			composer Handler,
 		) HandleResult
 	}
@@ -51,7 +51,7 @@ type (
 
 func (c HandleContext) Handle(
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	return c.Composer.Handle(callback, greedy, composer)
@@ -61,7 +61,7 @@ func (c HandleContext) Handle(
 
 func (h handlerAdapter) Handle(
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	return DispatchCallback(h.handler, callback, greedy, composer)
@@ -102,9 +102,9 @@ func (e *CanceledError) Unwrap() error {
 }
 
 func DispatchCallback(
-	handler any,
+	handler  any,
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	if internal.IsNil(handler) {

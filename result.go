@@ -66,7 +66,7 @@ func (r HandleResult) Then(
 
 func (r HandleResult) ThenIf(
 	condition bool,
-	block HandleResultBlock,
+	block     HandleResultBlock,
 ) HandleResult {
 	if block == nil {
 		panic("block cannot be nil")
@@ -94,7 +94,7 @@ func (r HandleResult) Otherwise(
 
 func (r HandleResult) OtherwiseIf(
 	condition bool,
-	block HandleResultBlock,
+	block     HandleResultBlock,
 ) HandleResult {
 	if block == nil {
 		panic("block cannot be nil")

@@ -15,7 +15,7 @@ type (
 		NewFuncBinding(
 			fun reflect.Value,
 			spec *bindingSpec,
-			key any,
+			key  any,
 		) (Binding, error)
 	}
 
@@ -71,7 +71,7 @@ func (b *funcBinding) LogicalOutputType() reflect.Type {
 // funcCall
 
 func (f *funcCall) Invoke(
-	ctx HandleContext,
+	ctx      HandleContext,
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	ra, pa, err := f.resolveArgs(len(initArgs), ctx)
@@ -87,7 +87,7 @@ func (f *funcCall) Invoke(
 
 func (f *funcCall) resolveArgs(
 	fromIndex int,
-	ctx HandleContext,
+	ctx       HandleContext,
 ) ([]reflect.Value, *promise.Promise[[]reflect.Value], error) {
 	if len(f.args) == 0 {
 		return nil, nil, nil
@@ -136,8 +136,8 @@ func (f *funcCall) resolveArgs(
 // Combines the initial ands resolved args as the function input.
 // Returns the output results slice.
 func callFuncWithArgs(
-	fun reflect.Value,
-	ra []reflect.Value,
+	fun      reflect.Value,
+	ra       []reflect.Value,
 	initArgs []any,
 ) []any {
 	cnt := len(initArgs)
@@ -163,9 +163,9 @@ func callFuncWithArgs(
 // resolve and repeat steps above.
 // Returns the normalized output.
 func mergeOutput(
-	out []any,
+	out  []any,
 	pout *promise.Promise[[]any],
-	err error,
+	err  error,
 ) ([]any, *promise.Promise[[]any], error) {
 	if err != nil {
 		// if error, fail early
@@ -216,9 +216,9 @@ func mergeOutput(
 // results.  Should be used in Filter's that perform asynchronous
 // operations and want to normalize outputs.
 func mergeOutputAwait(
-	out []any,
+	out  []any,
 	pout *promise.Promise[[]any],
-	err error,
+	err  error,
 ) []any {
 	if err != nil {
 		// if error, fail early

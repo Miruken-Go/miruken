@@ -32,9 +32,9 @@ func (i *initializer) Order() int {
 }
 
 func (i *initializer) Next(
-	self Filter,
-	next Next,
-	ctx HandleContext,
+	self     Filter,
+	next     Next,
+	ctx      HandleContext,
 	provider FilterProvider,
 ) (out []any, pout *promise.Promise[[]any], err error) {
 	// Receiver is always created synchronously
@@ -51,7 +51,7 @@ func (i *initializer) Next(
 }
 
 func (i *initializer) construct(
-	ctx HandleContext,
+	ctx  HandleContext,
 	recv any,
 ) (*promise.Promise[[]any], error) {
 	ctx.Handler = recv

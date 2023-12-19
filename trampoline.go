@@ -76,8 +76,8 @@ func (t *Trampoline) CanDispatch(
 
 func (t *Trampoline) Dispatch(
 	callback any,
-	handler any,
-	greedy bool,
+	handler  any,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {

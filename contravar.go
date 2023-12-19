@@ -31,7 +31,7 @@ func (p *ContravariantPolicy) VariantKey(
 
 func (p *ContravariantPolicy) MatchesKey(
 	key, otherKey any,
-	invariant bool,
+	invariant     bool,
 ) (matches, exact bool) {
 	if key == otherKey {
 		return true, true
@@ -116,9 +116,9 @@ func (p *ContravariantPolicy) NewMethodBinding(
 }
 
 func (p *ContravariantPolicy) NewFuncBinding(
-	fun reflect.Value,
+	fun  reflect.Value,
 	spec *bindingSpec,
-	key any,
+	key  any,
 ) (Binding, error) {
 	if args, k, err := validateContravariantFunc(fun.Type(), spec, key, 0); err != nil {
 		return nil, &FuncBindingError{fun, err}
@@ -135,9 +135,9 @@ func (p *ContravariantPolicy) NewFuncBinding(
 
 func validateContravariantFunc(
 	funType reflect.Type,
-	spec *bindingSpec,
-	key any,
-	skip int,
+	spec    *bindingSpec,
+	key     any,
+	skip    int,
 ) (args []arg, ck any, err error) {
 	ck = key
 	numArgs := funType.NumIn()

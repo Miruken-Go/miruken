@@ -45,7 +45,7 @@ func (r *Required) AppliesTo(
 }
 
 func (r *Required) Filters(
-	binding miruken.Binding,
+	binding  miruken.Binding,
 	callback any,
 	composer miruken.Handler,
 ) ([]miruken.Filter, error) {
@@ -61,7 +61,7 @@ func (f filter) Order() int {
 func (f filter) Next(
 	self miruken.Filter,
 	next miruken.Next,
-	ctx miruken.HandleContext,
+	ctx  miruken.HandleContext,
 	provider miruken.FilterProvider,
 ) (out []any, pout *promise.Promise[[]any], err error) {
 	if cp, ok := provider.(*Required); ok {

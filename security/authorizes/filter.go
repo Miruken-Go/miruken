@@ -52,7 +52,7 @@ func (r *Required) AppliesTo(
 }
 
 func (r *Required) Filters(
-	binding miruken.Binding,
+	binding  miruken.Binding,
 	callback any,
 	composer miruken.Handler,
 ) ([]miruken.Filter, error) {
@@ -72,10 +72,10 @@ func (f filter) Order() int {
 }
 
 func (f filter) Authorize(
-	next miruken.Next,
-	ctx miruken.HandleContext,
+	next     miruken.Next,
+	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
-	subject security.Subject,
+	subject  security.Subject,
 ) (out []any, pout *promise.Promise[[]any], err error) {
 	if ap, ok := provider.(*Required); ok {
 		// System skips checks

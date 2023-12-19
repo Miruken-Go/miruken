@@ -20,7 +20,7 @@ type MultipartMapper struct{}
 func (m *MultipartMapper) Read(
 	_ *struct {
 		maps.Format `from:"/multipart//"`
-	}, reader io.Reader,
+	  }, reader io.Reader,
 	it *maps.It,
 	ctx miruken.HandleContext,
 ) (Message, error) {
@@ -111,7 +111,7 @@ func (m *MultipartMapper) Read(
 func (m *MultipartMapper) Write(
 	_ *struct {
 		maps.Format `to:"/multipart//"`
-	}, msg Message,
+	  }, msg Message,
 	it *maps.It,
 	ctx miruken.HandleContext,
 ) (io.Writer, error) {
@@ -124,7 +124,7 @@ func (m *MultipartMapper) Write(
 func (m *MultipartMapper) WriteParts(
 	_ *struct {
 		maps.Format `to:"/multipart//"`
-	}, pc PartContainer,
+	  }, pc PartContainer,
 	it *maps.It,
 	ctx miruken.HandleContext,
 ) (io.Writer, error) {
@@ -161,11 +161,11 @@ func (m *MultipartMapper) WriteParts(
 }
 
 func addPart(
-	key string,
-	typ string,
-	part Part,
+	key    string,
+	typ    string,
+	part   Part,
 	writer *multipart.Writer,
-	ctx miruken.HandleContext,
+	ctx    miruken.HandleContext,
 ) error {
 	contentType := part.MediaType()
 	header := NewHeader(part.Metadata())

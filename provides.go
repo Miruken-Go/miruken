@@ -89,8 +89,8 @@ func (p *Provides) inProgress(
 }
 
 func (p *Provides) Dispatch(
-	handler any,
-	greedy bool,
+	handler  any,
+	greedy   bool,
 	composer Handler,
 ) (result HandleResult) {
 	result = NotHandled
@@ -115,7 +115,7 @@ func (p *Provides) String() string {
 
 func (p *Provides) Resolve(
 	handler Handler,
-	many bool,
+	many    bool,
 ) (any, *promise.Promise[any], error) {
 	if result := handler.Handle(p, many, nil); result.IsError() {
 		return nil, nil, result.Error()
@@ -233,7 +233,7 @@ func ResolveKey[T any](
 // ResolveAll retrieves all values of type parameter T.
 // Applies any lifestyle if present.
 func ResolveAll[T any](
-	handler Handler,
+	handler     Handler,
 	constraints ...any,
 ) (t []T, tp *promise.Promise[[]T], err error) {
 	if internal.IsNil(handler) {
@@ -292,9 +292,9 @@ func (p *providesPolicy) NewMethodBinding(
 }
 
 func (p *providesPolicy) NewFuncBinding(
-	fun reflect.Value,
+	fun  reflect.Value,
 	spec *bindingSpec,
-	key any,
+	key  any,
 ) (Binding, error) {
 	binding, err := p.CovariantPolicy.NewFuncBinding(fun, spec, key)
 	if err == nil {

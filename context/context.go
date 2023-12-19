@@ -115,7 +115,7 @@ func (c *Context) Store(values ...any) *Context {
 
 func (c *Context) Handle(
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer miruken.Handler,
 ) miruken.HandleResult {
 	if composer == nil {
@@ -131,9 +131,9 @@ func (c *Context) Handle(
 }
 
 func (c *Context) HandleAxis(
-	axis miruken.TraversingAxis,
+	axis     miruken.TraversingAxis,
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer miruken.Handler,
 ) miruken.HandleResult {
 	if composer == nil {
@@ -190,7 +190,7 @@ func (c *Context) Observe(observer Observer) miruken.Disposable {
 }
 
 func (c *Context) Traverse(
-	axis miruken.TraversingAxis,
+	axis    miruken.TraversingAxis,
 	visitor miruken.TraversalVisitor,
 ) error {
 	return miruken.TraverseAxis(c, axis, visitor)
@@ -236,7 +236,7 @@ func (c *Context) removeChild(childCtx *Context) {
 }
 
 func (c *Context) addObserver(
-	obsType contextObserverType,
+	obsType  contextObserverType,
 	observer Observer,
 ) {
 	if obsType == contextObserverNone {
@@ -265,7 +265,7 @@ func (c *Context) addObserver(
 }
 
 func (c *Context) removeObserver(
-	obsType contextObserverType,
+	obsType  contextObserverType,
 	observer Observer,
 ) {
 	if obsType == contextObserverNone {
@@ -299,8 +299,8 @@ func (c *Context) removeObserver(
 
 func (c *Context) notify(
 	obsType contextObserverType,
-	ctx *Context,
-	reason any,
+	ctx     *Context,
+	reason  any,
 ) {
 	if observers := c.observers.Load(); observers != nil {
 		if obs, ok := (*observers)[obsType]; ok && len(obs) > 0 {
@@ -350,7 +350,7 @@ func (c *ContextualBase) Context() *Context {
 
 func (c *ContextualBase) ChangeContext(
 	contextual Contextual,
-	ctx *Context,
+	ctx        *Context,
 ) {
 	if contextual == nil {
 		panic("contextual cannot be nil")
@@ -399,7 +399,7 @@ func (c *ContextualBase) Observe(
 }
 
 func (c *ContextualBase) addObserver(
-	obsType contextualObserverType,
+	obsType  contextualObserverType,
 	observer Observer,
 ) {
 	if obsType == contextualObserverNone {
@@ -418,7 +418,7 @@ func (c *ContextualBase) addObserver(
 }
 
 func (c *ContextualBase) removeObserver(
-	obsType contextualObserverType,
+	obsType  contextualObserverType,
 	observer Observer,
 ) {
 	if obsType == contextualObserverNone {
@@ -445,9 +445,9 @@ func (c *ContextualBase) removeObserver(
 
 func (c *ContextualBase) notify(
 	contextual Contextual,
-	obsType contextualObserverType,
-	oldCtx *Context,
-	newCtx **Context,
+	obsType    contextualObserverType,
+	oldCtx     *Context,
+	newCtx     **Context,
 ) {
 	if observers, ok := c.observers[obsType]; ok && len(observers) > 0 {
 		switch obsType {

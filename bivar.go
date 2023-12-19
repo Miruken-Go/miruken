@@ -39,7 +39,7 @@ func (p *BivariantPolicy) VariantKey(
 
 func (p *BivariantPolicy) MatchesKey(
 	key, otherKey any,
-	invariant bool,
+	invariant     bool,
 ) (matches, exact bool) {
 	if bk, valid := key.(DiKey); valid {
 		if ok, valid := otherKey.(DiKey); valid {
@@ -102,9 +102,9 @@ func (p *BivariantPolicy) NewMethodBinding(
 }
 
 func (p *BivariantPolicy) NewFuncBinding(
-	fun reflect.Value,
+	fun  reflect.Value,
 	spec *bindingSpec,
-	key any,
+	key  any,
 ) (Binding, error) {
 	if args, k, err := validateBivariantFunc(fun.Type(), spec, key, 0); err != nil {
 		return nil, &FuncBindingError{fun, err}
@@ -121,9 +121,9 @@ func (p *BivariantPolicy) NewFuncBinding(
 
 func validateBivariantFunc(
 	funType reflect.Type,
-	spec *bindingSpec,
-	key any,
-	skip int,
+	spec    *bindingSpec,
+	key     any,
+	skip    int,
 ) (args []arg, dk any, err error) {
 	numArgs := funType.NumIn()
 	numOut := funType.NumOut()

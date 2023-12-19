@@ -50,16 +50,16 @@ type (
 
 func (h *inferenceHandler) Handle(
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	return DispatchCallback(h, callback, greedy, composer)
 }
 
 func (h *inferenceHandler) DispatchPolicy(
-	policy Policy,
+	policy   Policy,
 	callback Callback,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	if test, ok := callback.(interface{ CanInfer() bool }); ok && !test.CanInfer() {
@@ -85,7 +85,7 @@ func (b *methodIntercept) SkipFilters() bool {
 }
 
 func (b *methodIntercept) Invoke(
-	ctx HandleContext,
+	ctx      HandleContext,
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	handlerType := b.handlerType
@@ -143,7 +143,7 @@ func (g *inferenceGuard) CanDispatch(
 
 func NewInferenceHandler(
 	factory HandlerInfoFactory,
-	specs []HandlerSpec,
+	specs   []HandlerSpec,
 ) Handler {
 	if factory == nil {
 		panic("factory cannot be nil")
@@ -191,11 +191,11 @@ func NewInferenceHandler(
 }
 
 func linkBinding(
-	policy Policy,
-	binding Binding,
-	bindings *policyInfo,
+	policy      Policy,
+	binding     Binding,
+	bindings    *policyInfo,
 	handlerType reflect.Type,
-	addCtor bool,
+	addCtor     bool,
 ) {
 	switch b := binding.(type) {
 	case *ctorBinding:

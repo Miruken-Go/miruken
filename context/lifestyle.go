@@ -95,9 +95,9 @@ func (s *Scoped) InitLifestyle(binding miruken.Binding) error {
 // scoped
 
 func (s *scoped) Next(
-	self miruken.Filter,
-	next miruken.Next,
-	ctx miruken.HandleContext,
+	self     miruken.Filter,
+	next     miruken.Next,
+	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 ) (out []any, po *promise.Promise[[]any], err error) {
 	key := ctx.Callback.(*provides.It).Key()
@@ -141,8 +141,8 @@ func (s *scoped) Next(
 
 func (s *scoped) ContextChanging(
 	contextual Contextual,
-	oldCtx *Context,
-	newCtx **Context,
+	oldCtx     *Context,
+	newCtx     **Context,
 ) {
 	if oldCtx == *newCtx {
 		return
@@ -183,9 +183,9 @@ func (s *scoped) removeContext(context *Context) {
 // scopedCovar
 
 func (s *scopedCovar) Next(
-	self miruken.Filter,
-	next miruken.Next,
-	ctx miruken.HandleContext,
+	self     miruken.Filter,
+	next     miruken.Next,
+	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 ) (out []any, po *promise.Promise[[]any], err error) {
 	key := ctx.Callback.(*provides.It).Key()
@@ -246,8 +246,8 @@ func (s *scopedCovar) Next(
 
 func (s *scopedCovar) ContextChanging(
 	contextual Contextual,
-	oldCtx *Context,
-	newCtx **Context,
+	oldCtx     *Context,
+	newCtx     **Context,
 ) {
 	if oldCtx == *newCtx {
 		return
@@ -281,10 +281,10 @@ func (s *scopedCovar) removeContext(context *Context) {
 // scopedEntry
 
 func (s *scopedEntry) get(
-	context *Context,
-	observer Observer,
+	context       *Context,
+	observer      Observer,
 	removeContext func(*Context),
-	next miruken.Next,
+	next          miruken.Next,
 ) (out []any, po *promise.Promise[[]any], err error) {
 	s.once.Do(func() {
 		defer func() {
@@ -325,8 +325,8 @@ func (s *scopedEntry) get(
 }
 
 func getContext(
-	key any,
-	ctx miruken.HandleContext,
+	key      any,
+	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 ) (*Context, bool, error) {
 	if key == contextType {
@@ -357,7 +357,7 @@ func getContext(
 }
 
 func isCompatibleWithParent(
-	ctx miruken.HandleContext,
+	ctx    miruken.HandleContext,
 	rooted bool,
 ) bool {
 	if parent := ctx.Callback.(*provides.It).Parent(); parent != nil {

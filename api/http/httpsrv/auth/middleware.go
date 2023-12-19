@@ -127,11 +127,11 @@ func (a *Authentication) ServeHTTP(
 // WriteWWWAuthenticateHeader writes the `WWW-Authenticate`
 // http response header for the supplied scheme.
 func WriteWWWAuthenticateHeader(
-	w http.ResponseWriter,
+	w      http.ResponseWriter,
 	scheme string,
-	realm string,
+	realm  string,
 	params map[string]string,
-	err error,
+	err    error,
 ) {
 	if scheme == "" {
 		panic("scheme is required")

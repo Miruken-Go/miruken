@@ -40,7 +40,7 @@ type (
 
 func (l SideEffectAdapter) Apply(
 	self SideEffect,
-	ctx HandleContext,
+	ctx  HandleContext,
 ) (promise.Reflect, error) {
 	if binding, err := getSideEffectMethod(self); err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func getSideEffectMethod(
 }
 
 func (a sideEffectBinding) invoke(
-	se SideEffect,
+	se  SideEffect,
 	ctx HandleContext,
 ) (promise.Reflect, error) {
 	initArgs := []any{se}

@@ -31,7 +31,7 @@ func (o *Outcome) Fields() []string {
 
 func (o *Outcome) AddError(
 	path string,
-	err error,
+	err  error,
 ) {
 	if err == nil {
 		panic("err cannot be nil")
@@ -117,7 +117,7 @@ func (o *Outcome) Error() string {
 }
 
 func (o *Outcome) childPath(
-	key string,
+	key     string,
 	require bool,
 ) *Outcome {
 	if o.errors == nil {
@@ -145,7 +145,7 @@ func (o *Outcome) childPath(
 }
 
 func (o *Outcome) parsePath(
-	path string,
+	path    string,
 	require bool,
 ) (parent *Outcome, key string) {
 	parent = o

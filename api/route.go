@@ -78,7 +78,7 @@ func (r *Routes) AppliesTo(
 }
 
 func (r *Routes) Filters(
-	binding miruken.Binding,
+	binding  miruken.Binding,
 	callback any,
 	composer miruken.Handler,
 ) ([]miruken.Filter, error) {
@@ -107,7 +107,7 @@ func (p *PassThroughRouter) Pass(
 		handles.It
 		miruken.SkipFilters
 		Routes `scheme:"pass-through"`
-	}, routed Routed,
+	  }, routed Routed,
 	composer miruken.Handler,
 ) (any, miruken.HandleResult) {
 	if r, pr, err := Send[any](composer, routed.Message); err != nil {
@@ -126,9 +126,9 @@ func (r routesFilter) Order() int {
 }
 
 func (r routesFilter) Next(
-	self miruken.Filter,
-	next miruken.Next,
-	ctx miruken.HandleContext,
+	self     miruken.Filter,
+	next     miruken.Next,
+	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 ) (out []any, po *promise.Promise[[]any], err error) {
 	if routes, ok := provider.(*Routes); ok {
@@ -208,7 +208,7 @@ func (b *batchRouter) CompleteBatch(
 }
 
 func (b *batchRouter) batch(
-	routed Routed,
+	routed  Routed,
 	publish bool,
 ) *promise.Promise[any] {
 	route := routed.Route

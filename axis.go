@@ -5,9 +5,9 @@ type (
 	HandlerAxis interface {
 		Handler
 		HandleAxis(
-			axis TraversingAxis,
+			axis     TraversingAxis,
 			callback any,
-			greedy bool,
+			greedy   bool,
 			composer Handler,
 		) HandleResult
 	}
@@ -21,7 +21,7 @@ type (
 
 func (a *axisScope) Handle(
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	if composer == nil {

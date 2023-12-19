@@ -30,7 +30,7 @@ func BuildUp(handler Handler, builders ...Builder) Handler {
 }
 
 func AddHandlers(
-	parent Handler,
+	parent   Handler,
 	handlers ...any,
 ) Handler {
 	if parent == nil {
@@ -97,7 +97,7 @@ type withHandler struct {
 
 func (w *withHandler) Handle(
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {
@@ -120,7 +120,7 @@ type withHandlers struct {
 
 func (w *withHandlers) Handle(
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {
@@ -174,7 +174,7 @@ func (m *MutableHandlers) AppendHandlers(
 }
 
 func (m *MutableHandlers) InsertHandlers(
-	index int,
+	index    int,
 	handlers ...any,
 ) *MutableHandlers {
 	if index < 0 {
@@ -207,7 +207,7 @@ func (m *MutableHandlers) RemoveHandlers(
 
 func (m *MutableHandlers) Handle(
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {
@@ -234,9 +234,9 @@ type (
 	// FilterFunc defines a function that can intercept a callback.
 	FilterFunc func(
 		callback any,
-		greedy bool,
+		greedy   bool,
 		composer Handler,
-		proceed ProceedFunc,
+		proceed  ProceedFunc,
 	) HandleResult
 
 	// filterHandler applies a filter to a Handler.
@@ -249,7 +249,7 @@ type (
 
 func (f *filterHandler) Handle(
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {

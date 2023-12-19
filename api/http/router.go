@@ -21,17 +21,17 @@ type (
 	// Policy defines custom behavior for http requests.
 	Policy interface {
 		Apply(
-			req *http.Request,
+			req      *http.Request,
 			composer miruken.Handler,
-			next func() (*http.Response, error),
+			next     func() (*http.Response, error),
 		) (*http.Response, error)
 	}
 
 	// PolicyFunc promotes a function to Policy.
 	PolicyFunc func(
-		req *http.Request,
+		req      *http.Request,
 		composer miruken.Handler,
-		next func() (*http.Response, error),
+		next     func() (*http.Response, error),
 	) (*http.Response, error)
 
 	// Options customize http operations.
@@ -52,9 +52,9 @@ const (
 )
 
 func (f PolicyFunc) Apply(
-	req *http.Request,
+	req      *http.Request,
 	composer miruken.Handler,
-	next func() (*http.Response, error),
+	next     func() (*http.Response, error),
 ) (*http.Response, error) {
 	return f(req, composer, next)
 }
@@ -63,11 +63,11 @@ func (r *Router) Route(
 	_ *struct {
 		handles.It
 		api.Routes `scheme:"http,https"`
-	}, routed api.Routed,
+	  }, routed api.Routed,
 	_ *struct {
 		args.Optional
 		args.FromOptions
-	}, options Options,
+	  }, options Options,
 	ctx miruken.HandleContext,
 ) *promise.Promise[any] {
 	return promise.New(func(resolve func(any), reject func(error)) {
@@ -143,7 +143,7 @@ func (r *Router) Route(
 }
 
 func (r *Router) invoke(
-	req *http.Request,
+	req      *http.Request,
 	composer miruken.Handler,
 	pipeline []Policy,
 ) (*http.Response, error) {
@@ -164,8 +164,8 @@ func (r *Router) invoke(
 }
 
 func (r *Router) decodeError(
-	res *http.Response,
-	format string,
+	res      *http.Response,
+	format   string,
 	composer miruken.Handler,
 ) error {
 	contentType := res.Header.Get("Content-Type")
@@ -190,9 +190,9 @@ func (r *Router) decodeError(
 }
 
 func (r *Router) resourceUri(
-	routed api.Routed,
+	routed   api.Routed,
 	options *Options,
-	ctx *miruken.HandleContext,
+	ctx     *miruken.HandleContext,
 ) (string, error) {
 	var path string
 	if ctx.Greedy {
@@ -210,8 +210,8 @@ func (r *Router) resourceUri(
 func Client(client *http.Client) Policy {
 	return PolicyFunc(func(
 		req *http.Request,
-		_ miruken.Handler,
-		_ func() (*http.Response, error),
+		_   miruken.Handler,
+		_   func() (*http.Response, error),
 	) (*http.Response, error) {
 		return client.Do(req)
 	})

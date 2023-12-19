@@ -46,7 +46,7 @@ func (e *Emit) AppliesTo(
 }
 
 func (e *Emit) Filters(
-	binding miruken.Binding,
+	binding  miruken.Binding,
 	callback any,
 	composer miruken.Handler,
 ) ([]miruken.Filter, error) {
@@ -62,7 +62,7 @@ func (f filter) Order() int {
 func (f filter) Next(
 	self miruken.Filter,
 	next miruken.Next,
-	ctx miruken.HandleContext,
+	ctx  miruken.HandleContext,
 	provider miruken.FilterProvider,
 ) (out []any, pout *promise.Promise[[]any], err error) {
 	if emit, ok := provider.(*Emit); ok {
@@ -102,7 +102,7 @@ func (f filter) Next(
 }
 
 func (f filter) logSuccess(
-	start time.Time,
+	start  time.Time,
 	logger logr.Logger,
 ) {
 	elapsed := miruken.Timespan(time.Since(start))
@@ -110,8 +110,8 @@ func (f filter) logSuccess(
 }
 
 func (f filter) logError(
-	err error,
-	start time.Time,
+	err    error,
+	start  time.Time,
 	logger logr.Logger,
 ) {
 	elapsed := miruken.Timespan(time.Since(start))

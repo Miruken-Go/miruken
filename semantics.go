@@ -78,7 +78,7 @@ type callSemantics struct {
 
 func (c *callSemantics) Handle(
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {

@@ -58,8 +58,8 @@ func (h *Handles) CanBatch() bool {
 }
 
 func (h *Handles) Dispatch(
-	handler any,
-	greedy bool,
+	handler  any,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	count := h.ResultCount()
@@ -97,8 +97,8 @@ func (b *HandlesBuilder) New() *Handles {
 // Command invokes a callback with no results.
 // returns an empty promise if execution is asynchronous.
 func Command(
-	handler Handler,
-	callback any,
+	handler     Handler,
+	callback    any,
 	constraints ...any,
 ) (pv *promise.Promise[any], err error) {
 	if internal.IsNil(handler) {
@@ -121,8 +121,8 @@ func Command(
 // Execute executes a callback with results.
 // returns the results or promise if execution is asynchronous.
 func Execute[T any](
-	handler Handler,
-	callback any,
+	handler     Handler,
+	callback    any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], err error) {
 	if internal.IsNil(handler) {
@@ -148,8 +148,8 @@ func Execute[T any](
 // CommandAll invokes a callback on all with no results.
 // returns an empty promise if execution is asynchronous.
 func CommandAll(
-	handler Handler,
-	callback any,
+	handler     Handler,
+	callback    any,
 	constraints ...any,
 ) (p *promise.Promise[any], err error) {
 	if internal.IsNil(handler) {
@@ -172,8 +172,8 @@ func CommandAll(
 // ExecuteAll executes a callback on all and collects the results.
 // returns the results or promise if execution is asynchronous.
 func ExecuteAll[T any](
-	handler Handler,
-	callback any,
+	handler     Handler,
+	callback    any,
 	constraints ...any,
 ) (t []T, tp *promise.Promise[[]T], err error) {
 	if internal.IsNil(handler) {

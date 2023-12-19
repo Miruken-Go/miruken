@@ -23,9 +23,9 @@ type (
 	// PolicyDispatch customizes Callback Policy dispatch.
 	PolicyDispatch interface {
 		DispatchPolicy(
-			policy Policy,
+			policy   Policy,
 			callback Callback,
-			greedy bool,
+			greedy   bool,
 			composer Handler,
 		) HandleResult
 	}
@@ -85,8 +85,8 @@ func (p *policyInfo) insert(policy Policy, binding Binding) {
 }
 
 func (p *policyInfo) reduce(
-	key any,
-	policy Policy,
+	key     any,
+	policy  Policy,
 	reducer BindingReducer,
 ) (result HandleResult) {
 	if reducer == nil {
@@ -172,9 +172,9 @@ func (p policyInfoMap) forPolicy(policy Policy) *policyInfo {
 }
 
 func DispatchPolicy(
-	handler any,
+	handler  any,
 	callback Callback,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	policy := callback.Policy()

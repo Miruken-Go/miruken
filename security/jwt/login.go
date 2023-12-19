@@ -183,7 +183,7 @@ func (l *LoginModule) keys() (k jwt.Keyfunc, err error) {
 
 func (l *LoginModule) addScopes(
 	subject security.Subject,
-	claims jwt.MapClaims,
+	claims  jwt.MapClaims,
 ) {
 	if scp, ok := claims["scp"]; ok {
 		scopes := strings.Split(scp.(string), " ")
@@ -197,7 +197,7 @@ func (l *LoginModule) addScopes(
 
 func (l *LoginModule) addKnownPrincipals(
 	subject security.Subject,
-	claims jwt.MapClaims,
+	claims  jwt.MapClaims,
 ) {
 	for key, val := range claims {
 		switch strings.ToLower(key) {

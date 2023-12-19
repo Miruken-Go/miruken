@@ -32,7 +32,7 @@ func (m *SurrogateMapper) ReplaceConcurrent(
 	_ *struct {
 		maps.It
 		maps.Format `to:"application/json"`
-	}, batch api.ConcurrentBatch,
+	  }, batch api.ConcurrentBatch,
 	ctx miruken.HandleContext,
 ) (byt []byte, err error) {
 	sur := Concurrent(batch.Requests)
@@ -47,7 +47,7 @@ func (m *SurrogateMapper) ReplaceSequential(
 	_ *struct {
 		maps.It
 		maps.Format `to:"application/json"`
-	}, batch api.SequentialBatch,
+	  }, batch api.SequentialBatch,
 	ctx miruken.HandleContext,
 ) (byt []byte, err error) {
 	sur := Sequential(batch.Requests)

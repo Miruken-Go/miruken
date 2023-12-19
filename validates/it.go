@@ -57,8 +57,8 @@ func (v *It) Policy() miruken.Policy {
 }
 
 func (v *It) Dispatch(
-	handler any,
-	greedy bool,
+	handler  any,
+	greedy   bool,
 	composer miruken.Handler,
 ) miruken.HandleResult {
 	return miruken.DispatchPolicy(handler, v, greedy, composer)
@@ -160,8 +160,8 @@ func (b *Builder) New() *It {
 
 // Constraints performs all validations on `source`.
 func Constraints(
-	handler miruken.Handler,
-	source any,
+	handler     miruken.Handler,
+	source      any,
 	constraints ...any,
 ) (o *Outcome, po *promise.Promise[*Outcome], err error) {
 	if internal.IsNil(handler) {
@@ -190,7 +190,7 @@ func Constraints(
 }
 
 func setValidationOutcome(
-	source any,
+	source  any,
 	outcome *Outcome,
 ) {
 	if v, ok := source.(interface {

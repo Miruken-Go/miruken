@@ -32,7 +32,7 @@ func (v *validator) Validate(
 
 func (v *validator) addErrors(
 	outcome *validates.Outcome,
-	errors govalidator.Errors,
+	errors  govalidator.Errors,
 ) {
 	for _, err := range errors {
 		switch actual := err.(type) {
@@ -48,7 +48,7 @@ func (v *validator) addErrors(
 
 func pathOutcome(
 	outcome *validates.Outcome,
-	err govalidator.Error,
+	err     govalidator.Error,
 ) *validates.Outcome {
 	if path := err.Path; len(path) > 0 {
 		for _, field := range path {

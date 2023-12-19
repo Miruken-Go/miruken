@@ -21,7 +21,7 @@ func (s *StatusCodeMapper) NotHandled(
 	_ *struct {
 		maps.It
 		maps.Format `to:"http:status-code"`
-	}, _ *miruken.NotHandledError,
+	  }, _ *miruken.NotHandledError,
 ) int {
 	return http.StatusNotFound
 }
@@ -30,7 +30,7 @@ func (s *StatusCodeMapper) UnknownTypeId(
 	_ *struct {
 		maps.It
 		maps.Format `to:"http:status-code"`
-	}, _ *api.UnknownTypeIdError,
+	  }, _ *api.UnknownTypeIdError,
 ) int {
 	return http.StatusBadRequest
 }
@@ -39,7 +39,7 @@ func (s *StatusCodeMapper) Validation(
 	_ *struct {
 		maps.It
 		maps.Format `to:"http:status-code"`
-	}, _ *validates.Outcome,
+	  }, _ *validates.Outcome,
 ) int {
 	return http.StatusUnprocessableEntity
 }
@@ -48,7 +48,7 @@ func (s *StatusCodeMapper) AccessDenied(
 	_ *struct {
 		maps.It
 		maps.Format `to:"http:status-code"`
-	}, _ *authorizes.AccessDeniedError,
+	  }, _ *authorizes.AccessDeniedError,
 	_ *struct{ args.Optional }, subject security.Subject,
 ) int {
 	if internal.IsNil(subject) || !subject.Authenticated() {
@@ -61,7 +61,7 @@ func (s *StatusCodeMapper) JsonSyntax(
 	_ *struct {
 		maps.It
 		maps.Format `to:"http:status-code"`
-	}, _ *json.SyntaxError,
+	  }, _ *json.SyntaxError,
 ) int {
 	return http.StatusBadRequest
 }

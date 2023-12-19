@@ -55,8 +55,8 @@ func (m *It) SetMatched(format *Format) {
 }
 
 func (m *It) Dispatch(
-	handler any,
-	greedy bool,
+	handler  any,
+	greedy   bool,
 	composer miruken.Handler,
 ) miruken.HandleResult {
 	return miruken.DispatchPolicy(handler, m, greedy, composer)
@@ -97,8 +97,8 @@ func (b *Builder) New() *It {
 }
 
 func Out[T any](
-	handler miruken.Handler,
-	source any,
+	handler     miruken.Handler,
+	source      any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], m *It, err error) {
 	if internal.IsNil(handler) {
@@ -122,9 +122,9 @@ func Out[T any](
 }
 
 func Into[T any](
-	handler miruken.Handler,
-	source any,
-	target *T,
+	handler     miruken.Handler,
+	source      any,
+	target      *T,
 	constraints ...any,
 ) (p *promise.Promise[any], m *It, err error) {
 	if internal.IsNil(handler) {
@@ -153,8 +153,8 @@ func Into[T any](
 }
 
 func Key[T any](
-	handler miruken.Handler,
-	key any,
+	handler     miruken.Handler,
+	key         any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], m *It, err error) {
 	if internal.IsNil(handler) {
@@ -178,8 +178,8 @@ func Key[T any](
 }
 
 func All[T any](
-	handler miruken.Handler,
-	source any,
+	handler     miruken.Handler,
+	source      any,
 	constraints ...any,
 ) (t []T, _ *promise.Promise[[]T], _ error) {
 	if internal.IsNil(handler) {

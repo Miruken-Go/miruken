@@ -88,7 +88,7 @@ func (s *Stash) Drop(
 
 func StashGetKey(
 	handler miruken.Handler,
-	key any,
+	key     any,
 ) (val any, ok bool) {
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
@@ -116,8 +116,8 @@ func StashGet[T any](
 
 func StashPutKey(
 	handler miruken.Handler,
-	key any,
-	val any,
+	key     any,
+	val     any,
 ) error {
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
@@ -137,15 +137,15 @@ func StashPutKey(
 
 func StashPut[T any](
 	handler miruken.Handler,
-	val T,
+	val     T,
 ) error {
 	return StashPutKey(handler, internal.TypeOf[T](), val)
 }
 
 func StashGetOrPutKey(
 	handler miruken.Handler,
-	key any,
-	val any,
+	key     any,
+	val     any,
 ) (any, error) {
 	if v, ok := StashGetKey(handler, key); !ok {
 		return val, StashPutKey(handler, key, val)
@@ -167,8 +167,8 @@ func StashGetOrPut[T any](
 
 func StashGetOrPutKeyFunc(
 	handler miruken.Handler,
-	key any,
-	fun func() (any, *promise.Promise[any]),
+	key     any,
+	fun     func() (any, *promise.Promise[any]),
 ) (any, *promise.Promise[any], error) {
 	if fun == nil {
 		panic("fun cannot be nil")
@@ -191,7 +191,7 @@ func StashGetOrPutKeyFunc(
 
 func StashGetOrPutFunc[T any](
 	handler miruken.Handler,
-	fun func() (T, *promise.Promise[T]),
+	fun     func() (T, *promise.Promise[T]),
 ) (T, *promise.Promise[T], error) {
 	if fun == nil {
 		panic("fun cannot be nil")
@@ -214,7 +214,7 @@ func StashGetOrPutFunc[T any](
 
 func StashDropKey(
 	handler miruken.Handler,
-	key any,
+	key     any,
 ) (err error) {
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")

@@ -51,7 +51,7 @@ func (b *methodBinding) Method() *reflect.Method {
 }
 
 func (b *methodBinding) Invoke(
-	ctx HandleContext,
+	ctx      HandleContext,
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	if initArgs == nil {

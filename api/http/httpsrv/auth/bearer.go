@@ -25,8 +25,8 @@ func (b Bearer) Accept(
 }
 
 func (b Bearer) Challenge(
-	w http.ResponseWriter,
-	r *http.Request,
+	w   http.ResponseWriter,
+	r   *http.Request,
 	err error,
 ) int {
 	WriteWWWAuthenticateHeader(w, "Bearer", b.Realm, nil, err)

@@ -84,7 +84,7 @@ func (s TypeSpec) suppress() bool {
 }
 
 func (s TypeSpec) describe(
-	factory bindingSpecFactory,
+	factory   bindingSpecFactory,
 	observers []HandlerInfoObserver,
 ) (info *HandlerInfo, invalid error) {
 	typ := s.typ
@@ -212,7 +212,7 @@ func (s FuncSpec) suppress() bool {
 }
 
 func (s FuncSpec) describe(
-	factory bindingSpecFactory,
+	factory   bindingSpecFactory,
 	observers []HandlerInfoObserver,
 ) (info *HandlerInfo, invalid error) {
 	funType := s.fun.Type()
@@ -267,12 +267,12 @@ func (h *HandlerInfo) Spec() HandlerSpec {
 }
 
 func (h *HandlerInfo) Dispatch(
-	policy Policy,
-	handler any,
+	policy   Policy,
+	handler  any,
 	callback Callback,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
-	guard CallbackGuard,
+	guard    CallbackGuard,
 ) (result HandleResult) {
 	if pb, found := h.bindings[policy]; found {
 		key := callback.Key()
@@ -359,7 +359,7 @@ func (h *HandlerInfo) Dispatch(
 						})}
 					}
 					res, accept := policy.AcceptResults(out)
-					if res != nil {
+					if !internal.IsNil(res) {
 						if accept.handled {
 							strict := policy.Strict() || binding.Strict()
 							accept = accept.And(callback.ReceiveResult(res, strict, composer))
@@ -385,7 +385,7 @@ func (h *HandlerInfo) Dispatch(
 
 func applySideEffects(
 	binding Binding,
-	ctx *HandleContext,
+	ctx     *HandleContext,
 ) (out []any, pout *promise.Promise[[]any], err error) {
 	out, pout, err = binding.Invoke(*ctx)
 	if err != nil {
@@ -405,8 +405,8 @@ func applySideEffects(
 }
 
 func processSideEffects(
-	out []any,
-	ctx *HandleContext,
+	out   []any,
+	ctx   *HandleContext,
 	await bool,
 ) ([]any, *promise.Promise[[]any], error) {
 	temp := out[:0]
@@ -463,9 +463,9 @@ type (
 	// HandlerInfoObserver observes HandlerInfo creation.
 	HandlerInfoObserver interface {
 		BindingCreated(
-			policy Policy,
+			policy      Policy,
 			handlerInfo *HandlerInfo,
-			binding Binding,
+			binding     Binding,
 		)
 		HandlerInfoCreated(handlerInfo *HandlerInfo)
 	}
@@ -473,9 +473,9 @@ type (
 )
 
 func (f HandlerInfoObserverFunc) BindingCreated(
-	policy Policy,
+	policy      Policy,
 	handlerInfo *HandlerInfo,
-	binding Binding,
+	binding     Binding,
 ) {
 	f(policy, handlerInfo, binding)
 }
@@ -602,7 +602,7 @@ type CurrentHandlerInfoFactoryProvider struct {
 
 func (f *CurrentHandlerInfoFactoryProvider) Handle(
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	if comp, ok := callback.(*Composition); ok {

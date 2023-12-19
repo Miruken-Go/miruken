@@ -46,7 +46,7 @@ func (l *LifestyleProvider) AppliesTo(
 }
 
 func (l *LifestyleProvider) Filters(
-	binding Binding,
+	binding  Binding,
 	callback any,
 	composer Handler,
 ) ([]Filter, error) {
@@ -125,7 +125,7 @@ func (s *Single) InitLifestyle(binding Binding) error {
 func (s *single) Next(
 	self Filter,
 	next Next,
-	ctx HandleContext,
+	ctx  HandleContext,
 	provider FilterProvider,
 ) (out []any, po *promise.Promise[[]any], err error) {
 	return s.entry.get(next)
@@ -136,7 +136,7 @@ func (s *single) Next(
 func (s *singleCovar) Next(
 	self Filter,
 	next Next,
-	ctx HandleContext,
+	ctx  HandleContext,
 	provider FilterProvider,
 ) (out []any, po *promise.Promise[[]any], err error) {
 	key := ctx.Callback.(*Provides).Key()

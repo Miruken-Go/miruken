@@ -32,8 +32,8 @@ func (c *Creates) Policy() Policy {
 }
 
 func (c *Creates) Dispatch(
-	handler any,
-	greedy bool,
+	handler  any,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	count := c.ResultCount()
@@ -66,7 +66,7 @@ func (b *CreatesBuilder) New() *Creates {
 
 // Create creates a value of type parameter T.
 func Create[T any](
-	handler Handler,
+	handler     Handler,
 	constraints ...any,
 ) (T, *promise.Promise[T], error) {
 	return CreateKey[T](handler, internal.TypeOf[T](), constraints...)
@@ -74,8 +74,8 @@ func Create[T any](
 
 // CreateKey creates a value of type parameter T with the specified key.
 func CreateKey[T any](
-	handler Handler,
-	key any,
+	handler     Handler,
+	key         any,
 	constraints ...any,
 ) (t T, tp *promise.Promise[T], err error) {
 	if internal.IsNil(handler) {
@@ -98,7 +98,7 @@ func CreateKey[T any](
 
 // CreateAll creates all values of type parameter T.
 func CreateAll[T any](
-	handler Handler,
+	handler     Handler,
 	constraints ...any,
 ) (t []T, tp *promise.Promise[[]T], err error) {
 	if internal.IsNil(handler) {

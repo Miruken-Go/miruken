@@ -67,7 +67,7 @@ func NewHeader(
 
 // MergeHeader merges the supplied key values into the existing mime header.
 func MergeHeader(
-	header textproto.MIMEHeader,
+	header   textproto.MIMEHeader,
 	metadata map[string]any,
 ) {
 	if header == nil {

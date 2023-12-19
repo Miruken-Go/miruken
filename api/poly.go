@@ -65,7 +65,7 @@ var (
 func (m *GoPolymorphism) TypeInfo(
 	_ *struct {
 		maps.Format `to:"type:info"`
-	}, it *maps.It,
+	  }, it *maps.It,
 ) (TypeFieldInfo, error) {
 	val := reflect.TypeOf(it.Source()).String()
 	val = strings.TrimPrefix(val, "*")
@@ -112,7 +112,7 @@ func (m *GoPolymorphism) Static(
 		_ creates.It `key:"[]float64"`
 		_ creates.It `key:"[]string"`
 		_ creates.It `key:"[]interface {}"`
-	}, create *creates.It,
+	  }, create *creates.It,
 ) any {
 	if key, ok := create.Key().(string); ok {
 		if proto, ok := staticTypeMap[key]; ok {

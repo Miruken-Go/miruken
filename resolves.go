@@ -48,7 +48,7 @@ func (r *Resolves) CanDispatch(
 }
 
 func (r *Resolves) accept(
-	result any,
+	result   any,
 	composer Handler,
 ) HandleResult {
 	if greedy := r.greedy; !greedy && r.succeeded {

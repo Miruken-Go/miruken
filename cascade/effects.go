@@ -49,7 +49,7 @@ func (c *Callbacks) Greedy(
 
 func (c *Callbacks) Apply(
 	self miruken.SideEffect,
-	ctx miruken.HandleContext,
+	ctx  miruken.HandleContext,
 ) (promise.Reflect, error) {
 	callbacks := c.callbacks
 	if len(callbacks) == 0 {
@@ -99,7 +99,7 @@ func (m *Messages) WithHandler(
 
 func (m *Messages) Apply(
 	self miruken.SideEffect,
-	ctx miruken.HandleContext,
+	ctx  miruken.HandleContext,
 ) (promise.Reflect, error) {
 	messages := m.messages
 	if len(messages) == 0 {

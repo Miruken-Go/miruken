@@ -27,8 +27,8 @@ type (
 	// The optional values provide dependencies to the next step.
 	Next func(
 		composer Handler,
-		proceed bool,
-		values ...any,
+		proceed  bool,
+		values   ...any,
 	) ([]any, *promise.Promise[[]any], error)
 
 	// Filter defines a middleware step in a pipeline.
@@ -36,9 +36,9 @@ type (
 		Order() int
 		Next(
 			// self provided to facilitate late bindings
-			self Filter,
-			next Next,
-			ctx HandleContext,
+			self     Filter,
+			next     Next,
+			ctx      HandleContext,
 			provider FilterProvider,
 		) ([]any, *promise.Promise[[]any], error)
 	}
@@ -47,7 +47,7 @@ type (
 	FilterProvider interface {
 		Required() bool
 		Filters(
-			binding Binding,
+			binding  Binding,
 			callback any,
 			composer Handler,
 		) ([]Filter, error)
@@ -89,21 +89,21 @@ func (n Next) PipeAwait(values ...any) []any {
 
 func (n Next) PipeComposer(
 	composer Handler,
-	values ...any,
+	values   ...any,
 ) ([]any, *promise.Promise[[]any], error) {
 	return mergeOutput(n(composer, true, values...))
 }
 
 func (n Next) PipeComposerAwait(
 	composer Handler,
-	values ...any,
+	values   ...any,
 ) []any {
 	return mergeOutputAwait(n(composer, true, values...))
 }
 
 func (n Next) Handle(
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) ([]any, *promise.Promise[[]any], error) {
 	var cb Callback
@@ -139,9 +139,9 @@ func (n Next) Fail(err error) ([]any, *promise.Promise[[]any], error) {
 // FilterAdapter
 
 func (l FilterAdapter) Next(
-	self Filter,
-	next Next,
-	ctx HandleContext,
+	self     Filter,
+	next     Next,
+	ctx      HandleContext,
 	provider FilterProvider,
 ) ([]any, *promise.Promise[[]any], error) {
 	if group, err := getFilterBinding(self); err == nil {
@@ -172,7 +172,7 @@ func (f *filterSpecProvider) Required() bool {
 }
 
 func (f *filterSpecProvider) Filters(
-	binding Binding,
+	binding  Binding,
 	callback any,
 	composer Handler,
 ) ([]Filter, error) {
@@ -206,7 +206,7 @@ func (f *FilterInstanceProvider) Required() bool {
 }
 
 func (f *FilterInstanceProvider) Filters(
-	binding Binding,
+	binding  Binding,
 	callback any,
 	composer Handler,
 ) ([]Filter, error) {
@@ -215,7 +215,7 @@ func (f *FilterInstanceProvider) Filters(
 
 func NewFilterInstanceProvider(
 	required bool,
-	filters ...Filter,
+	filters  ...Filter,
 ) *FilterInstanceProvider {
 	return &FilterInstanceProvider{filters, required}
 }
@@ -297,9 +297,9 @@ type (
 )
 
 func orderFilters(
-	handler Handler,
-	binding Binding,
-	callback Callback,
+	handler   Handler,
+	binding   Binding,
+	callback  Callback,
 	providers ...[]FilterProvider,
 ) ([]providedFilter, error) {
 	options, _ := GetOptions[FilterOptions](handler)
@@ -383,8 +383,8 @@ func orderFilters(
 }
 
 func pipeline(
-	ctx HandleContext,
-	filters []providedFilter,
+	ctx      HandleContext,
+	filters  []providedFilter,
 	complete func(HandleContext) ([]any, *promise.Promise[[]any], error),
 ) (r []any, pr *promise.Promise[[]any], err error) {
 	index, length := 0, len(filters)
@@ -528,9 +528,9 @@ func (c compoundHandler) Order() int {
 }
 
 func (c compoundHandler) Next(
-	self Filter,
-	next Next,
-	ctx HandleContext,
+	self     Filter,
+	next     Next,
+	ctx      HandleContext,
 	provider FilterProvider,
 ) ([]any, *promise.Promise[[]any], error) {
 	if filters := c.filters; filters != nil {

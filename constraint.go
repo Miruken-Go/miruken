@@ -171,9 +171,9 @@ func (f constraintFilter) Order() int {
 }
 
 func (f constraintFilter) Next(
-	self Filter,
-	next Next,
-	ctx HandleContext,
+	self     Filter,
+	next     Next,
+	ctx      HandleContext,
 	provider FilterProvider,
 ) ([]any, *promise.Promise[[]any], error) {
 	if cp, ok := provider.(ConstraintSource); ok {

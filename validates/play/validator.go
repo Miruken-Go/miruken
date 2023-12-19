@@ -105,8 +105,8 @@ func (v *Validator) Constructor(
 }
 
 func (v *Validator) WithRules(
-	rules Rules,
-	configure func(*play.Validate) error,
+	rules      Rules,
+	configure  func(*play.Validate) error,
 	translator ut.Translator,
 ) error {
 	if v.validate != nil {
@@ -130,7 +130,7 @@ func (v *Validator) WithRules(
 }
 
 func (v *Validator) Validate(
-	target any,
+	target  any,
 	outcome *validates.Outcome,
 ) miruken.HandleResult {
 	if !internal.IsStruct(target) {
@@ -158,7 +158,7 @@ func (v *Validator) Validate(
 }
 
 func (v *Validator) ValidateAndStop(
-	target any,
+	target  any,
 	outcome *validates.Outcome,
 ) miruken.HandleResult {
 	result := v.Validate(target, outcome)
@@ -170,7 +170,7 @@ func (v *Validator) ValidateAndStop(
 }
 
 func (v *Validator) addErrors(
-	outcome *validates.Outcome,
+	outcome     *validates.Outcome,
 	fieldErrors play.ValidationErrors,
 ) {
 	for _, err := range fieldErrors {
@@ -185,7 +185,7 @@ func (v *Validator) addErrors(
 }
 
 func (v *Validator) translateErrors(
-	outcome *validates.Outcome,
+	outcome     *validates.Outcome,
 	fieldErrors play.ValidationErrors,
 ) {
 	for field, msg := range fieldErrors.Translate(v.translator) {

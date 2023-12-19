@@ -143,7 +143,7 @@ func (c *CallbackBase) SetAcceptPromiseResult(
 }
 
 func (c *CallbackBase) AddResult(
-	result any,
+	result   any,
 	composer Handler,
 ) HandleResult {
 	if internal.IsNil(result) {
@@ -181,8 +181,8 @@ func (c *CallbackBase) AddResult(
 }
 
 func (c *CallbackBase) ReceiveResult(
-	result any,
-	strict bool,
+	result   any,
+	strict   bool,
 	composer Handler,
 ) HandleResult {
 	if internal.IsNil(result) {
@@ -243,8 +243,8 @@ func (c *CallbackBase) ensureResult(many, expand bool) any {
 }
 
 func (c *CallbackBase) includeResult(
-	result any,
-	strict bool,
+	result   any,
+	strict   bool,
 	composer Handler,
 ) HandleResult {
 	if internal.IsNil(result) {
@@ -283,8 +283,8 @@ func (c *CallbackBase) includeResult(
 // expandResults type that is expanded when results are requested.
 // This is used to allow in-place replacement to avoid locking the results.
 func (c *CallbackBase) processResults(
-	squash bool,
-	results any,
+	squash   bool,
+	results  any,
 	composer Handler,
 ) (expandResults, HandleResult) {
 	res := NotHandled

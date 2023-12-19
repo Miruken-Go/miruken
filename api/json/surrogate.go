@@ -14,7 +14,7 @@ func (m *SurrogateMapper) New(
 		_ creates.It `key:"json.Error"`
 		_ creates.It `key:"json.Concurrent"`
 		_ creates.It `key:"json.Sequential"`
-	}, create *creates.It,
+	  }, create *creates.It,
 ) any {
 	switch create.Key() {
 	case "json.Outcome":

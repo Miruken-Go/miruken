@@ -174,7 +174,7 @@ func CopySliceIndirect(src []any, target any) {
 // and return the newly promoted slice and true if successful.
 // If elemType is nil, the most specific type will be inferred.
 func CoerceSlice(
-	slice reflect.Value,
+	slice   reflect.Value,
 	elemTyp reflect.Type,
 ) (reflect.Value, bool) {
 	st := slice.Type()
@@ -236,7 +236,7 @@ func Exported(t any) bool {
 }
 
 func CoerceToPtr(
-	givenType reflect.Type,
+	givenType   reflect.Type,
 	desiredType reflect.Type,
 ) reflect.Type {
 	if givenType.AssignableTo(desiredType) {

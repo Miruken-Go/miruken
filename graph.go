@@ -45,8 +45,8 @@ type Traversing interface {
 
 // TraverseAxis traverses a node over an axis.
 func TraverseAxis(
-	node Traversing,
-	axis TraversingAxis,
+	node    Traversing,
+	axis    TraversingAxis,
 	visitor TraversalVisitor,
 ) error {
 	if visitor == nil {
@@ -84,7 +84,7 @@ func TraverseAxis(
 }
 
 func traverseSelf(
-	node Traversing,
+	node    Traversing,
 	visitor TraversalVisitor,
 ) error {
 	_, err := visitor.VisitTraversal(node)
@@ -92,7 +92,7 @@ func traverseSelf(
 }
 
 func traverseRoot(
-	node Traversing,
+	node    Traversing,
 	visitor TraversalVisitor,
 ) error {
 	root := node
@@ -108,8 +108,8 @@ func traverseRoot(
 }
 
 func traverseChildren(
-	node Traversing,
-	visitor TraversalVisitor,
+	node     Traversing,
+	visitor  TraversalVisitor,
 	withSelf bool,
 ) error {
 	if withSelf {
@@ -126,8 +126,8 @@ func traverseChildren(
 }
 
 func traverseAncestors(
-	node Traversing,
-	visitor TraversalVisitor,
+	node     Traversing,
+	visitor  TraversalVisitor,
 	withSelf bool,
 ) error {
 	if withSelf {
@@ -150,8 +150,8 @@ func traverseAncestors(
 }
 
 func traverseDescendants(
-	node Traversing,
-	visitor TraversalVisitor,
+	node     Traversing,
+	visitor  TraversalVisitor,
 	withSelf bool,
 ) error {
 	return TraverseLevelOrder(node, TraversalVisitorFunc(
@@ -164,8 +164,8 @@ func traverseDescendants(
 }
 
 func traverseDescendantsReverse(
-	node Traversing,
-	visitor TraversalVisitor,
+	node     Traversing,
+	visitor  TraversalVisitor,
 	withSelf bool,
 ) error {
 	return TraverseReverseLevelOrder(node, TraversalVisitorFunc(
@@ -178,9 +178,9 @@ func traverseDescendantsReverse(
 }
 
 func traverseSelfSiblingOrAncestor(
-	node Traversing,
-	visitor TraversalVisitor,
-	withSelf bool,
+	node          Traversing,
+	visitor       TraversalVisitor,
+	withSelf      bool,
 	withAncestors bool,
 ) error {
 	if withSelf {
@@ -223,7 +223,7 @@ type traversalHistory map[Traversing]bool
 
 // TraversePreOrder traverse the node using pre-order algorithm.
 func TraversePreOrder(
-	node Traversing,
+	node    Traversing,
 	visitor TraversalVisitor,
 ) error {
 	_, err := traversePreOrder(node, visitor, make(traversalHistory))
@@ -231,7 +231,7 @@ func TraversePreOrder(
 }
 
 func traversePreOrder(
-	node Traversing,
+	node    Traversing,
 	visitor TraversalVisitor,
 	visited traversalHistory,
 ) (stop bool, err error) {
@@ -253,7 +253,7 @@ func traversePreOrder(
 
 // TraversePostOrder traverse the node using post-order algorithm.
 func TraversePostOrder(
-	node Traversing,
+	node    Traversing,
 	visitor TraversalVisitor,
 ) error {
 	_, err := traversePostOrder(node, visitor, make(traversalHistory))
@@ -261,7 +261,7 @@ func TraversePostOrder(
 }
 
 func traversePostOrder(
-	node Traversing,
+	node    Traversing,
 	visitor TraversalVisitor,
 	history traversalHistory,
 ) (stop bool, err error) {
@@ -282,7 +282,7 @@ func traversePostOrder(
 
 // TraverseLevelOrder traverse the node using level-order algorithm.
 func TraverseLevelOrder(
-	node Traversing,
+	node    Traversing,
 	visitor TraversalVisitor,
 ) error {
 	_, err := traverseLevelOrder(node, visitor, make(traversalHistory))
@@ -290,7 +290,7 @@ func TraverseLevelOrder(
 }
 
 func traverseLevelOrder(
-	node Traversing,
+	node    Traversing,
 	visitor TraversalVisitor,
 	history traversalHistory,
 ) (stop bool, err error) {
@@ -324,7 +324,7 @@ func traverseLevelOrder(
 
 // TraverseReverseLevelOrder traverse the node using reverse level-order algorithm.
 func TraverseReverseLevelOrder(
-	node Traversing,
+	node    Traversing,
 	visitor TraversalVisitor,
 ) error {
 	_, err := traverseReverseLevelOrder(node, visitor, make(traversalHistory))
@@ -332,7 +332,7 @@ func TraverseReverseLevelOrder(
 }
 
 func traverseReverseLevelOrder(
-	node Traversing,
+	node    Traversing,
 	visitor TraversalVisitor,
 	history traversalHistory,
 ) (stop bool, err error) {
@@ -376,7 +376,7 @@ func traverseReverseLevelOrder(
 }
 
 func checkTraversalCircularity(
-	node Traversing,
+	node    Traversing,
 	history traversalHistory,
 ) error {
 	if _, ok := history[node]; ok {

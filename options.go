@@ -165,7 +165,7 @@ func (o optCallback) CanBatch() bool {
 
 func (c *optionsHandler) Handle(
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {

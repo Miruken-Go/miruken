@@ -37,7 +37,7 @@ type (
 	// BindingReducer aggregates Binding results.
 	BindingReducer func(
 		binding Binding,
-		result HandleResult,
+		result  HandleResult,
 	) (HandleResult, bool)
 
 	// BindingParser is an extension for binding customizations.

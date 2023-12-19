@@ -11,7 +11,7 @@ type provider struct {
 
 func (p *provider) Handle(
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	if comp, ok := callback.(*Composition); ok {

@@ -80,7 +80,7 @@ func (b *batchHandler) NoConstructor() {}
 
 func (b *batchHandler) Handle(
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {
@@ -149,7 +149,7 @@ func (b *batchHandler) Complete(
 
 func (b *noBatchHandler) Handle(
 	callback any,
-	greedy bool,
+	greedy   bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {
@@ -169,9 +169,9 @@ func (b *noBatchHandler) Handle(
 }
 
 func Batch(
-	handler Handler,
+	handler   Handler,
 	configure func(Handler),
-	tags ...any,
+	tags      ...any,
 ) *promise.Promise[[]any] {
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
@@ -185,9 +185,9 @@ func Batch(
 }
 
 func BatchAsync[T any](
-	handler Handler,
+	handler   Handler,
 	configure func(Handler) *promise.Promise[T],
-	tags ...any,
+	tags      ...any,
 ) *promise.Promise[[]any] {
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
@@ -200,14 +200,14 @@ func BatchAsync[T any](
 }
 
 func BatchTag[T any](
-	handler Handler,
+	handler   Handler,
 	configure func(Handler),
 ) *promise.Promise[[]any] {
 	return Batch(handler, configure, internal.TypeOf[T]())
 }
 
 func BatchTagAsync[T any, E any](
-	handler Handler,
+	handler   Handler,
 	configure func(Handler) *promise.Promise[T],
 ) *promise.Promise[[]any] {
 	return BatchAsync(handler, configure, internal.TypeOf[E]())
