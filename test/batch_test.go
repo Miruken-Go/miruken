@@ -109,7 +109,7 @@ func (e *EmailBatcher) CompleteBatch(
 		return nil, nil, err
 	} else {
 		if promises := e.promises; len(promises) > 0 {
-			return nil, promise.Then(promise.All(promises...), func([]any) any {
+			return nil, promise.Then(promise.All(nil, promises...), func([]any) any {
 				if pr != nil {
 					if r, err = pr.Await(); err != nil {
 						panic(err)

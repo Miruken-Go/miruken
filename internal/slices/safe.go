@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 )
 
-// Safe is a slice wrapper  to provide some concurrent operations.
+// Safe is a slice wrapper to provide some concurrent operations.
 // It is optimized for reads using the copy-on-write idiom.
 type Safe[T any] struct {
 	items atomic.Pointer[[]T]

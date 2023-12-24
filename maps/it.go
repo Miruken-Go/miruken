@@ -216,7 +216,7 @@ func All[T any](
 			return t
 		}), nil
 	default:
-		return nil, promise.Then(promise.All(promises...), func([]T) []T {
+		return nil, promise.Then(promise.All(nil, promises...), func([]T) []T {
 			return t
 		}), nil
 	}

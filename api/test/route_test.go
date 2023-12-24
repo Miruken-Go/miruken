@@ -161,7 +161,7 @@ func (suite *RouteTestSuite) TestRoute() {
 						atomic.AddInt32(&counter, 1)
 						return quote
 					})
-					return promise.All(p1, p2)
+					return promise.All(nil, p1, p2)
 				})
 			results, err := pb.Await()
 			suite.Nil(err)

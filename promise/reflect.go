@@ -34,9 +34,9 @@ func (p *Promise[T]) Then(
 	res func(data any) any,
 ) *Promise[any] {
 	if res == nil {
-		panic("resolve cannot be nil")
+		panic("res cannot be nil")
 	}
-	return WithContext(p.ctx, func(resolve func(any), reject func(error)) {
+	return New(p.ctx, func(resolve func(any), reject func(error), onCancel func(func())) {
 		result, err := p.Await()
 		if err != nil {
 			reject(err)
@@ -50,9 +50,9 @@ func (p *Promise[T]) Catch(
 	rej func(err error) error,
 ) *Promise[any] {
 	if rej == nil {
-		panic("resolve cannot be nil")
+		panic("rej cannot be nil")
 	}
-	return WithContext(p.ctx, func(resolve func(any), reject func(error)) {
+	return New(p.ctx, func(resolve func(any), reject func(error), onCancel func(func())) {
 		result, err := p.Await()
 		if err != nil {
 			reject(rej(err))
@@ -67,7 +67,7 @@ func (p *Promise[T]) AwaitAny() (any, error) {
 }
 
 func (p *Promise[T]) lift(result any) {
-	p.value = result.(T)
+	p.resolve(result.(T))
 }
 
 func (p *Promise[T]) coerce(
@@ -75,6 +75,9 @@ func (p *Promise[T]) coerce(
 ) {
 	if p.ch == nil {
 		p.ch = make(chan struct{})
+	}
+	if p.ctx == nil {
+		p.ctx, p.cancel = context.WithCancel(context.Background())
 	}
 	promise.Then(func(result any) any {
 		var t T
@@ -109,7 +112,7 @@ func Lift(typ reflect.Type, result any) Reflect {
 func Coerce[T any](
 	promise Reflect,
 ) *Promise[T] {
-	return WithContext(promise.Context(), func(resolve func(T), reject func(error)) {
+	return New(promise.Context(), func(resolve func(T), reject func(error), onCancel func(func())) {
 		data, err := promise.AwaitAny()
 		if err != nil {
 			reject(err)
@@ -142,7 +145,7 @@ func Unwrap[T any](
 	if promise == nil {
 		panic("promise cannot be nil")
 	}
-	return New(func(resolve func(T), reject func(error)) {
+	return New(nil, func(resolve func(T), reject func(error), onCancel func(func())) {
 		if pt, err := promise.Await(); err != nil {
 			reject(err)
 		} else {
@@ -156,7 +159,7 @@ func Unwrap[T any](
 }
 
 func Delay(delay time.Duration) *Promise[any] {
-	return New(func(resolve func(any), _ func(error)) {
+	return New(nil, func(resolve func(any), _ func(error), onCancel func(func())) {
 		time.Sleep(delay)
 		resolve(nil)
 	})

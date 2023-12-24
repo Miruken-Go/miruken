@@ -33,7 +33,7 @@ func (f *KeySet) At(
 		}
 	}
 
-	return promise.New(func(resolve func(jwt.Keyfunc), reject func(error)) {
+	return promise.New(nil, func(resolve func(jwt.Keyfunc), reject func(error), onCancel func(func())) {
 		jwks, err := keyfunc.Get(jwksURI, getOptions)
 		if err != nil {
 			reject(err)

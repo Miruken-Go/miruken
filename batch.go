@@ -67,7 +67,7 @@ func (b *batch) Complete(
 	if len(results) == 0 {
 		return promise.Resolve([]any{})
 	}
-	return promise.All(results...)
+	return promise.All(nil, results...)
 }
 
 func (b *noBatch) CanBatch() bool {
@@ -138,7 +138,7 @@ func (b *batchHandler) Complete(
 		return results
 	} else {
 		return promise.Then(results, func(res []any) []any {
-			if _, err := promise.All(promises...).
+			if _, err := promise.All(nil, promises...).
 				Await(); err != nil {
 				panic(err)
 			}

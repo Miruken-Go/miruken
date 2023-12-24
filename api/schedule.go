@@ -56,7 +56,7 @@ func (s *Scheduler) Concurrent(
 	_ *handles.It, concurrent ConcurrentBatch,
 	composer miruken.Handler,
 ) *promise.Promise[ScheduledResult] {
-	return promise.New(func(resolve func(ScheduledResult), reject func(error)) {
+	return promise.New(nil, func(resolve func(ScheduledResult), reject func(error), onCancel func(func())) {
 		requests := concurrent.Requests
 		responses := make([]either.Monad[error, any], len(requests))
 
@@ -80,7 +80,7 @@ func (s *Scheduler) Sequential(
 	_ *handles.It, sequential SequentialBatch,
 	composer miruken.Handler,
 ) *promise.Promise[ScheduledResult] {
-	return promise.New(func(resolve func(ScheduledResult), reject func(error)) {
+	return promise.New(nil, func(resolve func(ScheduledResult), reject func(error), onCancel func(func())) {
 		requests := sequential.Requests
 		var responses []either.Monad[error, any]
 

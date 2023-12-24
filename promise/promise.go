@@ -2,6 +2,7 @@ package promise
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 )
@@ -9,39 +10,50 @@ import (
 // This code was lifted from https://github.com/chebyrash/promise and modified
 // to provide runtime support since Go Generics offer limited inspection.
 
-// Promise represents the eventual completion (or failure) of an asynchronous operation and its resulting value
-type Promise[T any] struct {
-	value T
-	err   error
-	ctx   context.Context
-	ch    chan struct{}
-	once  sync.Once
-}
+type (
+	// Promise represents the eventual completion (or failure) of an asynchronous operation and its resulting value
+	Promise[T any] struct {
+		base
+		value T
+	}
 
-func New[T any](executor func(resolve func(T), reject func(error))) *Promise[T] {
-	return WithContext[T](nil, executor)
-}
+	base struct {
+		err      error
+		ctx      context.Context
+		cancel   context.CancelFunc
+		onCancel []func()
+		ch       chan struct{}
+		once     sync.Once
+	}
+)
 
-func WithContext[T any](ctx context.Context, executor func(resolve func(T), reject func(error))) *Promise[T] {
+
+func New[T any](
+	ctx      context.Context,
+	executor func(resolve func(T), reject func(error), onCancel func(func())),
+) *Promise[T] {
 	if executor == nil {
 		panic("missing executor")
 	}
 
-	p := &Promise[T]{
-		ctx: ctx,
-		ch:  make(chan struct{}),
+	if ctx == nil {
+		ctx = context.Background()
 	}
+
+	p := &Promise[T]{}
+	p.ch = make(chan struct{})
+	p.ctx, p.cancel = context.WithCancel(ctx)
 
 	go func() {
 		defer p.handlePanic()
-		executor(p.resolve, p.reject)
+		executor(p.resolve, p.reject, p.onCancelled)
 	}()
 
 	return p
 }
 
 func Then[A, B any](p *Promise[A], resolve func(A) B) *Promise[B] {
-	return WithContext(p.ctx, func(internalResolve func(B), reject func(error)) {
+	return New(p.ctx, func(internalResolve func(B), reject func(error), onCancel func(func())) {
 		result, err := p.Await()
 		if err != nil {
 			reject(err)
@@ -52,7 +64,7 @@ func Then[A, B any](p *Promise[A], resolve func(A) B) *Promise[B] {
 }
 
 func Catch[T any](p *Promise[T], reject func(err error) error) *Promise[T] {
-	return WithContext(p.ctx, func(resolve func(T), internalReject func(error)) {
+	return New(p.ctx, func(resolve func(T), internalReject func(error), onCancel func(func())) {
 		result, err := p.Await()
 		if err != nil {
 			internalReject(reject(err))
@@ -60,6 +72,13 @@ func Catch[T any](p *Promise[T], reject func(err error) error) *Promise[T] {
 			resolve(result)
 		}
 	})
+}
+
+func (p *Promise[T]) Cancel() {
+	if cancel := p.cancel; cancel != nil {
+		cancel()
+	}
+	p.reject(CanceledError{context.Cause(p.ctx)})
 }
 
 func (p *Promise[T]) Await() (T, error) {
@@ -79,16 +98,67 @@ func (p *Promise[T]) Await() (T, error) {
 
 func (p *Promise[T]) resolve(value T) {
 	p.once.Do(func() {
-		p.value = value
-		close(p.ch)
+		cancelled := false
+		// check if the context is canceled
+		if ctx := p.ctx; ctx != nil {
+			if ctx.Err() != nil {
+				p.err = CanceledError{context.Cause(ctx)}
+				cancelled = true
+			}
+		}
+		if !cancelled {
+			p.value = value
+		}
+		if ch := p.ch; ch != nil {
+			close(ch)
+		}
+		if cancelled {
+			p.doCancel()
+		}
 	})
 }
 
 func (p *Promise[T]) reject(err error) {
 	p.once.Do(func() {
+		cancelled := false
+		var canceledError CanceledError
+		if errors.As(err, &canceledError) {
+			cancelled = true
+		}
+		if !cancelled {
+			// check if the context is canceled
+			if ctx := p.ctx; ctx != nil {
+				if ctx.Err() != nil {
+					err = CanceledError{context.Cause(ctx)}
+					cancelled = true
+				}
+			}
+		}
 		p.err = err
-		close(p.ch)
+		if ch := p.ch; ch != nil {
+			close(ch)
+		}
+		if cancelled {
+			p.doCancel()
+		}
 	})
+}
+
+func (p *Promise[T]) onCancelled(onCancel func()) {
+	if onCancel != nil {
+		p.onCancel = append(p.onCancel, onCancel)
+	}
+}
+
+func (p *Promise[T]) doCancel() {
+	for _, onCancel := range p.onCancel {
+		func() {
+			defer func() {
+				recover() // ignore any panics
+			}()
+			onCancel()
+		}()
+	}
 }
 
 func (p *Promise[T]) handlePanic() {
@@ -112,18 +182,19 @@ func Resolve[T any](value T) *Promise[T] {
 
 // Reject creates a Promise in the rejected state.
 func Reject[T any](err error) *Promise[T] {
-	return &Promise[T]{err: err}
+	return &Promise[T]{base: base{err: err}}
 }
 
 // All resolves when all promises have resolved, or rejects immediately upon any of the promises rejecting
 func All[T any](
+	ctx      context.Context,
 	promises ...*Promise[T],
 ) *Promise[[]T] {
 	if len(promises) == 0 {
 		panic("at lease one promise required")
 	}
 
-	return New(func(resolve func([]T), reject func(error)) {
+	return New(ctx, func(resolve func([]T), reject func(error), onCancel func(func())) {
 		resultsChan := make(chan tuple[T, int], len(promises))
 		errsChan := make(chan error, len(promises))
 
@@ -155,13 +226,14 @@ func All[T any](
 
 // Race resolves or rejects as soon as any one of the promises resolves or rejects
 func Race[T any](
+	ctx      context.Context,
 	promises ...*Promise[T],
 ) *Promise[T] {
 	if len(promises) == 0 {
 		panic("missing promises")
 	}
 
-	return New(func(resolve func(T), reject func(error)) {
+	return New(ctx, func(resolve func(T), reject func(error), onCancel func(func())) {
 		valsChan := make(chan T, len(promises))
 		errsChan := make(chan error, len(promises))
 

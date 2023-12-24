@@ -70,7 +70,7 @@ func (r *Router) Route(
 	  }, options Options,
 	ctx miruken.HandleContext,
 ) *promise.Promise[any] {
-	return promise.New(func(resolve func(any), reject func(error)) {
+	return promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		uri, err := r.resourceUri(routed, &options, &ctx)
 		if err != nil {
 			reject(fmt.Errorf("http router: %w", err))

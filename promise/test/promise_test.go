@@ -14,14 +14,14 @@ import (
 var errExpected = errors.New("expected error")
 
 func TestNew(t *testing.T) {
-	p := promise.New(func(resolve func(any), reject func(error)) {
+	p := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		resolve(nil)
 	})
 	require.NotNil(t, p)
 }
 
 func TestPromise_Then(t *testing.T) {
-	p1 := promise.New(func(resolve func(string), reject func(error)) {
+	p1 := promise.New(nil, func(resolve func(string), reject func(error), onCancel func(func())) {
 		resolve("Hello, ")
 	})
 	p2 := promise.Then(p1, func(data string) string {
@@ -40,7 +40,7 @@ func TestPromise_Then(t *testing.T) {
 }
 
 func TestPromise_Catch(t *testing.T) {
-	p1 := promise.New(func(resolve func(any), reject func(error)) {
+	p1 := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		reject(errExpected)
 	})
 	p2 := promise.Then(p1, func(data any) any {
@@ -57,10 +57,10 @@ func TestPromise_Catch(t *testing.T) {
 }
 
 func TestPromise_Panic(t *testing.T) {
-	p1 := promise.New(func(resolve func(any), reject func(error)) {
+	p1 := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		panic("random error")
 	})
-	p2 := promise.New(func(resolve func(any), reject func(error)) {
+	p2 := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		panic(errExpected)
 	})
 
@@ -76,17 +76,17 @@ func TestPromise_Panic(t *testing.T) {
 }
 
 func TestAll_Happy(t *testing.T) {
-	p1 := promise.New(func(resolve func(string), reject func(error)) {
+	p1 := promise.New(nil, func(resolve func(string), reject func(error), onCancel func(func())) {
 		resolve("one")
 	})
-	p2 := promise.New(func(resolve func(string), reject func(error)) {
+	p2 := promise.New(nil, func(resolve func(string), reject func(error), onCancel func(func())) {
 		resolve("two")
 	})
-	p3 := promise.New(func(resolve func(string), reject func(error)) {
+	p3 := promise.New(nil, func(resolve func(string), reject func(error), onCancel func(func())) {
 		resolve("three")
 	})
 
-	p := promise.All(p1, p2, p3)
+	p := promise.All(nil, p1, p2, p3)
 
 	val, err := p.Await()
 	require.NoError(t, err)
@@ -95,17 +95,17 @@ func TestAll_Happy(t *testing.T) {
 }
 
 func TestAll_ContainsRejected(t *testing.T) {
-	p1 := promise.New(func(resolve func(string), reject func(error)) {
+	p1 := promise.New(nil, func(resolve func(string), reject func(error), onCancel func(func())) {
 		resolve("one")
 	})
-	p2 := promise.New(func(resolve func(string), reject func(error)) {
+	p2 := promise.New(nil, func(resolve func(string), reject func(error), onCancel func(func())) {
 		reject(errExpected)
 	})
-	p3 := promise.New(func(resolve func(string), reject func(error)) {
+	p3 := promise.New(nil, func(resolve func(string), reject func(error), onCancel func(func())) {
 		resolve("three")
 	})
 
-	p := promise.All(p1, p2, p3)
+	p := promise.All(nil, p1, p2, p3)
 
 	val, err := p.Await()
 	require.Error(t, err)
@@ -114,17 +114,17 @@ func TestAll_ContainsRejected(t *testing.T) {
 }
 
 func TestAll_OnlyRejected(t *testing.T) {
-	p1 := promise.New(func(resolve func(any), reject func(error)) {
+	p1 := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		reject(errExpected)
 	})
-	p2 := promise.New(func(resolve func(any), reject func(error)) {
+	p2 := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		reject(errExpected)
 	})
-	p3 := promise.New(func(resolve func(any), reject func(error)) {
+	p3 := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		reject(errExpected)
 	})
 
-	p := promise.All(p1, p2, p3)
+	p := promise.All(nil, p1, p2, p3)
 
 	val, err := p.Await()
 	require.Error(t, err)
@@ -133,16 +133,16 @@ func TestAll_OnlyRejected(t *testing.T) {
 }
 
 func TestRace_Happy(t *testing.T) {
-	p1 := promise.New(func(resolve func(string), reject func(error)) {
+	p1 := promise.New(nil, func(resolve func(string), reject func(error), onCancel func(func())) {
 		time.Sleep(time.Millisecond * 100)
 		resolve("faster")
 	})
-	p2 := promise.New(func(resolve func(string), reject func(error)) {
+	p2 := promise.New(nil, func(resolve func(string), reject func(error), onCancel func(func())) {
 		time.Sleep(time.Millisecond * 500)
 		resolve("slower")
 	})
 
-	p := promise.Race(p1, p2)
+	p := promise.Race(nil, p1, p2)
 
 	val, err := p.Await()
 	require.NoError(t, err)
@@ -151,15 +151,15 @@ func TestRace_Happy(t *testing.T) {
 }
 
 func TestRace_ContainsRejected(t *testing.T) {
-	p1 := promise.New(func(resolve func(any), reject func(error)) {
+	p1 := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		time.Sleep(time.Millisecond * 100)
 		resolve(nil)
 	})
-	p2 := promise.New(func(resolve func(any), reject func(error)) {
+	p2 := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		reject(errExpected)
 	})
 
-	p := promise.Race(p1, p2)
+	p := promise.Race(nil, p1, p2)
 
 	val, err := p.Await()
 	require.Error(t, err)
@@ -168,14 +168,14 @@ func TestRace_ContainsRejected(t *testing.T) {
 }
 
 func TestRace_OnlyRejected(t *testing.T) {
-	p1 := promise.New(func(resolve func(any), reject func(error)) {
+	p1 := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		reject(errExpected)
 	})
-	p2 := promise.New(func(resolve func(any), reject func(error)) {
+	p2 := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		reject(errExpected)
 	})
 
-	p := promise.Race(p1, p2)
+	p := promise.Race(nil, p1, p2)
 
 	val, err := p.Await()
 	require.Error(t, err)
@@ -183,10 +183,22 @@ func TestRace_OnlyRejected(t *testing.T) {
 	require.Nil(t, val)
 }
 
-func TestPromise_Cancel(t *testing.T) {
+func TestPromise_CancelContext(t *testing.T) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Minute*10))
-	p1 := promise.WithContext(ctx, func(resolve func(any), reject func(error)) {})
+	p1 := promise.New(ctx, func(resolve func(any), reject func(error), onCancel func(func())) {})
 	cancel()
+
+	val, err := p1.Await()
+	require.Error(t, err)
+	var canceled promise.CanceledError
+	require.ErrorAs(t, err, &canceled)
+	require.Equal(t, context.Canceled, canceled.Cause())
+	require.Nil(t, val)
+}
+
+func TestPromise_Cancel(t *testing.T) {
+	p1 := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {})
+	p1.Cancel()
 
 	val, err := p1.Await()
 	require.Error(t, err)
@@ -198,7 +210,7 @@ func TestPromise_Cancel(t *testing.T) {
 
 func TestPromise_Foo(t *testing.T) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Minute*10))
-	p1 := promise.WithContext(ctx, func(resolve func(any), reject func(error)) {
+	p1 := promise.New(ctx, func(resolve func(any), reject func(error), onCancel func(func())) {
 		resolve("craig")
 	})
 	val, err := p1.Await()
@@ -213,11 +225,11 @@ func TestPromise_Foo(t *testing.T) {
 }
 
 func TestPromise_Timeout(t *testing.T) {
-	p1 := promise.New(func(resolve func(any), reject func(error)) {
+	p1 := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		resolve("Hello")
 	})
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*10)
-	p2 := promise.WithContext(ctx, func(resolve func(any), reject func(error)) {})
+	p2 := promise.New(ctx, func(resolve func(any), reject func(error), onCancel func(func())) {})
 	defer cancel()
 
 	val, err := p1.Await()

@@ -117,7 +117,7 @@ func (c *CallbackBase) Result(
 				return c.ensureResult(many, true)
 			})
 		default:
-			return nil, promise.All(c.promises...).
+			return nil, promise.All(nil, c.promises...).
 				Then(func(any) any {
 					return c.ensureResult(many, true)
 				})

@@ -63,7 +63,7 @@ func (c *Context) Login(
 		return promise.Reject[security.Subject](Error{err})
 	}
 
-	return promise.New(func(resolve func(security.Subject), reject func(error)) {
+	return promise.New(nil, func(resolve func(security.Subject), reject func(error), onCancel func(func())) {
 		subject := security.NewSubject()
 		for i, mod := range c.modules {
 			err := mod.Login(subject, handler)
@@ -90,7 +90,7 @@ func (c *Context) Logout(
 		return promise.Reject[security.Subject](
 			Error{errors.New("login must succeed first")})
 	}
-	return promise.New(func(resolve func(security.Subject), reject func(error)) {
+	return promise.New(nil, func(resolve func(security.Subject), reject func(error), onCancel func(func())) {
 		for _, mod := range c.modules {
 			err := mod.Logout(subject, handler)
 			if err != nil {

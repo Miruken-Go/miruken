@@ -11,26 +11,26 @@ import (
 )
 
 func TestPromise_UnderlyingType(t *testing.T) {
-	p1 := promise.New(func(resolve func(string), reject func(error)) {
+	p1 := promise.New(nil, func(resolve func(string), reject func(error), onCancel func(func())) {
 		resolve("Hello")
 	})
 	require.Equal(t, reflect.TypeOf(""), p1.UnderlyingType())
 
-	p2 := promise.New(func(resolve func(int), reject func(error)) {
+	p2 := promise.New(nil, func(resolve func(int), reject func(error), onCancel func(func())) {
 		resolve(22)
 	})
 	require.Equal(t, reflect.TypeOf(1), p2.UnderlyingType())
 }
 
 func TestInspect(t *testing.T) {
-	p1 := promise.New(func(resolve func(string), reject func(error)) {
+	p1 := promise.New(nil, func(resolve func(string), reject func(error), onCancel func(func())) {
 		resolve("Hello")
 	})
 	ut, ok := promise.Inspect(reflect.TypeOf(p1))
 	require.True(t, ok)
 	require.Equal(t, reflect.TypeOf(""), ut)
 
-	p2 := promise.New(func(resolve func(int), reject func(error)) {
+	p2 := promise.New(nil, func(resolve func(int), reject func(error), onCancel func(func())) {
 		resolve(22)
 	})
 	ut, ok = promise.Inspect(reflect.TypeOf(p2))
@@ -48,7 +48,7 @@ func TestLift(t *testing.T) {
 }
 
 func TestCoerce(t *testing.T) {
-	p := promise.New(func(resolve func(any), reject func(error)) {
+	p := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		resolve("Hello")
 	})
 	pc := promise.Coerce[string](p)
@@ -57,7 +57,7 @@ func TestCoerce(t *testing.T) {
 }
 
 func TestCoerce_Fail(t *testing.T) {
-	p := promise.New(func(resolve func(any), reject func(error)) {
+	p := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		resolve(22)
 	})
 	pc := promise.Coerce[string](p)
@@ -69,7 +69,7 @@ func TestCoerce_Fail(t *testing.T) {
 }
 
 func TestCoerceType(t *testing.T) {
-	p := promise.New(func(resolve func(any), reject func(error)) {
+	p := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		resolve("Hello")
 	})
 	var ps *promise.Promise[string]
@@ -79,7 +79,7 @@ func TestCoerceType(t *testing.T) {
 }
 
 func TestCoerceType_Fail(t *testing.T) {
-	p := promise.New(func(resolve func(any), reject func(error)) {
+	p := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		resolve(22)
 	})
 	var ps *promise.Promise[string]
@@ -91,7 +91,7 @@ func TestCoerceType_Fail(t *testing.T) {
 }
 
 func TestUnwrap_Resolve(t *testing.T) {
-	p1 := promise.New(func(resolve func(string), reject func(error)) {
+	p1 := promise.New(nil, func(resolve func(string), reject func(error), onCancel func(func())) {
 		resolve("Hello")
 	})
 	p2 := promise.Unwrap(promise.Then(p1,
@@ -104,7 +104,7 @@ func TestUnwrap_Resolve(t *testing.T) {
 }
 
 func TestUnwrap_Reject(t *testing.T) {
-	p1 := promise.New(func(resolve func(string), reject func(error)) {
+	p1 := promise.New(nil, func(resolve func(string), reject func(error), onCancel func(func())) {
 		resolve("Hello")
 	})
 	p2 := promise.Unwrap(promise.Then(p1,

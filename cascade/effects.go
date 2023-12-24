@@ -84,7 +84,7 @@ func (c *Callbacks) Apply(
 	case 1:
 		return promises[0], nil
 	default:
-		return promise.All(promises...), nil
+		return promise.All(nil, promises...), nil
 	}
 }
 
@@ -134,7 +134,7 @@ func (m *Messages) Apply(
 	case 1:
 		return promises[0], nil
 	default:
-		return promise.All(promises...), nil
+		return promise.All(nil, promises...), nil
 	}
 }
 

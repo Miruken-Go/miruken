@@ -436,7 +436,7 @@ func processSideEffects(
 		}
 		return nil, promise.Then(x, func(any) []any { return out }), nil
 	default:
-		x := promise.All(ps...)
+		x := promise.All(nil, ps...)
 		if await {
 			if _, err := x.Await(); err != nil {
 				return nil, nil, err

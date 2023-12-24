@@ -21,9 +21,8 @@ func (d Deferred[T]) Reject(err error) {
 
 // Defer creates a Deferred computation.
 func Defer[T any]() Deferred[T] {
-	p := &Promise[T]{
-		ch: make(chan struct{}),
-	}
+	p := &Promise[T]{}
+	p.ch = make(chan struct{})
 	return Deferred[T]{p}
 }
 
