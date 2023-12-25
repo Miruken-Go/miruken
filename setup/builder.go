@@ -2,11 +2,11 @@ package setup
 
 import (
 	"container/list"
-
 	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/internal"
+	"github.com/miruken-go/miruken/promise"
 )
 
 // Builder orchestrates the setup process.
@@ -122,6 +122,36 @@ func (s *Builder) Tag(tag any) bool {
 }
 
 func (s *Builder) Context() (*context.Context, error) {
+	ctx, err := s.build()
+	if err != nil {
+		return nil, err
+	}
+	b, _, ok, err := miruken.Resolve[*bootstrapper](ctx)
+	if ok {
+		if _, err = b.bootstrap().Await(); err != nil {
+			return nil, err
+		}
+	}
+	return ctx, err
+}
+
+func (s *Builder) ContextAsync() *promise.Promise[*context.Context] {
+	ctx, err := s.build()
+	if err != nil {
+		return promise.Reject[*context.Context](err)
+	}
+	b, _, ok, err := miruken.Resolve[*bootstrapper](ctx)
+	if ok {
+		return promise.Then(b.bootstrap(), func(struct{}) *context.Context {
+			return ctx
+		})
+	} else if err != nil {
+		return promise.Reject[*context.Context](err)
+	}
+	return promise.Resolve(ctx)
+}
+
+func (s *Builder) build() (*context.Context, error) {
 	buildErrors := s.installGraph(s.features)
 
 	var factory miruken.HandlerInfoFactory
@@ -138,26 +168,25 @@ func (s *Builder) Context() (*context.Context, error) {
 
 	var handler miruken.Handler = &miruken.CurrentHandlerInfoFactoryProvider{Factory: factory}
 
-	if specs := s.specs; len(specs) > 0 {
-		hs := make([]miruken.HandlerSpec, 0, len(specs))
-		exclude, noInfer := s.exclude, s.noInfer
-		for _, spec := range specs {
-			h := factory.Spec(spec)
-			if h == nil || (exclude != nil && exclude(h)) {
-				continue
-			}
-			if noInfer {
-				if _, _, err := factory.Register(spec); err != nil {
-					panic(err)
-				}
-			} else {
-				hs = append(hs, h)
-			}
+	specs := append(s.specs, &bootstrapper{})
+	hs := make([]miruken.HandlerSpec, 0, len(specs))
+	exclude, noInfer := s.exclude, s.noInfer
+	for _, spec := range specs {
+		h := factory.Spec(spec)
+		if h == nil || (exclude != nil && exclude(h)) {
+			continue
 		}
+		if noInfer {
+			if _, _, err := factory.Register(spec); err != nil {
+				panic(err)
+			}
+		} else {
+			hs = append(hs, h)
+		}
+	}
 
-		if len(hs) > 0 {
-			handler = miruken.AddHandlers(handler, miruken.NewInferenceHandler(factory, hs))
-		}
+	if len(hs) > 0 {
+		handler = miruken.AddHandlers(handler, miruken.NewInferenceHandler(factory, hs))
 	}
 
 	// Context overrides

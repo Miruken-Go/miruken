@@ -2,7 +2,6 @@ package promise
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 )
@@ -46,7 +45,11 @@ func New[T any](
 
 	go func() {
 		defer p.handlePanic()
-		executor(p.resolve, p.reject, p.onCancelled)
+		executor(p.resolve, p.reject, func(onCancel func()) {
+			if onCancel != nil {
+				p.onCancel = append(p.onCancel, onCancel)
+			}
+		})
 	}()
 
 	return p
@@ -75,18 +78,16 @@ func Catch[T any](p *Promise[T], reject func(err error) error) *Promise[T] {
 }
 
 func (p *Promise[T]) Cancel() {
-	if cancel := p.cancel; cancel != nil {
-		cancel()
-	}
-	p.reject(CanceledError{context.Cause(p.ctx)})
+	p.once.Do(func() {
+		p.doCancel()
+	})
 }
 
 func (p *Promise[T]) Await() (T, error) {
 	if ch := p.ch; ch != nil {
 		if ctx := p.ctx; ctx != nil {
 			select {
-			case <-ctx.Done():
-				p.reject(CanceledError{context.Cause(ctx)})
+			case <-ctx.Done(): p.Cancel()
 			case <-ch:
 			}
 		} else {
@@ -98,59 +99,42 @@ func (p *Promise[T]) Await() (T, error) {
 
 func (p *Promise[T]) resolve(value T) {
 	p.once.Do(func() {
-		cancelled := false
 		// check if the context is canceled
 		if ctx := p.ctx; ctx != nil {
 			if ctx.Err() != nil {
-				p.err = CanceledError{context.Cause(ctx)}
-				cancelled = true
+				p.doCancel()
+				return
 			}
 		}
-		if !cancelled {
-			p.value = value
-		}
+		p.value = value
 		if ch := p.ch; ch != nil {
 			close(ch)
-		}
-		if cancelled {
-			p.doCancel()
 		}
 	})
 }
 
 func (p *Promise[T]) reject(err error) {
 	p.once.Do(func() {
-		cancelled := false
-		var canceledError CanceledError
-		if errors.As(err, &canceledError) {
-			cancelled = true
-		}
-		if !cancelled {
-			// check if the context is canceled
-			if ctx := p.ctx; ctx != nil {
-				if ctx.Err() != nil {
-					err = CanceledError{context.Cause(ctx)}
-					cancelled = true
-				}
+		// check if the context is canceled
+		if ctx := p.ctx; ctx != nil {
+			if ctx.Err() != nil {
+				p.doCancel()
+				return
 			}
 		}
 		p.err = err
 		if ch := p.ch; ch != nil {
 			close(ch)
 		}
-		if cancelled {
-			p.doCancel()
-		}
 	})
 }
 
-func (p *Promise[T]) onCancelled(onCancel func()) {
-	if onCancel != nil {
-		p.onCancel = append(p.onCancel, onCancel)
-	}
-}
-
 func (p *Promise[T]) doCancel() {
+	p.cancel()
+	p.err = CanceledError{context.Cause(p.ctx)}
+	if ch := p.ch; ch != nil {
+		close(ch)
+	}
 	for _, onCancel := range p.onCancel {
 		func() {
 			defer func() {

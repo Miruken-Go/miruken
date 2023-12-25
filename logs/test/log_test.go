@@ -48,7 +48,7 @@ func (s *Service) LongCommand(
 ) *promise.Promise[LongCommand] {
 	duration := time.Duration(cmd) * time.Millisecond
 	logger.Info("executed long command", "duration", duration)
-	_, _ = promise.Delay(duration).Await()
+	_, _ = promise.Delay(nil, duration).Await()
 	return promise.Resolve(cmd + 1)
 }
 

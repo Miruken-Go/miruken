@@ -198,7 +198,7 @@ func (p *SimpleAsyncProvider) ProvideFoo(
 	*provides.It,
 ) *promise.Promise[*Foo] {
 	p.foo.Inc()
-	return promise.Then(promise.Delay(5*time.Millisecond),
+	return promise.Then(promise.Delay(nil, 5*time.Millisecond),
 		func(any) *Foo { return &p.foo })
 }
 
@@ -214,7 +214,7 @@ func (p *ComplexAsyncProvider) Constructor(
 	},
 ) *promise.Promise[any] {
 	return promise.Then(
-		promise.Delay(2*time.Millisecond),
+		promise.Delay(nil, 2*time.Millisecond),
 		func(any) any {
 			p.bar.Inc()
 			return nil
@@ -247,7 +247,7 @@ func (p *AsyncArgProvider) Constructor(
 ) *promise.Promise[any] {
 	p.cp = cp
 	p.foo = foo
-	return promise.Delay(1 * time.Millisecond)
+	return promise.Delay(nil, 1 * time.Millisecond)
 }
 
 func (p *AsyncArgProvider) Init() {
@@ -256,14 +256,14 @@ func (p *AsyncArgProvider) Init() {
 
 func (p *AsyncArgProvider) InitAsync() *promise.Promise[any] {
 	p.foo.Inc()
-	return promise.Delay(1 * time.Millisecond)
+	return promise.Delay(nil, 1 * time.Millisecond)
 }
 
 func (p *AsyncArgProvider) ExplicitInit(
 	_ provides.Init,
 ) *promise.Promise[any] {
 	p.foo.Inc()
-	return promise.Delay(1 * time.Millisecond)
+	return promise.Delay(nil, 1 * time.Millisecond)
 }
 
 func (p *AsyncArgProvider) ProvideBar(

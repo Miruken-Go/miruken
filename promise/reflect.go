@@ -158,8 +158,11 @@ func Unwrap[T any](
 	})
 }
 
-func Delay(delay time.Duration) *Promise[any] {
-	return New(nil, func(resolve func(any), _ func(error), onCancel func(func())) {
+func Delay(
+	ctx   context.Context,
+	delay time.Duration,
+) *Promise[any] {
+	return New(ctx, func(resolve func(any), _ func(error), onCancel func(func())) {
 		time.Sleep(delay)
 		resolve(nil)
 	})

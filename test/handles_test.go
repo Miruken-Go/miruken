@@ -349,7 +349,7 @@ func (h *SimpleAsyncHandler) HandleBar(
 ) *promise.Promise[*Bar] {
 	bar.Inc()
 	return promise.Then(
-		promise.Delay(time.Duration(bar.Count())*time.Millisecond),
+		promise.Delay(nil, time.Duration(bar.Count())*time.Millisecond),
 		func(any) *Bar { return bar })
 }
 
