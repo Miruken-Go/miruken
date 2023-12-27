@@ -124,11 +124,9 @@ func (f *funcCall) resolveArgs(
 	case 0:
 		return resolved, nil, nil
 	case 1:
-		return nil, promise.Then(promises[0],
-			func(struct{}) []reflect.Value { return resolved }), nil
+		return nil, promise.Return(promises[0], resolved), nil
 	default:
-		return nil, promise.Then(promise.All(nil, promises...),
-			func([]struct{}) []reflect.Value { return resolved }), nil
+		return nil, promise.Return(promise.All(nil, promises...), resolved), nil
 	}
 }
 

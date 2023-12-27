@@ -22,13 +22,8 @@ type (
 	// All Bootstrap instances are resolved during New setup and Startup
 	// invoked concurrently.  Shutdown is invoked in reverse order.
 	Bootstrap interface {
-		Startup(
-			ctx context.Context,
-		) *promise.Promise[struct{}]
-
-		Shutdown(
-			ctx context.Context,
-		) *promise.Promise[struct{}]
+		Startup(ctx context.Context) *promise.Promise[struct{}]
+		Shutdown(ctx context.Context) *promise.Promise[struct{}]
 	}
 
 	bootstrapper struct {
@@ -39,8 +34,14 @@ type (
 
 
 func (b *bootstrapper) Constructor(
-	_ *struct {provides.It; context2.Scoped},
-	_ *struct{ args.Optional }, options Options,
+	_ *struct {
+		provides.It
+		context2.Scoped
+	  },
+	_ *struct {
+		args.Optional
+		args.FromOptions
+	  }, options Options,
 	bootstraps []Bootstrap,
 ) {
 	b.options    = options
@@ -58,15 +59,11 @@ func (b *bootstrapper) bootstrap() *promise.Promise[struct{}] {
 		for i, bootstrap := range bootstraps {
 			promises[i] = bootstrap.Startup(ctx)
 		}
-		return promise.Then(promise.All(ctx, promises...), func([]struct{}) struct{} {
-			if cancel != nil {
-				cancel()
-			}
-			return struct{}{}
-		})
+		return promise.Erase(promise.All(ctx, promises...)).OnCancel(cancel)
 	}
 	return promise.Resolve(struct{}{})
 }
+
 
 func (b *bootstrapper) Dispose() {
 	if bootstraps := b.bootstraps; len(bootstraps) > 0 {

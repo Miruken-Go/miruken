@@ -248,9 +248,7 @@ func ResolveAll[T any](
 		err = result.Error()
 	} else if result.handled {
 		if _, pr := p.Result(true); pr != nil {
-			tp = promise.Then(pr, func(any) []T {
-				return t
-			})
+			tp = promise.IndirectReturn(pr, &t)
 		}
 	}
 	return

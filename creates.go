@@ -113,9 +113,7 @@ func CreateAll[T any](
 		err = result.Error()
 	} else if result.handled {
 		if _, p := creates.Result(true); p != nil {
-			tp = promise.Then(p, func(any) []T {
-				return t
-			})
+			tp = promise.Return(p, t)
 		}
 	}
 	return

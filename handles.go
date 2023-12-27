@@ -138,9 +138,7 @@ func Execute[T any](
 	} else if !result.Handled() {
 		err = &NotHandledError{callback}
 	} else if _, p := handles.Result(false); p != nil {
-		tp = promise.Then(p, func(any) T {
-			return t
-		})
+		tp = promise.IndirectReturn(p, &t)
 	}
 	return
 }
@@ -189,9 +187,7 @@ func ExecuteAll[T any](
 	} else if !result.Handled() {
 		err = &NotHandledError{Callback: callback}
 	} else if _, p := handles.Result(true); p != nil {
-		tp = promise.Then(p, func(any) []T {
-			return t
-		})
+		tp = promise.IndirectReturn(p, &t)
 	}
 	return
 }

@@ -158,13 +158,36 @@ func Unwrap[T any](
 	})
 }
 
-func Delay(
+func Return[A, B any](p *Promise[A], val B) *Promise[B] {
+	return Then(p, func(A) B {
+		return val
+	})
+}
+
+func IndirectReturn[A, B any](p *Promise[A], val *B) *Promise[B] {
+	return Then(p, func(A) B {
+		return *val
+	})
+}
+
+func Slice[A any](p *Promise[A]) *Promise[[]A] {
+	return Then(p, func(a A) []A {
+		return []A{a}
+	})
+}
+
+func Erase[A any](p *Promise[A]) *Promise[struct{}] {
+	return Return(p, struct{}{})
+}
+
+func Delay[T any](
 	ctx   context.Context,
 	delay time.Duration,
-) *Promise[any] {
-	return New(ctx, func(resolve func(any), _ func(error), onCancel func(func())) {
+) *Promise[T] {
+	return New(ctx, func(resolve func(T), _ func(error), onCancel func(func())) {
 		time.Sleep(delay)
-		resolve(nil)
+		var t T
+		resolve(t)
 	})
 }
 

@@ -119,9 +119,7 @@ func (n Next) Handle(
 		return nil, nil, &NotHandledError{callback}
 	} else {
 		if r, pr := cb.Result(greedy); pr != nil {
-			return nil, promise.Then(pr, func(data any) []any {
-				return []any{data}
-			}), nil
+			return nil, promise.Slice(pr), nil
 		} else {
 			return []any{r}, nil, nil
 		}

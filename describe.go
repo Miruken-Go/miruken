@@ -434,7 +434,7 @@ func processSideEffects(
 			}
 			return out, nil, nil
 		}
-		return nil, promise.Then(x, func(any) []any { return out }), nil
+		return nil, promise.Return(x, out), nil
 	default:
 		x := promise.All(nil, ps...)
 		if await {
@@ -443,7 +443,7 @@ func processSideEffects(
 			}
 			return out, nil, nil
 		}
-		return nil, promise.Then(x, func([]any) []any { return out }), nil
+		return nil, promise.Return(x, out), nil
 	}
 }
 

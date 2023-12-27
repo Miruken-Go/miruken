@@ -42,9 +42,7 @@ func (i *initializer) Next(
 		pout, err = i.construct(ctx, out[0])
 		if err == nil && pout != nil {
 			// asynchronous constructor so wait for completion
-			pout = promise.Then(pout, func([]any) []any {
-				return out
-			})
+			pout = promise.Return(pout, out)
 		}
 	}
 	return

@@ -53,7 +53,10 @@ func (b *FlowBuilder) Scheme(scheme Scheme) *Authentication {
 }
 
 func (a *Authentication) Constructor(
-	_ *struct{ args.Optional }, options Options,
+	_ *struct {
+		args.Optional
+		args.FromOptions
+	  }, options Options,
 ) {
 	a.options = options
 }

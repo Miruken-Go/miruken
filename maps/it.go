@@ -114,9 +114,7 @@ func Out[T any](
 	} else if !result.Handled() {
 		err = &miruken.NotHandledError{Callback: m}
 	} else if _, p := m.Result(false); p != nil {
-		tp = promise.Then(p, func(any) T {
-			return t
-		})
+		tp = promise.IndirectReturn(p, &t)
 	}
 	return
 }
@@ -170,9 +168,7 @@ func Key[T any](
 	} else if !result.Handled() {
 		err = &miruken.NotHandledError{Callback: m}
 	} else if _, p := m.Result(false); p != nil {
-		tp = promise.Then(p, func(any) T {
-			return t
-		})
+		tp = promise.IndirectReturn(p, &t)
 	}
 	return
 }
@@ -212,13 +208,9 @@ func All[T any](
 	case 0:
 		return
 	case 1:
-		return nil, promise.Then(promises[0], func(T) []T {
-			return t
-		}), nil
+		return nil, promise.Return(promises[0], t), nil
 	default:
-		return nil, promise.Then(promise.All(nil, promises...), func([]T) []T {
-			return t
-		}), nil
+		return nil, promise.Return(promise.All(nil, promises...), t), nil
 	}
 }
 

@@ -45,10 +45,8 @@ func New[T any](
 
 	go func() {
 		defer p.handlePanic()
-		executor(p.resolve, p.reject, func(onCancel func()) {
-			if onCancel != nil {
-				p.onCancel = append(p.onCancel, onCancel)
-			}
+		executor(p.resolve, p.reject, func(f func()) {
+			p.OnCancel(f)
 		})
 	}()
 
@@ -75,6 +73,13 @@ func Catch[T any](p *Promise[T], reject func(err error) error) *Promise[T] {
 			resolve(result)
 		}
 	})
+}
+
+func (p *Promise[T]) OnCancel(fun func()) *Promise[T] {
+	if fun != nil {
+		p.onCancel = append(p.onCancel, fun)
+	}
+	return p
 }
 
 func (p *Promise[T]) Cancel() {

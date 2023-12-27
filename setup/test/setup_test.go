@@ -65,19 +65,13 @@ type MyBootstrap struct {
 func (b *MyBootstrap) Startup(
 	ctx context.Context,
 ) *promise.Promise[struct{}] {
-	return promise.Then(promise.Delay(ctx, 5*time.Millisecond),
-		func(any) struct {} {
-			return struct{}{}
-		})
+	return promise.Delay[struct {}](ctx, 5*time.Millisecond)
 }
 
 func (b *MyBootstrap) Shutdown(
 	ctx context.Context,
 ) *promise.Promise[struct{}] {
-	return promise.Then(promise.Delay(ctx, 5*time.Millisecond),
-		func(any) struct {} {
-			return struct{}{}
-		})
+	return promise.Delay[struct {}](ctx, 5*time.Millisecond)
 }
 
 
@@ -225,6 +219,38 @@ func (suite *SetupTestSuite) TestSetup() {
 		installer := BadInstaller{}
 		_, err := setup.New(installer).Context()
 		suite.Equal("2 errors occurred:\n\t* insufficient resources\n\t* process failed to start\n\n", err.Error())
+	})
+
+	suite.Run("Bootstrap", func() {
+		suite.Run("Startup Timeout", func() {
+			ctx, err := setup.New(TestFeature).
+				Options(setup.Options{StartupTimeout: time.Millisecond}).
+				Context()
+			suite.Nil(ctx)
+			var canceled promise.CanceledError
+			suite.ErrorAs(err, &canceled)
+			suite.Equal(context.DeadlineExceeded, canceled.Cause())
+		})
+
+		suite.Run("Shutdown Timeout", func() {
+			defer func() {
+				if r := recover(); r != nil {
+					if err, ok := r.(error); ok {
+						var canceled promise.CanceledError
+						suite.ErrorAs(err, &canceled)
+						suite.Equal(context.DeadlineExceeded, canceled.Cause())
+						return
+					}
+				}
+				suite.Fail("Expected canceled promise with deadline exceeded")
+			}()
+
+			ctx, err := setup.New(TestFeature).
+				Options(setup.Options{ShutdownTimeout: time.Millisecond}).
+				Context()
+			defer ctx.End(nil)
+			suite.Nil(err)
+		})
 	})
 }
 

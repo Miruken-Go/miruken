@@ -142,9 +142,7 @@ func (s *Builder) ContextAsync() *promise.Promise[*context.Context] {
 	}
 	b, _, ok, err := miruken.Resolve[*bootstrapper](ctx)
 	if ok {
-		return promise.Then(b.bootstrap(), func(struct{}) *context.Context {
-			return ctx
-		})
+		return promise.Return(b.bootstrap(), ctx)
 	} else if err != nil {
 		return promise.Reject[*context.Context](err)
 	}
