@@ -38,3 +38,10 @@ func New(
 	}
 }
 
+// ListenAndServe creates and starts a http.Server with the provided configuration.
+func ListenAndServe(
+	handler http.Handler,
+	config  *Config,
+) error {
+	return New(handler, nil).ListenAndServe()
+}
