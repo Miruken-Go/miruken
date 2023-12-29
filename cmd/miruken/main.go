@@ -44,7 +44,7 @@ func main() {
 		"Context", "Provider", "Consumer", "Receiver",
 		"Controller", "Manager", "Mapper", "Factory",
 		"Filter", "Validator", "Integrity", "Service",
-		"Policy",
+		"Policy", "Bootstrap",
 	}
 
 	if suffixFlag == "*" {

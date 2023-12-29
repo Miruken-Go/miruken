@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-//go:generate $GOPATH/bin/miruken -tests -suffix +Bootstrap
+//go:generate $GOPATH/bin/miruken -tests
 
 type (
 	Foo struct{}
