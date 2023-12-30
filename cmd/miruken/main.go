@@ -41,10 +41,10 @@ func main() {
 	outFile := strings.TrimSuffix(outputFlag, ".go")
 
 	suffixes := []string{
-		"Context", "Provider", "Consumer", "Receiver",
+		"Handler", "Provider", "Consumer", "Receiver",
 		"Controller", "Manager", "Mapper", "Factory",
 		"Filter", "Validator", "Integrity", "Service",
-		"Policy", "Bootstrap",
+		"Policy", "Gateway", "Bootstrap",
 	}
 
 	if suffixFlag == "*" {
@@ -119,6 +119,7 @@ func parseDir(
 		panic(err)
 	}
 	for _, pkg := range pkgs {
+
 		var buf, typBuf bytes.Buffer
 
 		// Types
