@@ -10,7 +10,6 @@ import (
 	"github.com/miruken-go/miruken/api/http/httpsrv"
 	"github.com/miruken-go/miruken/api/http/httpsrv/auth"
 	"github.com/miruken-go/miruken/context"
-	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/security"
 	"github.com/miruken-go/miruken/security/login"
 	"github.com/miruken-go/miruken/security/password"
@@ -32,8 +31,8 @@ func (suite *MiddlewareTestSuite) TestHandler() {
 	suite.Run("Authorize", func() {
 		handler := httpsrv.Use(suite.Setup(),
 			func(w http.ResponseWriter, r *http.Request, sub security.Subject) {
-				user := slices.OfType[security.Principal, principal.User](sub.Principals())
-				_, _ = fmt.Fprintf(w, "Hello %s", user[0])
+				user, _ := principal.First[principal.User](sub)
+				_, _ = fmt.Fprintf(w, "Hello %s", user)
 			}, auth.WithFlow([]login.ModuleEntry{
 				{Module: "login.pwd", Options: map[string]any{
 					"credentials": map[string]any{
@@ -55,8 +54,8 @@ func (suite *MiddlewareTestSuite) TestHandler() {
 	suite.Run("Anonymous", func() {
 		handler := httpsrv.Use(suite.Setup(),
 			func(w http.ResponseWriter, r *http.Request, sub security.Subject) {
-				user := slices.OfType[security.Principal, principal.User](sub.Principals())
-				suite.Len(user, 0)
+				_, ok := principal.First[principal.User](sub)
+				suite.False(ok)
 				_, _ = fmt.Fprint(w, "Hello World")
 			}, auth.WithFlow([]login.ModuleEntry{
 				{Module: "login.pwd", Options: map[string]any{

@@ -42,6 +42,20 @@ func Any(subject security.Subject, ps ...security.Principal) bool {
 	return false
 }
 
+// First returns the first security.Principal of the specified type.
+func First[T security.Principal](subject security.Subject) (p T, ok bool) {
+	if ps := slices.OfType[security.Principal, T](subject.Principals()); len(ps) > 0 {
+		return ps[0], true
+	}
+	return p, false
+}
+
+// Find returns each security.Principal of the specified type.
+func Find[T security.Principal](subject security.Subject) []T {
+	return slices.OfType[security.Principal, T](subject.Principals())
+}
+
+
 func Parse[T StringPrincipal](val any) []security.Principal {
 	switch name := val.(type) {
 	case string:
