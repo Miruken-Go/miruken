@@ -46,7 +46,7 @@ func (m *MissionControlHandler) Track(
 ) *promise.Promise[struct{}] {
 	track.Count++
 	if track.Count == 2 {
-		return promise.Resolve(struct{}{})
+		return promise.Empty()
 	}
 	return nil
 }
@@ -56,7 +56,7 @@ func (p *PresidentHandler) Track(
 ) *promise.Promise[struct{}] {
 	track.Count++
 	if track.Count == 2 {
-		return promise.Resolve(struct{}{})
+		return promise.Empty()
 	}
 	return nil
 }

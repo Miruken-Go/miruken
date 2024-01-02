@@ -61,7 +61,7 @@ func (b *bootstrapper) bootstrap() *promise.Promise[struct{}] {
 		}
 		return promise.Erase(promise.All(ctx, promises...)).OnCancel(cancel)
 	}
-	return promise.Resolve(struct{}{})
+	return promise.Empty()
 }
 
 

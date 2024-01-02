@@ -90,7 +90,7 @@ func (r *ReservationHandler) ChangeReservedSeat(
 		return promise.Reject[struct{}](
 			errors.New("reservation not found")), nil
 	}
-	return promise.Resolve(struct{}{}),
+	return promise.Empty(),
 		cascade.Publish(ReservedSeatChanged{
 			ReservationId: change.ReservationId,
 			OldSeatId:     change.OldSeatId,
@@ -137,7 +137,7 @@ func (s *SeatInventory) Changed(
 			}
 		}
 	}
-	return promise.Resolve(struct{}{})
+	return promise.Empty()
 }
 
 type CascadeTestSuite struct {

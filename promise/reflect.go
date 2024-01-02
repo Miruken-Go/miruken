@@ -158,6 +158,10 @@ func Unwrap[T any](
 	})
 }
 
+func Empty() *Promise[struct{}] {
+	return Resolve(struct{}{})
+}
+
 func Return[A, B any](p *Promise[A], val B) *Promise[B] {
 	return Then(p, func(A) B {
 		return val
