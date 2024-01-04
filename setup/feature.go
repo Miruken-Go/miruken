@@ -1,9 +1,5 @@
 package setup
 
-import (
-	"github.com/miruken-go/miruken/internal"
-)
-
 type (
 	// Feature encapsulates custom setup.
 	Feature interface {
@@ -24,29 +20,10 @@ func (f FeatureFunc) Install(b *Builder) error {
 // featureSet
 
 func (f *featureSet) DependsOn() []Feature {
-	var deps []Feature
-	for _, feature := range f.features {
-		if !internal.IsNil(feature) {
-			if dependsOn, ok := feature.(interface {
-				DependsOn() []Feature
-			}); ok {
-				deps = append(deps, dependsOn.DependsOn()...)
-			}
-		}
-	}
-	return deps
+	return f.features
 }
 
-func (f *featureSet) Install(b *Builder) error {
-	if b.Tag(f) {
-		for _, feature := range f.features {
-			if !internal.IsNil(feature) {
-				if err := feature.Install(b); err != nil {
-					return err
-				}
-			}
-		}
-	}
+func (f *featureSet) Install(*Builder) error {
 	return nil
 }
 

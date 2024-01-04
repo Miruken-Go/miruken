@@ -64,6 +64,7 @@ type MyBootstrap struct {
 
 func (b *MyBootstrap) Startup(
 	ctx context.Context,
+	h   miruken.Handler,
 ) *promise.Promise[struct{}] {
 	return promise.Delay[struct {}](ctx, 5*time.Millisecond)
 }

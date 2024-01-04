@@ -162,6 +162,10 @@ func Empty() *Promise[struct{}] {
 	return Resolve(struct{}{})
 }
 
+func RejectEmpty(err error) *Promise[struct{}] {
+	return Reject[struct{}](err)
+}
+
 func Return[A, B any](p *Promise[A], val B) *Promise[B] {
 	return Then(p, func(A) B {
 		return val

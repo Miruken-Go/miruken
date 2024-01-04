@@ -83,9 +83,7 @@ func (p *Promise[T]) OnCancel(fun func()) *Promise[T] {
 }
 
 func (p *Promise[T]) Cancel() {
-	p.once.Do(func() {
-		p.doCancel()
-	})
+	p.once.Do(p.doCancel)
 }
 
 func (p *Promise[T]) Await() (T, error) {

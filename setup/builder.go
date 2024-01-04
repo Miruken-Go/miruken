@@ -128,7 +128,7 @@ func (s *Builder) Context() (*context.Context, error) {
 	}
 	b, _, ok, err := miruken.Resolve[*bootstrapper](ctx)
 	if ok {
-		if _, err = b.bootstrap().Await(); err != nil {
+		if _, err = b.bootstrap(ctx).Await(); err != nil {
 			return nil, err
 		}
 	}
@@ -142,7 +142,7 @@ func (s *Builder) ContextAsync() *promise.Promise[*context.Context] {
 	}
 	b, _, ok, err := miruken.Resolve[*bootstrapper](ctx)
 	if ok {
-		return promise.Return(b.bootstrap(), ctx)
+		return promise.Return(b.bootstrap(ctx), ctx)
 	} else if err != nil {
 		return promise.Reject[*context.Context](err)
 	}

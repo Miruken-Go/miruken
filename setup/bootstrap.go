@@ -3,6 +3,7 @@ package setup
 import (
 	"context"
 	"fmt"
+	"github.com/miruken-go/miruken"
 	"time"
 
 	"github.com/miruken-go/miruken/args"
@@ -22,8 +23,14 @@ type (
 	// All Bootstrap instances are resolved during New setup and Startup
 	// invoked concurrently.  Shutdown is invoked in reverse order.
 	Bootstrap interface {
-		Startup(ctx context.Context) *promise.Promise[struct{}]
-		Shutdown(ctx context.Context) *promise.Promise[struct{}]
+		Startup(
+			ctx context.Context,
+			h   miruken.Handler,
+		) *promise.Promise[struct{}]
+
+		Shutdown(
+			ctx context.Context,
+		) *promise.Promise[struct{}]
 	}
 
 	bootstrapper struct {
@@ -48,7 +55,9 @@ func (b *bootstrapper) Constructor(
 	b.bootstraps = bootstraps
 }
 
-func (b *bootstrapper) bootstrap() *promise.Promise[struct{}] {
+func (b *bootstrapper) bootstrap(
+	h miruken.Handler,
+) *promise.Promise[struct{}] {
 	if bootstraps := b.bootstraps; len(bootstraps) > 0 {
 		ctx := context.Background()
 		var cancel context.CancelFunc
@@ -57,7 +66,7 @@ func (b *bootstrapper) bootstrap() *promise.Promise[struct{}] {
 		}
 		promises := make([]*promise.Promise[struct{}], len(bootstraps))
 		for i, bootstrap := range bootstraps {
-			promises[i] = bootstrap.Startup(ctx)
+			promises[i] = bootstrap.Startup(ctx, h)
 		}
 		return promise.Erase(promise.All(ctx, promises...)).OnCancel(cancel)
 	}
