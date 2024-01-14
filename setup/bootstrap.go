@@ -3,9 +3,9 @@ package setup
 import (
 	"context"
 	"fmt"
-	"github.com/miruken-go/miruken"
 	"time"
 
+	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/args"
 	context2 "github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/promise"
