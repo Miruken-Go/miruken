@@ -258,6 +258,7 @@ func (c *CallbackBase) includeResult(
 				case reflect.Slice, reflect.Array:
 					r, _ := c.processResults(true, res, composer)
 					return r
+				default:
 				}
 			}
 			return res
