@@ -34,7 +34,7 @@ type (
 	}
 
 	NewEntity struct {
-		miruken.SideEffectAdapter
+		miruken.IntentAdapter
 		Id    int
 		Name  string
 		Email string
@@ -49,7 +49,7 @@ type (
 	}
 
 	SendMail struct {
-		miruken.SideEffectAdapter
+		miruken.IntentAdapter
 		To  string
 		Msg string
 	}
@@ -131,12 +131,12 @@ func (a *AccountHandler) ConfirmAccount(
 	return confirm.Email, SendMail{To: confirm.Email, Msg: msg}
 }
 
-type SideEffectTestSuite struct {
+type IntentTestSuite struct {
 	suite.Suite
 	specs []any
 }
 
-func (suite *SideEffectTestSuite) SetupTest() {
+func (suite *IntentTestSuite) SetupTest() {
 	suite.specs = []any{
 		&DatabaseStub{},
 		&MailerStub{},
@@ -144,14 +144,14 @@ func (suite *SideEffectTestSuite) SetupTest() {
 	}
 }
 
-func (suite *SideEffectTestSuite) Setup(specs ...any) (miruken.Handler, error) {
+func (suite *IntentTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
 	return setup.New().Specs(specs...).Context()
 }
 
-func (suite *SideEffectTestSuite) TestSideEffects() {
+func (suite *IntentTestSuite) TestIntents() {
 	suite.Run("Single", func() {
 		handler, _ := suite.Setup()
 		confirm := ConfirmAccount{"John Doe", "jd@gmail.com"}
@@ -200,6 +200,6 @@ func (suite *SideEffectTestSuite) TestSideEffects() {
 	})
 }
 
-func TestSideEffectsTestSuite(t *testing.T) {
-	suite.Run(t, new(SideEffectTestSuite))
+func TestIntentsTestSuite(t *testing.T) {
+	suite.Run(t, new(IntentTestSuite))
 }

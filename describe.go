@@ -344,11 +344,11 @@ func (h *HandlerInfo) Dispatch(
 					Greedy:   greedy,
 				}
 				if len(filters) == 0 {
-					out, pout, err = applySideEffects(binding, &ctx)
+					out, pout, err = applyIntents(binding, &ctx)
 				} else {
 					out, pout, err = pipeline(ctx, filters,
 						func(ctx HandleContext) ([]any, *promise.Promise[[]any], error) {
-							return applySideEffects(binding, &ctx)
+							return applyIntents(binding, &ctx)
 						})
 				}
 				if err == nil {
@@ -383,7 +383,7 @@ func (h *HandlerInfo) Dispatch(
 	return NotHandled
 }
 
-func applySideEffects(
+func applyIntents(
 	binding Binding,
 	ctx     *HandleContext,
 ) (out []any, pout *promise.Promise[[]any], err error) {
@@ -392,19 +392,19 @@ func applySideEffects(
 		return
 	} else if pout != nil {
 		pout = promise.Then(pout, func(oo []any) []any {
-			oo, _, err = processSideEffects(oo, ctx, true)
+			oo, _, err = processIntents(oo, ctx, true)
 			if err != nil {
 				panic(err)
 			}
 			return oo
 		})
 	} else if len(out) > 0 {
-		out, pout, err = processSideEffects(out, ctx, false)
+		out, pout, err = processIntents(out, ctx, false)
 	}
 	return
 }
 
-func processSideEffects(
+func processIntents(
 	out   []any,
 	ctx   *HandleContext,
 	await bool,
@@ -412,7 +412,7 @@ func processSideEffects(
 	temp := out[:0]
 	var ps []*promise.Promise[any]
 	for _, o := range out {
-		if se, ok := o.(SideEffect); ok {
+		if se, ok := o.(Intent); ok {
 			if p, err := se.Apply(se, *ctx); err != nil {
 				return nil, nil, err
 			} else if p != nil {

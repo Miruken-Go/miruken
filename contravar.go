@@ -184,7 +184,7 @@ func validateContravariantFunc(
 				err = multierror.Append(err, fmt.Errorf(
 					"contravariant: HandleResult found at index %v must be last return", i))
 			}
-		} else if out.AssignableTo(sideEffectType) {
+		} else if out.AssignableTo(intentType) {
 			// ignore side-effects
 		} else if resIdx >= 0 {
 			err = multierror.Append(err, fmt.Errorf(

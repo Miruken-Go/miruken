@@ -12,25 +12,25 @@ import (
 )
 
 type (
-	// SideEffect encapsulates a custom behavior to be
-	// executed when returned from a Handler.
-	// These behaviors generally represent interactions
+	// Intent describes an action to be performed.
+	// Intents can be the outputs from a Handler.
+	// These actions generally represent interactions
 	// with external entities i.e. databases and other IO.
-	SideEffect interface {
+	Intent interface {
 		Apply(
 			// self provided to facilitate late bindings
-			SideEffect,
+			Intent,
 			HandleContext,
 		) (promise.Reflect, error)
 	}
 
-	// SideEffectAdapter is an adapter for implementing a
-	// SideEffect using late binding method resolution.
-	SideEffectAdapter struct{}
+	// IntentAdapter is an adapter for implementing a
+	// Intent using late binding method resolution.
+	IntentAdapter struct{}
 
-	// sideEffectBinding describes the method used by a
-	// SideEffectAdapter to apply the SideEffect dynamically.
-	sideEffectBinding struct {
+	// intentBinding describes the method used by a
+	// IntentAdapter to apply the Intent dynamically.
+	intentBinding struct {
 		funcCall
 		ctxIdx int
 		refIdx int
@@ -38,31 +38,31 @@ type (
 	}
 )
 
-func (l SideEffectAdapter) Apply(
-	self SideEffect,
+func (l IntentAdapter) Apply(
+	self Intent,
 	ctx  HandleContext,
 ) (promise.Reflect, error) {
-	if binding, err := getSideEffectMethod(self); err != nil {
+	if binding, err := getIntentMethod(self); err != nil {
 		return nil, err
 	} else {
 		return binding.invoke(self, ctx)
 	}
 }
 
-// getSideEffectMethod discovers a suitable dynamic SideEffect method.
+// getIntentMethod discovers a suitable dynamic Intent method.
 // Uses the copy-on-write idiom since reads should be more frequent than writes.
-func getSideEffectMethod(
-	sideEffect SideEffect,
-) (*sideEffectBinding, error) {
-	typ := reflect.TypeOf(sideEffect)
-	if bindings := sideEffBindingMap.Load(); bindings != nil {
+func getIntentMethod(
+	intent Intent,
+) (*intentBinding, error) {
+	typ := reflect.TypeOf(intent)
+	if bindings := intentBindingMap.Load(); bindings != nil {
 		if binding, ok := (*bindings)[typ]; ok {
 			return &binding, nil
 		}
 	}
-	sideEffBindingLock.Lock()
-	defer sideEffBindingLock.Unlock()
-	bindings := sideEffBindingMap.Load()
+	intentBindingLock.Lock()
+	defer intentBindingLock.Unlock()
+	bindings := intentBindingMap.Load()
 	if bindings != nil {
 		if binding, ok := (*bindings)[typ]; ok {
 			return &binding, nil
@@ -70,7 +70,7 @@ func getSideEffectMethod(
 		sb := maps.Clone(*bindings)
 		bindings = &sb
 	} else {
-		bindings = &map[reflect.Type]sideEffectBinding{}
+		bindings = &map[reflect.Type]intentBinding{}
 	}
 	for i := 0; i < typ.NumMethod(); i++ {
 		method := typ.Method(i)
@@ -101,7 +101,7 @@ func getSideEffectMethod(
 			}
 			skip := 1 // skip receiver
 			numArgs := lateApplyType.NumIn()
-			binding := sideEffectBinding{refIdx: refIdx, errIdx: errIdx}
+			binding := intentBinding{refIdx: refIdx, errIdx: errIdx}
 			for i := 1; i < 2 && i < numArgs; i++ {
 				if lateApplyType.In(i) == handleCtxType {
 					if binding.ctxIdx > 0 {
@@ -121,15 +121,15 @@ func getSideEffectMethod(
 			binding.funcCall.fun = method.Func
 			binding.funcCall.args = args
 			(*bindings)[typ] = binding
-			sideEffBindingMap.Store(bindings)
+			intentBindingMap.Store(bindings)
 			return &binding, nil
 		}
 	}
 	return nil, fmt.Errorf(`side-effect: %v has no compatible dynamic method`, typ)
 }
 
-func (a sideEffectBinding) invoke(
-	se  SideEffect,
+func (a intentBinding) invoke(
+	se Intent,
 	ctx HandleContext,
 ) (promise.Reflect, error) {
 	initArgs := []any{se}
@@ -172,8 +172,8 @@ func (a sideEffectBinding) invoke(
 }
 
 var (
-	sideEffBindingLock sync.Mutex
-	sideEffectType     = internal.TypeOf[SideEffect]()
-	sideEffBindingMap  = atomic.Pointer[map[reflect.Type]sideEffectBinding]{}
+	intentBindingLock sync.Mutex
+	intentType         = internal.TypeOf[Intent]()
+	intentBindingMap   = atomic.Pointer[map[reflect.Type]intentBinding]{}
 	promiseReflectType = internal.TypeOf[promise.Reflect]()
 )
