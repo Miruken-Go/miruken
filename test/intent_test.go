@@ -34,7 +34,6 @@ type (
 	}
 
 	NewEntity struct {
-		miruken.IntentAdapter
 		Id    int
 		Name  string
 		Email string
@@ -49,7 +48,6 @@ type (
 	}
 
 	SendMail struct {
-		miruken.IntentAdapter
 		To  string
 		Msg string
 	}
@@ -74,8 +72,8 @@ func (d *DatabaseStub) Constructor() {
 }
 
 func (d *DatabaseStub) NewAccount(
-	id int,
-	name string,
+	id    int,
+	name  string,
 	email string,
 ) (*promise.Promise[*Account], error) {
 	switch name {
@@ -89,7 +87,7 @@ func (d *DatabaseStub) NewAccount(
 	return promise.Resolve(account), nil
 }
 
-func (e NewEntity) NewEntity(
+func (e NewEntity) Apply(
 	database Database,
 ) (promise.Reflect, error) {
 	return database.NewAccount(e.Id, e.Name, e.Email)
@@ -107,7 +105,7 @@ func (m *MailerStub) SendMail(to string, msg string) error {
 	return nil
 }
 
-func (s SendMail) SendMail(
+func (s SendMail) Apply(
 	mailer Mailer,
 ) error {
 	return mailer.SendMail(s.To, s.Msg)

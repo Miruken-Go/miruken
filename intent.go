@@ -17,19 +17,18 @@ type (
 	// These actions generally represent interactions
 	// with external entities i.e. databases and other IO.
 	Intent interface {
-		Apply(
-			// self provided to facilitate late bindings
-			Intent,
-			HandleContext,
-		) (promise.Reflect, error)
+		Apply(HandleContext) (promise.Reflect, error)
 	}
 
-	// IntentAdapter is an adapter for implementing a
+	// intentAdapter is an adapter for implementing an
 	// Intent using late binding method resolution.
-	IntentAdapter struct{}
+	intentAdapter struct{
+		intent  any
+		binding *intentBinding
+	}
 
 	// intentBinding describes the method used by a
-	// IntentAdapter to apply the Intent dynamically.
+	// intentAdapter to apply the Intent dynamically.
 	intentBinding struct {
 		funcCall
 		ctxIdx int
@@ -38,23 +37,72 @@ type (
 	}
 )
 
-func (l IntentAdapter) Apply(
-	self Intent,
-	ctx  HandleContext,
-) (promise.Reflect, error) {
-	if binding, err := getIntentMethod(self); err != nil {
-		return nil, err
-	} else {
-		return binding.invoke(self, ctx)
+
+// MakeIntent creates an Intent from anything.
+// If the argument is already an Intent it is returned.
+// If require is true, an error is returned if the argument
+// cannot be coerced into an Intent.
+func MakeIntent(intent any, require bool) (Intent, error) {
+	if internal.IsNil(intent) {
+		return nil, nil
 	}
+	if i, ok := intent.(Intent); ok {
+		return i, nil
+	}
+	typ := reflect.TypeOf(intent)
+	if binding, err := getIntentMethod(typ, require); err != nil {
+		return nil, err
+	} else if binding != nil {
+		return &intentAdapter{intent, binding}, nil
+	}
+	return nil, nil
+}
+
+// MakeIntents creates Intent's from anything.
+// If an argument is already an Intent it is returned.
+// If require is true, an error is returned if any argument
+// cannot be coerced into an Intent.
+func MakeIntents(require bool, intents []any) ([]Intent, error) {
+	ins := make([]Intent, 0, len(intents))
+	for _, intent := range intents {
+		if i, err := MakeIntent(intent, require); err != nil {
+			return nil, err
+		} else if i != nil {
+			ins = append(ins, i)
+		}
+	}
+	return ins, nil
+}
+
+// ValidIntent returns true if the argument is an Intent or
+// can be converted to an Intent.
+func ValidIntent(typ reflect.Type) (bool, error) {
+	if internal.IsNil(typ) {
+		return false, nil
+	}
+	if typ.AssignableTo(intentType) {
+		return true, nil
+	}
+	binding, err := getIntentMethod(typ, false)
+	if err != nil {
+		return false, err
+	}
+	return binding != nil, nil
+}
+
+
+func (i *intentAdapter) Apply(
+	ctx HandleContext,
+) (promise.Reflect, error) {
+	return i.binding.invoke(i.intent, ctx)
 }
 
 // getIntentMethod discovers a suitable dynamic Intent method.
 // Uses the copy-on-write idiom since reads should be more frequent than writes.
 func getIntentMethod(
-	intent Intent,
+	typ     reflect.Type,
+	require bool,
 ) (*intentBinding, error) {
-	typ := reflect.TypeOf(intent)
 	if bindings := intentBindingMap.Load(); bindings != nil {
 		if binding, ok := (*bindings)[typ]; ok {
 			return &binding, nil
@@ -74,11 +122,11 @@ func getIntentMethod(
 	}
 	for i := 0; i < typ.NumMethod(); i++ {
 		method := typ.Method(i)
-		if method.Name == "Apply" {
+		if method.Name != "Apply" {
 			continue
 		}
 		if lateApplyType := method.Type; lateApplyType.NumIn() < 1 || lateApplyType.NumOut() > 2 {
-			continue
+			break
 		} else {
 			// Output can be promise, error or both with error last
 			refIdx, errIdx := -1, -1
@@ -99,14 +147,14 @@ func getIntentMethod(
 					continue
 				}
 			}
-			skip := 1 // skip receiver
+			skip    := 1 // skip receiver
 			numArgs := lateApplyType.NumIn()
 			binding := intentBinding{refIdx: refIdx, errIdx: errIdx}
 			for i := 1; i < 2 && i < numArgs; i++ {
 				if lateApplyType.In(i) == handleCtxType {
 					if binding.ctxIdx > 0 {
 						return nil, &MethodBindingError{&method,
-							fmt.Errorf("side-effect: %v duplicate HandleContext arg at index %v and %v",
+							fmt.Errorf("intent: %v duplicate HandleContext arg at index %v and %v",
 								typ, binding.ctxIdx, i)}
 					}
 					binding.ctxIdx = i
@@ -115,7 +163,7 @@ func getIntentMethod(
 			}
 			args := make([]arg, numArgs-skip)
 			if err := buildDependencies(lateApplyType, skip, numArgs, args, 0); err != nil {
-				err = fmt.Errorf("side-effect: %v %q: %w", typ, method.Name, err)
+				err = fmt.Errorf("intent: %v %q: %w", typ, method.Name, err)
 				return nil, &MethodBindingError{&method, err}
 			}
 			binding.funcCall.fun = method.Func
@@ -125,27 +173,30 @@ func getIntentMethod(
 			return &binding, nil
 		}
 	}
-	return nil, fmt.Errorf(`side-effect: %v has no compatible dynamic method`, typ)
+	if require {
+		return nil, fmt.Errorf(`intent: %v has no compatible "Apply" method`, typ)
+	}
+	return nil, nil
 }
 
-func (a intentBinding) invoke(
-	se Intent,
-	ctx HandleContext,
+func (b intentBinding) invoke(
+	intent any,
+	ctx    HandleContext,
 ) (promise.Reflect, error) {
-	initArgs := []any{se}
-	if a.ctxIdx == 1 {
+	initArgs := []any{intent}
+	if b.ctxIdx == 1 {
 		initArgs = append(initArgs, ctx)
 	}
-	out, pout, err := a.Invoke(ctx, initArgs...)
+	out, pout, err := b.Invoke(ctx, initArgs...)
 	if err != nil {
 		return nil, err
 	} else if pout == nil {
-		if errIdx := a.errIdx; errIdx >= 0 {
+		if errIdx := b.errIdx; errIdx >= 0 {
 			if oe, ok := out[errIdx].(error); ok && oe != nil {
 				return nil, oe
 			}
 		}
-		if refIdx := a.refIdx; refIdx >= 0 {
+		if refIdx := b.refIdx; refIdx >= 0 {
 			if po, ok := out[refIdx].(promise.Reflect); ok && !internal.IsNil(po) {
 				return po, nil
 			}
@@ -153,12 +204,12 @@ func (a intentBinding) invoke(
 		return nil, nil
 	}
 	return promise.Then(pout, func(out []any) any {
-		if errIdx := a.errIdx; errIdx >= 0 {
+		if errIdx := b.errIdx; errIdx >= 0 {
 			if oe, ok := out[errIdx].(error); ok && oe != nil {
 				panic(oe)
 			}
 		}
-		if refIdx := a.refIdx; refIdx >= 0 {
+		if refIdx := b.refIdx; refIdx >= 0 {
 			if po, ok := out[refIdx].(promise.Reflect); ok && !internal.IsNil(po) {
 				if oa, oe := po.AwaitAny(); oe != nil {
 					panic(oe)

@@ -290,11 +290,11 @@ var dependencyParsers = []BindingParser{
 }
 
 func buildDependencies(
-	funTyp reflect.Type,
+	funTyp     reflect.Type,
 	startIndex int,
-	endIndex int,
-	args []arg,
-	offset int,
+	endIndex   int,
+	args       []arg,
+	offset     int,
 ) (invalid error) {
 	var lastSpec *dependencySpec
 	for i, j := startIndex, 0; i < endIndex; i, j = i+1, j+1 {

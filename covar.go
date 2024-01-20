@@ -67,38 +67,38 @@ func (p *CovariantPolicy) Less(
 
 func (p *CovariantPolicy) AcceptResults(
 	results []any,
-) (result any, accepted HandleResult) {
+) (result any, accepted HandleResult, intents []Intent) {
 	switch len(results) {
 	case 0:
 		if internal.IsNil(results) {
-			return nil, NotHandled
+			return nil, NotHandled, nil
 		}
-		return nil, Handled
+		return nil, Handled, nil
 	case 1:
 		if result = results[0]; internal.IsNil(result) {
-			return nil, NotHandled
+			return nil, NotHandled, nil
 		} else if r, ok := result.(HandleResult); ok {
-			return nil, r
+			return nil, r, nil
 		}
-		return result, Handled
+		return result, Handled, nil
 	case 2:
 		result = results[0]
 		switch err := results[1].(type) {
 		case error:
-			return result, NotHandled.WithError(err)
+			return result, NotHandled.WithError(err), nil
 		case HandleResult:
 			if internal.IsNil(result) {
-				return nil, err.And(NotHandled)
+				return nil, err.And(NotHandled), nil
 			}
-			return result, err
+			return result, err, nil
 		default:
 			if internal.IsNil(result) {
-				return nil, NotHandled
+				return nil, NotHandled, nil
 			}
-			return result, Handled
+			return result, Handled, nil
 		}
 	}
-	return nil, NotHandled.WithError(ErrCovResultsExceeded)
+	return nil, NotHandled.WithError(ErrCovResultsExceeded), nil
 }
 
 func (p *CovariantPolicy) NewCtorBinding(
@@ -197,8 +197,6 @@ func validateCovariantFunc(
 				err = multierror.Append(err, fmt.Errorf(
 					"covariant: HandleResult found at index %v must be last return", i))
 			}
-		} else if out.AssignableTo(intentType) {
-			// ignore side-effects
 		} else if resIdx >= 0 {
 			err = multierror.Append(err, fmt.Errorf(
 				"covariant: effective return at index %v conflicts with index %v", i, resIdx))

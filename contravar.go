@@ -15,10 +15,7 @@ type ContravariantPolicy struct {
 	FilteredScope
 }
 
-var (
-	ErrConResultsExceeded = errors.New("contravariant: cannot accept more than 2 results")
-	ErrConMissingCallback = errors.New("contravariant: missing callback argument")
-)
+var ErrConMissingCallback = errors.New("contravariant: missing callback argument")
 
 func (p *ContravariantPolicy) VariantKey(
 	key any,
@@ -71,30 +68,55 @@ func (p *ContravariantPolicy) Less(
 
 func (p *ContravariantPolicy) AcceptResults(
 	results []any,
-) (result any, accepted HandleResult) {
+) (any, HandleResult, []Intent) {
 	switch len(results) {
 	case 0:
-		return nil, Handled
+		return nil, Handled, nil
 	case 1:
 		switch result := results[0].(type) {
 		case error:
-			return nil, NotHandled.WithError(result)
+			return nil, NotHandled.WithError(result), nil
 		case HandleResult:
-			return nil, result
+			return nil, result, nil
 		default:
-			return result, Handled
+			if intent, _ := MakeIntent(result, false); intent != nil {
+				return nil, Handled, []Intent{intent}
+			}
+			return result, Handled, nil
 		}
-	case 2:
-		switch result := results[1].(type) {
+	default:
+		iEnd := 0
+		hr := Handled
+		switch err := results[len(results)-1].(type) {
 		case error:
-			return results[0], NotHandled.WithError(result)
+			return nil, NotHandled.WithError(err), nil
 		case HandleResult:
-			return results[0], result
-		default:
-			return results[0], Handled
+			if !err.Handled() || err.IsError() {
+				return nil, err, nil
+			}
+			hr = err
+			iEnd++
 		}
+		iStart := 0
+		var res any
+		if h, ok := results[0].(HandleResult); ok {
+			if !h.Handled() || h.IsError() {
+				return nil, h, nil
+			}
+			hr = h
+			iStart++
+		} else {
+			if intent, _ := MakeIntent(results[0], false); intent == nil {
+				res = results[0]
+				iStart++
+			}
+		}
+		intents, err := MakeIntents(true, results[iStart:len(results)-iEnd])
+		if err != nil {
+			return res, NotHandled.WithError(err), nil
+		}
+		return res, hr, intents
 	}
-	return nil, NotHandled.WithError(ErrConResultsExceeded)
 }
 
 func (p *ContravariantPolicy) NewMethodBinding(
@@ -184,8 +206,11 @@ func validateContravariantFunc(
 				err = multierror.Append(err, fmt.Errorf(
 					"contravariant: HandleResult found at index %v must be last return", i))
 			}
-		} else if out.AssignableTo(intentType) {
-			// ignore side-effects
+		} else if ok, err2 := ValidIntent(out); ok {
+			// ignore intents
+		} else if err2 != nil {
+			err = multierror.Append(err, fmt.Errorf(
+				"contravariant: invalid intent at index %v: %w", i, err2))
 		} else if resIdx >= 0 {
 			err = multierror.Append(err, fmt.Errorf(
 				"contravariant: effective return at index %v conflicts with index %v", i, resIdx))

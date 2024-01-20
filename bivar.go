@@ -79,7 +79,7 @@ func (p *BivariantPolicy) Less(
 
 func (p *BivariantPolicy) AcceptResults(
 	results []any,
-) (any, HandleResult) {
+) (any, HandleResult, []Intent) {
 	return p.out.AcceptResults(results)
 }
 

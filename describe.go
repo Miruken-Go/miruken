@@ -344,21 +344,21 @@ func (h *HandlerInfo) Dispatch(
 					Greedy:   greedy,
 				}
 				if len(filters) == 0 {
-					out, pout, err = applyIntents(binding, &ctx)
+					out, pout, err = binding.Invoke(ctx)
 				} else {
 					out, pout, err = pipeline(ctx, filters,
 						func(ctx HandleContext) ([]any, *promise.Promise[[]any], error) {
-							return applyIntents(binding, &ctx)
+							return binding.Invoke(ctx)
 						})
 				}
 				if err == nil {
 					if pout != nil {
 						out = []any{promise.Then(pout, func(oo []any) any {
-							res, _ := policy.AcceptResults(oo)
+							res, _ := applyResults(oo, policy, &ctx, true)
 							return res
 						})}
 					}
-					res, accept := policy.AcceptResults(out)
+					res, accept := applyResults(out, policy, &ctx, false)
 					if !internal.IsNil(res) {
 						if accept.handled {
 							strict := policy.Strict() || binding.Strict()
@@ -383,67 +383,54 @@ func (h *HandlerInfo) Dispatch(
 	return NotHandled
 }
 
-func applyIntents(
-	binding Binding,
+func applyResults(
+	results []any,
+	policy  Policy,
 	ctx     *HandleContext,
-) (out []any, pout *promise.Promise[[]any], err error) {
-	out, pout, err = binding.Invoke(*ctx)
-	if err != nil {
-		return
-	} else if pout != nil {
-		pout = promise.Then(pout, func(oo []any) []any {
-			oo, _, err = processIntents(oo, ctx, true)
-			if err != nil {
-				panic(err)
-			}
-			return oo
-		})
-	} else if len(out) > 0 {
-		out, pout, err = processIntents(out, ctx, false)
+	await   bool,
+) (any, HandleResult) {
+	res, accept, intents := policy.AcceptResults(results)
+	if intents != nil && accept.Handled() && !accept.IsError() {
+		pi, err := processIntents(intents, ctx, await)
+		if err != nil {
+			accept = accept.And(NotHandled).WithError(err)
+		} else if pi != nil {
+			return promise.Return(pi, res), accept
+		}
 	}
-	return
+	return res, accept
 }
 
 func processIntents(
-	out   []any,
-	ctx   *HandleContext,
-	await bool,
-) ([]any, *promise.Promise[[]any], error) {
-	temp := out[:0]
+	intents []Intent,
+	ctx     *HandleContext,
+	await   bool,
+) (*promise.Promise[struct{}], error) {
 	var ps []*promise.Promise[any]
-	for _, o := range out {
-		if se, ok := o.(Intent); ok {
-			if p, err := se.Apply(se, *ctx); err != nil {
-				return nil, nil, err
-			} else if p != nil {
-				ps = append(ps, p.Then(func(data any) any { return data }))
-			}
-		} else {
-			temp = append(temp, o)
+	for _, intent := range intents {
+		if pi, err := intent.Apply(*ctx); err != nil {
+			return nil, err
+		} else if pi != nil {
+			ps = append(ps, pi.Then(func(data any) any { return data }))
 		}
-		out = temp
 	}
 	switch len(ps) {
 	case 0:
-		return out, nil, nil
+		return nil, nil
 	case 1:
 		x := ps[0]
 		if await {
-			if _, err := x.Await(); err != nil {
-				return nil, nil, err
-			}
-			return out, nil, nil
+			_, err := x.Await()
+			return nil, err
 		}
-		return nil, promise.Return(x, out), nil
+		return promise.Erase(x), nil
 	default:
 		x := promise.All(nil, ps...)
 		if await {
-			if _, err := x.Await(); err != nil {
-				return nil, nil, err
-			}
-			return out, nil, nil
+			_, err := x.Await()
+			return nil, err
 		}
-		return nil, promise.Return(x, out), nil
+		return promise.Erase(x), nil
 	}
 }
 

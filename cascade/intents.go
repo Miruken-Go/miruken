@@ -48,7 +48,6 @@ func (c *Callbacks) Greedy(
 }
 
 func (c *Callbacks) Apply(
-	self miruken.Intent,
 	ctx  miruken.HandleContext,
 ) (promise.Reflect, error) {
 	callbacks := c.callbacks
@@ -98,7 +97,6 @@ func (m *Messages) WithHandler(
 }
 
 func (m *Messages) Apply(
-	self miruken.Intent,
 	ctx  miruken.HandleContext,
 ) (promise.Reflect, error) {
 	messages := m.messages
