@@ -1,6 +1,7 @@
 package miruken
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -354,7 +355,12 @@ func (h *HandlerInfo) Dispatch(
 				if err == nil {
 					if pout != nil {
 						out = []any{promise.Then(pout, func(oo []any) any {
-							res, _ := applyResults(oo, policy, &ctx, true)
+							res, accept := applyResults(oo, policy, &ctx, true)
+							if accept.IsError() {
+								panic(accept.Error())
+							} else if !accept.Handled() {
+								panic(&NotHandledError{callback})
+							}
 							return res
 						})}
 					}
@@ -367,10 +373,13 @@ func (h *HandlerInfo) Dispatch(
 					}
 					result = result.Or(accept)
 				} else {
-					switch err.(type) {
-					case *RejectedError:
-					case *NotHandledError:
-					case *UnresolvedArgError:
+					var rejectedError *RejectedError
+					var notHandledError *NotHandledError
+					var unresolvedArgError *UnresolvedArgError
+					switch {
+					case errors.As(err, &rejectedError):
+					case errors.As(err, &notHandledError):
+					case errors.As(err, &unresolvedArgError):
 						break
 					default:
 						result = result.WithError(err)

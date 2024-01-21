@@ -70,7 +70,8 @@ func TestHandleResultErrors(t *testing.T) {
 
 		assert.True(t, result.IsError())
 
-		err := result.Error().(*multierror.Error)
+		var err *multierror.Error
+		errors.As(result.Error(), &err)
 		assert.NotNil(t, err)
 		assert.Len(t, err.Errors, 2)
 		assert.Equal(t, 2, len(err.Errors))

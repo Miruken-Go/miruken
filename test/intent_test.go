@@ -52,6 +52,11 @@ type (
 		Msg string
 	}
 
+	PostMsg struct {
+		To  string
+		Data []byte
+	}
+
 	CreateAccount struct {
 		Name  string
 		Email string
@@ -111,22 +116,35 @@ func (s SendMail) Apply(
 	return mailer.SendMail(s.To, s.Msg)
 }
 
+func (p PostMsg) Apply(
+) (promise.Reflect, error) {
+	return promise.New(nil, func(
+		resolve func(struct{}), reject func(error), onCancel func(func())) {
+		println(string(p.Data))
+		resolve(struct{}{})
+	}), nil
+}
+
 func (a *AccountHandler) CreateAccount(
 	_ *handles.It, create CreateAccount,
-) (int, NewEntity, SendMail, error) {
+) (int, NewEntity, SendMail, PostMsg, error) {
 	a.nextId++
 	msg := fmt.Sprintf("Welcome %s", create.Name)
 	return a.nextId,
 		NewEntity{Id: a.nextId, Name: create.Name, Email: create.Email},
 		SendMail{To: create.Email, Msg: msg},
+		PostMsg{To: "http://localhost:8080", Data: []byte("Account Created")},
 		nil
 }
 
 func (a *AccountHandler) ConfirmAccount(
 	_ *handles.It, confirm ConfirmAccount,
-) (string, SendMail) {
+) (*promise.Promise[string], SendMail, PostMsg, miruken.HandleResult) {
 	msg := fmt.Sprintf("Confirm your account %s", confirm.Name)
-	return confirm.Email, SendMail{To: confirm.Email, Msg: msg}
+	return promise.Resolve(confirm.Email),
+		   SendMail{To: confirm.Email, Msg: msg},
+		   PostMsg{To: "http://localhost:8080", Data: []byte("Hello World!")},
+		   miruken.Handled
 }
 
 type IntentTestSuite struct {
@@ -155,7 +173,9 @@ func (suite *IntentTestSuite) TestIntents() {
 		confirm := ConfirmAccount{"John Doe", "jd@gmail.com"}
 		r, pr, err := handles.Request[string](handler, confirm)
 		suite.Nil(err)
-		suite.Nil(pr)
+		suite.NotNil(pr)
+		r, err = pr.Await()
+		suite.Nil(err)
 		suite.Equal("jd@gmail.com", r)
 		mailer, _, _, _ := provides.Type[*MailerStub](handler)
 		suite.Equal("Confirm your account John Doe", mailer.Log["jd@gmail.com"])

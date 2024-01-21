@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/miruken-go/miruken"
@@ -115,9 +116,12 @@ func Publish(
 	}()
 	if pv, err := handles.CommandAll(stash, message); err == nil {
 		return pv, nil
-	} else if _, ok := err.(*miruken.NotHandledError); ok {
-		return nil, nil
 	} else {
-		return pv, err
+		var notHandledError *miruken.NotHandledError
+		if errors.As(err, &notHandledError) {
+			return nil, nil
+		} else {
+			return pv, err
+		}
 	}
 }

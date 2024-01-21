@@ -1,6 +1,10 @@
 package miruken
 
-import "github.com/miruken-go/miruken/internal"
+import (
+	"errors"
+
+	"github.com/miruken-go/miruken/internal"
+)
 
 type (
 	// SemanticFlags enumerates semantic options.
@@ -106,10 +110,12 @@ func (c *callSemantics) Handle(
 	if c.semantics.IsSpecified(SemanticBestEffort) &&
 		c.semantics.HasOption(SemanticBestEffort) {
 		if result := c.Handler.Handle(callback, greedy, composer); result.IsError() {
-			switch result.Error().(type) {
-			case *NotHandledError:
+			var notHandledError *NotHandledError
+			var rejectedError *RejectedError
+			switch err := result.Error(); {
+			case errors.As(err, &notHandledError):
 				return Handled
-			case *RejectedError:
+			case errors.As(err, &rejectedError):
 				return Handled
 			default:
 				return result

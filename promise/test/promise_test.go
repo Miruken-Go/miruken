@@ -53,7 +53,7 @@ func TestPromise_Catch(t *testing.T) {
 	require.Equal(t, errExpected, err)
 	require.Nil(t, val)
 
-	p2.Await()
+	_, _ = p2.Await()
 }
 
 func TestPromise_Panic(t *testing.T) {

@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -162,11 +163,12 @@ func WriteWWWAuthenticateHeader(
 				h.WriteString(",")
 			}
 			var errDesc string
-			switch e := err.(type) {
-			case login.Error:
-				errDesc = e.Cause.Error()
+			var le login.Error
+			switch {
+			case errors.As(err, &le):
+				errDesc = le.Cause.Error()
 			default:
-				errDesc = e.Error()
+				errDesc = le.Error()
 			}
 			if errDesc != "" {
 				h.WriteString(" error_description=\"")

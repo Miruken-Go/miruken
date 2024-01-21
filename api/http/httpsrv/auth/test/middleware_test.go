@@ -47,7 +47,7 @@ func (suite *MiddlewareTestSuite) TestHandler() {
 		resp := w.Result()
 		suite.Equal(200, resp.StatusCode)
 		body, _ := io.ReadAll(resp.Body)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		suite.Equal("Hello user", string(body))
 	})
 
@@ -71,7 +71,7 @@ func (suite *MiddlewareTestSuite) TestHandler() {
 		resp := w.Result()
 		suite.Equal(200, resp.StatusCode)
 		body, _ := io.ReadAll(resp.Body)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		suite.Equal("Hello World", string(body))
 	})
 
