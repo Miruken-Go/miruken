@@ -1,6 +1,8 @@
 package intent
 
 import (
+	"context"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/promise"
 )
@@ -9,13 +11,10 @@ import (
 type (
 	intentGroup struct {
 		intents []miruken.Intent
+		ctx     context.Context
 	}
 )
 
-
-func (g *intentGroup) Intents() []miruken.Intent {
-	return g.intents
-}
 
 func (g *intentGroup) Apply(
 	ctx  miruken.HandleContext,
@@ -32,18 +31,17 @@ func (g *intentGroup) Apply(
 	case 0:
 		return nil, nil
 	case 1:
-		x := ps[0]
-		return promise.Erase(x), nil
+		return ps[0], nil
 	default:
-		x := promise.All(nil, ps...)
-		return promise.Erase(x), nil
+		return promise.All(g.ctx, ps...), nil
 	}
 }
 
 
 // Group represents a group of intents.
 func Group(
+	ctx     context.Context,
 	intents ...miruken.Intent,
 ) miruken.Intent {
-	return &intentGroup{intents}
+	return &intentGroup{intents, ctx}
 }
