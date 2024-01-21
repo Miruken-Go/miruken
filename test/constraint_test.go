@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/constraints"
+	"github.com/miruken-go/miruken/constraint"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/setup"
@@ -124,7 +124,7 @@ func (l *LocalSettings) Constructor(
 	_ *struct {
 		provides.It
 		provides.Single
-		constraints.Named `name:"local"`
+		constraint.Named `name:"local"`
 	},
 ) {
 }
@@ -139,7 +139,7 @@ func (r *RemoteSettings) Constructor(
 	_ *struct {
 		provides.It
 		provides.Single
-		constraints.Named `name:"remote"`
+		constraint.Named `name:"remote"`
 	},
 ) {
 }
@@ -152,10 +152,10 @@ func (r *RemoteSettings) ServerUrl() string {
 
 func (c *Client) Constructor(
 	_ *struct {
-		constraints.Named `name:"local"`
+		constraint.Named `name:"local"`
 	}, local AppSettings,
 	_ *struct {
-		constraints.Named `name:"remote"`
+		constraint.Named `name:"remote"`
 	}, remote AppSettings,
 ) {
 	c.local = local

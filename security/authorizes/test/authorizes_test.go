@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/constraints"
+	"github.com/miruken-go/miruken/constraint"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
@@ -46,7 +46,7 @@ func (t *TransferFundsAccessPolicy) AuthorizeTransfer(
 func (t *TransferFundsAccessPolicy) AuthorizeTransferFast(
 	_ *struct {
 		authorizes.It
-		constraints.Named `name:"fast"`
+		constraint.Named `name:"fast"`
 	}, transfer TransferFunds,
 	subject security.Subject,
 ) *promise.Promise[bool] {

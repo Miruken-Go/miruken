@@ -86,7 +86,7 @@ func (p *ContravariantPolicy) AcceptResults(
 		}
 	default:
 		iEnd := 0
-		hr := Handled
+		hr   := Handled
 		switch err := results[len(results)-1].(type) {
 		case error:
 			return nil, NotHandled.WithError(err), nil
@@ -97,17 +97,18 @@ func (p *ContravariantPolicy) AcceptResults(
 			hr = err
 			iEnd++
 		}
-		iStart := 0
 		var res any
-		if h, ok := results[0].(HandleResult); ok {
-			if !h.Handled() || h.IsError() {
+		iStart := 0
+		first  := results[0]
+		if h, ok := first.(HandleResult); ok {
+			hr = hr.And(h)
+			if !hr.Handled() || hr.IsError() {
 				return nil, h, nil
 			}
-			hr = h
 			iStart++
 		} else {
-			if intent, _ := MakeIntent(results[0], false); intent == nil {
-				res = results[0]
+			if intent, _ := MakeIntent(first, false); intent == nil {
+				res = first
 				iStart++
 			}
 		}

@@ -1,4 +1,4 @@
-package constraints
+package constraint
 
 import "github.com/miruken-go/miruken"
 

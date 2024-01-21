@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/constraints"
+	"github.com/miruken-go/miruken/constraint"
 	"github.com/miruken-go/miruken/maps"
 )
 
@@ -209,7 +209,7 @@ func addPart(
 func extractMultipartParams(
 	src miruken.ConstraintSource,
 ) (typ string, boundary, start string) {
-	if format, ok := constraints.First[*maps.Format](src); ok {
+	if format, ok := constraint.First[*maps.Format](src); ok {
 		if b, ok := format.Params()["boundary"]; ok {
 			boundary = b
 		}

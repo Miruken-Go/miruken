@@ -10,7 +10,7 @@ import (
 
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/args"
-	"github.com/miruken-go/miruken/constraints"
+	"github.com/miruken-go/miruken/constraint"
 	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/provides"
 )
@@ -78,7 +78,7 @@ func (f *Factory) NewConfiguration(
 	if typ, ok := p.Key().(reflect.Type); ok {
 		var path string
 		var flat bool
-		if load, ok := constraints.First[*Load](p); ok {
+		if load, ok := constraint.First[*Load](p); ok {
 			path = load.Path
 			flat = load.Flat
 		}
