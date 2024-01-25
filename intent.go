@@ -13,7 +13,7 @@ import (
 
 type (
 	// Intent describes an action to be performed.
-	// Intents can be the outputs from a Handler.
+	// Intents are additional outputs from a Handler.
 	// These actions generally represent interactions
 	// with external entities i.e. databases and other IO.
 	Intent interface {
@@ -224,7 +224,7 @@ func (b intentBinding) invoke(
 
 var (
 	intentBindingLock sync.Mutex
-	intentType         = internal.TypeOf[Intent]()
 	intentBindingMap   = atomic.Pointer[map[reflect.Type]intentBinding]{}
+	intentType         = internal.TypeOf[Intent]()
 	promiseReflectType = internal.TypeOf[promise.Reflect]()
 )
