@@ -98,8 +98,8 @@ func (suite *ValidatorTestSuite) TestValidator() {
 			},
 		}
 		if _, _, err := handles.Request[User](suite.handler, &create); err != nil {
-			suite.IsType(&validates.Outcome{}, err)
-			outcome := err.(*validates.Outcome)
+			var outcome *validates.Outcome
+			suite.ErrorAs(err, &outcome)
 			suite.False(outcome.Valid())
 			user := outcome.Path("User")
 			suite.Equal("Age: User.Age: non zero value required; Email: User.Email: john does not validate as email; Home: (Street: User.Home.Street: non zero value required; Zip: User.Home.Zip: non zero value required); Name: User.Name: non zero value required; Password: User.Password: non zero value required; Work: (0: (Street: User.Work.0.Street: non zero value required; Zip: User.Work.0.Zip: non zero value required))", user.Error())

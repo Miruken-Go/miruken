@@ -1,11 +1,11 @@
 package miruken
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 )
@@ -355,13 +355,13 @@ NextField:
 		}
 		if fieldType.Kind() == reflect.Struct && fieldType.Implements(definesBindingGroup) {
 			if inv := parseStruct(fieldType, binding, parsers); inv != nil {
-				err = multierror.Append(err, inv)
+				err = errors.Join(err, inv)
 			}
 			continue
 		}
 		for _, parser := range parsers {
 			if b, inv := parser.parse(i, &field, binding); inv != nil {
-				err = multierror.Append(err, inv)
+				err = errors.Join(err, inv)
 				continue NextField
 			} else if b {
 				bound = true
@@ -377,7 +377,7 @@ NextField:
 			}
 			if metadataOwner != nil {
 				if inv := addMetadata(field.Type, field.Tag, metadataOwner); inv != nil {
-					err = multierror.Append(err, inv)
+					err = errors.Join(err, inv)
 				}
 			}
 		}
@@ -470,7 +470,7 @@ func parseOptions(
 			setStrict(int, *reflect.StructField, bool) error
 		}); ok {
 			if inv := b.setStrict(index, field, true); inv != nil {
-				err = multierror.Append(err, fmt.Errorf(
+				err = errors.Join(err, fmt.Errorf(
 					"parseOptions: strict field %v (%v) failed: %w",
 					field.Name, index, inv))
 			}
@@ -481,7 +481,7 @@ func parseOptions(
 			setOptional(int, *reflect.StructField, bool) error
 		}); ok {
 			if inv := b.setOptional(index, field, true); inv != nil {
-				err = multierror.Append(err, fmt.Errorf(
+				err = errors.Join(err, fmt.Errorf(
 					"parseOptions: optional field %v (%v) failed: %w",
 					field.Name, index, inv))
 			}
@@ -492,7 +492,7 @@ func parseOptions(
 			setSkipFilters(int, *reflect.StructField, bool) error
 		}); ok {
 			if inv := b.setSkipFilters(index, field, true); inv != nil {
-				err = multierror.Append(err, fmt.Errorf(
+				err = errors.Join(err, fmt.Errorf(
 					"parseOptions: skipFilters on field %v (%v) failed: %w",
 					field.Name, index, inv))
 			}

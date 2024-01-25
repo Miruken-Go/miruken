@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"github.com/miruken-go/miruken/internal/slices"
 	"reflect"
 	"runtime"
 	"strings"
@@ -233,6 +234,13 @@ func Exported(t any) bool {
 			Exported(m.Type.In(0))
 	}
 	return true
+}
+
+func UnwrapErrors(err error) []error {
+	if me, ok := err.(interface{ Unwrap() []error }); ok {
+		return slices.FlatMap[error, error](me.Unwrap(), UnwrapErrors)
+	}
+	return []error{err}
 }
 
 func CoerceToPtr(

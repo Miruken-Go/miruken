@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 )
@@ -108,7 +107,7 @@ func (s TypeSpec) describe(
 				ctorPolicies = spec.policies
 			}
 		} else {
-			invalid = multierror.Append(invalid, err)
+			invalid = errors.Join(invalid, err)
 		}
 	}
 
@@ -125,7 +124,7 @@ func (s TypeSpec) describe(
 			ctorPolicies = append(ctorPolicies, policyKey{policy: providesPolicyIns})
 		}
 	} else if ctor != nil {
-		invalid = multierror.Append(invalid, fmt.Errorf(
+		invalid = errors.Join(invalid, fmt.Errorf(
 			"handler %v has both a Constructor and NoConstructor method", typ))
 	}
 
@@ -143,7 +142,7 @@ func (s TypeSpec) describe(
 					inits = append(inits, &method)
 				} else if !isFilter {
 					if fb, err := parseFilterMethod(&method); err != nil {
-						invalid = multierror.Append(invalid, err)
+						invalid = errors.Join(invalid, err)
 					} else if fb != nil {
 						info.compound = append(info.compound, *fb)
 					}
@@ -159,12 +158,12 @@ func (s TypeSpec) describe(
 						}
 						bindings.forPolicy(policy).insert(policy, binding)
 					} else if err != nil {
-						invalid = multierror.Append(invalid, err)
+						invalid = errors.Join(invalid, err)
 					}
 				}
 			}
 		} else {
-			invalid = multierror.Append(invalid, err)
+			invalid = errors.Join(invalid, err)
 		}
 	}
 
@@ -178,7 +177,7 @@ func (s TypeSpec) describe(
 				}
 				bindings.forPolicy(policy).insert(policy, ctor)
 			} else {
-				invalid = multierror.Append(invalid, err)
+				invalid = errors.Join(invalid, err)
 			}
 		}
 	}
@@ -233,16 +232,16 @@ func (s FuncSpec) describe(
 						}
 						bindings.forPolicy(policy).insert(policy, binding)
 					} else if errBind != nil {
-						invalid = multierror.Append(invalid, errBind)
+						invalid = errors.Join(invalid, errBind)
 					}
 				} else {
-					invalid = multierror.Append(invalid, fmt.Errorf(
+					invalid = errors.Join(invalid, fmt.Errorf(
 						"policy %T does not support function bindings", policy))
 				}
 			}
 		}
 	} else {
-		invalid = multierror.Append(invalid, err)
+		invalid = errors.Join(invalid, err)
 	}
 	if invalid != nil {
 		return nil, &HandlerInfoError{s, invalid}

@@ -1,10 +1,10 @@
 package miruken
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 )
@@ -302,7 +302,7 @@ func buildDependencies(
 		if arg, err := buildDependency(argType); err == nil {
 			if arg.spec != nil {
 				if lastSpec != nil {
-					invalid = multierror.Append(invalid, fmt.Errorf(
+					invalid = errors.Join(invalid, fmt.Errorf(
 						"expected dependency at index %v, but found spec", i))
 				} else {
 					lastSpec = arg.spec // capture spec for actual dependency
@@ -316,7 +316,7 @@ func buildDependencies(
 							Validate(reflect.Type, DependencyArg) error
 						}); ok {
 							if err := v.Validate(argType, arg); err != nil {
-								invalid = multierror.Append(invalid, err)
+								invalid = errors.Join(invalid, err)
 							}
 						}
 					}
@@ -333,12 +333,12 @@ func buildDependencies(
 				args[j+offset] = arg
 			}
 		} else {
-			invalid = multierror.Append(invalid, fmt.Errorf(
+			invalid = errors.Join(invalid, fmt.Errorf(
 				"invalid dependency at index %v: %w", i, err))
 		}
 	}
 	if lastSpec != nil {
-		invalid = multierror.Append(invalid, fmt.Errorf(
+		invalid = errors.Join(invalid, fmt.Errorf(
 			"missing dependency at index %v", endIndex))
 	}
 	return invalid

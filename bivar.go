@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 )
@@ -148,7 +147,7 @@ func validateBivariantFunc(
 	}
 
 	if err2 := buildDependencies(funType, index+skip, numArgs, args, index); err2 != nil {
-		err = multierror.Append(err, fmt.Errorf("bivariant: %w", err2))
+		err = errors.Join(err, fmt.Errorf("bivariant: %w", err2))
 	}
 
 	resIdx := -1
@@ -158,16 +157,16 @@ func validateBivariantFunc(
 		switch {
 		case oo.AssignableTo(internal.ErrorType):
 			if i != numOut-1 {
-				err = multierror.Append(err, fmt.Errorf(
+				err = errors.Join(err, fmt.Errorf(
 					"bivariant: error found at index %v must be last return", i))
 			}
 		case oo.AssignableTo(handleResType):
 			if i != numOut-1 {
-				err = multierror.Append(err, fmt.Errorf(
+				err = errors.Join(err, fmt.Errorf(
 					"bivariant: HandleResult found at index %v must be last return", i))
 			}
 		case resIdx >= 0:
-			err = multierror.Append(err, fmt.Errorf(
+			err = errors.Join(err, fmt.Errorf(
 				"bivariant: effective return at index %v conflicts with index %v", i, resIdx))
 		default:
 			out = oo
@@ -181,7 +180,7 @@ func validateBivariantFunc(
 	}
 
 	if resIdx < 0 {
-		err = multierror.Append(err, ErrBivMissingReturn)
+		err = errors.Join(err, ErrBivMissingReturn)
 	}
 
 	if err != nil {

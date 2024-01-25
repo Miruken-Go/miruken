@@ -4,7 +4,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken"
 	"github.com/stretchr/testify/assert"
 )
@@ -65,16 +64,14 @@ func TestHandleResultErrors(t *testing.T) {
 	t.Parallel()
 
 	t.Run("combines multiple errors", func(t *testing.T) {
-		result := miruken.Handled.WithError(errors.New("bad")).
-			Or(miruken.NotHandled.WithError(errors.New("argument")))
+		err1 := errors.New("bad")
+		err2 := errors.New("argument")
+		result := miruken.Handled.WithError(err1).
+			Or(miruken.NotHandled.WithError(err2))
 
 		assert.True(t, result.IsError())
-
-		var err *multierror.Error
-		errors.As(result.Error(), &err)
-		assert.NotNil(t, err)
-		assert.Len(t, err.Errors, 2)
-		assert.Equal(t, 2, len(err.Errors))
+		assert.ErrorIs(t, result.Error(), err1)
+		assert.ErrorIs(t, result.Error(), err2)
 	})
 }
 

@@ -1,6 +1,8 @@
 package miruken
 
-import "github.com/hashicorp/go-multierror"
+import (
+	"errors"
+)
 
 var (
 	Handled           = HandleResult{true, false, nil}
@@ -196,7 +198,7 @@ func (r HandleResult) AndBlock(other HandleResult) HandleResult {
 
 func combineErrors(r1, r2 HandleResult) error {
 	if e1, e2 := r1.err, r2.err; e1 != nil && e2 != nil {
-		return multierror.Append(e1, e2)
+		return errors.Join(e1, e2)
 	} else if e1 != nil {
 		return e1
 	} else if e2 != nil {

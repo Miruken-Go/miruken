@@ -696,15 +696,12 @@ func (suite *ProvidesTestSuite) TestProvides() {
 	})
 
 	suite.Run("Invalid", func() {
-		failures := 0
 		defer func() {
 			if r := recover(); r != nil {
-				if err, ok := r.(*miruken.HandlerInfoError); ok {
-					var errMethod *miruken.MethodBindingError
-					for cause := errors.Unwrap(err.Cause); errors.As(cause, &errMethod); cause = errors.Unwrap(cause) {
-						failures++
-					}
-					suite.Equal(6, failures)
+				var err *miruken.HandlerInfoError
+				if errors.As(r.(error), &err) {
+					failures := internal.UnwrapErrors(err.Cause)
+					suite.Len(failures, 6)
 				} else {
 					suite.Fail("Expected HandlerInfoError")
 				}

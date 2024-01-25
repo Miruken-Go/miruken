@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/promise"
 )
 
@@ -121,8 +120,7 @@ func (m *Metadata) InitWithTag(
 			case 2:
 				(*m)[meta[0]] = meta[1]
 			default:
-				err = multierror.Append(err,
-					fmt.Errorf("invalid metadata [%v]", metadata))
+				err = errors.Join(err, fmt.Errorf("invalid metadata [%v]", metadata))
 			}
 		}
 	}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 )
@@ -190,7 +189,7 @@ func validateContravariantFunc(
 	}
 
 	if err2 := buildDependencies(funType, index+skip, numArgs, args, index); err2 != nil {
-		err = multierror.Append(err, fmt.Errorf("contravariant: %w", err2))
+		err = errors.Join(err, fmt.Errorf("contravariant: %w", err2))
 	}
 
 	resIdx := -1
@@ -199,21 +198,21 @@ func validateContravariantFunc(
 		out := funType.Out(i)
 		if out.AssignableTo(internal.ErrorType) {
 			if i != numOut-1 {
-				err = multierror.Append(err, fmt.Errorf(
+				err = errors.Join(err, fmt.Errorf(
 					"contravariant: error found at index %v must be last return", i))
 			}
 		} else if out.AssignableTo(handleResType) {
 			if i != numOut-1 {
-				err = multierror.Append(err, fmt.Errorf(
+				err = errors.Join(err, fmt.Errorf(
 					"contravariant: HandleResult found at index %v must be last return", i))
 			}
 		} else if ok, err2 := ValidIntent(out); ok {
 			// ignore intents
 		} else if err2 != nil {
-			err = multierror.Append(err, fmt.Errorf(
+			err = errors.Join(err, fmt.Errorf(
 				"contravariant: invalid intent at index %v: %w", i, err2))
 		} else if resIdx >= 0 {
-			err = multierror.Append(err, fmt.Errorf(
+			err = errors.Join(err, fmt.Errorf(
 				"contravariant: effective return at index %v conflicts with index %v", i, resIdx))
 		} else {
 			resIdx = i

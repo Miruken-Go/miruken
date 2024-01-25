@@ -261,8 +261,8 @@ func (suite *ApiHandlerTestSuite) TestApiHandler() {
 			suite.Nil(err)
 			suite.Len(r.Responses, 1)
 			either.Match(r.Responses[0], func(err error) {
-				suite.IsType(&validates.Outcome{}, err)
-				outcome := err.(*validates.Outcome)
+				var outcome *validates.Outcome
+				suite.ErrorAs(err, &outcome)
 				suite.False(outcome.Valid())
 				suite.Equal("Name: \"Name\" is required", outcome.Error())
 			}, func(res any) {
@@ -308,8 +308,8 @@ func (suite *ApiHandlerTestSuite) TestApiHandler() {
 			count := 0
 			for _, resp := range r.Responses {
 				either.Match(resp, func(err error) {
-					suite.IsType(&validates.Outcome{}, err)
-					outcome := err.(*validates.Outcome)
+					var outcome *validates.Outcome
+					suite.ErrorAs(err, &outcome)
 					suite.False(outcome.Valid())
 					suite.Equal("Name: \"Name\" is required", outcome.Error())
 					count += 1

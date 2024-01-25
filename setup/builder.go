@@ -2,7 +2,8 @@ package setup
 
 import (
 	"container/list"
-	"github.com/hashicorp/go-multierror"
+	"errors"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/internal"
@@ -204,7 +205,7 @@ func (s *Builder) build() (*context.Context, error) {
 			AfterInstall(*Builder, miruken.Handler) error
 		}); ok {
 			if err := after.AfterInstall(s, ctx); err != nil {
-				buildErrors = multierror.Append(buildErrors, err)
+				buildErrors = errors.Join(buildErrors, err)
 			}
 		}
 	}
@@ -236,7 +237,7 @@ func (s *Builder) installGraph(
 			}
 		}
 		if ie := feature.Install(s); ie != nil {
-			err = multierror.Append(err, ie)
+			err = errors.Join(err, ie)
 		}
 	}
 	return err

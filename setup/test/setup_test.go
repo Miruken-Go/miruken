@@ -219,7 +219,7 @@ func (suite *SetupTestSuite) TestSetup() {
 	suite.Run("Errors", func() {
 		installer := BadInstaller{}
 		_, err := setup.New(installer).Context()
-		suite.Equal("2 errors occurred:\n\t* insufficient resources\n\t* process failed to start\n\n", err.Error())
+		suite.Equal("insufficient resources\nprocess failed to start", err.Error())
 	})
 
 	suite.Run("Bootstrap", func() {

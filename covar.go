@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
 )
@@ -189,16 +188,16 @@ func validateCovariantFunc(
 		out := funType.Out(i)
 		if out.AssignableTo(internal.ErrorType) {
 			if i != numOut-1 {
-				err = multierror.Append(err, fmt.Errorf(
+				err = errors.Join(err, fmt.Errorf(
 					"covariant: error found at index %v must be last return", i))
 			}
 		} else if out.AssignableTo(handleResType) {
 			if i != numOut-1 {
-				err = multierror.Append(err, fmt.Errorf(
+				err = errors.Join(err, fmt.Errorf(
 					"covariant: HandleResult found at index %v must be last return", i))
 			}
 		} else if resIdx >= 0 {
-			err = multierror.Append(err, fmt.Errorf(
+			err = errors.Join(err, fmt.Errorf(
 				"covariant: effective return at index %v conflicts with index %v", i, resIdx))
 		} else {
 			resIdx = i
@@ -221,7 +220,7 @@ func validateCovariantFunc(
 	}
 
 	if resIdx < 0 {
-		err = multierror.Append(err, ErrCovMissingReturn)
+		err = errors.Join(err, ErrCovMissingReturn)
 	}
 	return
 }

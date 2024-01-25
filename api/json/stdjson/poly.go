@@ -3,6 +3,7 @@ package stdjson
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -117,7 +118,8 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 func (c *typeContainer) UnmarshalJSON(data []byte) error {
 	var fields map[string]*json.RawMessage
 	if err := json.Unmarshal(data, &fields); err != nil {
-		if me, ok := err.(*json.UnmarshalTypeError); ok {
+		var me *json.UnmarshalTypeError
+		if errors.As(err, &me) {
 			if me.Value == "array" {
 				var raw []*json.RawMessage
 				if err = json.Unmarshal(data, &raw); err == nil {

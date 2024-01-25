@@ -169,8 +169,8 @@ func (suite *ValidatorTestSuite) TestValidator() {
 				},
 			}
 			if _, _, err := handles.Request[User](suite.handler, &create); err != nil {
-				suite.IsType(&validates.Outcome{}, err)
-				outcome := err.(*validates.Outcome)
+				var outcome *validates.Outcome
+				suite.ErrorAs(err, &outcome)
 				suite.False(outcome.Valid())
 				user := outcome.Path("User")
 				suite.Equal("Addresses: (0: (City: Key: 'CreateUser.User.Addresses[0].City' Error:Field validation for 'City' failed on the 'required' tag; Phone: Key: 'CreateUser.User.Addresses[0].Phone' Error:Field validation for 'Phone' failed on the 'required' tag; Planet: Key: 'CreateUser.User.Addresses[0].Planet' Error:Field validation for 'Planet' failed on the 'required' tag; Street: Key: 'CreateUser.User.Addresses[0].Street' Error:Field validation for 'Street' failed on the 'required' tag)); Age: Key: 'CreateUser.User.Age' Error:Field validation for 'Age' failed on the 'lte' tag; Email: Key: 'CreateUser.User.Email' Error:Field validation for 'Email' failed on the 'email' tag; FavouriteColor: Key: 'CreateUser.User.FavouriteColor' Error:Field validation for 'FavouriteColor' failed on the 'iscolor' tag; FirstName: Key: 'CreateUser.User.FirstName' Error:Field validation for 'FirstName' failed on the 'required' tag; LastName: Key: 'CreateUser.User.LastName' Error:Field validation for 'LastName' failed on the 'required' tag", user.Error())
@@ -218,8 +218,8 @@ func (suite *ValidatorTestSuite) TestValidator() {
 				},
 			}
 			if _, _, err := handles.Request[UserNoTags](suite.handler, &create); err != nil {
-				suite.IsType(&validates.Outcome{}, err)
-				outcome := err.(*validates.Outcome)
+				var outcome *validates.Outcome
+				suite.ErrorAs(err, &outcome)
 				suite.False(outcome.Valid())
 				user := outcome.Path("User")
 				suite.Equal("Addresses: (0: (City: Key: 'CreateUserNoTags.User.Addresses[0].City' Error:Field validation for 'City' failed on the 'required' tag; Phone: Key: 'CreateUserNoTags.User.Addresses[0].Phone' Error:Field validation for 'Phone' failed on the 'required' tag; Planet: Key: 'CreateUserNoTags.User.Addresses[0].Planet' Error:Field validation for 'Planet' failed on the 'required' tag; Street: Key: 'CreateUserNoTags.User.Addresses[0].Street' Error:Field validation for 'Street' failed on the 'required' tag)); Age: Key: 'CreateUserNoTags.User.Age' Error:Field validation for 'Age' failed on the 'lte' tag; Email: Key: 'CreateUserNoTags.User.Email' Error:Field validation for 'Email' failed on the 'email' tag; FavouriteColor: Key: 'CreateUserNoTags.User.FavouriteColor' Error:Field validation for 'FavouriteColor' failed on the 'iscolor' tag; FirstName: Key: 'CreateUserNoTags.User.FirstName' Error:Field validation for 'FirstName' failed on the 'required' tag; LastName: Key: 'CreateUserNoTags.User.LastName' Error:Field validation for 'LastName' failed on the 'required' tag", user.Error())

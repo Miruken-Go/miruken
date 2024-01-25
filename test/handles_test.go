@@ -3,6 +3,7 @@ package test
 import (
 	"errors"
 	"fmt"
+	"github.com/miruken-go/miruken/internal"
 	"reflect"
 	"strings"
 	"testing"
@@ -778,7 +779,8 @@ func (suite *HandlesTestSuite) TestHandles() {
 		suite.Run("Required", func() {
 			defer func() {
 				if r := recover(); r != nil {
-					if err, ok := r.(*miruken.MethodBindingError); ok {
+					var err *miruken.MethodBindingError
+					if errors.As(r.(error), &err) {
 						suite.Equal("RequiredDependency", err.Method.Name)
 					} else {
 						suite.Fail("Expected MethodBindingError")
@@ -900,13 +902,14 @@ func (suite *HandlesTestSuite) TestHandles() {
 		suite.Run("Invalid", func() {
 			defer func() {
 				if r := recover(); r != nil {
-					if err, ok := r.(*miruken.HandlerInfoError); ok {
+					var err *miruken.HandlerInfoError
+					if errors.As(r.(error), &err) {
 						suite.Equal(
-							"1 error occurred:\n\t* unrecognized transactional mode \"suppress\"\n\n",
+							"unrecognized transactional mode \"suppress\"",
 							err.Cause.Error())
-						return
+					} else {
+						suite.Fail("Expected HandlerInfoError")
 					}
-					suite.Fail("Expected HandlerInfoError")
 				}
 			}()
 			if _, err := setup.New().Specs(&MetadataInvalidHandler{}).Context(); err != nil {
@@ -1141,15 +1144,12 @@ func (suite *HandlesTestSuite) TestHandles() {
 	})
 
 	suite.Run("Invalid", func() {
-		failures := 0
 		defer func() {
 			if r := recover(); r != nil {
-				if err, ok := r.(*miruken.HandlerInfoError); ok {
-					var errMethod *miruken.MethodBindingError
-					for cause := errors.Unwrap(err.Cause); errors.As(cause, &errMethod); cause = errors.Unwrap(cause) {
-						failures++
-					}
-					suite.Equal(7, failures)
+				var err *miruken.HandlerInfoError
+				if errors.As(r.(error), &err) {
+					failures := internal.UnwrapErrors(err.Cause)
+					suite.Len(failures, 7)
 				} else {
 					suite.Fail("Expected HandlerInfoError")
 				}
