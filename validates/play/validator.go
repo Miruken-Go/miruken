@@ -139,14 +139,16 @@ func (v *Validator) Validate(
 	// valid if no rules assigned
 	if valid := v.validate; valid != nil {
 		if err := valid.Struct(target); err != nil {
-			switch e := err.(type) {
-			case *play.InvalidValidationError:
-				return miruken.NotHandled.WithError(err)
-			case play.ValidationErrors:
+			var ie *play.InvalidValidationError
+			var ve play.ValidationErrors
+			switch {
+			case errors.As(err, &ie):
+				return miruken.NotHandled.WithError(ie)
+			case errors.As(err, &ve):
 				if v.translator == nil {
-					v.addErrors(outcome, e)
+					v.addErrors(outcome, ve)
 				} else {
-					v.translateErrors(outcome, e)
+					v.translateErrors(outcome, ve)
 				}
 				return miruken.HandledAndStop
 			default:

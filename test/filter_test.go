@@ -56,11 +56,10 @@ func (c *Capture) AddFilters(filters ...miruken.Filter) {
 }
 
 type (
-	FooC        struct{ Capture }
-	SpecialFooC struct{ FooC }
-	BarC        struct{ Capture }
-	BooC        struct{ Capture }
-	BeeC        struct{ Capture }
+	FooC struct{ Capture }
+	BarC struct{ Capture }
+	BooC struct{ Capture }
+	BeeC struct{ Capture }
 
 	Logging interface {
 		Log(msg string)

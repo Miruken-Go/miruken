@@ -108,22 +108,22 @@ func TestNotHandled_Or(t *testing.T) {
 
 	t.Run("Handled should be Handled", func(t *testing.T) {
 		t.Parallel()
-		assert.Equal(t, miruken.Handled, result.Or(miruken.Handled).WithoutError())
+		assert.Equal(t, miruken.Handled, result.Or(miruken.Handled))
 	})
 
 	t.Run("HandledAndStop should be HandledAndStop", func(t *testing.T) {
 		t.Parallel()
-		assert.Equal(t, miruken.HandledAndStop, result.Or(miruken.HandledAndStop).WithoutError())
+		assert.Equal(t, miruken.HandledAndStop, result.Or(miruken.HandledAndStop))
 	})
 
 	t.Run("NotHandled should be NotHandled", func(t *testing.T) {
 		t.Parallel()
-		assert.Equal(t, miruken.NotHandled, result.Or(miruken.NotHandled).WithoutError())
+		assert.Equal(t, miruken.NotHandled, result.Or(miruken.NotHandled))
 	})
 
 	t.Run("NotHandledAndStop should be NotHandledAndStop", func(t *testing.T) {
 		t.Parallel()
-		assert.Equal(t, miruken.NotHandledAndStop, result.Or(miruken.NotHandledAndStop).WithoutError())
+		assert.Equal(t, miruken.NotHandledAndStop, result.Or(miruken.NotHandledAndStop))
 	})
 }
 

@@ -18,12 +18,12 @@ func (v *validator) Validate(
 		return miruken.NotHandled
 	}
 	if result, err := govalidator.ValidateStruct(target); !result {
-		switch e := err.(type) {
-		case govalidator.Errors:
+		var e govalidator.Errors
+		switch {
+		case errors.As(err, &e):
 			v.addErrors(it.Outcome(), e)
 		default:
-			it.Outcome().
-				AddError("", errors.New("failed validation"))
+			it.Outcome().AddError("", errors.New("failed validation"))
 		}
 		return miruken.HandledAndStop
 	}
@@ -32,14 +32,16 @@ func (v *validator) Validate(
 
 func (v *validator) addErrors(
 	outcome *validates.Outcome,
-	errors  govalidator.Errors,
+	errs    govalidator.Errors,
 ) {
-	for _, err := range errors {
-		switch actual := err.(type) {
-		case govalidator.Error:
-			pathOutcome(outcome, actual).AddError(actual.Name, actual)
-		case govalidator.Errors:
-			v.addErrors(outcome, actual)
+	for _, err := range errs {
+		var e govalidator.Error
+		var es govalidator.Errors
+		switch {
+		case errors.As(err, &e):
+			pathOutcome(outcome, e).AddError(e.Name, e)
+		case errors.As(err, &es):
+			v.addErrors(outcome, es)
 		default:
 			outcome.AddError("", err)
 		}

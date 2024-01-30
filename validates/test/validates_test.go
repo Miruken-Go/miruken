@@ -206,16 +206,6 @@ func (suite *ValidatesTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	return setup.New().Specs(specs...).Context()
 }
 
-type (
-	Group struct {
-		Name string
-	}
-
-	Role struct {
-		Name string
-	}
-)
-
 func (suite *ValidatesTestSuite) TestValidation() {
 	suite.Run("Outcome", func() {
 		suite.Run("Root Errors", func() {

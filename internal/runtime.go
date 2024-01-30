@@ -236,11 +236,13 @@ func Exported(t any) bool {
 	return true
 }
 
-func UnwrapErrors(err error) []error {
-	if me, ok := err.(interface{ Unwrap() []error }); ok {
-		return slices.FlatMap[error, error](me.Unwrap(), UnwrapErrors)
-	}
-	return []error{err}
+func UnwrapErrors(errs ...error) []error {
+	return slices.FlatMap[error, error](errs, func(err error) []error {
+		if me, ok := err.(interface{ Unwrap() []error }); ok {
+			return UnwrapErrors(me.Unwrap()...)
+		}
+		return []error{err}
+	})
 }
 
 func CoerceToPtr(
