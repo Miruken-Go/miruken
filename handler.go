@@ -16,7 +16,7 @@ type (
 		) HandleResult
 	}
 
-	// HandleContext allows interrogation of the current Callback.
+	// HandleContext allows inspection of the current Callback.
 	HandleContext struct {
 		Handler  any
 		Callback Callback

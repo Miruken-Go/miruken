@@ -239,7 +239,7 @@ func (t optionMerger) Transformer(
 ) func(dst, src reflect.Value) error {
 	addr := false
 	if !typ.AssignableTo(mergeableType) && typ.Kind() != reflect.Ptr {
-		typ = reflect.PtrTo(typ)
+		typ = reflect.PointerTo(typ)
 		addr = true
 	}
 	if !addr || typ.AssignableTo(mergeableType) {

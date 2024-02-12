@@ -252,7 +252,7 @@ func CoerceToPtr(
 	if givenType.AssignableTo(desiredType) {
 		return givenType
 	} else if givenType.Kind() != reflect.Ptr {
-		givenType = reflect.PtrTo(givenType)
+		givenType = reflect.PointerTo(givenType)
 		if givenType.AssignableTo(desiredType) {
 			return givenType
 		}

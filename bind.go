@@ -510,7 +510,7 @@ func addMetadata(
 ) error {
 	writeable := typ.Kind() == reflect.Ptr
 	if !writeable {
-		typ = reflect.PtrTo(typ)
+		typ = reflect.PointerTo(typ)
 	}
 	if metadata, err := internal.NewWithTag(typ, tag); metadata != nil && err == nil {
 		if !writeable {
