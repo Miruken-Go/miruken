@@ -67,31 +67,31 @@ func (p *ContravariantPolicy) Less(
 
 func (p *ContravariantPolicy) AcceptResults(
 	results []any,
-) (any, HandleResult, []Intent) {
+) (any, HandleResult, []Intent, []any) {
 	switch len(results) {
 	case 0:
-		return nil, Handled, nil
+		return nil, Handled, nil, nil
 	case 1:
 		switch result := results[0].(type) {
 		case error:
-			return nil, NotHandled.WithError(result), nil
+			return nil, NotHandled.WithError(result), nil, nil
 		case HandleResult:
-			return nil, result, nil
+			return nil, result, nil, nil
 		default:
 			if intent, _ := MakeIntent(result, false); intent != nil {
-				return nil, Handled, []Intent{intent}
+				return nil, Handled, []Intent{intent}, nil
 			}
-			return result, Handled, nil
+			return result, Handled, nil, nil
 		}
 	default:
 		iEnd := 0
 		hr   := Handled
 		switch err := results[len(results)-1].(type) {
 		case error:
-			return nil, NotHandled.WithError(err), nil
+			return nil, NotHandled.WithError(err), nil, nil
 		case HandleResult:
 			if !err.Handled() || err.IsError() {
-				return nil, err, nil
+				return nil, err, nil, nil
 			}
 			hr = err
 			iEnd++
@@ -102,7 +102,7 @@ func (p *ContravariantPolicy) AcceptResults(
 		if h, ok := first.(HandleResult); ok {
 			hr = hr.And(h)
 			if !hr.Handled() || hr.IsError() {
-				return nil, h, nil
+				return nil, hr, nil, nil
 			}
 			iStart++
 		} else {
@@ -111,11 +111,11 @@ func (p *ContravariantPolicy) AcceptResults(
 				iStart++
 			}
 		}
-		intents, err := MakeIntents(true, results[iStart:len(results)-iEnd])
+		intents, xs, err := MakeIntents(false, results[iStart:len(results)-iEnd])
 		if err != nil {
-			return res, NotHandled.WithError(err), nil
+			return res, NotHandled.WithError(err), nil, nil
 		}
-		return res, hr, intents
+		return res, hr, intents, xs
 	}
 }
 
@@ -211,10 +211,7 @@ func validateContravariantFunc(
 		} else if err2 != nil {
 			err = errors.Join(err, fmt.Errorf(
 				"contravariant: invalid intent at index %v: %w", i, err2))
-		} else if resIdx >= 0 {
-			err = errors.Join(err, fmt.Errorf(
-				"contravariant: effective return at index %v conflicts with index %v", i, resIdx))
-		} else {
+		} else if resIdx == 0 {  // response assumed be first
 			resIdx = i
 			if lt, ok := promise.Inspect(out); ok {
 				spec.flags |= bindingAsync

@@ -397,7 +397,10 @@ func applyResults(
 	ctx     *HandleContext,
 	await   bool,
 ) (any, HandleResult) {
-	res, accept, intents := policy.AcceptResults(results)
+	res, accept, intents, cascade := policy.AcceptResults(results)
+	if len(cascade) > 0 {
+		intents = append(intents, CascadeCallbacks(cascade...))
+	}
 	if intents != nil && accept.Handled() && !accept.IsError() {
 		pi, err := processIntents(intents, ctx, await)
 		if err != nil {

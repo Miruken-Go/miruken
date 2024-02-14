@@ -445,6 +445,7 @@ func (h *InvalidHandler) MissingDependency(
 ) {
 }
 
+/* Relaxed for implicit cascades */
 func (h *InvalidHandler) TooManyReturnValues(
 	_ *handles.It, _ *Bar,
 ) (int, string, Counter) {
@@ -456,6 +457,7 @@ func (h *InvalidHandler) SecondReturnMustBeErrorOrHandleResult(
 ) (Foo, string) {
 	return Foo{}, "bad"
 }
+/**/
 
 func (h *InvalidHandler) UntypedInterfaceDependency(
 	_ *handles.It, _ *Bar,
@@ -1149,7 +1151,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 				var err *miruken.HandlerInfoError
 				if errors.As(r.(error), &err) {
 					failures := internal.UnwrapErrors(err.Cause)
-					suite.Len(failures, 7)
+					suite.Len(failures, 5)
 				} else {
 					suite.Fail("Expected HandlerInfoError")
 				}

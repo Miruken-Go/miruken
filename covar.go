@@ -66,38 +66,38 @@ func (p *CovariantPolicy) Less(
 
 func (p *CovariantPolicy) AcceptResults(
 	results []any,
-) (result any, accepted HandleResult, intents []Intent) {
+) (result any, accepted HandleResult, intents []Intent, cascade []any) {
 	switch len(results) {
 	case 0:
 		if internal.IsNil(results) {
-			return nil, NotHandled, nil
+			return nil, NotHandled, nil, nil
 		}
-		return nil, Handled, nil
+		return nil, Handled, nil, nil
 	case 1:
 		if result = results[0]; internal.IsNil(result) {
-			return nil, NotHandled, nil
+			return nil, NotHandled, nil, nil
 		} else if r, ok := result.(HandleResult); ok {
-			return nil, r, nil
+			return nil, r, nil, nil
 		}
-		return result, Handled, nil
+		return result, Handled, nil, nil
 	case 2:
 		result = results[0]
 		switch err := results[1].(type) {
 		case error:
-			return result, NotHandled.WithError(err), nil
+			return result, NotHandled.WithError(err), nil, nil
 		case HandleResult:
 			if internal.IsNil(result) {
-				return nil, err.And(NotHandled), nil
+				return nil, err.And(NotHandled), nil, nil
 			}
-			return result, err, nil
+			return result, err, nil, nil
 		default:
 			if internal.IsNil(result) {
-				return nil, NotHandled, nil
+				return nil, NotHandled, nil, nil
 			}
-			return result, Handled, nil
+			return result, Handled, nil, nil
 		}
 	}
-	return nil, NotHandled.WithError(ErrCovResultsExceeded), nil
+	return nil, NotHandled.WithError(ErrCovResultsExceeded), nil, nil
 }
 
 func (p *CovariantPolicy) NewCtorBinding(

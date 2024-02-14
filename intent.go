@@ -20,6 +20,14 @@ type (
 		Apply(HandleContext) (promise.Reflect, error)
 	}
 
+	// Cascade is a standard Intent for cascading callbacks.
+	Cascade struct {
+		callbacks   []any
+		constraints []any
+		handler     Handler
+		greedy      bool
+	}
+	
 	// intentAdapter is an adapter for implementing an
 	// Intent using late binding method resolution.
 	intentAdapter struct{
@@ -38,11 +46,82 @@ type (
 )
 
 
+// Cascade
+
+func (c *Cascade) WithConstraints(
+	constraints ...any,
+) *Cascade {
+	c.constraints = constraints
+	return c
+}
+
+func (c *Cascade) WithHandler(
+	handler Handler,
+) *Cascade {
+	c.handler = handler
+	return c
+}
+
+func (c *Cascade) Greedy(
+	greedy bool,
+) *Cascade {
+	c.greedy = greedy
+	return c
+}
+
+func (c *Cascade) Apply(
+	ctx HandleContext,
+) (promise.Reflect, error) {
+	callbacks := c.callbacks
+	if len(callbacks) == 0 {
+		return nil, nil
+	}
+
+	handler := c.handler
+	if internal.IsNil(handler) {
+		handler = ctx.Composer
+	}
+
+	var promises []*promise.Promise[any]
+
+	for _, callback := range callbacks {
+		var pc *promise.Promise[any]
+		var err error
+		if c.greedy {
+			pc, err = CommandAll(handler, callback, c.constraints...)
+		} else {
+			pc, err = Command(handler, callback, c.constraints...)
+		}
+		if err != nil {
+			return nil, err
+		} else if pc != nil {
+			promises = append(promises, pc)
+		}
+	}
+
+	switch len(promises) {
+	case 0:
+		return nil, nil
+	case 1:
+		return promises[0], nil
+	default:
+		return promise.All(nil, promises...), nil
+	}
+}
+
+// CascadeCallbacks is a fluent builder to Cascade callbacks.
+func CascadeCallbacks(callbacks ...any) *Cascade {
+	return &Cascade{callbacks: callbacks}
+}
+
 // MakeIntent creates an Intent from anything.
 // If the argument is already an Intent it is returned.
 // If require is true, an error is returned if the argument
 // cannot be coerced into an Intent.
-func MakeIntent(intent any, require bool) (Intent, error) {
+func MakeIntent(
+	intent  any,
+	require bool,
+) (Intent, error) {
 	if internal.IsNil(intent) {
 		return nil, nil
 	}
@@ -58,25 +137,34 @@ func MakeIntent(intent any, require bool) (Intent, error) {
 	return nil, nil
 }
 
-// MakeIntents creates Intent's from anything.
+// MakeIntents creates Intent from anything.
 // If an argument is already an Intent it is returned.
+// Unrecognized Intents are returned as is.
 // If require is true, an error is returned if any argument
 // cannot be coerced into an Intent.
-func MakeIntents(require bool, intents []any) ([]Intent, error) {
+func MakeIntents(
+	require  bool,
+	intents []any,
+) ([]Intent, []any, error) {
+	var xs []any
 	ins := make([]Intent, 0, len(intents))
-	for _, intent := range intents {
-		if i, err := MakeIntent(intent, require); err != nil {
-			return nil, err
-		} else if i != nil {
-			ins = append(ins, i)
+	for _, candidate := range intents {
+		if intent, err := MakeIntent(candidate, require); err != nil {
+			return nil, nil, err
+		} else if intent != nil {
+			ins = append(ins, intent)
+		} else if !internal.IsNil(candidate) {
+			xs = append(xs, candidate)
 		}
 	}
-	return ins, nil
+	return ins, xs, nil
 }
 
 // ValidIntent returns true if the argument is an Intent or
 // can be converted to an Intent.
-func ValidIntent(typ reflect.Type) (bool, error) {
+func ValidIntent(
+	typ reflect.Type,
+) (bool, error) {
 	if internal.IsNil(typ) {
 		return false, nil
 	}
@@ -221,6 +309,7 @@ func (b intentBinding) invoke(
 		return nil
 	}), nil
 }
+
 
 var (
 	intentBindingLock sync.Mutex

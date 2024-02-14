@@ -67,6 +67,10 @@ type (
 		Email string
 	}
 
+	RecordTransaction struct {
+		Activity string
+	}
+
 	AccountHandler struct {
 		nextId int
 	}
@@ -127,25 +131,34 @@ func (p PostMsg) Apply(
 
 func (a *AccountHandler) CreateAccount(
 	_ *handles.It, create CreateAccount,
-) (int, NewEntity, SendMail, PostMsg, error) {
+) (int, NewEntity, SendMail, PostMsg, RecordTransaction, error) {
 	a.nextId++
 	msg := fmt.Sprintf("Welcome %s", create.Name)
 	return a.nextId,
 		NewEntity{Id: a.nextId, Name: create.Name, Email: create.Email},
 		SendMail{To: create.Email, Msg: msg},
 		PostMsg{To: "http://localhost:8080", Data: []byte("Account Created")},
+		RecordTransaction{fmt.Sprintf("Account '%s' Created", create.Email) },
 		nil
 }
 
 func (a *AccountHandler) ConfirmAccount(
 	_ *handles.It, confirm ConfirmAccount,
-) (*promise.Promise[string], SendMail, PostMsg, miruken.HandleResult) {
+) (*promise.Promise[string], SendMail, PostMsg, RecordTransaction, miruken.HandleResult) {
 	msg := fmt.Sprintf("Confirm your account %s", confirm.Name)
 	return promise.Resolve(confirm.Email),
-		   SendMail{To: confirm.Email, Msg: msg},
-		   PostMsg{To: "http://localhost:8080", Data: []byte("Hello World!")},
-		   miruken.Handled
+		SendMail{To: confirm.Email, Msg: msg},
+		PostMsg{To: "http://localhost:8080", Data: []byte("Hello World!")},
+		RecordTransaction{fmt.Sprintf("Account '%s' Confirmed", confirm.Email) },
+		miruken.Handled
 }
+
+func (a *AccountHandler) RecordTransaction(
+	_ *handles.It, record RecordTransaction,
+) {
+	println(record.Activity)
+}
+
 
 type IntentTestSuite struct {
 	suite.Suite

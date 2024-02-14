@@ -191,6 +191,7 @@ func (m *InvalidMapper) MissingDependency(
 func (m *InvalidMapper) MissingReturnValue(*provides.It) {
 }
 
+/* Relaxed for implicit cascades */
 func (m *InvalidMapper) TooManyReturnValues(
 	_ *handles.It, _ *Bar,
 ) (int, string, Counter) {
@@ -202,6 +203,7 @@ func (m *InvalidMapper) SecondReturnMustBeErrorOrHandleResult(
 ) (Foo, string) {
 	return Foo{}, "bad"
 }
+/**/
 
 func (m *InvalidMapper) UntypedInterfaceDependency(
 	_ *handles.It, _ *Bar,
@@ -370,7 +372,7 @@ func (suite *MapsTestSuite) TestMap() {
 					var err *miruken.HandlerInfoError
 					if errors.As(r.(error), &err) {
 						failures := internal.UnwrapErrors(err.Cause)
-						suite.Len(failures, 6)
+						suite.Len(failures, 4)
 					} else {
 						suite.Fail("Expected HandlerInfoError")
 					}

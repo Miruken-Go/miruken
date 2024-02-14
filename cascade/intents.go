@@ -9,12 +9,7 @@ import (
 
 type (
 	// Callbacks is a miruken.Intent for cascading callbacks.
-	Callbacks struct {
-		callbacks   []any
-		constraints []any
-		handler     miruken.Handler
-		greedy      bool
-	}
+	Callbacks = miruken.Cascade
 
 	// Messages is a miruken.Intent for cascading api messages.
 	Messages struct {
@@ -24,68 +19,11 @@ type (
 	}
 )
 
-// Callbacks
+var (
+	// Handle is a fluent builder for cascading Callbacks.
+	Handle = miruken.CascadeCallbacks
+)
 
-func (c *Callbacks) WithConstraints(
-	constraints ...any,
-) *Callbacks {
-	c.constraints = constraints
-	return c
-}
-
-func (c *Callbacks) WithHandler(
-	handler miruken.Handler,
-) *Callbacks {
-	c.handler = handler
-	return c
-}
-
-func (c *Callbacks) Greedy(
-	greedy bool,
-) *Callbacks {
-	c.greedy = greedy
-	return c
-}
-
-func (c *Callbacks) Apply(
-	ctx  miruken.HandleContext,
-) (promise.Reflect, error) {
-	callbacks := c.callbacks
-	if len(callbacks) == 0 {
-		return nil, nil
-	}
-
-	handler := c.handler
-	if internal.IsNil(handler) {
-		handler = ctx.Composer
-	}
-
-	var promises []*promise.Promise[any]
-
-	for _, callback := range callbacks {
-		var pc *promise.Promise[any]
-		var err error
-		if c.greedy {
-			pc, err = miruken.CommandAll(handler, callback, c.constraints...)
-		} else {
-			pc, err = miruken.Command(handler, callback, c.constraints...)
-		}
-		if err != nil {
-			return nil, err
-		} else if pc != nil {
-			promises = append(promises, pc)
-		}
-	}
-
-	switch len(promises) {
-	case 0:
-		return nil, nil
-	case 1:
-		return promises[0], nil
-	default:
-		return promise.All(nil, promises...), nil
-	}
-}
 
 // Messages
 
@@ -134,11 +72,6 @@ func (m *Messages) Apply(
 	default:
 		return promise.All(nil, promises...), nil
 	}
-}
-
-// Handle is a fluent builder for Callbacks.
-func Handle(callbacks ...any) *Callbacks {
-	return &Callbacks{callbacks: callbacks}
 }
 
 // Post is a fluent builder for posting Messages.

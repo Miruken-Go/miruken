@@ -17,7 +17,7 @@ type (
 		Less(binding, otherBinding Binding) bool
 		VariantKey(key any) (bool, bool)
 		MatchesKey(key, otherKey any, invariant bool) (bool, bool)
-		AcceptResults(results []any) (any, HandleResult, []Intent)
+		AcceptResults(results []any) (any, HandleResult, []Intent, []any)
 	}
 
 	// PolicyDispatch customizes Callback Policy dispatch.
