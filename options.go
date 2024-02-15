@@ -259,6 +259,6 @@ func (t optionMerger) Transformer(
 }
 
 var (
-	mergeableType = internal.TypeOf[mergeable]()
+	mergeableType = reflect.TypeFor[mergeable]()
 	mergeOptions  = optionMerger{}
 )

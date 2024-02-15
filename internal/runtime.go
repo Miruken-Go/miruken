@@ -1,16 +1,12 @@
 package internal
 
 import (
-	"github.com/miruken-go/miruken/internal/slices"
 	"reflect"
 	"runtime"
 	"strings"
-)
 
-// TypeOf returns reflect.Type of generic argument.
-func TypeOf[T any]() reflect.Type {
-	return reflect.TypeOf((*T)(nil)).Elem()
-}
+	"github.com/miruken-go/miruken/internal/slices"
+)
 
 // ValueAs returns the value of v As the type T.
 // Provides panics if the value isn't assignable to T.

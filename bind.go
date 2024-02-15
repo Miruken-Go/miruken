@@ -528,11 +528,11 @@ const (
 )
 
 var (
-	strictType          = internal.TypeOf[Strict]()
-	optionalType        = internal.TypeOf[Optional]()
-	skipFiltersType     = internal.TypeOf[SkipFilters]()
-	bindingGroupType    = internal.TypeOf[BindingGroup]()
-	definesBindingGroup = internal.TypeOf[interface{ DefinesBindingGroup() }]()
-	filterType          = internal.TypeOf[Filter]()
-	constraintType      = internal.TypeOf[Constraint]()
+	strictType          = reflect.TypeFor[Strict]()
+	optionalType        = reflect.TypeFor[Optional]()
+	skipFiltersType     = reflect.TypeFor[SkipFilters]()
+	bindingGroupType    = reflect.TypeFor[BindingGroup]()
+	definesBindingGroup = reflect.TypeFor[interface{ DefinesBindingGroup() }]()
+	filterType          = reflect.TypeFor[Filter]()
+	constraintType      = reflect.TypeFor[Constraint]()
 )

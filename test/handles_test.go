@@ -3,7 +3,6 @@ package test
 import (
 	"errors"
 	"fmt"
-	"github.com/miruken-go/miruken/internal"
 	"reflect"
 	"strings"
 	"testing"
@@ -12,6 +11,7 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/handles"
+	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/promise"

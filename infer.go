@@ -209,4 +209,4 @@ func linkBinding(
 	}
 }
 
-var inferHandlerType = internal.TypeOf[*inferenceHandler]()
+var inferHandlerType = reflect.TypeFor[*inferenceHandler]()

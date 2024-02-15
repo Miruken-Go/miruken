@@ -314,6 +314,6 @@ func (b intentBinding) invoke(
 var (
 	intentBindingLock sync.Mutex
 	intentBindingMap   = atomic.Pointer[map[reflect.Type]intentBinding]{}
-	intentType         = internal.TypeOf[Intent]()
-	promiseReflectType = internal.TypeOf[promise.Reflect]()
+	intentType         = reflect.TypeFor[Intent]()
+	promiseReflectType = reflect.TypeFor[promise.Reflect]()
 )

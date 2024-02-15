@@ -202,7 +202,7 @@ func (v *Validator) translateErrors(
 
 // Type is a helper function to define the constraints for a type.
 func Type[T any](constraints map[string]string) TypeRules {
-	typ := reflect.Zero(internal.TypeOf[T]()).Interface()
+	typ := reflect.Zero(reflect.TypeFor[T]()).Interface()
 	return TypeRules{Type: typ, Constraints: constraints}
 }
 

@@ -11,7 +11,6 @@ import (
 
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
-	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 )
@@ -150,7 +149,7 @@ func (suite *SetupTestSuite) TestSetup() {
 			},
 			func(spec miruken.HandlerSpec) bool {
 				if ts, ok := spec.(miruken.TypeSpec); ok {
-					return ts.Type() == internal.TypeOf[*EverythingHandler]()
+					return ts.Type() == reflect.TypeFor[*EverythingHandler]()
 				}
 				return false
 			}).Context()

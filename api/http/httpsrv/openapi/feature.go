@@ -287,7 +287,7 @@ func (i *Installer) initializeDefinitions(ap *apiProfile) {
 			WithJSONSchema(openapi3.NewSchema().
 				WithProperty("payload", openapi3.NewObjectSchema())),
 	}
-	tags := []string{internal.TypeOf[api.Message]().PkgPath()}
+	tags := []string{reflect.TypeFor[api.Message]().PkgPath()}
 	ap.paths.Set("/process", &openapi3.PathItem{
 		Post: &openapi3.Operation{
 			OperationID: "process",
@@ -569,9 +569,9 @@ func Feature(
 			},
 		},
 		surrogates: map[reflect.Type]any{
-			internal.TypeOf[api.ConcurrentBatch](): json2.Concurrent{},
-			internal.TypeOf[api.SequentialBatch](): json2.Sequential{},
-			internal.TypeOf[api.ScheduledResult](): stdjson.ScheduledResult{
+			reflect.TypeFor[api.ConcurrentBatch](): json2.Concurrent{},
+			reflect.TypeFor[api.SequentialBatch](): json2.Sequential{},
+			reflect.TypeFor[api.ScheduledResult](): stdjson.ScheduledResult{
 				stdjson.Either[error, any]{
 					Left:  false,
 					Value: json.RawMessage("\"success\""),

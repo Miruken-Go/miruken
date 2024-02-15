@@ -620,6 +620,6 @@ func (f *CurrentHandlerInfoFactoryProvider) CabBatch() bool {
 }
 
 var (
-	suppressDispatchType = internal.TypeOf[suppressDispatch]()
-	initSpecType         = internal.TypeOf[Init]()
+	suppressDispatchType = reflect.TypeFor[suppressDispatch]()
+	initSpecType         = reflect.TypeFor[Init]()
 )

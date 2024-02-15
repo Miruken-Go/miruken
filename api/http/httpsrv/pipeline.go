@@ -11,7 +11,6 @@ import (
 	"sync/atomic"
 
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/provides"
 )
@@ -89,7 +88,7 @@ func Pipe(middleware ...any) Middleware {
 
 // M builds a typed Middleware wrapper for dynamic http processing.
 func M[M any](opts ...any) Middleware {
-	typ := internal.TypeOf[M]()
+	typ := reflect.TypeFor[M]()
 	if typ.Implements(middlewareType) {
 		return &resMiddleware{typ: typ, opts: opts}
 	}
@@ -294,9 +293,9 @@ func handlePanic(w http.ResponseWriter, _ *http.Request) {
 }
 
 var (
-	middlewareType = internal.TypeOf[Middleware]()
+	middlewareType = reflect.TypeFor[Middleware]()
 
 	middlewareFuncLock   sync.Mutex
-	middlewareFuncType   = internal.TypeOf[MiddlewareFunc]()
+	middlewareFuncType   = reflect.TypeFor[MiddlewareFunc]()
 	middlewareBindingMap = atomic.Pointer[map[reflect.Type]middlewareBinding]{}
 )

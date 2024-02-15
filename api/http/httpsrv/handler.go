@@ -11,7 +11,6 @@ import (
 
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/context"
-	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/provides"
 )
 
@@ -82,7 +81,7 @@ func Api(
 
 // H builds a typed Handler wrapper for dynamic http processing.
 func H[H any](opts ...any) Handler {
-	typ := internal.TypeOf[H]()
+	typ := reflect.TypeFor[H]()
 	if typ.Implements(handlerType) {
 		return &rawResHandler{resHandler[http.Handler]{typ: typ, opts: opts}}
 	}
@@ -337,10 +336,10 @@ func (b handlerBinding) invoke(
 }
 
 var (
-	handlerType    = internal.TypeOf[http.Handler]()
-	extHandlerType = internal.TypeOf[Handler]()
+	handlerType    = reflect.TypeFor[http.Handler]()
+	extHandlerType = reflect.TypeFor[Handler]()
 
 	handlerLock       sync.Mutex
-	handlerFuncType   = internal.TypeOf[http.HandlerFunc]()
+	handlerFuncType   = reflect.TypeFor[http.HandlerFunc]()
 	handlerBindingMap = atomic.Pointer[map[reflect.Type]handlerBinding]{}
 )

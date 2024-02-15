@@ -378,4 +378,4 @@ func tryDispose(instance any) {
 	}
 }
 
-var contextType = internal.TypeOf[*Context]()
+var contextType = reflect.TypeFor[*Context]()

@@ -203,14 +203,14 @@ func BatchTag[T any](
 	handler   Handler,
 	configure func(Handler),
 ) *promise.Promise[[]any] {
-	return Batch(handler, configure, internal.TypeOf[T]())
+	return Batch(handler, configure, reflect.TypeFor[T]())
 }
 
 func BatchTagAsync[T any, E any](
 	handler   Handler,
 	configure func(Handler) *promise.Promise[T],
 ) *promise.Promise[[]any] {
-	return BatchAsync(handler, configure, internal.TypeOf[E]())
+	return BatchAsync(handler, configure, reflect.TypeFor[E]())
 }
 
 var NoBatch BuilderFunc = func(handler Handler) Handler {
@@ -233,7 +233,7 @@ func GetBatch[TB batching](handler Handler, tags ...any) TB {
 				return batcher
 			}
 		}
-		if batcher, err := internal.NewWithTag(internal.TypeOf[TB](), ""); err == nil {
+		if batcher, err := internal.NewWithTag(reflect.TypeFor[TB](), ""); err == nil {
 			batch.AppendHandlers(batcher)
 			return batcher.(TB)
 		}
@@ -253,6 +253,6 @@ func newBatch(tags ...any) *batch {
 }
 
 var (
-	batchType    = internal.TypeOf[*batch]()
-	batchingType = internal.TypeOf[batching]()
+	batchType    = reflect.TypeFor[*batch]()
+	batchingType = reflect.TypeFor[batching]()
 )

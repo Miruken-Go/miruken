@@ -2,6 +2,7 @@ package miruken
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
@@ -69,7 +70,7 @@ func Create[T any](
 	handler     Handler,
 	constraints ...any,
 ) (T, *promise.Promise[T], error) {
-	return CreateKey[T](handler, internal.TypeOf[T](), constraints...)
+	return CreateKey[T](handler, reflect.TypeFor[T](), constraints...)
 }
 
 // CreateKey creates a value of type parameter T with the specified key.
@@ -105,7 +106,7 @@ func CreateAll[T any](
 		panic("handler cannot be nil")
 	}
 	var builder CreatesBuilder
-	builder.WithKey(internal.TypeOf[T]()).
+	builder.WithKey(reflect.TypeFor[T]()).
 		IntoTarget(&t).
 		WithConstraints(constraints...)
 	creates := builder.New()

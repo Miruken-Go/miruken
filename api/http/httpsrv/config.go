@@ -1,9 +1,10 @@
 package httpsrv
 
 import (
-	"github.com/miruken-go/miruken/internal"
 	"net/http"
 	"time"
+
+	"github.com/miruken-go/miruken/internal"
 )
 
 // Config provides http.Server configuration.

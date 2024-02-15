@@ -3,6 +3,7 @@ package test
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -153,10 +154,10 @@ type OpenProvider struct {
 func (p *OpenProvider) ProvideSingletons(
 	_ *struct{ provides.Single }, it *provides.It,
 ) any {
-	if key := it.Key(); key == internal.TypeOf[*Foo]() {
+	if key := it.Key(); key == reflect.TypeFor[*Foo]() {
 		p.foo.Inc()
 		return &p.foo
-	} else if key == internal.TypeOf[*Bar]() {
+	} else if key == reflect.TypeFor[*Bar]() {
 		p.bar.Inc()
 		p.bar.Inc()
 		return &p.bar
@@ -170,10 +171,10 @@ func (p *OpenProvider) ProvideSingletons(
 func (p *OpenProvider) ProvideScoped(
 	_ *struct{ context.Scoped }, it *provides.It,
 ) any {
-	if key := it.Key(); key == internal.TypeOf[*Baz]() {
+	if key := it.Key(); key == reflect.TypeFor[*Baz]() {
 		p.baz.Inc()
 		return &p.baz
-	} else if key == internal.TypeOf[*Bam]() {
+	} else if key == reflect.TypeFor[*Bam]() {
 		p.bam.Inc()
 		p.bam.Inc()
 		return &p.bam

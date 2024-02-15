@@ -134,7 +134,7 @@ func Into[T any](
 	var builder Builder
 	builder.FromSource(source).
 		WithConstraints(constraints...)
-	if internal.TypeOf[T]() == internal.AnyType {
+	if reflect.TypeFor[T]() == internal.AnyType {
 		builder.IntoTarget(*target)
 	} else {
 		builder.IntoTarget(target)

@@ -3,6 +3,7 @@ package miruken
 import (
 	"container/list"
 	"maps"
+	"reflect"
 	"sync"
 	"sync/atomic"
 
@@ -190,6 +191,6 @@ func DispatchPolicy(
 }
 
 var (
-	callbackType  = internal.TypeOf[Callback]()
-	handleResType = internal.TypeOf[HandleResult]()
+	callbackType  = reflect.TypeFor[Callback]()
+	handleResType = reflect.TypeFor[HandleResult]()
 )

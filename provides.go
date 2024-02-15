@@ -199,7 +199,7 @@ func Resolve[T any](
 	handler     Handler,
 	constraints ...any,
 ) (T, *promise.Promise[T], bool, error) {
-	return ResolveKey[T](handler, internal.TypeOf[T](), constraints...)
+	return ResolveKey[T](handler, reflect.TypeFor[T](), constraints...)
 }
 
 // ResolveKey retrieves a value of type parameter T with the specified key.
@@ -241,7 +241,7 @@ func ResolveAll[T any](
 	}
 	var builder ProvidesBuilder
 	builder.WithConstraints(constraints...)
-	builder.WithKey(internal.TypeOf[T]()).
+	builder.WithKey(reflect.TypeFor[T]()).
 		IntoTarget(&t)
 	p := builder.New()
 	if result := handler.Handle(p, true, nil); result.IsError() {

@@ -10,10 +10,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 
-	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/setup"
 )
 
@@ -217,4 +217,4 @@ func printTo(
 	}
 }
 
-var setupPkgPath = internal.TypeOf[setup.Builder]().PkgPath()
+var setupPkgPath = reflect.TypeFor[setup.Builder]().PkgPath()

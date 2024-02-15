@@ -646,8 +646,8 @@ func parseFilterMethod(
 
 var (
 	filterBindingLock   sync.Mutex
-	nextFuncType        = internal.TypeOf[Next]()
-	filterProviderType  = internal.TypeOf[FilterProvider]()
+	nextFuncType        = reflect.TypeFor[Next]()
+	filterProviderType  = reflect.TypeFor[FilterProvider]()
 	filterBindingMap    = atomic.Pointer[map[reflect.Type]filterBindingGroup]{}
-	promiseAnySliceType = internal.TypeOf[*promise.Promise[[]any]]()
+	promiseAnySliceType = reflect.TypeFor[*promise.Promise[[]any]]()
 )

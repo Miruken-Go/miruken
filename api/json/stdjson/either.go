@@ -3,11 +3,11 @@ package stdjson
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/either"
-	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/maps"
 )
 
@@ -32,12 +32,12 @@ func (s Either[L, R]) Original(
 			if l, ok := v.(L); ok {
 				return either.Left(l), nil
 			}
-			return nil, fmt.Errorf("expected left of %s", internal.TypeOf[L]())
+			return nil, fmt.Errorf("expected left of %s", reflect.TypeFor[L]())
 		} else {
 			if r, ok := v.(R); ok {
 				return either.Right(r), nil
 			}
-			return nil, fmt.Errorf("expected right of %s", internal.TypeOf[R]())
+			return nil, fmt.Errorf("expected right of %s", reflect.TypeFor[R]())
 		}
 	}
 }

@@ -1,6 +1,8 @@
 package api
 
 import (
+	"reflect"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/internal"
@@ -108,7 +110,7 @@ func StashGetKey(
 func StashGet[T any](
 	handler miruken.Handler,
 ) (t T, ok bool) {
-	if val, ok := StashGetKey(handler, internal.TypeOf[T]()); ok {
+	if val, ok := StashGetKey(handler, reflect.TypeFor[T]()); ok {
 		return val.(T), true
 	}
 	return
@@ -139,7 +141,7 @@ func StashPut[T any](
 	handler miruken.Handler,
 	val     T,
 ) error {
-	return StashPutKey(handler, internal.TypeOf[T](), val)
+	return StashPutKey(handler, reflect.TypeFor[T](), val)
 }
 
 func StashGetOrPutKey(
@@ -235,7 +237,7 @@ func StashDropKey(
 func StashDrop[T any](
 	handler miruken.Handler,
 ) error {
-	return StashDropKey(handler, internal.TypeOf[T]())
+	return StashDropKey(handler, reflect.TypeFor[T]())
 }
 
 // NewStash creates a new Stash.

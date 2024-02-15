@@ -1,7 +1,9 @@
 package internal
 
+import "reflect"
+
 var (
-	AnyType      = TypeOf[any]()
-	AnySliceType = TypeOf[[]any]()
-	ErrorType    = TypeOf[error]()
+	AnyType      = reflect.TypeFor[any]()
+	AnySliceType = reflect.TypeFor[[]any]()
+	ErrorType    = reflect.TypeFor[error]()
 )
