@@ -129,7 +129,7 @@ func (s TypeSpec) describe(
 	}
 
 	// Discover explicit callback handlers
-	for i := 0; i < typ.NumMethod(); i++ {
+	for i := range typ.NumMethod() {
 		method := typ.Method(i)
 		if method.Name == "Constructor" || method.Name == "NoConstructor" {
 			continue

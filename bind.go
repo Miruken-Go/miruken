@@ -346,7 +346,7 @@ func parseStruct(
 		addMetadata(metadata any) error
 	}
 NextField:
-	for i := 0; i < typ.NumField(); i++ {
+	for i := range typ.NumField() {
 		bound := false
 		field := typ.Field(i)
 		fieldType := field.Type

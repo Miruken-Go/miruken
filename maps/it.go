@@ -187,7 +187,7 @@ func All[T any](
 	ts := reflect.ValueOf(source)
 	t = make([]T, ts.Len())
 	var promises []*promise.Promise[T]
-	for i := 0; i < ts.Len(); i++ {
+	for i := range ts.Len() {
 		var builder Builder
 		builder.FromSource(ts.Index(i).Interface()).
 			IntoTarget(&t[i]).

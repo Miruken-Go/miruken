@@ -73,7 +73,7 @@ func (r *ReservationHandler) Reserve(
 	}
 	r.res[reservationId] = &reservation
 	seats := make([]any, reserve.Count)
-	for i := 0; i < reserve.Count; i++ {
+	for i := range reserve.Count {
 		seats[i] = SeatReserved{
 			ReservationId: reservationId,
 			FlightNo:      reserve.FlightNo,

@@ -52,7 +52,7 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 		et := typ.Elem()
 		s := reflect.ValueOf(v)
 		arr := make([]*json.RawMessage, 0, s.Len())
-		for i := 0; i < s.Len(); i++ {
+		for i := range s.Len() {
 			var b bytes.Buffer
 			writer := io.Writer(&b)
 			enc := json.NewEncoder(writer)

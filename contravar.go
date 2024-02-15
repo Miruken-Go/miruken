@@ -194,7 +194,7 @@ func validateContravariantFunc(
 
 	resIdx := -1
 
-	for i := 0; i < numOut; i++ {
+	for i := range numOut {
 		out := funType.Out(i)
 		if out.AssignableTo(internal.ErrorType) {
 			if i != numOut-1 {

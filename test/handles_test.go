@@ -664,7 +664,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 			Context()
 
 		foo := new(Foo)
-		for i := 0; i < 4; i++ {
+		for i := range 4 {
 			result := handler.Handle(foo, false, nil)
 			suite.Equal(miruken.Handled, result)
 			suite.Equal(i+1, foo.Count())

@@ -565,7 +565,7 @@ func getFilterBinding(
 	var group filterBindingGroup
 	// Methods in GO are sorted in lexicographic order which will
 	// determine the order of filter execution.
-	for i := 0; i < typ.NumMethod(); i++ {
+	for i := range typ.NumMethod() {
 		method := typ.Method(i)
 		if method.Name != "Next" {
 			if binding, err := parseFilterMethod(&method); err != nil {

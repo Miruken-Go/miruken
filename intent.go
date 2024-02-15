@@ -208,7 +208,7 @@ func getIntentMethod(
 	} else {
 		bindings = &map[reflect.Type]intentBinding{}
 	}
-	for i := 0; i < typ.NumMethod(); i++ {
+	for i := range typ.NumMethod() {
 		method := typ.Method(i)
 		if method.Name != "Apply" {
 			continue
@@ -219,7 +219,7 @@ func getIntentMethod(
 			// Output can be promise, error or both with error last
 			refIdx, errIdx := -1, -1
 			numOut := lateApplyType.NumOut()
-			for i := 0; i < numOut; i++ {
+			for i := range numOut {
 				out := lateApplyType.Out(i)
 				if out.AssignableTo(promiseReflectType) {
 					if i != 0 {

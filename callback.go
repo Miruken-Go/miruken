@@ -291,7 +291,7 @@ func (c *CallbackBase) processResults(
 	res := NotHandled
 	var expand expandResults
 	v := reflect.ValueOf(results)
-	for i := 0; i < v.Len(); i++ {
+	for i := range v.Len() {
 		val := v.Index(i).Interface()
 		if !internal.IsNil(val) {
 			if squash {

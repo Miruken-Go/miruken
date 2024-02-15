@@ -78,7 +78,7 @@ func MergeHeader(
 		switch typ.Kind() {
 		case reflect.Slice, reflect.Array:
 			vs := reflect.ValueOf(v)
-			for i := 0; i < vs.Len(); i++ {
+			for i := range vs.Len() {
 				header.Add(k, fmt.Sprintf("%v", vs.Index(i)))
 			}
 		default:

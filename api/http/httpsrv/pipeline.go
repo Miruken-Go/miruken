@@ -148,7 +148,7 @@ func getMiddlewareBinding(
 	} else {
 		bindings = &map[reflect.Type]middlewareBinding{}
 	}
-	for i := 0; i < typ.NumMethod(); i++ {
+	for i := range typ.NumMethod() {
 		method := typ.Method(i)
 		binding, err := makeMiddlewareBinding(method.Type, method.Func, 1)
 		if binding != nil {

@@ -21,7 +21,7 @@ func (h *FooOptionsHandler) HandleFoo(
 	_ *handles.It, foo *Foo,
 	_ *struct{ args.FromOptions }, options FooOptions,
 ) {
-	for i := 0; i < options.Increment; i++ {
+	for range options.Increment {
 		foo.Inc()
 	}
 }

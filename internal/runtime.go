@@ -181,7 +181,7 @@ func CoerceSlice(
 	se := st.Elem()
 	sl := slice.Len()
 	if elemTyp == nil {
-		for i := 0; i < sl; i++ {
+		for i := range sl {
 			elem := slice.Index(i)
 			typ := elem.Type()
 			if typ.Kind() == reflect.Interface {
@@ -202,7 +202,7 @@ func CoerceSlice(
 		return slice, false
 	}
 	newSlice := reflect.MakeSlice(reflect.SliceOf(elemTyp), sl, sl)
-	for i := 0; i < sl; i++ {
+	for i := range sl {
 		elem := reflect.ValueOf(slice.Index(i).Interface())
 		if elt := elem.Type(); !elt.AssignableTo(elemTyp) && elt.ConvertibleTo(elemTyp) {
 			elem = elem.Convert(elemTyp)

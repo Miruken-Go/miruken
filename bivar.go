@@ -152,7 +152,7 @@ func validateBivariantFunc(
 
 	resIdx := -1
 
-	for i := 0; i < numOut; i++ {
+	for i := range numOut {
 		oo := funType.Out(i)
 		switch {
 		case oo.AssignableTo(internal.ErrorType):
