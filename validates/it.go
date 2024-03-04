@@ -104,7 +104,7 @@ func (g *Group) Merge(constraint miruken.Constraint) bool {
 	return false
 }
 
-func (g *Group) Satisfies(required miruken.Constraint, _ miruken.Callback) bool {
+func (g *Group) Satisfies(required miruken.Constraint, _ miruken.HandleContext) bool {
 	rg, ok := required.(*Group)
 	if !ok {
 		return false

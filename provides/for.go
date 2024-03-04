@@ -36,14 +36,11 @@ func (f *For[T]) Implied() bool {
 	return true
 }
 
-func (f *For[T]) Satisfies(
-	required miruken.Constraint,
-	callback miruken.Callback,
-) bool {
+func (f *For[T]) Satisfies(required miruken.Constraint, ctx miruken.HandleContext) bool {
 	if required != nil {
 		return false
 	}
-	if p, ok := callback.(*It); ok {
+	if p, ok := ctx.Callback.(*It); ok {
 		return f.matches(p.Parent(), f.graph)
 	}
 	return true

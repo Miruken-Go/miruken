@@ -55,7 +55,7 @@ func (l *Load) InitWithTag(tag reflect.StructTag) error {
 	return nil
 }
 
-func (l *Load) Satisfies(required miruken.Constraint, _ miruken.Callback) bool {
+func (l *Load) Satisfies(required miruken.Constraint, _ miruken.HandleContext) bool {
 	_, ok := required.(*Load)
 	return ok
 }

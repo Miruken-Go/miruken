@@ -102,8 +102,9 @@ func (r *Repository) LoadCustomer(
 	}, cfg struct {
 		Databases []DatabaseConfig `path:"databases"`
 	},
+	_ *struct { config.Load `path:"env"` }, 	env string,
 ) {
-	fmt.Printf("%+v\n", cfg.Databases[0])
+	fmt.Printf("(%s) %+v\n", env, cfg.Databases[0])
 }
 
 type ProviderTestSuite struct {

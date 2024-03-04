@@ -87,10 +87,7 @@ func (f *Format) Merge(constraint miruken.Constraint) bool {
 	return false
 }
 
-func (f *Format) Satisfies(
-	required miruken.Constraint,
-	callback miruken.Callback,
-) bool {
+func (f *Format) Satisfies(required miruken.Constraint, ctx miruken.HandleContext) bool {
 	rf, ok := required.(*Format)
 	if !ok {
 		return false
@@ -103,7 +100,7 @@ func (f *Format) Satisfies(
 	}
 	if rf.rule == FormatRuleAll {
 		if f.rule == FormatRuleEquals {
-			if m, ok := callback.(*It); ok && m.match == nil {
+			if m, ok := ctx.Callback.(*It); ok && m.match == nil {
 				m.match = f
 			}
 		}
@@ -125,7 +122,7 @@ func (f *Format) Satisfies(
 		switch f.rule {
 		case FormatRuleEquals:
 			if strings.HasPrefix(f.name, rf.name) {
-				if m, ok := callback.(*It); ok && m.match == nil {
+				if m, ok := ctx.Callback.(*It); ok && m.match == nil {
 					m.match = f
 				}
 				return true
@@ -140,7 +137,7 @@ func (f *Format) Satisfies(
 		switch f.rule {
 		case FormatRuleEquals:
 			if strings.HasSuffix(f.name, rf.name) {
-				if m, ok := callback.(*It); ok && m.match == nil {
+				if m, ok := ctx.Callback.(*It); ok && m.match == nil {
 					m.match = f
 				}
 				return true
@@ -155,7 +152,7 @@ func (f *Format) Satisfies(
 		switch f.rule {
 		case FormatRuleEquals:
 			if rf.pattern.MatchString(f.name) {
-				if m, ok := callback.(*It); ok && m.match == nil {
+				if m, ok := ctx.Callback.(*It); ok && m.match == nil {
 					m.match = f
 				}
 				return true
