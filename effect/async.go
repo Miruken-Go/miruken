@@ -1,4 +1,4 @@
-package intent
+package effect
 
 import (
 	"context"
@@ -9,19 +9,19 @@ import (
 
 
 type (
-	asyncIntent struct {
-		intent miruken.Intent
+	asyncEffect struct {
+		effect miruken.Effect
 		ctx    context.Context
 	}
 )
 
 
-func (a *asyncIntent) Apply(
+func (a *asyncEffect) Apply(
 	ctx miruken.HandleContext,
 ) (promise.Reflect, error) {
 	return promise.New(a.ctx, func(
 		resolve func(struct{}), reject func(error), onCancel func(func())) {
-		if pi, err := a.intent.Apply(ctx); err != nil {
+		if pi, err := a.effect.Apply(ctx); err != nil {
 			reject(err)
 		} else if pi != nil {
 			if _, err := pi.AwaitAny(); err != nil {
@@ -36,22 +36,21 @@ func (a *asyncIntent) Apply(
 }
 
 
-// Async wraps an intent to be executed asynchronously.
+// Async wraps an effect to be executed asynchronously.
 func Async(
 	ctx    context.Context,
-	intent any,
-) (miruken.Intent, error) {
-	if i, err := Ensure(intent); err != nil {
+	effect any,
+) (miruken.Effect, error) {
+	if i, err := Ensure(effect); err != nil {
 		return nil, err
 	} else if i == nil {
 		return nil, nil
 	} else {
-		return &asyncIntent{i, ctx}, nil
+		return &asyncEffect{i, ctx}, nil
 	}
 }
 
-
-// Ensure ensures the intent is a miruken.Intent.
-func Ensure(intent any) (miruken.Intent, error) {
-	return miruken.MakeIntent(intent, true)
+// Ensure ensures the effect is a miruken.Effect.
+func Ensure(effect any) (miruken.Effect, error) {
+	return miruken.MakeEffect(effect, true)
 }

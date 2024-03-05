@@ -8,10 +8,10 @@ import (
 )
 
 type (
-	// Callbacks is a miruken.Intent for cascading callbacks.
+	// Callbacks is a miruken.Effect for cascading callbacks.
 	Callbacks = miruken.Cascade
 
-	// Messages is a miruken.Intent for cascading api messages.
+	// Messages is a miruken.Effect for cascading api messages.
 	Messages struct {
 		messages []any
 		handler  miruken.Handler

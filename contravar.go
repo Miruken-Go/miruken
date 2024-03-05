@@ -67,7 +67,7 @@ func (p *ContravariantPolicy) Less(
 
 func (p *ContravariantPolicy) AcceptResults(
 	results []any,
-) (any, HandleResult, []Intent, []any) {
+) (any, HandleResult, []Effect, []any) {
 	switch len(results) {
 	case 0:
 		return nil, Handled, nil, nil
@@ -78,8 +78,8 @@ func (p *ContravariantPolicy) AcceptResults(
 		case HandleResult:
 			return nil, result, nil, nil
 		default:
-			if intent, _ := MakeIntent(result, false); intent != nil {
-				return nil, Handled, []Intent{intent}, nil
+			if effect, _ := MakeEffect(result, false); effect != nil {
+				return nil, Handled, []Effect{effect}, nil
 			}
 			return result, Handled, nil, nil
 		}
@@ -106,16 +106,16 @@ func (p *ContravariantPolicy) AcceptResults(
 			}
 			iStart++
 		} else {
-			if intent, _ := MakeIntent(first, false); intent == nil {
+			if effect, _ := MakeEffect(first, false); effect == nil {
 				res = first
 				iStart++
 			}
 		}
-		intents, xs, err := MakeIntents(false, results[iStart:len(results)-iEnd])
+		effects, xs, err := MakeEffects(false, results[iStart:len(results)-iEnd])
 		if err != nil {
 			return res, NotHandled.WithError(err), nil, nil
 		}
-		return res, hr, intents, xs
+		return res, hr, effects, xs
 	}
 }
 
@@ -206,11 +206,11 @@ func validateContravariantFunc(
 				err = errors.Join(err, fmt.Errorf(
 					"contravariant: HandleResult found at index %v must be last return", i))
 			}
-		} else if ok, err2 := ValidIntent(out); ok {
-			// ignore intents
+		} else if ok, err2 := ValidEffect(out); ok {
+			// ignore effects
 		} else if err2 != nil {
 			err = errors.Join(err, fmt.Errorf(
-				"contravariant: invalid intent at index %v: %w", i, err2))
+				"contravariant: invalid effect at index %v: %w", i, err2))
 		} else if resIdx == 0 {  // response assumed be first
 			resIdx = i
 			if lt, ok := promise.Inspect(out); ok {

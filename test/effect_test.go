@@ -160,12 +160,12 @@ func (a *AccountHandler) RecordTransaction(
 }
 
 
-type IntentTestSuite struct {
+type EffectTestSuite struct {
 	suite.Suite
 	specs []any
 }
 
-func (suite *IntentTestSuite) SetupTest() {
+func (suite *EffectTestSuite) SetupTest() {
 	suite.specs = []any{
 		&DatabaseStub{},
 		&MailerStub{},
@@ -173,14 +173,14 @@ func (suite *IntentTestSuite) SetupTest() {
 	}
 }
 
-func (suite *IntentTestSuite) Setup(specs ...any) (miruken.Handler, error) {
+func (suite *EffectTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
 	return setup.New().Specs(specs...).Context()
 }
 
-func (suite *IntentTestSuite) TestIntents() {
+func (suite *EffectTestSuite) TestEffects() {
 	suite.Run("Single", func() {
 		handler, _ := suite.Setup()
 		confirm := ConfirmAccount{"John Doe", "jd@gmail.com"}
@@ -231,6 +231,6 @@ func (suite *IntentTestSuite) TestIntents() {
 	})
 }
 
-func TestIntentsTestSuite(t *testing.T) {
-	suite.Run(t, new(IntentTestSuite))
+func TestEffectsTestSuite(t *testing.T) {
+	suite.Run(t, new(EffectTestSuite))
 }

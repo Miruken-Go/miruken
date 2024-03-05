@@ -1,4 +1,4 @@
-package intent
+package effect
 
 import (
 	"context"
@@ -9,19 +9,19 @@ import (
 
 
 type (
-	intentGroup struct {
-		intents []miruken.Intent
+	effectGroup struct {
+		effects []miruken.Effect
 		ctx     context.Context
 	}
 )
 
 
-func (g *intentGroup) Apply(
+func (g *effectGroup) Apply(
 	ctx  miruken.HandleContext,
 ) (promise.Reflect, error) {
 	var ps []*promise.Promise[any]
-	for _, intent := range g.intents {
-		if pi, err := intent.Apply(ctx); err != nil {
+	for _, effect := range g.effects {
+		if pi, err := effect.Apply(ctx); err != nil {
 			return nil, err
 		} else if pi != nil {
 			ps = append(ps, pi.Then(func(data any) any { return data }))
@@ -38,10 +38,10 @@ func (g *intentGroup) Apply(
 }
 
 
-// Group represents a group of intents.
+// Group represents a group of effects.
 func Group(
 	ctx     context.Context,
-	intents ...miruken.Intent,
-) miruken.Intent {
-	return &intentGroup{intents, ctx}
+	effects ...miruken.Effect,
+) miruken.Effect {
+	return &effectGroup{effects, ctx}
 }

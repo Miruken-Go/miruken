@@ -397,12 +397,12 @@ func applyResults(
 	ctx     *HandleContext,
 	await   bool,
 ) (any, HandleResult) {
-	res, accept, intents, cascade := policy.AcceptResults(results)
+	res, accept, effects, cascade := policy.AcceptResults(results)
 	if len(cascade) > 0 {
-		intents = append(intents, CascadeCallbacks(cascade...))
+		effects = append(effects, CascadeCallbacks(cascade...))
 	}
-	if intents != nil && accept.Handled() && !accept.IsError() {
-		pi, err := processIntents(intents, ctx, await)
+	if effects != nil && accept.Handled() && !accept.IsError() {
+		pi, err := processEffects(effects, ctx, await)
 		if err != nil {
 			accept = accept.And(NotHandled).WithError(err)
 		} else if pi != nil {
@@ -412,14 +412,14 @@ func applyResults(
 	return res, accept
 }
 
-func processIntents(
-	intents []Intent,
+func processEffects(
+	effects []Effect,
 	ctx     *HandleContext,
 	await   bool,
 ) (*promise.Promise[struct{}], error) {
 	var ps []*promise.Promise[any]
-	for _, intent := range intents {
-		if pi, err := intent.Apply(*ctx); err != nil {
+	for _, effect := range effects {
+		if pi, err := effect.Apply(*ctx); err != nil {
 			return nil, err
 		} else if pi != nil {
 			ps = append(ps, pi.Then(func(data any) any { return data }))

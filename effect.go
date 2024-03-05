@@ -12,32 +12,32 @@ import (
 )
 
 type (
-	// Intent describes an action to be performed.
-	// Intents are additional outputs from a Handler.
+	// Effect describes an action to be performed.
+	// Effects are additional outputs from a Handler.
 	// These actions generally represent interactions
 	// with external entities i.e. databases and other IO.
-	Intent interface {
+	Effect interface {
 		Apply(HandleContext) (promise.Reflect, error)
 	}
 
-	// Cascade is a standard Intent for cascading callbacks.
+	// Cascade is a standard Effect for cascading callbacks.
 	Cascade struct {
 		callbacks   []any
 		constraints []any
 		handler     Handler
 		greedy      bool
 	}
-	
-	// intentAdapter is an adapter for implementing an
-	// Intent using late binding method resolution.
-	intentAdapter struct{
-		intent  any
-		binding *intentBinding
+
+	// effectAdapter is an adapter for implementing an
+	// Effect using late binding method resolution.
+	effectAdapter struct{
+		effect  any
+		binding *effectBinding
 	}
 
-	// intentBinding describes the method used by a
-	// intentAdapter to apply the Intent dynamically.
-	intentBinding struct {
+	// effectBinding describes the method used by a
+	// effectAdapter to apply the Effect dynamically.
+	effectBinding struct {
 		funcCall
 		ctxIdx int
 		refIdx int
@@ -114,45 +114,45 @@ func CascadeCallbacks(callbacks ...any) *Cascade {
 	return &Cascade{callbacks: callbacks}
 }
 
-// MakeIntent creates an Intent from anything.
-// If the argument is already an Intent it is returned.
+// MakeEffect creates an Effect from anything.
+// If the argument is already an Effect it is returned.
 // If require is true, an error is returned if the argument
-// cannot be coerced into an Intent.
-func MakeIntent(
-	intent  any,
+// cannot be coerced into an Effect.
+func MakeEffect(
+	effect  any,
 	require bool,
-) (Intent, error) {
-	if internal.IsNil(intent) {
+) (Effect, error) {
+	if internal.IsNil(effect) {
 		return nil, nil
 	}
-	if i, ok := intent.(Intent); ok {
+	if i, ok := effect.(Effect); ok {
 		return i, nil
 	}
-	typ := reflect.TypeOf(intent)
-	if binding, err := getIntentMethod(typ, require); err != nil {
+	typ := reflect.TypeOf(effect)
+	if binding, err := getEffectMethod(typ, require); err != nil {
 		return nil, err
 	} else if binding != nil {
-		return &intentAdapter{intent, binding}, nil
+		return &effectAdapter{effect, binding}, nil
 	}
 	return nil, nil
 }
 
-// MakeIntents creates Intent from anything.
-// If an argument is already an Intent it is returned.
-// Unrecognized Intents are returned as is.
+// MakeEffects creates Effect from anything.
+// If an argument is already an Effect it is returned.
+// Unrecognized effects are returned as is.
 // If require is true, an error is returned if any argument
-// cannot be coerced into an Intent.
-func MakeIntents(
-	require  bool,
-	intents []any,
-) ([]Intent, []any, error) {
+// cannot be coerced into an Effect.
+func MakeEffects(
+	require bool,
+	effects []any,
+) ([]Effect, []any, error) {
 	var xs []any
-	ins := make([]Intent, 0, len(intents))
-	for _, candidate := range intents {
-		if intent, err := MakeIntent(candidate, require); err != nil {
+	ins := make([]Effect, 0, len(effects))
+	for _, candidate := range effects {
+		if effect, err := MakeEffect(candidate, require); err != nil {
 			return nil, nil, err
-		} else if intent != nil {
-			ins = append(ins, intent)
+		} else if effect != nil {
+			ins = append(ins, effect)
 		} else if !internal.IsNil(candidate) {
 			xs = append(xs, candidate)
 		}
@@ -160,18 +160,18 @@ func MakeIntents(
 	return ins, xs, nil
 }
 
-// ValidIntent returns true if the argument is an Intent or
-// can be converted to an Intent.
-func ValidIntent(
+// ValidEffect returns true if the argument is an Effect or
+// can be converted to an Effect.
+func ValidEffect(
 	typ reflect.Type,
 ) (bool, error) {
 	if internal.IsNil(typ) {
 		return false, nil
 	}
-	if typ.AssignableTo(intentType) {
+	if typ.AssignableTo(effectType) {
 		return true, nil
 	}
-	binding, err := getIntentMethod(typ, false)
+	binding, err := getEffectMethod(typ, false)
 	if err != nil {
 		return false, err
 	}
@@ -179,26 +179,26 @@ func ValidIntent(
 }
 
 
-func (i *intentAdapter) Apply(
+func (i *effectAdapter) Apply(
 	ctx HandleContext,
 ) (promise.Reflect, error) {
-	return i.binding.invoke(i.intent, ctx)
+	return i.binding.invoke(i.effect, ctx)
 }
 
-// getIntentMethod discovers a suitable dynamic Intent method.
+// getEffectMethod discovers a suitable dynamic Effect method.
 // Uses the copy-on-write idiom since reads should be more frequent than writes.
-func getIntentMethod(
+func getEffectMethod(
 	typ     reflect.Type,
 	require bool,
-) (*intentBinding, error) {
-	if bindings := intentBindingMap.Load(); bindings != nil {
+) (*effectBinding, error) {
+	if bindings := effectBindingMap.Load(); bindings != nil {
 		if binding, ok := (*bindings)[typ]; ok {
 			return &binding, nil
 		}
 	}
-	intentBindingLock.Lock()
-	defer intentBindingLock.Unlock()
-	bindings := intentBindingMap.Load()
+	effectBindingLock.Lock()
+	defer effectBindingLock.Unlock()
+	bindings := effectBindingMap.Load()
 	if bindings != nil {
 		if binding, ok := (*bindings)[typ]; ok {
 			return &binding, nil
@@ -206,7 +206,7 @@ func getIntentMethod(
 		sb := maps.Clone(*bindings)
 		bindings = &sb
 	} else {
-		bindings = &map[reflect.Type]intentBinding{}
+		bindings = &map[reflect.Type]effectBinding{}
 	}
 	for i := range typ.NumMethod() {
 		method := typ.Method(i)
@@ -237,12 +237,12 @@ func getIntentMethod(
 			}
 			skip    := 1 // skip receiver
 			numArgs := lateApplyType.NumIn()
-			binding := intentBinding{refIdx: refIdx, errIdx: errIdx}
+			binding := effectBinding{refIdx: refIdx, errIdx: errIdx}
 			for i := 1; i < 2 && i < numArgs; i++ {
 				if lateApplyType.In(i) == handleCtxType {
 					if binding.ctxIdx > 0 {
 						return nil, &MethodBindingError{&method,
-							fmt.Errorf("intent: %v duplicate HandleContext arg at index %v and %v",
+							fmt.Errorf("effect: %v duplicate HandleContext arg at index %v and %v",
 								typ, binding.ctxIdx, i)}
 					}
 					binding.ctxIdx = i
@@ -251,27 +251,27 @@ func getIntentMethod(
 			}
 			args := make([]arg, numArgs-skip)
 			if err := buildDependencies(lateApplyType, skip, numArgs, args, 0); err != nil {
-				err = fmt.Errorf("intent: %v %q: %w", typ, method.Name, err)
+				err = fmt.Errorf("effect: %v %q: %w", typ, method.Name, err)
 				return nil, &MethodBindingError{&method, err}
 			}
 			binding.funcCall.fun = method.Func
 			binding.funcCall.args = args
 			(*bindings)[typ] = binding
-			intentBindingMap.Store(bindings)
+			effectBindingMap.Store(bindings)
 			return &binding, nil
 		}
 	}
 	if require {
-		return nil, fmt.Errorf(`intent: %v has no compatible "Apply" method`, typ)
+		return nil, fmt.Errorf(`effect: %v has no compatible "Apply" method`, typ)
 	}
 	return nil, nil
 }
 
-func (b intentBinding) invoke(
-	intent any,
+func (b effectBinding) invoke(
+	effect any,
 	ctx    HandleContext,
 ) (promise.Reflect, error) {
-	initArgs := []any{intent}
+	initArgs := []any{effect}
 	if b.ctxIdx == 1 {
 		initArgs = append(initArgs, ctx)
 	}
@@ -312,8 +312,8 @@ func (b intentBinding) invoke(
 
 
 var (
-	intentBindingLock sync.Mutex
-	intentBindingMap   = atomic.Pointer[map[reflect.Type]intentBinding]{}
-	intentType         = reflect.TypeFor[Intent]()
+	effectBindingLock sync.Mutex
+	effectBindingMap   = atomic.Pointer[map[reflect.Type]effectBinding]{}
+	effectType         = reflect.TypeFor[Effect]()
 	promiseReflectType = reflect.TypeFor[promise.Reflect]()
 )

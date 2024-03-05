@@ -66,7 +66,7 @@ func (p *CovariantPolicy) Less(
 
 func (p *CovariantPolicy) AcceptResults(
 	results []any,
-) (result any, accepted HandleResult, intents []Intent, cascade []any) {
+) (result any, accepted HandleResult, effects []Effect, cascade []any) {
 	switch len(results) {
 	case 0:
 		if internal.IsNil(results) {
