@@ -31,6 +31,9 @@ handle(async () => {
     await bash.execute(`
         cd ../
         go test ./...
+        pwd
+        ls -la
+        git config --global --add safe.directory /__w/miruken/miruken
     `)
 
     //This docker container is running docker in docker from github actions
