@@ -30,6 +30,7 @@ handle(async () => {
 
     // If this works well, add this to the git config in ci.cd
     // git config --global --add safe.directory /__w/miruken/miruken
+    await  bash.execute(`echo "setting working directory as git safe.directory $(pwd)"`)
     await bash.execute(`
         cd ../
         go test ./...
