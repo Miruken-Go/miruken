@@ -28,11 +28,11 @@ handle(async () => {
 
     logging.header("Building miruken")
 
+    // If this works well, add this to the git config in ci.cd
+    // git config --global --add safe.directory /__w/miruken/miruken
     await bash.execute(`
         cd ../
         go test ./...
-        pwd
-        ls -la
         git config --global --add safe.directory /__w/miruken/miruken
     `)
 
