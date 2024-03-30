@@ -4,6 +4,5 @@
         "module": "CommonJS",
         "outDir": "dist",
         "esModuleInterop": true
-    },
-    "include": ["src", "node_modules/ci.cd"]
+    }
   }  
