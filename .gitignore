@@ -21,4 +21,6 @@
 # JetBrains GoLand
 .idea/
 
+#cicd
 node_modules
+dist

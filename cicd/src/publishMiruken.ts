@@ -26,16 +26,14 @@ handle(async () => {
         .secrets
     logging.printSecrets(secrets)
 
-    logging.header("Building miruken")
+    logging.header("Running tests")
 
-    // If this works well, add this to the git config in ci.cd
-    // git config --global --add safe.directory /__w/miruken/miruken
-    await  bash.execute(`echo "setting working directory as git safe.directory $(pwd)"`)
     await bash.execute(`
         cd ../
         go test ./...
-        git config --global --add safe.directory /__w/miruken/miruken
     `)
+
+    logging.header("Publishing new miruken version ")
 
     //This docker container is running docker in docker from github actions
     //Therefore using $(pwd) to get the working directory would be the working directory of the running container 
