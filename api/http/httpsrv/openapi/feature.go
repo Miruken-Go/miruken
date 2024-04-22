@@ -3,6 +3,7 @@ package openapi
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/miruken-go/miruken/internal/slices"
 	"net/http"
 	"path/filepath"
 	"reflect"
@@ -392,7 +393,7 @@ func (i *Installer) generateExampleJson(
 						}
 						props["@type"] = &openapi3.SchemaRef{
 							Value: &openapi3.Schema{
-								Type:    "string",
+								Type:    &openapi3.Types{"string"},
 								Default: typ,
 							}}
 					}
@@ -507,7 +508,7 @@ func (ap *apiProfile) customize(
 		for key, scr := range props {
 			sc := scr.Value
 			// Fix anonymous self-referencing array
-			if sc.Type == "array" &&
+			if sc.Type != nil &&  slices.Contains(*sc.Type, "array") &&
 				sc.Items.Value == schema &&
 				sc.Items.Ref == schemas {
 				sn := "schema" + strconv.Itoa(len(ap.schemas))
