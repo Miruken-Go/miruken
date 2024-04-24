@@ -12,7 +12,7 @@ jobs:
   containerized_job:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/miruken-go/demo.microservice.build:1699298856
+      image: ghcr.io/miruken-go/demo.microservice.build:1713989236
       env:
         GH_TOKEN:        ${{ secrets.WORKFLOW_GH_TOKEN }}
         repositoryPath:  ${{ github.workspace }}
