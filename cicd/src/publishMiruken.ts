@@ -40,7 +40,7 @@ handle(async () => {
     //Not the working directory from the host system. So we need to pass in the repository path.
     const rawVersion = await bash.execute(`
         docker run --rm -v '${variables.repositoryPath}:/repo' \
-        gittools/gitversion:5.12.0-alpine.3.14-6.0 /repo /showvariable SemVer
+        gittools/gitversion:6.0.0-alpine.3.18-7.0 /repo /showvariable SemVer
     `)
 
     const gitTag = `v${rawVersion}`
