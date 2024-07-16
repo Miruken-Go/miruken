@@ -65,7 +65,7 @@ func Use(
 			return fun
 		}
 		panic(fmt.Errorf(
-			"httpsrv: %T is not a http.Context, httpsrv.Context or compatible handler function",
+			"httpsrv: %T is not a http.Handler, httpsrv.Handler or compatible handler function",
 			handler))
 	}
 }
@@ -92,7 +92,7 @@ func H[H any](opts ...any) Handler {
 		return &dynResHandler{resHandler[any]{typ: typ, opts: opts}, binding}
 	}
 	panic(fmt.Errorf(
-		"httpsrv: %v is not a http.Context, httpsrv.Context or compatible handler type", typ))
+		"httpsrv: %v is not a http.Handler, httpsrv.Handler or compatible handler type", typ))
 }
 
 // getHandlerBinding discovers a suitable handler ServerHTTP method.
