@@ -28,12 +28,14 @@ type (
 )
 
 const (
-	DirectionNone Direction = 0
-	DirectionTo   Direction = 1 << iota
+	DirectionNone = Direction(iota)
+	DirectionTo
 	DirectionFrom
+)
 
-	FormatRuleEquals     FormatRule = 0
-	FormatRuleStartsWith FormatRule = 1 << iota
+const (
+	FormatRuleEquals = FormatRule(iota)
+	FormatRuleStartsWith
 	FormatRuleEndsWith
 	FormatRulePattern
 	FormatRuleAll

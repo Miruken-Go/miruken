@@ -130,11 +130,11 @@ type (
 )
 
 const (
-	bindingNone   bindingFlags = 0
-	bindingStrict bindingFlags = 1 << iota
+	bindingStrict = bindingFlags(1 << iota)
 	bindingOptional
 	bindingSkipFilters
 	bindingAsync
+	bindingNone = bindingFlags(0)
 )
 
 // bindingSpec

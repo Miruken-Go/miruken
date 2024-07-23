@@ -42,8 +42,8 @@ type (
 )
 
 const (
-	PolymorphismNone Polymorphism = 0
-	PolymorphismRoot Polymorphism = 1 << iota
+	PolymorphismRoot = Polymorphism(1 << iota)
+	PolymorphismNone = Polymorphism(0)
 )
 
 var (

@@ -19,7 +19,7 @@ import (
 type OrderStatus uint8
 
 const (
-	OrderCreated OrderStatus = 1 << iota
+	OrderCreated = OrderStatus(iota)
 	OrderCanceled
 )
 

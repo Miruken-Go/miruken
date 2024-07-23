@@ -33,7 +33,7 @@ type (
 )
 
 const (
-	WeatherUnitFahrenheit = iota
+	WeatherUnitFahrenheit = WeatherUnit(iota)
 	WeatherUnitCelsius
 )
 

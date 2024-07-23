@@ -11,7 +11,7 @@ import (
 type TraversingAxis uint
 
 const (
-	TraverseSelf TraversingAxis = iota
+	TraverseSelf = TraversingAxis(iota)
 	TraverseRoot
 	TraverseChild
 	TraverseSibling

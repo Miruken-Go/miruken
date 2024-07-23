@@ -484,7 +484,7 @@ type Anonymous struct{}
 type TransactionalMode byte
 
 const (
-	TransactionalSupports TransactionalMode = 1 << iota
+	TransactionalSupports = TransactionalMode(iota)
 	TransactionalRequired
 	TransactionalRequiresNew
 )

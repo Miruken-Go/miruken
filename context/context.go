@@ -46,13 +46,13 @@ type (
 )
 
 const (
-	StateActive State = iota
+	StateActive = State(iota)
 	StateEnding
 	StateEnded
 )
 
 const (
-	ReasonAlreadyEnded Reason = iota
+	ReasonAlreadyEnded = Reason(iota)
 	ReasonUnwinded
 	ReasonDisposed
 )
@@ -497,12 +497,12 @@ type (
 )
 
 const (
-	contextObserverNone   contextObserverType = 0
-	contextObserverEnding contextObserverType = 1 << iota
+	contextObserverEnding = contextObserverType(1 << iota)
 	contextObserverEnded
 	contextObserverChildEnding
 	contextObserverChildEnded
-	contextObserverAll = 1<<iota - 1
+	contextObserverAll= contextObserverType(1<<iota - 1)
+	contextObserverNone = contextObserverType(0)
 )
 
 func (f EndingObserverFunc) ContextEnding(
@@ -564,10 +564,10 @@ type (
 )
 
 const (
-	contextualObserverNone     contextualObserverType = 0
-	contextualObserverChanging contextualObserverType = 1 << iota
+	contextualObserverChanging = contextualObserverType(1 << iota)
 	contextualObserverChanged
-	contextualObserverAll = 1<<iota - 1
+	contextualObserverAll = contextualObserverType(1<<iota - 1)
+	contextualObserverNone = contextualObserverType(0)
 )
 
 func (f ChangingObserverFunc) ContextChanging(
