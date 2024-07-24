@@ -9,7 +9,7 @@ import (
 
 type (
 	// Callbacks is a miruken.Effect for cascading callbacks.
-	Callbacks = miruken.Cascade
+	Callbacks = miruken.CascadeEffect
 
 	// Messages is a miruken.Effect for cascading api messages.
 	Messages struct {
@@ -17,11 +17,6 @@ type (
 		handler  miruken.Handler
 		publish  bool
 	}
-)
-
-var (
-	// Handle is a fluent builder for cascading Callbacks.
-	Handle = miruken.CascadeCallbacks
 )
 
 

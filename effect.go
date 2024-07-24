@@ -20,8 +20,8 @@ type (
 		Apply(HandleContext) (promise.Reflect, error)
 	}
 
-	// Cascade is a standard Effect for cascading callbacks.
-	Cascade struct {
+	// CascadeEffect is a standard Effect for cascading callbacks.
+	CascadeEffect struct {
 		callbacks   []any
 		constraints []any
 		handler     Handler
@@ -46,30 +46,30 @@ type (
 )
 
 
-// Cascade
+// CascadeEffect
 
-func (c *Cascade) WithConstraints(
+func (c *CascadeEffect) WithConstraints(
 	constraints ...any,
-) *Cascade {
+) *CascadeEffect {
 	c.constraints = constraints
 	return c
 }
 
-func (c *Cascade) WithHandler(
+func (c *CascadeEffect) WithHandler(
 	handler Handler,
-) *Cascade {
+) *CascadeEffect {
 	c.handler = handler
 	return c
 }
 
-func (c *Cascade) Greedy(
+func (c *CascadeEffect) Greedy(
 	greedy bool,
-) *Cascade {
+) *CascadeEffect {
 	c.greedy = greedy
 	return c
 }
 
-func (c *Cascade) Apply(
+func (c *CascadeEffect) Apply(
 	ctx HandleContext,
 ) (promise.Reflect, error) {
 	callbacks := c.callbacks
@@ -109,9 +109,9 @@ func (c *Cascade) Apply(
 	}
 }
 
-// CascadeCallbacks is a fluent builder to Cascade callbacks.
-func CascadeCallbacks(callbacks ...any) *Cascade {
-	return &Cascade{callbacks: callbacks}
+// Cascade is a fluent builder to cascade callbacks.
+func Cascade(callbacks ...any) *CascadeEffect {
+	return &CascadeEffect{callbacks: callbacks}
 }
 
 // MakeEffect creates an Effect from anything.

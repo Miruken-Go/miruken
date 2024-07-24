@@ -399,7 +399,7 @@ func applyResults(
 ) (any, HandleResult) {
 	res, accept, effects, cascade := policy.AcceptResults(results)
 	if len(cascade) > 0 {
-		effects = append(effects, CascadeCallbacks(cascade...))
+		effects = append(effects, Cascade(cascade...))
 	}
 	if effects != nil && accept.Handled() && !accept.IsError() {
 		pi, err := processEffects(effects, ctx, await)
