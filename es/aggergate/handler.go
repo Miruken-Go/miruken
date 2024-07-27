@@ -1,5 +1,10 @@
 package aggergate
 
+import (
+	"fmt"
+	"reflect"
+)
+
 type (
 	// Handler is a FilterProvider that applies event-sourcing rules.
 	Handler struct {
@@ -12,3 +17,18 @@ type (
 	// Expects the argument after the command to be the aggregate.
 	filter struct{}
 )
+
+
+// Handler
+
+func (h *Handler) Name() string {
+	return h.name
+}
+
+func (h *Handler) InitWithTag(tag reflect.StructTag) error {
+	if agg, ok := tag.Lookup("handler"); ok {
+		_, err := fmt.Sscanf(agg, "name=%s", &h.name)
+		return err
+	}
+	return nil
+}

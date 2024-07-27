@@ -20,7 +20,7 @@ type (
 	filter struct{}
 )
 
-// Constraints
+// Required
 
 func (r *Required) InitWithTag(tag reflect.StructTag) error {
 	if v, ok := tag.Lookup("validates"); ok {
