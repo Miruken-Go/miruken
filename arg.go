@@ -371,13 +371,15 @@ func parseResolver(
 	index   int,
 	field   *reflect.StructField,
 	binding any,
+	tags ...reflect.StructTag,
 ) (bound bool, err error) {
 	if dr := internal.CoerceToPtr(field.Type, depResolverType); dr != nil {
 		bound = true
 		if b, ok := binding.(interface {
 			setResolver(DependencyResolver) error
 		}); ok {
-			if resolver, invalid := internal.NewWithTag(dr, field.Tag); invalid != nil {
+			tag := internal.CombineStructTagsWithOverride(field.Tag, tags...)
+			if resolver, invalid := internal.NewWithTag(dr,tag); invalid != nil {
 				err = fmt.Errorf(
 					"parseResolver: new dependency resolver at field %v (%v) failed: %w",
 					field.Name, index, invalid)

@@ -46,7 +46,9 @@ type (
 
 
 func (l *List) Constructor(
-	_ *struct{ aggergate.Root },
+	_ *struct{
+		aggergate.Root  `agg:"name=todo.list"`
+	},
 ) {
 }
 

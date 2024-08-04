@@ -46,6 +46,7 @@ type (
 			index   int,
 			field   *reflect.StructField,
 			binding any,
+			tags ...reflect.StructTag,
 		) (bound bool, err error)
 	}
 
@@ -54,6 +55,7 @@ type (
 		index   int,
 		field   *reflect.StructField,
 		binding any,
+		tags ...reflect.StructTag,
 	) (bound bool, err error)
 
 	// Strict Binding's do not expand results.
@@ -76,8 +78,9 @@ func (b BindingParserFunc) parse(
 	index   int,
 	field   *reflect.StructField,
 	binding any,
+	tags ...reflect.StructTag,
 ) (bound bool, err error) {
-	return b(index, field, binding)
+	return b(index, field, binding, tags...)
 }
 
 // BindingGroup
@@ -228,7 +231,7 @@ func (b *bindingSpec) complete() error {
 // bindingSpecFactory
 
 func (p *bindingSpecFactory) createSpec(
-	typ reflect.Type,
+	typ     reflect.Type,
 	minArgs int,
 ) (spec *bindingSpec, err error) {
 	if typ.Kind() != reflect.Func || typ.NumIn() < minArgs {
@@ -302,6 +305,7 @@ func (p *bindingSpecFactory) parse(
 	index   int,
 	field   *reflect.StructField,
 	binding any,
+	tags ...reflect.StructTag,
 ) (bound bool, err error) {
 	typ := field.Type
 	if cb := internal.CoerceToPtr(typ, callbackType); cb != nil {
@@ -322,8 +326,8 @@ func (p *bindingSpecFactory) parse(
 }
 
 func parseSpec(
-	source reflect.Type,
-	spec any,
+	source  reflect.Type,
+	spec    any,
 	parsers []BindingParser,
 ) (err error) {
 	if err = parseStruct(source, spec, parsers); err == nil {
@@ -337,9 +341,10 @@ func parseSpec(
 }
 
 func parseStruct(
-	typ reflect.Type,
+	typ     reflect.Type,
 	binding any,
 	parsers []BindingParser,
+	tags ...reflect.StructTag,
 ) (err error) {
 	checkedMetadata := false
 	var metadataOwner interface {
@@ -354,13 +359,17 @@ NextField:
 			continue
 		}
 		if fieldType.Kind() == reflect.Struct && fieldType.Implements(definesBindingGroup) {
-			if inv := parseStruct(fieldType, binding, parsers); inv != nil {
+			newTags := tags
+			if tag := field.Tag; tag != "" {
+				newTags = append(newTags, tag)
+			}
+			if inv := parseStruct(fieldType, binding, parsers, newTags...); inv != nil {
 				err = errors.Join(err, inv)
 			}
 			continue
 		}
 		for _, parser := range parsers {
-			if b, inv := parser.parse(i, &field, binding); inv != nil {
+			if b, inv := parser.parse(i, &field, binding, tags...); inv != nil {
 				err = errors.Join(err, inv)
 				continue NextField
 			} else if b {
@@ -376,7 +385,8 @@ NextField:
 				})
 			}
 			if metadataOwner != nil {
-				if inv := addMetadata(field.Type, field.Tag, metadataOwner); inv != nil {
+				tag := internal.CombineStructTagsWithOverride(field.Tag, tags...)
+				if inv := addMetadata(field.Type, tag, metadataOwner); inv != nil {
 					err = errors.Join(err, inv)
 				}
 			}
@@ -389,6 +399,7 @@ func parseFilters(
 	index   int,
 	field   *reflect.StructField,
 	binding any,
+	tags ...reflect.StructTag,
 ) (bound bool, err error) {
 	typ := field.Type
 	if filter := internal.CoerceToPtr(typ, filterType); filter != nil {
@@ -421,7 +432,8 @@ func parseFilters(
 		if b, ok := binding.(interface {
 			addFilterProvider(FilterProvider) error
 		}); ok {
-			if provider, inv := internal.NewWithTag(fp, field.Tag); inv != nil {
+			tag := internal.CombineStructTagsWithOverride(field.Tag, tags...)
+			if provider, inv := internal.NewWithTag(fp, tag); inv != nil {
 				err = fmt.Errorf(
 					"parseFilters: new filter provider at index %v failed: %w",
 					index, inv)
@@ -439,6 +451,7 @@ func parseConstraints(
 	index   int,
 	field   *reflect.StructField,
 	binding any,
+	tags ...reflect.StructTag,
 ) (bound bool, err error) {
 	typ := field.Type
 	if ct := internal.CoerceToPtr(typ, constraintType); ct != nil {
@@ -446,7 +459,8 @@ func parseConstraints(
 		if b, ok := binding.(interface {
 			addConstraint(Constraint) error
 		}); ok {
-			if constraint, inv := internal.NewWithTag(ct, field.Tag); inv != nil {
+			tag := internal.CombineStructTagsWithOverride(field.Tag, tags...)
+			if constraint, inv := internal.NewWithTag(ct, tag); inv != nil {
 				err = fmt.Errorf(
 					"parseConstraints: new key at index %v failed: %w", index, inv)
 			} else if inv := b.addConstraint(constraint.(Constraint)); inv != nil {
@@ -462,6 +476,7 @@ func parseOptions(
 	index   int,
 	field   *reflect.StructField,
 	binding any,
+	tags ...reflect.StructTag,
 ) (bound bool, err error) {
 	switch field.Type {
 	case strictType:

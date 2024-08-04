@@ -123,10 +123,8 @@ func (s *scoped) Next(
 		if cache := s.cache.Load(); cache != nil {
 			if entry = (*cache)[context]; entry == nil {
 				cc := maps.Clone(*cache)
-				if entry == nil {
-					entry = &scopedEntry{once: new(sync.Once)}
-					cc[context] = entry
-				}
+				entry = &scopedEntry{once: new(sync.Once)}
+				cc[context] = entry
 				s.cache.Store(&cc)
 			}
 		} else {

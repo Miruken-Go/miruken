@@ -6,8 +6,8 @@ import (
 )
 
 type (
-	// Handler is a FilterProvider that applies event-sourcing rules.
-	Handler struct {
+	// Handles is a FilterProvider that applies event-sourcing rules.
+	Handles struct {
 		name string
 	}
 
@@ -19,13 +19,13 @@ type (
 )
 
 
-// Handler
+// Handles
 
-func (h *Handler) Name() string {
+func (h *Handles) Name() string {
 	return h.name
 }
 
-func (h *Handler) InitWithTag(tag reflect.StructTag) error {
+func (h *Handles) InitWithTag(tag reflect.StructTag) error {
 	if agg, ok := tag.Lookup("handler"); ok {
 		_, err := fmt.Sscanf(agg, "name=%s", &h.name)
 		return err

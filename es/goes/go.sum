@@ -1,0 +1,8 @@
+dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=
+dario.cat/mergo v1.0.0/go.mod h1:uNxQE+84aUszobStD9th8a29P2fMDhsBdgRYvZOxGmk=
+github.com/miruken-go/miruken v0.30.113 h1:B2p554D7uXELp5Te0B0WVr5WoKQm7oqQt9jI/E7F4Pk=
+github.com/miruken-go/miruken v0.30.113/go.mod h1:h4gU79GOFZV1jdF1/Ffj+bcRuTyj9UeOK659vWVMmDs=
+github.com/modernice/goes v0.4.6 h1:bSairQoSSE8Mhyb54L7VogiPo3yCUqx3euowASD4fTI=
+github.com/modernice/goes v0.4.6/go.mod h1:dEwM+UyT+hZuEpaVwndQS3xMY4ALJFqB2KIe2xXuxz0=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=

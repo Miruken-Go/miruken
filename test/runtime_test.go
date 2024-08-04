@@ -2,6 +2,7 @@ package test
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/miruken-go/miruken/internal"
@@ -50,8 +51,93 @@ func (suite *RuntimeTestSuite) TestRuntime() {
 			suite.False(internal.Exported(dismiss))
 		})
 	})
+
+	suite.Run("CombineStructTags", func() {
+		tests := []struct {
+			name     string
+			tags     []reflect.StructTag
+			expected reflect.StructTag
+		}{
+			{
+				name:     "Zero tags",
+				tags:     []reflect.StructTag{},
+				expected: reflect.StructTag(""),
+			},
+			{
+				name:     "One tag",
+				tags:     []reflect.StructTag{`json:"name"`},
+				expected: reflect.StructTag(`json:"name"`),
+			},
+			{
+				name: "Multiple tags with no duplicates",
+				tags: []reflect.StructTag{
+					`json:"name"`,
+					`xml:"name"`,
+				},
+				expected: reflect.StructTag(`json:"name" xml:"name"`),
+			},
+			{
+				name: "Multiple tags with duplicates, last one wins",
+				tags: []reflect.StructTag{
+					`json:"name" xml:"name"`,
+					`yaml:"name" xml:"title"`,
+				},
+				expected: reflect.StructTag(`json:"name" yaml:"name" xml:"title"`),
+			},
+			{
+				name: "Empty tags included",
+				tags: []reflect.StructTag{
+					`json:"name"`,
+					``,
+					`xml:"name"`,
+				},
+				expected: reflect.StructTag(`json:"name" xml:"name"`),
+			},
+		}
+
+		for _, tt := range tests {
+			suite.T().Run(tt.name, func(t *testing.T) {
+				actual := internal.CombineStructTags(tt.tags...)
+				if !compareStructTags(actual, tt.expected) {
+					t.Errorf("CombineStructTags() = %v, expected %v", actual, tt.expected)
+				}
+			})
+		}
+	})
 }
 
 func TestRuntimeTestSuite(t *testing.T) {
 	suite.Run(t, new(RuntimeTestSuite))
+}
+
+func parseStructTag(tag reflect.StructTag) map[string]string {
+	result := make(map[string]string)
+	if tag == "" {
+		return result
+	}
+	tagString := string(tag)
+	tagParts := strings.Split(tagString, " ")
+	for _, part := range tagParts {
+		keyValue := strings.SplitN(part, ":", 2)
+		if len(keyValue) == 2 {
+			key := keyValue[0]
+			value := keyValue[1]
+			result[key] = value
+		}
+	}
+	return result
+}
+
+func compareStructTags(tag1, tag2 reflect.StructTag) bool {
+	map1 := parseStructTag(tag1)
+	map2 := parseStructTag(tag2)
+	if len(map1) != len(map2) {
+		return false
+	}
+	for key, value := range map1 {
+		if map2[key] != value {
+			return false
+		}
+	}
+	return true
 }

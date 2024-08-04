@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"reflect"
 	"runtime"
 	"strings"
@@ -254,6 +255,51 @@ func CoerceToPtr(
 		}
 	}
 	return nil
+}
+
+func CombineStructTags(tags ...reflect.StructTag) reflect.StructTag {
+	switch len(tags) {
+	case 0:
+		return ""
+	case 1:
+		return tags[0]
+	default:
+		tagMap := make(map[string]string)
+
+		for _, tag := range tags {
+			if tag == "" {
+				continue
+			}
+			tagString := string(tag)
+			tagParts := strings.Split(tagString, " ")
+			for _, part := range tagParts {
+				keyValue := strings.SplitN(part, ":", 2)
+				if len(keyValue) == 2 {
+					key := keyValue[0]
+					value := keyValue[1]
+					tagMap[key] = value
+				}
+			}
+		}
+
+		var combinedTags []string
+		for key, value := range tagMap {
+			combinedTags = append(combinedTags, fmt.Sprintf(`%s:%s`, key, value))
+		}
+
+		return reflect.StructTag(strings.Join(combinedTags, " "))
+	}
+}
+
+func CombineStructTagsWithOverride(
+	tag  reflect.StructTag,
+	tags ...reflect.StructTag,
+) reflect.StructTag {
+	newTags := tags
+	if tag != "" {
+		newTags = append(newTags, tag)
+	}
+	return CombineStructTags(newTags...)
 }
 
 func NewWithTag(

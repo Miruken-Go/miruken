@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/miruken-go/miruken/es/aggergate/test/todo"
+	"github.com/miruken-go/miruken/provides"
 
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/setup"
@@ -29,6 +30,19 @@ func (suite *AggregateTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 }
 
 func (suite *AggregateTestSuite) TestRoot() {
+	suite.Run("Resolve", func() {
+		suite.Run("Contextual", func() {
+			ctx, _ := suite.Setup()
+			list1, _, ok, err := provides.Type[*todo.List](ctx)
+			suite.True(ok)
+			suite.Nil(err)
+			suite.NotNil(list1)
+			list2, _, ok, err := provides.Type[*todo.List](ctx)
+			suite.True(ok)
+			suite.Nil(err)
+			suite.Same(list1, list2)
+		})
+	})
 }
 
 func TestAggregateTestSuite(t *testing.T) {
