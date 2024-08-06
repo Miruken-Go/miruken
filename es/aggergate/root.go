@@ -10,30 +10,31 @@ import (
 )
 
 type (
-	// Root defines metadata for an aggregate root.
+	// Root marks a type as an aggregate root.
+	// Aggregate roots are scoped to a context and provide metadata.
 	Root struct {
 		miruken.BindingGroup
 		provides.It
 		context.Scoped
-		Metadata
+		loader
 	}
 
-	// Metadata provides metadata for an aggregate root.
-	Metadata struct {
+	// loader is responsible for retrieving the current state of an aggregate.
+	loader struct{
 		name string
 	}
 )
 
 
-// Root
+// Model
 
-func (m *Metadata) Name() string {
-	return m.name
+func (l *loader) Name() string {
+	return l.name
 }
 
-func (m *Metadata) InitWithTag(tag reflect.StructTag) error {
+func (l *loader) InitWithTag(tag reflect.StructTag) error {
 	if agg, ok := tag.Lookup("agg"); ok {
-		_, err := fmt.Sscanf(agg, "name=%s", &m.name)
+		_, err := fmt.Sscanf(agg, "name=%s", &l.name)
 		return err
 	}
 	return nil

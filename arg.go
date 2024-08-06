@@ -378,7 +378,7 @@ func parseResolver(
 		if b, ok := binding.(interface {
 			setResolver(DependencyResolver) error
 		}); ok {
-			tag := internal.CombineStructTagsWithOverride(field.Tag, tags...)
+			tag := internal.MergeStructTagsWith(field.Tag, tags...)
 			if resolver, invalid := internal.NewWithTag(dr,tag); invalid != nil {
 				err = fmt.Errorf(
 					"parseResolver: new dependency resolver at field %v (%v) failed: %w",

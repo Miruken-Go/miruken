@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/miruken-go/miruken/es/aggergate"
 	"github.com/miruken-go/miruken/es/events"
-	"github.com/miruken-go/miruken/handles"
 )
 
 type (
@@ -47,13 +46,13 @@ type (
 
 func (l *List) Constructor(
 	_ *struct{
-		aggergate.Root  `agg:"name=todo.list"`
+		aggergate.Root `agg:"name=todo.list"`
 	},
 ) {
 }
 
 func (l *List) AddTask(
-	_ *handles.It, add AddTask,
+	_ *aggergate.Handles, add AddTask,
 ) events.Stream {
 	task := add.Task
 	if l.Contains(task) {
@@ -63,7 +62,7 @@ func (l *List) AddTask(
 }
 
 func (l *List) RemoveTask(
-	_ *handles.It, remove RemoveTask,
+	_ *aggergate.Handles, remove RemoveTask,
 ) events.Stream {
 	task := remove.Task
 	if !l.Contains(task) {
@@ -73,7 +72,9 @@ func (l *List) RemoveTask(
 }
 
 func (l *List) CompleteTasks(
-	_ *handles.It, complete CompleteTasks,
+	_ *struct {
+		aggergate.Handles `command:"name=completeTasks"`
+	}, complete CompleteTasks,
 ) events.Stream {
 	tasks := complete.Tasks
 	if len(tasks) == 0 {

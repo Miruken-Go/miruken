@@ -272,7 +272,7 @@ func (p *providesPolicy) NewCtorBinding(
 			return nil, err
 		}
 	}
-	return binding, nil
+	return binding, err
 }
 
 func (p *providesPolicy) NewMethodBinding(

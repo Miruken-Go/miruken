@@ -3,31 +3,39 @@ package aggergate
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/handles"
 )
 
 type (
-	// Handles is a FilterProvider that applies event-sourcing rules.
+	// Handles marks a handler for event-sourcing rules.
 	Handles struct {
-		name string
+		miruken.BindingGroup
+		handles.It
+		processor
 	}
 
-	// filter interprets the current input as a command acting on an
-	// aggregate and the output as a sequence of es to be applied
-	// to the aggregate.
+	// processor interprets the current input as a command acting
+	// on an aggregate.
+	// The output is interpreted as a sequence of events applied to
+	// an aggregate.
 	// Expects the argument after the command to be the aggregate.
-	filter struct{}
+	processor struct{
+		name string
+	}
 )
 
 
-// Handles
+// CommandModel
 
-func (h *Handles) Name() string {
-	return h.name
+func (p *processor) Name() string {
+	return p.name
 }
 
-func (h *Handles) InitWithTag(tag reflect.StructTag) error {
-	if agg, ok := tag.Lookup("handler"); ok {
-		_, err := fmt.Sscanf(agg, "name=%s", &h.name)
+func (p *processor) InitWithTag(tag reflect.StructTag) error {
+	if agg, ok := tag.Lookup("command"); ok {
+		_, err := fmt.Sscanf(agg, "name=%s", &p.name)
 		return err
 	}
 	return nil

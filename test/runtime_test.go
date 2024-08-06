@@ -52,7 +52,7 @@ func (suite *RuntimeTestSuite) TestRuntime() {
 		})
 	})
 
-	suite.Run("CombineStructTags", func() {
+	suite.Run("MergeStructTags", func() {
 		tests := []struct {
 			name     string
 			tags     []reflect.StructTag
@@ -97,9 +97,9 @@ func (suite *RuntimeTestSuite) TestRuntime() {
 
 		for _, tt := range tests {
 			suite.T().Run(tt.name, func(t *testing.T) {
-				actual := internal.CombineStructTags(tt.tags...)
+				actual := internal.MergeStructTags(tt.tags...)
 				if !compareStructTags(actual, tt.expected) {
-					t.Errorf("CombineStructTags() = %v, expected %v", actual, tt.expected)
+					t.Errorf("MergeStructTags() = %v, expected %v", actual, tt.expected)
 				}
 			})
 		}

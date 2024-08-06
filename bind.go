@@ -240,8 +240,8 @@ func (p *bindingSpecFactory) createSpec(
 	specType := typ.In(minArgs - 1)
 	// Is it a policy spec?
 	if specType.Kind() == reflect.Ptr {
-		if at := specType.Elem(); // anonymous struct
-		at.Name() == "" &&
+		if at := specType.Elem(); // anonymous struct or binding group
+			(at.Name() == "" || at.Implements(definesBindingGroup)) &&
 			at.Kind() == reflect.Struct {
 			spec = &bindingSpec{}
 			if err := parseSpec(at, spec, p.parsers); err != nil {
@@ -385,7 +385,7 @@ NextField:
 				})
 			}
 			if metadataOwner != nil {
-				tag := internal.CombineStructTagsWithOverride(field.Tag, tags...)
+				tag := internal.MergeStructTagsWith(field.Tag, tags...)
 				if inv := addMetadata(field.Type, tag, metadataOwner); inv != nil {
 					err = errors.Join(err, inv)
 				}
@@ -432,7 +432,7 @@ func parseFilters(
 		if b, ok := binding.(interface {
 			addFilterProvider(FilterProvider) error
 		}); ok {
-			tag := internal.CombineStructTagsWithOverride(field.Tag, tags...)
+			tag := internal.MergeStructTagsWith(field.Tag, tags...)
 			if provider, inv := internal.NewWithTag(fp, tag); inv != nil {
 				err = fmt.Errorf(
 					"parseFilters: new filter provider at index %v failed: %w",
@@ -459,7 +459,7 @@ func parseConstraints(
 		if b, ok := binding.(interface {
 			addConstraint(Constraint) error
 		}); ok {
-			tag := internal.CombineStructTagsWithOverride(field.Tag, tags...)
+			tag := internal.MergeStructTagsWith(field.Tag, tags...)
 			if constraint, inv := internal.NewWithTag(ct, tag); inv != nil {
 				err = fmt.Errorf(
 					"parseConstraints: new key at index %v failed: %w", index, inv)

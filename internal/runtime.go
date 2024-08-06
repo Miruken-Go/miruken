@@ -257,7 +257,7 @@ func CoerceToPtr(
 	return nil
 }
 
-func CombineStructTags(tags ...reflect.StructTag) reflect.StructTag {
+func MergeStructTags(tags ...reflect.StructTag) reflect.StructTag {
 	switch len(tags) {
 	case 0:
 		return ""
@@ -291,15 +291,18 @@ func CombineStructTags(tags ...reflect.StructTag) reflect.StructTag {
 	}
 }
 
-func CombineStructTagsWithOverride(
+func MergeStructTagsWith(
 	tag  reflect.StructTag,
 	tags ...reflect.StructTag,
 ) reflect.StructTag {
+	if len(tags) == 0 {
+		return tag
+	}
 	newTags := tags
 	if tag != "" {
 		newTags = append(newTags, tag)
 	}
-	return CombineStructTags(newTags...)
+	return MergeStructTags(newTags...)
 }
 
 func NewWithTag(
