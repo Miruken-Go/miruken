@@ -43,6 +43,14 @@ func (suite *AggregateTestSuite) TestRoot() {
 			suite.Same(list1, list2)
 		})
 	})
+
+	suite.Run("Handle", func() {
+		suite.Run("Aggregate", func() {
+			ctx, _ := suite.Setup()
+			_, err := miruken.Command(ctx, todo.AddTask{Task: "shopping"})
+			suite.Nil(err)
+		})
+	})
 }
 
 func TestAggregateTestSuite(t *testing.T) {

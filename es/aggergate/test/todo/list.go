@@ -46,7 +46,7 @@ type (
 
 func (l *List) Constructor(
 	_ *struct{
-		aggergate.Root `agg:"name=todo.list"`
+		aggergate.Root `entity:"name=todo.list"`
 	},
 ) {
 }
