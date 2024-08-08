@@ -1,8 +1,6 @@
 package miruken
 
 import (
-	"math"
-
 	"github.com/miruken-go/miruken/promise"
 )
 
@@ -28,7 +26,7 @@ type (
 // initializer
 
 func (i *initializer) Order() int {
-	return math.MaxInt32
+	return FilterStageCreation-1100
 }
 
 func (i *initializer) Next(

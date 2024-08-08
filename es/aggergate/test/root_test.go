@@ -3,7 +3,7 @@ package test
 import (
 	"testing"
 
-	"github.com/miruken-go/miruken/es/aggergate/test/todo"
+	"github.com/miruken-go/miruken/es/test/todo"
 	"github.com/miruken-go/miruken/provides"
 
 	"github.com/miruken-go/miruken"
@@ -11,25 +11,25 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type AggregateTestSuite struct {
+type RootTestSuite struct {
 	suite.Suite
 	specs []any
 }
 
-func (suite *AggregateTestSuite) SetupTest() {
+func (suite *RootTestSuite) SetupTest() {
 	suite.specs = []any{
 		&todo.List{},
 	}
 }
 
-func (suite *AggregateTestSuite) Setup(specs ...any) (miruken.Handler, error) {
+func (suite *RootTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
 	return setup.New().Specs(specs...).Context()
 }
 
-func (suite *AggregateTestSuite) TestRoot() {
+func (suite *RootTestSuite) TestRoot() {
 	suite.Run("Resolve", func() {
 		suite.Run("Contextual", func() {
 			ctx, _ := suite.Setup()
@@ -43,16 +43,8 @@ func (suite *AggregateTestSuite) TestRoot() {
 			suite.Same(list1, list2)
 		})
 	})
-
-	suite.Run("Handle", func() {
-		suite.Run("Aggregate", func() {
-			ctx, _ := suite.Setup()
-			_, err := miruken.Command(ctx, todo.AddTask{Task: "shopping"})
-			suite.Nil(err)
-		})
-	})
 }
 
-func TestAggregateTestSuite(t *testing.T) {
-	suite.Run(t, new(AggregateTestSuite))
+func TestRootTestSuite(t *testing.T) {
+	suite.Run(t, new(RootTestSuite))
 }

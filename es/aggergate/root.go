@@ -2,11 +2,11 @@ package aggergate
 
 import (
 	"fmt"
-	"math"
 	"reflect"
 
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/context"
+	"github.com/miruken-go/miruken/es/internal"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
 )
@@ -34,7 +34,7 @@ type (
 // loader
 
 func (l loader) Order() int {
-	return math.MaxInt32-10
+	return miruken.FilterStageCreation-1000
 }
 
 func (l loader) Next(
@@ -43,9 +43,18 @@ func (l loader) Next(
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 ) (out []any, pout *promise.Promise[[]any], err error) {
-	if out, pout, err = next.Pipe(); err == nil && len(out) > 0 {
+	if lp, ok := provider.(*loadProvider); ok {
+		// Receiver is always created synchronously
+		if out, _, err = next.Pipe(); err == nil && len(out) > 0 {
+			name := lp.name
+			if name == "" {
+				name = internal.TypeName(out[0])
+			}
+			fmt.Println(name)
+			return
+		}
 	}
-	return
+	return next.Abort()
 }
 
 

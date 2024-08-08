@@ -1,4 +1,4 @@
-package aggergate
+package command
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ import (
 )
 
 type (
-	// Handles marks a handler for event-sourcing rules.
-	Handles struct {
+	// Handler marks a handler for command processing.
+	Handler struct {
 		miruken.BindingGroup
 		handles.It
 		processProvider

@@ -1,4 +1,4 @@
-package events
+package event
 
 type (
 	// Stream represents a collection of events to be applied to an Aggregate.

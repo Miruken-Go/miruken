@@ -5,7 +5,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/miruken-go/miruken/es/aggergate"
-	"github.com/miruken-go/miruken/es/events"
+	"github.com/miruken-go/miruken/es/command"
+	"github.com/miruken-go/miruken/es/event"
 )
 
 type (
@@ -17,12 +18,12 @@ type (
 		tasks   []string
 		archive []string
 	}
+)
 
+// commands
+
+type (
 	AddTask struct {
-		Task string
-	}
-
-	TaskAdded struct {
 		Task string
 	}
 
@@ -30,12 +31,20 @@ type (
 		Task string
 	}
 
-	TaskRemoved struct {
+	CompleteTasks struct {
+		Tasks []string
+	}
+)
+
+// events
+
+type (
+	TaskAdded struct {
 		Task string
 	}
 
-	CompleteTasks struct {
-		Tasks []string
+	TaskRemoved struct {
+		Task string
 	}
 
 	TasksCompleted struct {
@@ -44,38 +53,40 @@ type (
 )
 
 
+// List
+
 func (l *List) Constructor(
-	_ *struct{
-		aggergate.Root `entity:"name=todo.list"`
-	},
+	_ *aggergate.Root,
 ) {
 }
 
+// commands
+
 func (l *List) AddTask(
-	_ *aggergate.Handles, add AddTask,
-) events.Stream {
+	_ *command.Handler, add AddTask,
+) event.Stream {
 	task := add.Task
 	if l.Contains(task) {
 		return nil
 	}
-	return events.Append(TaskAdded{task})
+	return event.Append(TaskAdded{task})
 }
 
 func (l *List) RemoveTask(
-	_ *aggergate.Handles, remove RemoveTask,
-) events.Stream {
+	_ *command.Handler, remove RemoveTask,
+) event.Stream {
 	task := remove.Task
 	if !l.Contains(task) {
 		return nil
 	}
-	return events.Append(TaskRemoved{task})
+	return event.Append(TaskRemoved{task})
 }
 
 func (l *List) CompleteTasks(
 	_ *struct {
-		aggergate.Handles `command:"name=completeTasks"`
+		command.Handler `command:"name=completeTasks"`
 	}, complete CompleteTasks,
-) events.Stream {
+) event.Stream {
 	tasks := complete.Tasks
 	if len(tasks) == 0 {
 		return nil
@@ -96,7 +107,7 @@ func (l *List) CompleteTasks(
 		return nil
 	}
 
-	return events.Append(TasksCompleted{done})
+	return event.Append(TasksCompleted{done})
 }
 
 func (l *List) Contains(task string) bool {
@@ -109,14 +120,16 @@ func (l *List) Contains(task string) bool {
 	return false
 }
 
-func (l *List) ApplyTaskAdded(
-	added TaskAdded,
+// events
+
+func (l *List) TaskAdded(
+	_ *event.Handler, added TaskAdded,
 ) {
 	l.tasks = append(l.tasks, added.Task)
 }
 
-func (l *List) ApplyTaskRemoved(
-	removed TaskRemoved,
+func (l *List) TaskRemoved(
+	_ *event.Handler, removed TaskRemoved,
 ) {
 	lt := strings.ToLower(removed.Task)
 	for i, task := range l.tasks {
@@ -127,8 +140,8 @@ func (l *List) ApplyTaskRemoved(
 	}
 }
 
-func (l *List) ApplyTasksCompleted(
-	completed TasksCompleted,
+func (l *List) TasksCompleted(
+	_ *event.Handler, completed TasksCompleted,
 ) {
 	for _, task := range completed.Tasks {
 		lt := strings.ToLower(task)

@@ -16,9 +16,10 @@ import (
 // Filter stage priorities.
 const (
 	FilterStage              = 0
-	FilterStageLogging       = 10
-	FilterStageAuthorization = 30
-	FilterStageValidation    = 50
+	FilterStageLogging       = 1000
+	FilterStageAuthorization = 3000
+	FilterStageValidation    = 5000
+	FilterStageCreation      = math.MaxInt32
 )
 
 type (

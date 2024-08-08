@@ -2,7 +2,6 @@ package miruken
 
 import (
 	"fmt"
-	"math"
 	"reflect"
 	"sync"
 	"sync/atomic"
@@ -29,7 +28,7 @@ type (
 // Lifestyle
 
 func (l *Lifestyle) Order() int {
-	return math.MaxInt32 - 1000
+	return FilterStageCreation-10000
 }
 
 // LifestyleProvider
