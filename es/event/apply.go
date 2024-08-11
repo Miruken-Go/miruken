@@ -5,6 +5,6 @@ import (
 )
 
 type (
-	// Handler marks a handler for event processing.
-	Handler = handles.It
+	// Apply marks a handler for event sourcing.
+	Apply = handles.It
 )

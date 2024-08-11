@@ -3,7 +3,6 @@ package openapi
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/miruken-go/miruken/internal/slices"
 	"net/http"
 	"path/filepath"
 	"reflect"
@@ -13,6 +12,9 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/miruken-go/miruken/context"
+	"github.com/miruken-go/miruken/internal/slices"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3gen"
@@ -83,11 +85,11 @@ func (i *Installer) Install(b *setup.Builder) error {
 }
 
 func (i *Installer) AfterInstall(
-	_ *setup.Builder,
-	handler miruken.Handler,
+	_   *setup.Builder,
+	ctx *context.Context,
 ) error {
 	for _, ap := range i.apiProfiles {
-		i.generateExampleJson(ap, miruken.BuildUp(handler, api.Polymorphic))
+		i.generateExampleJson(ap, miruken.BuildUp(ctx, api.Polymorphic))
 	}
 	base := i.base
 	base.OpenAPI = "3.0.0"

@@ -63,7 +63,7 @@ func (l *List) Constructor(
 // commands
 
 func (l *List) AddTask(
-	_ *command.Handler, add AddTask,
+	_ *command.Handle, add AddTask,
 ) event.Stream {
 	task := add.Task
 	if l.Contains(task) {
@@ -73,7 +73,7 @@ func (l *List) AddTask(
 }
 
 func (l *List) RemoveTask(
-	_ *command.Handler, remove RemoveTask,
+	_ *command.Handle, remove RemoveTask,
 ) event.Stream {
 	task := remove.Task
 	if !l.Contains(task) {
@@ -84,7 +84,7 @@ func (l *List) RemoveTask(
 
 func (l *List) CompleteTasks(
 	_ *struct {
-		command.Handler `command:"name=completeTasks"`
+		command.Handle `command:"name=completeTasks"`
 	}, complete CompleteTasks,
 ) event.Stream {
 	tasks := complete.Tasks
@@ -123,13 +123,13 @@ func (l *List) Contains(task string) bool {
 // events
 
 func (l *List) TaskAdded(
-	_ *event.Handler, added TaskAdded,
+	_ *event.Apply, added TaskAdded,
 ) {
 	l.tasks = append(l.tasks, added.Task)
 }
 
 func (l *List) TaskRemoved(
-	_ *event.Handler, removed TaskRemoved,
+	_ *event.Apply, removed TaskRemoved,
 ) {
 	lt := strings.ToLower(removed.Task)
 	for i, task := range l.tasks {
@@ -141,7 +141,7 @@ func (l *List) TaskRemoved(
 }
 
 func (l *List) TasksCompleted(
-	_ *event.Handler, completed TasksCompleted,
+	_ *event.Apply, completed TasksCompleted,
 ) {
 	for _, task := range completed.Tasks {
 		lt := strings.ToLower(task)

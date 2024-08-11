@@ -5,10 +5,9 @@ import (
 	"reflect"
 
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/context"
+	"github.com/miruken-go/miruken/creates"
 	"github.com/miruken-go/miruken/es/internal"
 	"github.com/miruken-go/miruken/promise"
-	"github.com/miruken-go/miruken/provides"
 )
 
 type (
@@ -16,8 +15,7 @@ type (
 	// Aggregate roots are scoped to a context and provide metadata.
 	Root struct {
 		miruken.BindingGroup
-		provides.It
-		context.Scoped
+		creates.It
 		loadProvider
 	}
 
@@ -61,8 +59,8 @@ func (l loader) Next(
 // loadProvider
 
 func (l *loadProvider) InitWithTag(tag reflect.StructTag) error {
-	if agg, ok := tag.Lookup("entity"); ok {
-		_, err := fmt.Sscanf(agg, "name=%s", &l.name)
+	if entity, ok := tag.Lookup("entity"); ok {
+		_, err := fmt.Sscanf(entity, "name=%s", &l.name)
 		return err
 	}
 	return nil

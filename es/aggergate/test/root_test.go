@@ -3,10 +3,9 @@ package test
 import (
 	"testing"
 
-	"github.com/miruken-go/miruken/es/test/todo"
-	"github.com/miruken-go/miruken/provides"
-
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/creates"
+	"github.com/miruken-go/miruken/es/test/todo"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 )
@@ -30,17 +29,12 @@ func (suite *RootTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 }
 
 func (suite *RootTestSuite) TestRoot() {
-	suite.Run("Resolve", func() {
-		suite.Run("Contextual", func() {
+	suite.Run("Create", func() {
+		suite.Run("Default", func() {
 			ctx, _ := suite.Setup()
-			list1, _, ok, err := provides.Type[*todo.List](ctx)
-			suite.True(ok)
+			list1, _, err := creates.New[*todo.List](ctx)
 			suite.Nil(err)
 			suite.NotNil(list1)
-			list2, _, ok, err := provides.Type[*todo.List](ctx)
-			suite.True(ok)
-			suite.Nil(err)
-			suite.Same(list1, list2)
 		})
 	})
 }

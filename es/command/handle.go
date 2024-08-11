@@ -1,19 +1,17 @@
 package command
 
 import (
-	"fmt"
-	"reflect"
-
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
 )
 
 type (
-	// Handler marks a handler for command processing.
-	Handler struct {
+	// Handle marks a handler for command processing.
+	Handle struct {
 		miruken.BindingGroup
 		handles.It
+		Named
 		processProvider
 	}
 
@@ -25,9 +23,7 @@ type (
 	processor struct{}
 
 	// processProvider is a miruken.FilterProvider for processor.
-	processProvider struct {
-		name string
-	}
+	processProvider struct {}
 )
 
 
@@ -50,14 +46,6 @@ func (p processor) Next(
 
 
 // processProvider
-
-func (p *processProvider) InitWithTag(tag reflect.StructTag) error {
-	if agg, ok := tag.Lookup("command"); ok {
-		_, err := fmt.Sscanf(agg, "name=%s", &p.name)
-		return err
-	}
-	return nil
-}
 
 func (p *processProvider) Required() bool {
 	return true

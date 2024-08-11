@@ -10,7 +10,7 @@ import (
 )
 
 type (
-	// Constraint manages BindingMetadata assertions.
+	// Constraint enforces Binding assertions.
 	Constraint interface {
 		// Required determines if Constraint must be satisfied.
 		// If it is not required, it will accept Callback's without it.

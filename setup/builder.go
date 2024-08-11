@@ -128,7 +128,7 @@ func (s *Builder) Context() (*context.Context, error) {
 		return nil, err
 	}
 	b, _, ok, err := miruken.Resolve[*bootstrapper](ctx)
-	if ok {
+	if ok && b != nil {
 		if _, err = b.bootstrap(ctx).Await(); err != nil {
 			return nil, err
 		}
@@ -142,7 +142,7 @@ func (s *Builder) ContextAsync() *promise.Promise[*context.Context] {
 		return promise.Reject[*context.Context](err)
 	}
 	b, _, ok, err := miruken.Resolve[*bootstrapper](ctx)
-	if ok {
+	if ok && b != nil {
 		return promise.Return(b.bootstrap(ctx), ctx)
 	} else if err != nil {
 		return promise.Reject[*context.Context](err)
@@ -202,7 +202,7 @@ func (s *Builder) build() (*context.Context, error) {
 	// call after setup hooks
 	for _, feature := range s.features {
 		if after, ok := feature.(interface {
-			AfterInstall(*Builder, miruken.Handler) error
+			AfterInstall(*Builder, *context.Context) error
 		}); ok {
 			if err := after.AfterInstall(s, ctx); err != nil {
 				buildErrors = errors.Join(buildErrors, err)

@@ -3,13 +3,15 @@ package test
 import (
 	"context"
 	"errors"
-	"github.com/miruken-go/miruken/promise"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/miruken-go/miruken/promise"
+
 	"github.com/miruken-go/miruken"
+	mc "github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
@@ -112,7 +114,7 @@ func (i BadInstaller) Install(
 }
 
 func (i BadInstaller) AfterInstall(
-	*setup.Builder, miruken.Handler,
+	*setup.Builder, *mc.Context,
 ) error {
 	return errors.New("process failed to start")
 }

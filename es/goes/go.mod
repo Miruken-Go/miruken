@@ -1,6 +1,6 @@
 module github.com/miruken-go/miruken/es/goes
 
-go 1.22.5
+go 1.22.6
 
 require (
 	dario.cat/mergo v1.0.0 // indirect
