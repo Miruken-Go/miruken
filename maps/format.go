@@ -119,6 +119,7 @@ func (f *Format) Satisfies(required miruken.Constraint, ctx miruken.HandleContex
 			return strings.HasSuffix(rf.name, f.name)
 		case FormatRulePattern:
 			return f.pattern.MatchString(rf.name)
+		default:
 		}
 	case FormatRuleStartsWith:
 		switch f.rule {
@@ -134,6 +135,7 @@ func (f *Format) Satisfies(required miruken.Constraint, ctx miruken.HandleContex
 			return strings.HasPrefix(f.name, rf.name)
 		case FormatRulePattern:
 			return f.pattern.MatchString(rf.name)
+		default:
 		}
 	case FormatRuleEndsWith:
 		switch f.rule {
@@ -149,6 +151,7 @@ func (f *Format) Satisfies(required miruken.Constraint, ctx miruken.HandleContex
 			return strings.HasSuffix(f.name, rf.name)
 		case FormatRulePattern:
 			return f.pattern.MatchString(rf.name)
+		default:
 		}
 	case FormatRulePattern:
 		switch f.rule {
@@ -162,7 +165,9 @@ func (f *Format) Satisfies(required miruken.Constraint, ctx miruken.HandleContex
 			return false
 		case FormatRuleStartsWith, FormatRuleEndsWith:
 			return rf.pattern.MatchString(f.name)
+		default:
 		}
+	default:
 	}
 	return false
 }

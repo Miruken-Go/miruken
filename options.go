@@ -131,6 +131,7 @@ func GetOptionsInto(handler Handler, target any) bool {
 		} else {
 			options.options = value.Interface()
 		}
+	default:
 	}
 
 	handled := handler.Handle(options, true, nil).Handled()

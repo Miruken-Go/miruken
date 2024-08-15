@@ -94,11 +94,10 @@ func (b *methodIntercept) Invoke(
 	var builder ResolvesBuilder
 	builder.WithConstraints(Explicit)
 	builder.
-		WithCallback(callback).
 		WithGreedy(ctx.Greedy).
 		WithParent(parent).
 		WithKey(handlerType)
-	resolves := builder.New()
+	resolves := builder.New(callback)
 	if result := ctx.Handle(resolves, true, nil); result.IsError() {
 		return nil, nil, result.Error()
 	} else if _, p := resolves.Result(false); p != nil {

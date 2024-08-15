@@ -11,7 +11,7 @@ type (
 	Handle struct {
 		miruken.BindingGroup
 		handles.It
-		Named
+		Export
 		processProvider
 	}
 

@@ -4,8 +4,9 @@ import (
 	"testing"
 
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/creates"
+	"github.com/miruken-go/miruken/es"
 	"github.com/miruken-go/miruken/es/test/todo"
+	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 )
@@ -25,14 +26,17 @@ func (suite *RootTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
-	return setup.New().Specs(specs...).Context()
+	return setup.New(es.Feature()).
+		Specs(specs...).
+		Context()
 }
 
 func (suite *RootTestSuite) TestRoot() {
 	suite.Run("Create", func() {
 		suite.Run("Default", func() {
 			ctx, _ := suite.Setup()
-			list1, _, err := creates.New[*todo.List](ctx)
+			list1, _, ok, err := provides.Type[*todo.List](ctx)
+			suite.True(ok)
 			suite.Nil(err)
 			suite.NotNil(list1)
 		})

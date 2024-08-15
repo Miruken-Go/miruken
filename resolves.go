@@ -5,7 +5,6 @@ type (
 	// Callback on the resolved handler.
 	Resolves struct {
 		Provides
-		callback  Callback
 		greedy    bool
 		succeeded bool
 	}
@@ -13,38 +12,14 @@ type (
 	// ResolvesBuilder builds Resolves callbacks.
 	ResolvesBuilder struct {
 		ProvidesBuilder
-		callback Callback
 		greedy   bool
 	}
 )
 
 // Resolves
 
-func (r *Resolves) Callback() Callback {
-	return r.callback
-}
-
 func (r *Resolves) Succeeded() bool {
 	return r.succeeded
-}
-
-func (r *Resolves) CanDispatch(
-	handler any,
-	binding Binding,
-) (reset func(), approved bool) {
-	if outer, ok := r.Provides.CanDispatch(handler, binding); !ok {
-		return outer, false
-	} else if guard, ok := r.callback.(CallbackGuard); !ok {
-		return outer, true
-	} else if inner, ok := guard.CanDispatch(handler, binding); !ok {
-		outer()
-		return inner, false
-	} else {
-		return func() {
-			inner()
-			outer()
-		}, true
-	}
 }
 
 func (r *Resolves) accept(
@@ -54,20 +29,13 @@ func (r *Resolves) accept(
 	if greedy := r.greedy; !greedy && r.succeeded {
 		return Handled
 	} else {
-		hr := DispatchCallback(result, r.callback, greedy, composer)
+		hr := DispatchCallback(result, r.Trigger(), greedy, composer)
 		r.succeeded = r.succeeded || hr.handled
 		return hr
 	}
 }
 
 // ResolvesBuilder
-
-func (b *ResolvesBuilder) WithCallback(
-	callback Callback,
-) *ResolvesBuilder {
-	b.callback = callback
-	return b
-}
 
 func (b *ResolvesBuilder) WithGreedy(
 	greedy bool,
@@ -76,10 +44,9 @@ func (b *ResolvesBuilder) WithGreedy(
 	return b
 }
 
-func (b *ResolvesBuilder) New() *Resolves {
+func (b *ResolvesBuilder) New(callback Callback) *Resolves {
 	resolves := &Resolves{
-		Provides: b.Build(),
-		callback: b.callback,
+		Provides: b.WithTrigger(callback).Build(),
 		greedy:   b.greedy,
 	}
 	resolves.SetAcceptResult(resolves.accept)

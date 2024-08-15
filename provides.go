@@ -18,6 +18,7 @@ type (
 		handler  any
 		binding  Binding
 		owner    any
+		trigger  Callback
 	}
 
 	// ProvidesBuilder builds Provides callbacks.
@@ -27,6 +28,7 @@ type (
 		explicit bool
 		parent   *Provides
 		owner    any
+		trigger  Callback
 	}
 
 	// providesPolicy provides values covariantly with lifestyle.
@@ -58,6 +60,16 @@ func (p *Provides) Binding() Binding {
 
 func (p *Provides) Owner() any {
 	return p.owner
+}
+
+func (p *Provides) Trigger() Callback {
+	if trigger := p.trigger; trigger != nil {
+		return trigger
+	}
+	if parent := p.parent; parent != nil {
+		return parent.Trigger()
+	}
+	return nil
 }
 
 func (p *Provides) CanDispatch(
@@ -151,10 +163,17 @@ func (b *ProvidesBuilder) WithParent(
 	return b
 }
 
-func (b *ProvidesBuilder) ForOwner(
+func (b *ProvidesBuilder) WithOwner(
 	owner any,
 ) *ProvidesBuilder {
 	b.owner = owner
+	return b
+}
+
+func (b *ProvidesBuilder) WithTrigger(
+	trigger Callback,
+) *ProvidesBuilder {
+	b.trigger = trigger
 	return b
 }
 
@@ -178,6 +197,8 @@ func (b *ProvidesBuilder) Build() Provides {
 		key:          b.key,
 		explicit:     b.explicit,
 		parent:       b.parent,
+		owner: 		  b.owner,
+		trigger:      b.trigger,
 	}
 }
 
@@ -188,6 +209,7 @@ func (b *ProvidesBuilder) New() *Provides {
 		explicit:     b.explicit,
 		parent:       b.parent,
 		owner:        b.owner,
+		trigger:      b.trigger,
 	}
 	p.SetAcceptPromiseResult(p.acceptPromise)
 	return p

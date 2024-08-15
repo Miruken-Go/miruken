@@ -112,6 +112,7 @@ func TestUnwrap_Reject(t *testing.T) {
 			return promise.Reject[string](fmt.Errorf("%s Error", data))
 		}))
 	result, err := p2.Await()
+	require.NotNil(t, err)
 	require.Equal(t, "", result)
 	require.Equal(t, "Hello Error", err.Error())
 }

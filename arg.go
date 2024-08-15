@@ -223,7 +223,7 @@ func (r *defaultDependencyResolver) Resolve(
 	parent, _ := ctx.Callback.(*Provides)
 	many := !dep.Strict() && typ.Kind() == reflect.Slice
 	var builder ProvidesBuilder
-	builder.WithParent(parent).ForOwner(ctx.Handler)
+	builder.WithParent(parent).WithOwner(ctx.Handler)
 	if many {
 		builder.WithKey(typ.Elem())
 	} else {

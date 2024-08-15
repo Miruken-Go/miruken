@@ -211,7 +211,7 @@ func validateContravariantFunc(
 		} else if err2 != nil {
 			err = errors.Join(err, fmt.Errorf(
 				"contravariant: invalid effect at index %v: %w", i, err2))
-		} else if resIdx == 0 {  // response assumed be first
+		} else if resIdx == -1 {  // response assumed be first
 			resIdx = i
 			if lt, ok := promise.Inspect(out); ok {
 				spec.flags |= bindingAsync

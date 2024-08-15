@@ -1,13 +1,9 @@
 package aggergate
 
 import (
-	"fmt"
-	"reflect"
-
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/creates"
-	"github.com/miruken-go/miruken/es/internal"
 	"github.com/miruken-go/miruken/promise"
+	"github.com/miruken-go/miruken/provides"
 )
 
 type (
@@ -15,7 +11,8 @@ type (
 	// Aggregate roots are scoped to a context and provide metadata.
 	Root struct {
 		miruken.BindingGroup
-		creates.It
+		provides.It
+		Export
 		loadProvider
 	}
 
@@ -23,9 +20,7 @@ type (
 	loader struct{}
 
 	// loadProvider is a miruken.FilterProvider for loader.
-	loadProvider struct {
-		name string
-	}
+	loadProvider struct {}
 )
 
 
@@ -41,14 +36,9 @@ func (l loader) Next(
 	ctx      miruken.HandleContext,
 	provider miruken.FilterProvider,
 ) (out []any, pout *promise.Promise[[]any], err error) {
-	if lp, ok := provider.(*loadProvider); ok {
+	if _, ok := provider.(*loadProvider); ok {
 		// Receiver is always created synchronously
 		if out, _, err = next.Pipe(); err == nil && len(out) > 0 {
-			name := lp.name
-			if name == "" {
-				name = internal.TypeName(out[0])
-			}
-			fmt.Println(name)
 			return
 		}
 	}
@@ -57,14 +47,6 @@ func (l loader) Next(
 
 
 // loadProvider
-
-func (l *loadProvider) InitWithTag(tag reflect.StructTag) error {
-	if entity, ok := tag.Lookup("entity"); ok {
-		_, err := fmt.Sscanf(entity, "name=%s", &l.name)
-		return err
-	}
-	return nil
-}
 
 func (l *loadProvider) Required() bool {
 	return true

@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/miruken-go/miruken/internal"
 	"reflect"
 	"testing"
+
+	"github.com/miruken-go/miruken/internal"
 
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/api"

@@ -321,6 +321,7 @@ func (c *Context) notify(
 				for _, obs := range obs {
 					obs.(ChildEndedObserver).ChildContextEnded(ctx, reason)
 				}
+			default:
 			}
 		}
 	}
@@ -459,6 +460,7 @@ func (c *ContextualBase) notify(
 			for _, obs := range observers {
 				obs.(ChangedObserver).ContextChanged(contextual, oldCtx, *newCtx)
 			}
+		default:
 		}
 	}
 }

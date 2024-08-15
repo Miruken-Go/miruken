@@ -210,6 +210,7 @@ func validateCovariantFunc(
 					switch out.Kind() {
 					case reflect.Slice, reflect.Array:
 						out = out.Elem()
+					default:
 					}
 				}
 				key = out

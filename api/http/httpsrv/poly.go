@@ -136,7 +136,7 @@ func (a *PolyHandler) encodeResult(
 	if content, ok := result.(api.Content); ok {
 		if format, err := api.ParseMediaType(content.MediaType(), maps.DirectionTo); err == nil {
 			formats = []*maps.Format{format}
-			if wb := content.(interface{ WriteBody() any }); ok {
+			if wb, ok := content.(interface{ WriteBody() any }); ok {
 				result = wb.WriteBody()
 			} else {
 				result = content.Body()
