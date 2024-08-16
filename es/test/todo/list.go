@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/miruken-go/miruken/es/aggergate"
+	"github.com/miruken-go/miruken/es/aggregate"
 	"github.com/miruken-go/miruken/es/command"
 	"github.com/miruken-go/miruken/es/event"
 )
@@ -56,14 +56,22 @@ type (
 // List
 
 func (l *List) Constructor(
-	_ *aggergate.Root,
+	_ *aggregate.Root,
 ) {
+}
+
+func (l *List) Tasks() []string {
+	return l.tasks
+}
+
+func (l *List) Archive() []string {
+	return l.archive
 }
 
 // commands
 
 func (l *List) AddTask(
-	_ *command.Handle, add AddTask,
+	_ *command.Handles, add AddTask,
 ) event.Stream {
 	task := add.Task
 	if l.Contains(task) {
@@ -73,7 +81,7 @@ func (l *List) AddTask(
 }
 
 func (l *List) RemoveTask(
-	_ *command.Handle, remove RemoveTask,
+	_ *command.Handles, remove RemoveTask,
 ) event.Stream {
 	task := remove.Task
 	if !l.Contains(task) {
@@ -84,7 +92,7 @@ func (l *List) RemoveTask(
 
 func (l *List) CompleteTasks(
 	_ *struct {
-		command.Handle `command:"name=completeTasks"`
+		command.Handles `command:"name=completeTasks"`
 	}, complete CompleteTasks,
 ) event.Stream {
 	tasks := complete.Tasks
@@ -123,13 +131,13 @@ func (l *List) Contains(task string) bool {
 // events
 
 func (l *List) TaskAdded(
-	_ *event.Apply, added TaskAdded,
+	_ *event.Applies, added TaskAdded,
 ) {
 	l.tasks = append(l.tasks, added.Task)
 }
 
 func (l *List) TaskRemoved(
-	_ *event.Apply, removed TaskRemoved,
+	_ *event.Applies, removed TaskRemoved,
 ) {
 	lt := strings.ToLower(removed.Task)
 	for i, task := range l.tasks {
@@ -141,7 +149,7 @@ func (l *List) TaskRemoved(
 }
 
 func (l *List) TasksCompleted(
-	_ *event.Apply, completed TasksCompleted,
+	_ *event.Applies, completed TasksCompleted,
 ) {
 	for _, task := range completed.Tasks {
 		lt := strings.ToLower(task)

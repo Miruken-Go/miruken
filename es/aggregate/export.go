@@ -1,4 +1,4 @@
-package aggergate
+package aggregate
 
 import (
 	"fmt"

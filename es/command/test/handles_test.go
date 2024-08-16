@@ -4,24 +4,25 @@ import (
 	"testing"
 
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/es"
 	"github.com/miruken-go/miruken/es/test/todo"
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 )
 
-type CommandTestSuite struct {
+type HandlesTestSuite struct {
 	suite.Suite
 	specs []any
 }
 
-func (suite *CommandTestSuite) SetupTest() {
+func (suite *HandlesTestSuite) SetupTest() {
 	suite.specs = []any{
 		&todo.List{},
 	}
 }
 
-func (suite *CommandTestSuite) Setup(specs ...any) (miruken.Handler, error) {
+func (suite *HandlesTestSuite) Setup(specs ...any) (*context.Context, error) {
 	if len(specs) == 0 {
 		specs = suite.specs
 	}
@@ -30,15 +31,15 @@ func (suite *CommandTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 		Context()
 }
 
-func (suite *CommandTestSuite) TestCommand() {
-	suite.Run("Handle", func() {
+func (suite *HandlesTestSuite) TestHandles() {
+	suite.Run("Handles", func() {
 		suite.Run("Default", func() {
 			ctx, _ := suite.Setup()
 			_, err := miruken.Command(ctx, todo.AddTask{Task: "shopping"})
 			suite.Nil(err)
 		})
 
-		suite.Run("Overridden", func() {
+		suite.Run("Explicit", func() {
 			ctx, _ := suite.Setup()
 			_, err := miruken.Command(ctx, todo.CompleteTasks{Tasks: []string{"shopping"}})
 			suite.Nil(err)
@@ -46,6 +47,6 @@ func (suite *CommandTestSuite) TestCommand() {
 	})
 }
 
-func TestCommandTestSuite(t *testing.T) {
-	suite.Run(t, new(CommandTestSuite))
+func TestHandlesTestSuite(t *testing.T) {
+	suite.Run(t, new(HandlesTestSuite))
 }

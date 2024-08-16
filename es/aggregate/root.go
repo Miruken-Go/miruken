@@ -1,6 +1,8 @@
-package aggergate
+package aggregate
 
 import (
+	"fmt"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
@@ -39,6 +41,10 @@ func (l loader) Next(
 	if _, ok := provider.(*loadProvider); ok {
 		// Receiver is always created synchronously
 		if out, _, err = next.Pipe(); err == nil && len(out) > 0 {
+			options, ok := miruken.GetOptions[Options](ctx)
+			if ok {
+				fmt.Println(options)
+			}
 			return
 		}
 	}

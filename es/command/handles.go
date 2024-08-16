@@ -7,8 +7,8 @@ import (
 )
 
 type (
-	// Handle marks a handler for command processing.
-	Handle struct {
+	// Handles marks a handler for command processing.
+	Handles struct {
 		miruken.BindingGroup
 		handles.It
 		Export

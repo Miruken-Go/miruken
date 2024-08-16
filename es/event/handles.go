@@ -6,8 +6,8 @@ import (
 )
 
 type (
-	// Handle marks a handler for event processing.
-	Handle struct {
+	// Handles marks a handler for event processing.
+	Handles struct {
 		miruken.BindingGroup
 		handles.It
 		Export
