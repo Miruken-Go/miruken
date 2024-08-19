@@ -302,8 +302,8 @@ func (c *Configuration) Resolve(
 			timeout: 30000,
 		}
 		var layout string
-		if format, ok := slices.First(slices.OfType[any, DateFormat](dep.Metadata())); ok {
-			layout = string(format)
+		if format, ok := slices.First(slices.OfType[any, *DateFormat](dep.Metadata())); ok {
+			layout = string(*format)
 		} else {
 			layout = "Mon, 02 Jan 2006 15:04:05 MST"
 		}
@@ -524,14 +524,14 @@ func (m *MetadataHandler) HandleFoo(
 		Transactional `mode:"requiresNew"`
 	}, foo *Foo,
 	ctx miruken.HandleContext,
-) Transactional {
+) *Transactional {
 	foo.Inc()
 	if transactional, ok :=
-		slices.First(slices.OfType[any, Transactional](
+		slices.First(slices.OfType[any, *Transactional](
 			ctx.Binding.Metadata())); ok {
 		return transactional
 	}
-	return Transactional{}
+	return nil
 }
 
 func (m *MetadataHandler) HandleBar(
@@ -541,10 +541,10 @@ func (m *MetadataHandler) HandleBar(
 		Anonymous
 	}, bar *Bar,
 	ctx miruken.HandleContext,
-) []Anonymous {
+) []*Anonymous {
 	bar.Inc()
 	bar.Inc()
-	return slices.OfType[any, Anonymous](ctx.Binding.Metadata())
+	return slices.OfType[any, *Anonymous](ctx.Binding.Metadata())
 }
 
 // MetadataInvalidHandler
@@ -879,7 +879,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 				Specs(&MetadataHandler{}).
 				Context()
 			bar := new(Bar)
-			if anonymous, _, err := miruken.Execute[[]Anonymous](handler, bar); err == nil {
+			if anonymous, _, err := miruken.Execute[[]*Anonymous](handler, bar); err == nil {
 				suite.Len(anonymous, 1)
 				suite.Equal(2, bar.Count())
 			} else {

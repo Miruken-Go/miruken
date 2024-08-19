@@ -1,6 +1,8 @@
 package command
 
 import (
+	"fmt"
+
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/promise"
@@ -11,7 +13,7 @@ type (
 	Handles struct {
 		miruken.BindingGroup
 		handles.It
-		Export
+		Model
 		processProvider
 	}
 
@@ -40,6 +42,7 @@ func (p processor) Next(
 	provider miruken.FilterProvider,
 ) (out []any, pout *promise.Promise[[]any], err error) {
 	if out, pout, err = next.Pipe(); err == nil && len(out) > 0 {
+		fmt.Println(out)
 	}
 	return
 }

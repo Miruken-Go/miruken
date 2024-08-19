@@ -523,14 +523,10 @@ func addMetadata(
 		addMetadata(metadata any) error
 	},
 ) error {
-	writeable := typ.Kind() == reflect.Ptr
-	if !writeable {
+	if typ.Kind() != reflect.Ptr {
 		typ = reflect.PointerTo(typ)
 	}
 	if metadata, err := internal.NewWithTag(typ, tag); metadata != nil && err == nil {
-		if !writeable {
-			metadata = reflect.Indirect(reflect.ValueOf(metadata)).Interface()
-		}
 		return owner.addMetadata(metadata)
 	} else {
 		return err

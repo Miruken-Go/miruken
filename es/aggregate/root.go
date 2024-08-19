@@ -14,7 +14,7 @@ type (
 	Root struct {
 		miruken.BindingGroup
 		provides.It
-		Export
+		Model
 		loadProvider
 	}
 

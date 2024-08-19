@@ -2,6 +2,7 @@ package es
 
 import (
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/setup"
 )
 
@@ -17,11 +18,17 @@ func (i *Installer) Install(b *setup.Builder) error {
 }
 
 func (i *Installer) BindingCreated(
-	policy miruken.Policy,
+	policy      miruken.Policy,
 	handlerInfo *miruken.HandlerInfo,
-	binding miruken.Binding,
+	binding     miruken.Binding,
 ) {
-
+	for _, model := range slices.OfType[any, interface{
+		InitWithBinding(miruken.Binding) error
+	}](binding.Metadata()) {
+		if err := model.InitWithBinding(binding); err != nil {
+			panic(err)
+		}
+	}
 }
 
 func (i *Installer) HandlerInfoCreated(

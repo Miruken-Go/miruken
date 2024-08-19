@@ -39,7 +39,7 @@ func (suite *HandlesTestSuite) TestHandles() {
 			suite.Nil(err)
 		})
 
-		suite.Run("Explicit", func() {
+		suite.Run("Named", func() {
 			ctx, _ := suite.Setup()
 			_, err := miruken.Command(ctx, todo.CompleteTasks{Tasks: []string{"shopping"}})
 			suite.Nil(err)
