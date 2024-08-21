@@ -1,8 +1,10 @@
 package es
 
 import (
+	"slices"
+
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/internal/slices"
+	"github.com/miruken-go/miruken/internal/seq"
 	"github.com/miruken-go/miruken/setup"
 )
 
@@ -22,9 +24,9 @@ func (i *Installer) BindingCreated(
 	handlerInfo *miruken.HandlerInfo,
 	binding     miruken.Binding,
 ) {
-	for _, model := range slices.OfType[any, interface{
+	for model := range seq.OfType[any, interface{
 		InitWithBinding(miruken.Binding) error
-	}](binding.Metadata()) {
+	}](slices.Values(binding.Metadata())) {
 		if err := model.InitWithBinding(binding); err != nil {
 			panic(err)
 		}

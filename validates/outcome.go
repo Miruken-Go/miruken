@@ -2,10 +2,10 @@ package validates
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 	"strings"
-
-	"github.com/miruken-go/miruken/internal/maps"
 )
 
 type (
@@ -22,11 +22,7 @@ func (o *Outcome) Valid() bool {
 }
 
 func (o *Outcome) Fields() []string {
-	var keys []string
-	if errs := o.errors; len(errs) > 0 {
-		keys = maps.Keys(o.errors)
-	}
-	return keys
+	return slices.Collect(maps.Keys(o.errors))
 }
 
 func (o *Outcome) AddError(
@@ -93,7 +89,7 @@ func (o *Outcome) Error() string {
 		return ""
 	}
 
-	keys := maps.Keys(errs)
+	keys := slices.Collect(maps.Keys(errs))
 	sort.Strings(keys)
 
 	var s strings.Builder

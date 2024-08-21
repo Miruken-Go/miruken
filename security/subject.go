@@ -1,7 +1,9 @@
 package security
 
 import (
-	"github.com/miruken-go/miruken/internal/slices"
+	"slices"
+
+	"github.com/miruken-go/miruken/internal/seq"
 )
 
 type (
@@ -75,7 +77,7 @@ func (s *mutableSubject) AddPrincipals(ps ...Principal) {
 }
 
 func (s *mutableSubject) RemovePrincipals(ps ...Principal) {
-	s.principals = slices.Remove(s.principals, ps...)
+	s.principals = slices.Collect(seq.Except(slices.Values(s.principals), slices.Values(ps)))
 }
 
 func (s *mutableSubject) AddCredentials(cs ...any) {
@@ -87,7 +89,7 @@ func (s *mutableSubject) AddCredentials(cs ...any) {
 }
 
 func (s *mutableSubject) RemoveCredentials(cs ...any) {
-	s.credentials = slices.Remove(s.credentials, cs...)
+	s.credentials = slices.Collect(seq.Except(slices.Values(s.credentials), slices.Values(cs)))
 }
 
 // system

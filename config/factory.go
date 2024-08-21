@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -11,7 +12,6 @@ import (
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/constraint"
-	"github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/provides"
 )
 

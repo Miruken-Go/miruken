@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/textproto"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -15,7 +16,7 @@ import (
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/internal/slices"
+	"github.com/miruken-go/miruken/internal/seq"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/timewasted/go-accept-headers"
@@ -148,7 +149,7 @@ func (a *PolyHandler) encodeResult(
 		api.MergeHeader(textproto.MIMEHeader(header), content.Metadata())
 	} else if hdr := r.Header.Get("Accept"); hdr != "" {
 		if fs := accept.Parse(hdr); len(fs) > 0 {
-			formats = slices.Map[accept.Accept, *maps.Format](fs, formatAccept)
+			formats = slices.Collect(seq.Map(slices.Values(fs), formatAccept))
 		}
 	}
 	if len(formats) == 0 {

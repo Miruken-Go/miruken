@@ -1,6 +1,7 @@
 package test
 
 import (
+	"slices"
 	"sync/atomic"
 	"testing"
 
@@ -8,7 +9,7 @@ import (
 	"github.com/miruken-go/miruken/api"
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/handles"
-	"github.com/miruken-go/miruken/internal/slices"
+	"github.com/miruken-go/miruken/internal/seq"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/setup"
@@ -167,9 +168,9 @@ func (suite *RouteTestSuite) TestRoute() {
 			suite.Nil(err)
 			suite.Equal(int32(2), counter)
 			suite.Len(results, 1)
-			groups := slices.OfType[any, []any](results)
+			groups := slices.Collect(seq.OfType[any, []any](slices.Values(results)))
 			suite.Len(groups, 1)
-			replies := slices.OfType[any, api.RouteReply](groups[0])
+			replies := slices.Collect(seq.OfType[any, api.RouteReply](slices.Values(groups[0])))
 			suite.Len(replies, 1)
 			suite.Equal("pass-through", replies[0].Uri)
 			suite.Len(replies[0].Responses, 2)

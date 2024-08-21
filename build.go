@@ -1,7 +1,10 @@
 package miruken
 
 import (
-	"github.com/miruken-go/miruken/internal/slices"
+	"slices"
+
+	"github.com/miruken-go/miruken/internal/seq"
+	slices2 "github.com/miruken-go/miruken/internal/slices"
 )
 
 type (
@@ -145,16 +148,17 @@ func (w *withHandlers) SuppressDispatch() {}
 
 // MutableHandlers manages a mutable list of Handlers.
 type MutableHandlers struct {
-	handlers slices.Safe[Handler]
+	handlers slices2.Safe[Handler]
 }
 
 func (m *MutableHandlers) Handlers() []any {
-	return slices.Map[Handler, any](m.handlers.Items(), func(h Handler) any {
-		if a, ok := h.(handlerAdapter); ok {
-			return a.handler
-		}
-		return h
-	})
+	return slices.Collect(
+		seq.Map(slices.Values(m.handlers.Items()), func(h Handler) any {
+			if a, ok := h.(handlerAdapter); ok {
+				return a.handler
+			}
+			return h
+		}))
 }
 
 func (m *MutableHandlers) ResetHandlers(

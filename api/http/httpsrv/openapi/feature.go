@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime/debug"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -14,7 +15,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/miruken-go/miruken/context"
-	"github.com/miruken-go/miruken/internal/slices"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3gen"

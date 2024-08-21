@@ -3,9 +3,10 @@ package miruken
 import (
 	"fmt"
 	"reflect"
+	"slices"
 
 	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/internal/slices"
+	"github.com/miruken-go/miruken/internal/seq"
 	"github.com/miruken-go/miruken/promise"
 )
 
@@ -208,19 +209,20 @@ func (c *CallbackBase) ensureResult(many, expand bool) any {
 	if c.result == nil {
 		var results []any
 		if expand {
-			results = slices.FlatMap[any, any](c.results, func(res any) []any {
-				if internal.IsNil(res) {
-					return nil
-				}
-				if expand, ok := res.(expandResults); ok {
-					return expand
-				}
-				return []any{res}
-			})
+			results = slices.Collect(
+				seq.FlatMap(slices.Values(c.results), func(res any) []any {
+					if internal.IsNil(res) {
+						return nil
+					}
+					if expand, ok := res.(expandResults); ok {
+						return expand
+					}
+					return []any{res}
+				}))
 		} else {
-			results = slices.Filter(c.results, func(res any) bool {
-				return !internal.IsNil(res)
-			})
+			results = slices.Collect(
+				seq.Filter(slices.Values(c.results), seq.Not(internal.IsNil)),
+			)
 		}
 		switch {
 		case many:

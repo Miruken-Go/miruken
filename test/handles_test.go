@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -12,7 +13,7 @@ import (
 	"github.com/miruken-go/miruken/args"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/internal/slices"
+	"github.com/miruken-go/miruken/internal/seq"
 	"github.com/miruken-go/miruken/maps"
 	"github.com/miruken-go/miruken/promise"
 	"github.com/miruken-go/miruken/provides"
@@ -302,7 +303,7 @@ func (c *Configuration) Resolve(
 			timeout: 30000,
 		}
 		var layout string
-		if format, ok := slices.First(slices.OfType[any, *DateFormat](dep.Metadata())); ok {
+		if format, ok := seq.First(seq.OfType[any, *DateFormat](slices.Values(dep.Metadata()))); ok {
 			layout = string(*format)
 		} else {
 			layout = "Mon, 02 Jan 2006 15:04:05 MST"
@@ -527,8 +528,8 @@ func (m *MetadataHandler) HandleFoo(
 ) *Transactional {
 	foo.Inc()
 	if transactional, ok :=
-		slices.First(slices.OfType[any, *Transactional](
-			ctx.Binding.Metadata())); ok {
+		seq.First(seq.OfType[any, *Transactional](
+			slices.Values(ctx.Binding.Metadata()))); ok {
 		return transactional
 	}
 	return nil
@@ -544,7 +545,9 @@ func (m *MetadataHandler) HandleBar(
 ) []*Anonymous {
 	bar.Inc()
 	bar.Inc()
-	return slices.OfType[any, *Anonymous](ctx.Binding.Metadata())
+	return slices.Collect(
+		seq.OfType[any, *Anonymous](slices.Values(ctx.Binding.Metadata())),
+	)
 }
 
 // MetadataInvalidHandler

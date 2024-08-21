@@ -2,9 +2,10 @@ package principal
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/internal/slices"
+	"github.com/miruken-go/miruken/internal/seq"
 	"github.com/miruken-go/miruken/security"
 )
 
@@ -44,15 +45,14 @@ func Any(subject security.Subject, ps ...security.Principal) bool {
 
 // First returns the first security.Principal of the specified type.
 func First[T security.Principal](subject security.Subject) (p T, ok bool) {
-	if ps := slices.OfType[security.Principal, T](subject.Principals()); len(ps) > 0 {
-		return ps[0], true
-	}
-	return p, false
+	return seq.First(seq.OfType[security.Principal, T](slices.Values(subject.Principals())))
 }
 
 // Find returns each security.Principal of the specified type.
 func Find[T security.Principal](subject security.Subject) []T {
-	return slices.OfType[security.Principal, T](subject.Principals())
+	return slices.Collect(
+		seq.OfType[security.Principal, T](slices.Values(subject.Principals())),
+	)
 }
 
 
@@ -61,15 +61,15 @@ func Parse[T StringPrincipal](val any) []security.Principal {
 	case string:
 		return []security.Principal{T(name)}
 	case []string:
-		return slices.Map[string, security.Principal](name,
-			func(n string) security.Principal {
+		return slices.Collect(
+			seq.Map(slices.Values(name), func(n string) security.Principal {
 				return T(n)
-			})
+			}))
 	case []any:
-		return slices.Map[any, security.Principal](name,
-			func(n any) security.Principal {
+		return slices.Collect(
+			seq.Map(slices.Values(name), func(n any) security.Principal {
 				return T(n.(string))
-			})
+			}))
 	default:
 		panic(fmt.Sprintf("principal: unrecognized value: %v", val))
 	}

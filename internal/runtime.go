@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
+	"slices"
 	"strings"
 
-	"github.com/miruken-go/miruken/internal/slices"
+	"github.com/miruken-go/miruken/internal/seq"
 )
 
 // ValueAs returns the value of v As the type T.
@@ -234,12 +235,13 @@ func Exported(t any) bool {
 }
 
 func UnwrapErrors(errs ...error) []error {
-	return slices.FlatMap[error, error](errs, func(err error) []error {
-		if me, ok := err.(interface{ Unwrap() []error }); ok {
-			return UnwrapErrors(me.Unwrap()...)
-		}
-		return []error{err}
-	})
+	return slices.Collect(
+		seq.FlatMap(slices.Values(errs), func(err error) []error {
+			if me, ok := err.(interface{ Unwrap() []error }); ok {
+				return UnwrapErrors(me.Unwrap()...)
+			}
+			return []error{err}
+		}))
 }
 
 func CoerceToPtr(

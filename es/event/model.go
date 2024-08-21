@@ -5,9 +5,10 @@ import (
 	"reflect"
 
 	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/es/internal"
 )
 
-// Model captures event details.
+// Model captures an event specification.
 type Model string
 
 func (e *Model) Name() string {
@@ -24,12 +25,7 @@ func (e *Model) InitWithTag(tag reflect.StructTag) error {
 
 func (e *Model) InitWithBinding(binding miruken.Binding) error {
 	if *e == "" {
-		if typ, ok := binding.Key().(reflect.Type); ok {
-			if typ.Kind() == reflect.Ptr {
-				typ = typ.Elem()
-			}
-			*e = Model(typ.String())
-		}
+		*e = Model(internal.DefaultBindingName(binding))
 	}
 	return nil
 }

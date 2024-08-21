@@ -26,7 +26,7 @@ type (
 		key() any
 		suppress() bool
 		describe(
-			builder bindingSpecFactory,
+			builder   bindingSpecFactory,
 			observers []HandlerInfoObserver,
 		) (*HandlerInfo, error)
 	}
@@ -467,16 +467,7 @@ type (
 		)
 		HandlerInfoCreated(handlerInfo *HandlerInfo)
 	}
-	HandlerInfoObserverFunc func(Policy, *HandlerInfo, Binding)
 )
-
-func (f HandlerInfoObserverFunc) BindingCreated(
-	policy      Policy,
-	handlerInfo *HandlerInfo,
-	binding     Binding,
-) {
-	f(policy, handlerInfo, binding)
-}
 
 // mutableHandlerFactory creates HandlerInfo's on demand.
 type mutableHandlerFactory struct {

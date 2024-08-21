@@ -207,7 +207,7 @@ func (l *LoginModule) addKnownPrincipals(
 			roles := principal.Parse[principal.Role](val)
 			subject.AddPrincipals(roles...)
 		case "group", "groups":
-			groups := principal.Parse[principal.Role](val)
+			groups := principal.Parse[principal.Group](val)
 			subject.AddPrincipals(groups...)
 		case "entitlement", "entitlements":
 			entitlements := principal.Parse[principal.Entitlement](val)

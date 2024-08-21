@@ -7,11 +7,12 @@ import (
 	"net/http"
 	"reflect"
 	"runtime"
+	"slices"
 	"sync"
 	"sync/atomic"
 
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/internal/slices"
+	"github.com/miruken-go/miruken/internal/seq"
 	"github.com/miruken-go/miruken/provides"
 )
 
@@ -47,21 +48,22 @@ func (f MiddlewareFunc) ServeHTTP(
 
 // Pipe builds a Middleware chain for pre and post processing of http requests.
 func Pipe(middleware ...any) Middleware {
-	ms := slices.Map[any, Middleware](middleware, func(m any) Middleware {
-		switch mm := m.(type) {
-		case Middleware:
-			return mm
-		case func(http.ResponseWriter, *http.Request, miruken.Handler, func(miruken.Handler)):
-			return MiddlewareFunc(mm)
-		default:
-			fun := &funMiddleware{}
-			if fun.tryBind(m) {
-				return fun
+	ms := slices.Collect(
+		seq.Map(slices.Values(middleware), func(m any) Middleware {
+			switch mm := m.(type) {
+			case Middleware:
+				return mm
+			case func(http.ResponseWriter, *http.Request, miruken.Handler, func(miruken.Handler)):
+				return MiddlewareFunc(mm)
+			default:
+				fun := &funMiddleware{}
+				if fun.tryBind(m) {
+					return fun
+				}
+				panic(fmt.Errorf(
+					"httpsrv: %T is not httpsrv.Middleware or compatible middleware function", m))
 			}
-			panic(fmt.Errorf(
-				"httpsrv: %T is not httpsrv.Middleware or compatible middleware function", m))
-		}
-	})
+		}))
 	return MiddlewareFunc(func(
 		w http.ResponseWriter,
 		r *http.Request,

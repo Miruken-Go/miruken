@@ -1,12 +1,14 @@
 package context
 
 import (
+	"slices"
 	"sync"
 	"sync/atomic"
 
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/internal/slices"
+	"github.com/miruken-go/miruken/internal/seq"
+	slices2 "github.com/miruken-go/miruken/internal/slices"
 	"github.com/miruken-go/miruken/provides"
 )
 
@@ -32,7 +34,7 @@ type (
 		miruken.MutableHandlers
 		parent    *Context
 		state     State
-		children  slices.Safe[miruken.Traversing]
+		children  slices2.Safe[miruken.Traversing]
 		observers atomic.Pointer[map[contextObserverType][]Observer]
 		lock      sync.Mutex
 	}
@@ -106,9 +108,10 @@ func (c *Context) NewChild() *Context {
 }
 
 func (c *Context) Store(values ...any) *Context {
-	providers := slices.Map[any, any](values, func(v any) any {
-		return miruken.NewProvider(v)
-	})
+	providers := slices.Collect(
+		seq.Map(slices.Values(values), func(v any) any {
+			return miruken.NewProvider(v)
+		}))
 	c.AppendHandlers(providers...)
 	return c
 }

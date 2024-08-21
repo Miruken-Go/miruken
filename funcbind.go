@@ -3,9 +3,10 @@ package miruken
 import (
 	"fmt"
 	"reflect"
+	"slices"
 
 	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/internal/slices"
+	"github.com/miruken-go/miruken/internal/seq"
 	"github.com/miruken-go/miruken/promise"
 )
 
@@ -146,7 +147,7 @@ func callFuncWithArgs(
 	for i, aa := range ra {
 		in[cnt+i] = aa
 	}
-	return slices.Map[reflect.Value, any](fun.Call(in), reflect.Value.Interface)
+	return slices.Collect(seq.Map(slices.Values(fun.Call(in)), reflect.Value.Interface))
 }
 
 // mergeOutput analyzes the standard function return values and

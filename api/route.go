@@ -4,13 +4,14 @@ import (
 	"errors"
 	"net/url"
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/either"
 	"github.com/miruken-go/miruken/handles"
 	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/internal/slices"
+	"github.com/miruken-go/miruken/internal/seq"
 	"github.com/miruken-go/miruken/promise"
 )
 
@@ -173,9 +174,10 @@ func (b *batchRouter) CompleteBatch(
 	complete := make([]*promise.Promise[any], 0, len(b.groups))
 	for route, group := range b.groups {
 		uri := route
-		messages := slices.Map[pending, any](group, func(p pending) any {
-			return p.message
-		})
+		messages := slices.Collect(
+			seq.Map(slices.Values(group), func(p pending) any {
+				return p.message
+			}))
 		routeTo := RouteTo(ConcurrentBatch{messages}, route)
 		complete = append(complete,
 			promise.Then(sendBatch(composer, routeTo),
