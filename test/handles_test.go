@@ -907,13 +907,13 @@ func (suite *HandlesTestSuite) TestHandles() {
 		suite.Run("Invalid", func() {
 			defer func() {
 				if r := recover(); r != nil {
-					var err *miruken.HandlerInfoError
+					var err *miruken.HandlerRuntimeError
 					if errors.As(r.(error), &err) {
 						suite.Equal(
 							"unrecognized transactional mode \"suppress\"",
 							err.Cause.Error())
 					} else {
-						suite.Fail("Expected HandlerInfoError")
+						suite.Fail("Expected HandlerRuntimeError")
 					}
 				}
 			}()
@@ -1151,12 +1151,12 @@ func (suite *HandlesTestSuite) TestHandles() {
 	suite.Run("Invalid", func() {
 		defer func() {
 			if r := recover(); r != nil {
-				var err *miruken.HandlerInfoError
+				var err *miruken.HandlerRuntimeError
 				if errors.As(r.(error), &err) {
 					failures := internal.UnwrapErrors(err.Cause)
 					suite.Len(failures, 5)
 				} else {
-					suite.Fail("Expected HandlerInfoError")
+					suite.Fail("Expected HandlerRuntimeError")
 				}
 			}
 		}()

@@ -20,9 +20,9 @@ func (i *Installer) Install(b *setup.Builder) error {
 }
 
 func (i *Installer) BindingCreated(
-	policy      miruken.Policy,
-	handlerInfo *miruken.HandlerInfo,
-	binding     miruken.Binding,
+	policy  miruken.Policy,
+	runtime *miruken.HandlerRuntime,
+	binding miruken.Binding,
 ) {
 	for model := range seq.OfType[any, interface{
 		InitWithBinding(miruken.Binding) error
@@ -33,8 +33,8 @@ func (i *Installer) BindingCreated(
 	}
 }
 
-func (i *Installer) HandlerInfoCreated(
-	_ *miruken.HandlerInfo,
+func (i *Installer) HandlerRuntimeCreated(
+	_ *miruken.HandlerRuntime,
 ) {
 
 }

@@ -163,8 +163,8 @@ func (i *Installer) AfterInstall(
 }
 
 func (i *Installer) BindingCreated(
-	policy miruken.Policy,
-	handlerInfo *miruken.HandlerInfo,
+	policy  miruken.Policy,
+	runtime *miruken.HandlerRuntime,
 	binding miruken.Binding,
 ) {
 	if !(policy == i.policy && binding.Exported()) {
@@ -174,7 +174,7 @@ func (i *Installer) BindingCreated(
 		if inType.Kind() == reflect.Ptr {
 			inType = inType.Elem()
 		}
-		spec := handlerInfo.Spec()
+		spec := runtime.Spec()
 		ap := i.apiProfile(spec.PkgPath())
 		if schema, inputName, created := i.generateTypeSchema(ap, inType, false); created {
 			requestBody := &openapi3.RequestBodyRef{
@@ -235,8 +235,8 @@ func (i *Installer) BindingCreated(
 	}
 }
 
-func (i *Installer) HandlerInfoCreated(
-	_ *miruken.HandlerInfo,
+func (i *Installer) HandlerRuntimeCreated(
+	_ *miruken.HandlerRuntime,
 ) {
 }
 

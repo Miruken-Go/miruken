@@ -11,39 +11,39 @@ import (
 )
 
 type (
-	// HandlerInfo describes the structure of a Handler.
-	HandlerInfo struct {
+	// HandlerRuntime provides Handler runtime support.
+	HandlerRuntime struct {
 		FilteredScope
 		spec     HandlerSpec
 		bindings policyInfoMap
 		compound filterBindingGroup
 	}
 
-	// HandlerSpec is Factory for HandlerInfo and associated metadata.
+	// HandlerSpec is factory for HandlerRuntime and metadata.
 	HandlerSpec interface {
 		fmt.Stringer
 		PkgPath() string
 		key() any
 		suppress() bool
-		describe(
+		newRuntime(
 			builder   bindingSpecFactory,
-			observers []HandlerInfoObserver,
-		) (*HandlerInfo, error)
+			observers []HandlerRuntimeObserver,
+		) (*HandlerRuntime, error)
 	}
 
-	// TypeSpec creates a HandlerInfo using all the exported
+	// TypeSpec creates a HandlerRuntime using all the exported
 	// methods of reflect.Type instance.
 	TypeSpec struct {
 		typ reflect.Type
 	}
 
-	// FuncSpec creates a HandlerInfo from a single function.
+	// FuncSpec creates a HandlerRuntime from a single function.
 	FuncSpec struct {
 		fun reflect.Value
 	}
 
-	// HandlerInfoError reports a failed HandlerInfo.
-	HandlerInfoError struct {
+	// HandlerRuntimeError reports a failed HandlerRuntime.
+	HandlerRuntimeError struct {
 		Spec  HandlerSpec
 		Cause error
 	}
@@ -83,13 +83,13 @@ func (s TypeSpec) suppress() bool {
 	return s.typ.Implements(suppressDispatchType)
 }
 
-func (s TypeSpec) describe(
+func (s TypeSpec) newRuntime(
 	factory   bindingSpecFactory,
-	observers []HandlerInfoObserver,
-) (info *HandlerInfo, invalid error) {
+	observers []HandlerRuntimeObserver,
+) (runtime *HandlerRuntime, invalid error) {
 	typ := s.typ
 	bindings := make(policyInfoMap)
-	info = &HandlerInfo{spec: s}
+	runtime = &HandlerRuntime{spec: s}
 	isFilter := typ.Implements(filterType)
 
 	var ctorSpec     *bindingSpec
@@ -144,7 +144,7 @@ func (s TypeSpec) describe(
 					if fb, err := parseFilterMethod(&method); err != nil {
 						invalid = errors.Join(invalid, err)
 					} else if fb != nil {
-						info.compound = append(info.compound, *fb)
+						runtime.compound = append(runtime.compound, *fb)
 					}
 				}
 				continue
@@ -154,7 +154,7 @@ func (s TypeSpec) describe(
 				if binder, ok := policy.(MethodBinder); ok {
 					if binding, err := binder.NewMethodBinding(&method, spec, pk.key); binding != nil {
 						for _, observer := range observers {
-							observer.BindingCreated(policy, info, binding)
+							observer.BindingCreated(policy, runtime, binding)
 						}
 						bindings.forPolicy(policy).insert(policy, binding)
 					} else if err != nil {
@@ -173,7 +173,7 @@ func (s TypeSpec) describe(
 		if binder, ok := policy.(ConstructorBinder); ok {
 			if ctor, err := binder.NewCtorBinding(typ, ctor, inits, ctorSpec, ctorPk.key); err == nil {
 				for _, observer := range observers {
-					observer.BindingCreated(policy, info, ctor)
+					observer.BindingCreated(policy, runtime, ctor)
 				}
 				bindings.forPolicy(policy).insert(policy, ctor)
 			} else {
@@ -183,10 +183,10 @@ func (s TypeSpec) describe(
 	}
 
 	if invalid != nil {
-		return nil, &HandlerInfoError{s, invalid}
+		return nil, &HandlerRuntimeError{s, invalid}
 	}
-	info.bindings = bindings
-	return info, nil
+	runtime.bindings = bindings
+	return runtime, nil
 }
 
 // FuncSpec
@@ -211,13 +211,13 @@ func (s FuncSpec) suppress() bool {
 	return false
 }
 
-func (s FuncSpec) describe(
+func (s FuncSpec) newRuntime(
 	factory   bindingSpecFactory,
-	observers []HandlerInfoObserver,
-) (info *HandlerInfo, invalid error) {
+	observers []HandlerRuntimeObserver,
+) (runtime *HandlerRuntime, invalid error) {
 	funType := s.fun.Type()
 	bindings := make(policyInfoMap)
-	info = &HandlerInfo{spec: s}
+	runtime = &HandlerRuntime{spec: s}
 
 	if spec, err := factory.createSpec(funType, 1); err == nil {
 		if spec == nil {
@@ -228,7 +228,7 @@ func (s FuncSpec) describe(
 				if binder, ok := policy.(FuncBinder); ok {
 					if binding, errBind := binder.NewFuncBinding(s.fun, spec, pk.key); binding != nil {
 						for _, observer := range observers {
-							observer.BindingCreated(policy, info, binding)
+							observer.BindingCreated(policy, runtime, binding)
 						}
 						bindings.forPolicy(policy).insert(policy, binding)
 					} else if errBind != nil {
@@ -244,29 +244,29 @@ func (s FuncSpec) describe(
 		invalid = errors.Join(invalid, err)
 	}
 	if invalid != nil {
-		return nil, &HandlerInfoError{s, invalid}
+		return nil, &HandlerRuntimeError{s, invalid}
 	}
-	info.bindings = bindings
-	return info, nil
+	runtime.bindings = bindings
+	return runtime, nil
 }
 
-// HandlerInfoError
+// HandlerRuntimeError
 
-func (e *HandlerInfoError) Error() string {
+func (e *HandlerRuntimeError) Error() string {
 	return fmt.Sprintf("invalid handler: %v cause: %v", e.Spec, e.Cause)
 }
 
-func (e *HandlerInfoError) Unwrap() error {
+func (e *HandlerRuntimeError) Unwrap() error {
 	return e.Cause
 }
 
-// HandlerInfo
+// HandlerRuntime
 
-func (h *HandlerInfo) Spec() HandlerSpec {
+func (h *HandlerRuntime) Spec() HandlerSpec {
 	return h.spec
 }
 
-func (h *HandlerInfo) Dispatch(
+func (h *HandlerRuntime) Dispatch(
 	policy   Policy,
 	handler  any,
 	callback Callback,
@@ -446,34 +446,34 @@ func processEffects(
 }
 
 type (
-	// HandlerInfoProvider returns HandlerInfo's.
-	HandlerInfoProvider interface {
-		Get(src any) *HandlerInfo
+	// HandlerRuntimeProvider returns a HandlerRuntime.
+	HandlerRuntimeProvider interface {
+		Get(src any) *HandlerRuntime
 	}
 
-	// HandlerInfoFactory registers HandlerInfo's.
-	HandlerInfoFactory interface {
-		HandlerInfoProvider
+	// HandlerRuntimeFactory registers a HandlerRuntime.
+	HandlerRuntimeFactory interface {
+		HandlerRuntimeProvider
 		Spec(src any) HandlerSpec
-		Register(src any) (*HandlerInfo, bool, error)
+		Register(src any) (*HandlerRuntime, bool, error)
 	}
 
-	// HandlerInfoObserver observes HandlerInfo creation.
-	HandlerInfoObserver interface {
+	// HandlerRuntimeObserver observes HandlerRuntime creation.
+	HandlerRuntimeObserver interface {
 		BindingCreated(
-			policy      Policy,
-			handlerInfo *HandlerInfo,
-			binding     Binding,
+			policy  Policy,
+			runtime *HandlerRuntime,
+			binding Binding,
 		)
-		HandlerInfoCreated(handlerInfo *HandlerInfo)
+		HandlerRuntimeCreated(*HandlerRuntime)
 	}
 )
 
-// mutableHandlerFactory creates HandlerInfo's on demand.
+// mutableHandlerFactory creates HandlerRuntime on demand.
 type mutableHandlerFactory struct {
 	bindingSpecFactory
-	handlers  map[any]*HandlerInfo
-	observers []HandlerInfoObserver
+	handlers  map[any]*HandlerRuntime
+	observers []HandlerRuntimeObserver
 }
 
 func (f *mutableHandlerFactory) Spec(
@@ -504,7 +504,7 @@ func (f *mutableHandlerFactory) Spec(
 
 func (f *mutableHandlerFactory) Get(
 	src any,
-) *HandlerInfo {
+) *HandlerRuntime {
 	spec := f.Spec(src)
 	if spec == nil {
 		return nil
@@ -514,49 +514,49 @@ func (f *mutableHandlerFactory) Get(
 
 func (f *mutableHandlerFactory) Register(
 	src any,
-) (*HandlerInfo, bool, error) {
+) (*HandlerRuntime, bool, error) {
 	spec := f.Spec(src)
 	if spec == nil {
 		return nil, false, nil
 	}
 	key := spec.key()
-	if info := f.handlers[key]; info != nil {
-		return info, false, nil
+	if runtime := f.handlers[key]; runtime != nil {
+		return runtime, false, nil
 	}
-	if info, err := spec.describe(f.bindingSpecFactory, f.observers); err == nil {
+	if runtime, err := spec.newRuntime(f.bindingSpecFactory, f.observers); err == nil {
 		for _, observer := range f.observers {
-			observer.HandlerInfoCreated(info)
+			observer.HandlerRuntimeCreated(runtime)
 		}
-		f.handlers[key] = info
-		return info, true, nil
+		f.handlers[key] = runtime
+		return runtime, true, nil
 	} else {
 		return nil, false, err
 	}
 }
 
-// HandlerInfoFactoryBuilder build the HandlerInfoFactory.
-type HandlerInfoFactoryBuilder struct {
+// HandlerRuntimeFactoryBuilder build the HandlerRuntimeFactory.
+type HandlerRuntimeFactoryBuilder struct {
 	parsers   []BindingParser
-	observers []HandlerInfoObserver
+	observers []HandlerRuntimeObserver
 }
 
-func (b *HandlerInfoFactoryBuilder) Parsers(
+func (b *HandlerRuntimeFactoryBuilder) Parsers(
 	parsers ...BindingParser,
-) *HandlerInfoFactoryBuilder {
+) *HandlerRuntimeFactoryBuilder {
 	b.parsers = append(b.parsers, parsers...)
 	return b
 }
 
-func (b *HandlerInfoFactoryBuilder) Observers(
-	observers ...HandlerInfoObserver,
-) *HandlerInfoFactoryBuilder {
+func (b *HandlerRuntimeFactoryBuilder) Observers(
+	observers ...HandlerRuntimeObserver,
+) *HandlerRuntimeFactoryBuilder {
 	b.observers = append(b.observers, observers...)
 	return b
 }
 
-func (b *HandlerInfoFactoryBuilder) Build() HandlerInfoFactory {
+func (b *HandlerRuntimeFactoryBuilder) Build() HandlerRuntimeFactory {
 	factory := &mutableHandlerFactory{
-		handlers:  make(map[any]*HandlerInfo),
+		handlers:  make(map[any]*HandlerRuntime),
 		observers: b.observers,
 	}
 	parsers := make([]BindingParser, len(b.parsers)+4)
@@ -571,25 +571,25 @@ func (b *HandlerInfoFactoryBuilder) Build() HandlerInfoFactory {
 	return factory
 }
 
-// CurrentHandlerInfoFactory retrieves the current HandlerInfoFactory
-// assigned to the Handler context.
-func CurrentHandlerInfoFactory(
+// CurrentHandlerRuntimeFactory retrieves the current
+// HandlerRuntimeFactory assigned to the Handler context.
+func CurrentHandlerRuntimeFactory(
 	handler Handler,
-) HandlerInfoFactory {
+) HandlerRuntimeFactory {
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
-	request := &CurrentHandlerInfoFactoryProvider{}
+	request := &CurrentHandlerRuntimeFactoryProvider{}
 	handler.Handle(request, false, handler)
 	return request.Factory
 }
 
-// CurrentHandlerInfoFactoryProvider Resolves the current HandlerInfoFactory
-type CurrentHandlerInfoFactoryProvider struct {
-	Factory HandlerInfoFactory
+// CurrentHandlerRuntimeFactoryProvider Resolves the current HandlerRuntimeFactory.
+type CurrentHandlerRuntimeFactoryProvider struct {
+	Factory HandlerRuntimeFactory
 }
 
-func (f *CurrentHandlerInfoFactoryProvider) Handle(
+func (f *CurrentHandlerRuntimeFactoryProvider) Handle(
 	callback any,
 	greedy   bool,
 	composer Handler,
@@ -597,16 +597,16 @@ func (f *CurrentHandlerInfoFactoryProvider) Handle(
 	if comp, ok := callback.(*Composition); ok {
 		callback = comp.callback
 	}
-	if get, ok := callback.(*CurrentHandlerInfoFactoryProvider); ok {
+	if get, ok := callback.(*CurrentHandlerRuntimeFactoryProvider); ok {
 		get.Factory = f.Factory
 		return Handled
 	}
 	return NotHandled
 }
 
-func (f *CurrentHandlerInfoFactoryProvider) SuppressDispatch() {}
+func (f *CurrentHandlerRuntimeFactoryProvider) SuppressDispatch() {}
 
-func (f *CurrentHandlerInfoFactoryProvider) CabBatch() bool {
+func (f *CurrentHandlerRuntimeFactoryProvider) CabBatch() bool {
 	return false
 }
 

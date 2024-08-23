@@ -12,7 +12,7 @@ type (
 	// handlers to provide a central point of interception
 	// for inference capability.
 	inferenceHandler struct {
-		info *HandlerInfo
+		runtime *HandlerRuntime
 	}
 
 	// inferenceGuard prevents the same handler from being
@@ -65,7 +65,7 @@ func (h *inferenceHandler) DispatchPolicy(
 	if test, ok := callback.(interface{ CanInfer() bool }); ok && !test.CanInfer() {
 		return NotHandled
 	}
-	return h.info.Dispatch(policy, h, callback, greedy, composer, &inferenceGuard{})
+	return h.runtime.Dispatch(policy, h, callback, greedy, composer, &inferenceGuard{})
 }
 
 func (h *inferenceHandler) SuppressDispatch() {}
@@ -141,7 +141,7 @@ func (g *inferenceGuard) CanDispatch(
 }
 
 func NewInferenceHandler(
-	factory HandlerInfoFactory,
+	factory HandlerRuntimeFactory,
 	specs   []HandlerSpec,
 ) Handler {
 	if factory == nil {
@@ -182,7 +182,7 @@ func NewInferenceHandler(
 		}
 	}
 	return &inferenceHandler{
-		&HandlerInfo{
+		&HandlerRuntime{
 			spec:     TypeSpec{inferHandlerType},
 			bindings: bindings,
 		},

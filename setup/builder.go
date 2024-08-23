@@ -18,9 +18,9 @@ type Builder struct {
 	features  []Feature
 	builders  []miruken.Builder
 	exclude   miruken.Predicate[miruken.HandlerSpec]
-	factory   func([]miruken.BindingParser, []miruken.HandlerInfoObserver) miruken.HandlerInfoFactory
+	factory   func([]miruken.BindingParser, []miruken.HandlerRuntimeObserver) miruken.HandlerRuntimeFactory
 	parsers   []miruken.BindingParser
-	observers []miruken.HandlerInfoObserver
+	observers []miruken.HandlerRuntimeObserver
 	tags      map[any]struct{}
 }
 
@@ -93,14 +93,14 @@ func (s *Builder) Parsers(
 }
 
 func (s *Builder) Observers(
-	observers ...miruken.HandlerInfoObserver,
+	observers ...miruken.HandlerRuntimeObserver,
 ) *Builder {
 	s.observers = append(s.observers, observers...)
 	return s
 }
 
 func (s *Builder) Factory(
-	factory func([]miruken.BindingParser, []miruken.HandlerInfoObserver) miruken.HandlerInfoFactory,
+	factory func([]miruken.BindingParser, []miruken.HandlerRuntimeObserver) miruken.HandlerRuntimeFactory,
 ) *Builder {
 	s.factory = factory
 	return s
@@ -153,19 +153,19 @@ func (s *Builder) ContextAsync() *promise.Promise[*context.Context] {
 func (s *Builder) build() (*context.Context, error) {
 	buildErrors := s.installGraph(s.features)
 
-	var factory miruken.HandlerInfoFactory
+	var factory miruken.HandlerRuntimeFactory
 	if f := s.factory; f != nil {
 		factory = f(s.parsers, s.observers)
 	}
 	if factory == nil {
-		var builder miruken.HandlerInfoFactoryBuilder
+		var builder miruken.HandlerRuntimeFactoryBuilder
 		factory = builder.
 			Parsers(s.parsers...).
 			Observers(s.observers...).
 			Build()
 	}
 
-	var handler miruken.Handler = &miruken.CurrentHandlerInfoFactoryProvider{Factory: factory}
+	var handler miruken.Handler = &miruken.CurrentHandlerRuntimeFactoryProvider{Factory: factory}
 
 	specs := append(s.specs, &bootstrapper{})
 	hs := make([]miruken.HandlerSpec, 0, len(specs))
