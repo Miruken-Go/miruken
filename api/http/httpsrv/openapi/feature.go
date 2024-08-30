@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/miruken-go/miruken/context"
+	"github.com/miruken-go/miruken/internal/seq"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3gen"
@@ -162,14 +163,20 @@ func (i *Installer) AfterInstall(
 	return nil
 }
 
-func (i *Installer) BindingCreated(
-	policy  miruken.Policy,
+func (i *Installer) HandlerRuntimeRegistered(
+	runtime *miruken.HandlerRuntime,
+) {
+	for binding := range seq.Filter(
+		runtime.BindingsFor(i.policy), miruken.Binding.Exported,
+	) {
+		i.addBinding(runtime, binding)
+	}
+}
+
+func (i *Installer) addBinding(
 	runtime *miruken.HandlerRuntime,
 	binding miruken.Binding,
 ) {
-	if !(policy == i.policy && binding.Exported()) {
-		return
-	}
 	if inType, ok := binding.Key().(reflect.Type); ok {
 		if inType.Kind() == reflect.Ptr {
 			inType = inType.Elem()
@@ -233,11 +240,6 @@ func (i *Installer) BindingCreated(
 			ap.paths.Set("/process/"+strings.ToLower(inputName), path)
 		}
 	}
-}
-
-func (i *Installer) HandlerRuntimeCreated(
-	_ *miruken.HandlerRuntime,
-) {
 }
 
 func (i *Installer) initializeDefinitions(ap *apiProfile) {
@@ -422,9 +424,9 @@ func (i *Installer) generateTypeSchema(
 }
 
 func (i *Installer) generateComponentSchema(
-	ap *apiProfile,
+	ap        *apiProfile,
 	component any,
-	shared bool,
+	shared    bool,
 ) (*openapi3.SchemaRef, string, bool) {
 	if internal.IsNil(component) {
 		return nil, "", false

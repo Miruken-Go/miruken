@@ -19,24 +19,20 @@ func (i *Installer) Install(b *setup.Builder) error {
 	return nil
 }
 
-func (i *Installer) BindingCreated(
-	policy  miruken.Policy,
+func (i *Installer) HandlerRuntimeRegistered(
 	runtime *miruken.HandlerRuntime,
-	binding miruken.Binding,
 ) {
-	for model := range seq.OfType[any, interface{
-		InitWithBinding(miruken.Binding) error
-	}](slices.Values(binding.Metadata())) {
-		if err := model.InitWithBinding(binding); err != nil {
-			panic(err)
+	for _, bindings := range runtime.Bindings() {
+		for binding := range bindings {
+			for model := range seq.OfType[any, interface{
+				InitWithBinding(miruken.Binding) error
+			}](slices.Values(binding.Metadata())) {
+				if err := model.InitWithBinding(binding); err != nil {
+					panic(err)
+				}
+			}
 		}
 	}
-}
-
-func (i *Installer) HandlerRuntimeCreated(
-	_ *miruken.HandlerRuntime,
-) {
-
 }
 
 // Feature creates and configures goes integration.

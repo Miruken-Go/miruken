@@ -2,12 +2,14 @@ package miruken
 
 import (
 	"container/list"
+	"iter"
 	"maps"
 	"reflect"
 	"sync"
 	"sync/atomic"
 
 	"github.com/miruken-go/miruken/internal"
+	"github.com/miruken-go/miruken/internal/seq"
 )
 
 type (
@@ -31,61 +33,81 @@ type (
 		) HandleResult
 	}
 
-	// policyInfo maintains Binding's for a Policy.
+	// indexedBindingList maintains a Binding list ordered by Policy.
 	// It keeps a linked list of bindings that are partially
 	// ordered for keys that support variance (reflect.Type).
-	// An index into the list is used to optimize lookups.
+	// An index into the list is added to optimize lookups.
 	// An invariant map stores the bindings for exact keys (string).
-	policyInfo struct {
+	// A dynamic index is also maintained interface relationships
+	// which can only be determined at runtime.
+	indexedBindingList struct {
 		variant   list.List
 		invariant map[any][]Binding
 		index     map[any]*list.Element
-		dynIdx    atomic.Pointer[map[any]*list.Element]
+		dynIndex  atomic.Pointer[map[any]*list.Element]
 		dynLock   sync.Mutex
 	}
 
-	// policyInfoMap maps Policy instances to policyInfo.
-	policyInfoMap map[Policy]*policyInfo
+	// policyBindingMap maintains a maps of Policy keys to indexedBindingList.
+	// It is the primary data-structure to enabled Callback dispatch.
+	policyBindingMap map[Policy]*indexedBindingList
 )
 
-func (p *policyInfo) insert(policy Policy, binding Binding) {
+func (b *indexedBindingList) all() iter.Seq[Binding] {
+	return func(yield func(Binding) bool) {
+		for e := b.variant.Front(); e != nil; e = e.Next() {
+			if !yield(e.Value.(Binding)) {
+				return
+			}
+		}
+		for _, bs := range b.invariant {
+			for _, b := range bs {
+				if !yield(b) {
+					return
+				}
+			}
+		}
+	}
+}
+
+func (b *indexedBindingList) insert(policy Policy, binding Binding) {
 	key := binding.Key()
 	if variant, unknown := policy.VariantKey(key); variant {
-		indexedElem := p.index[key]
+		indexedElem := b.index[key]
 		if unknown {
-			elem := p.variant.PushBack(binding)
+			elem := b.variant.PushBack(binding)
 			if indexedElem == nil {
-				p.index[key] = elem
+				b.index[key] = elem
 			}
 			return
 		}
 		insert := indexedElem
 		if insert == nil {
-			insert = p.variant.Front()
+			insert = b.variant.Front()
 		}
 		for insert != nil && !policy.Less(binding, insert.Value.(Binding)) {
 			insert = insert.Next()
 		}
 		var elem *list.Element
 		if insert != nil {
-			elem = p.variant.InsertBefore(binding, insert)
+			elem = b.variant.InsertBefore(binding, insert)
 		} else {
-			elem = p.variant.PushBack(binding)
+			elem = b.variant.PushBack(binding)
 		}
 		if indexedElem == nil {
-			p.index[key] = elem
+			b.index[key] = elem
 		}
 	} else {
-		if p.invariant == nil {
-			p.invariant = make(map[any][]Binding)
-			p.invariant[key] = []Binding{binding}
+		if b.invariant == nil {
+			b.invariant = make(map[any][]Binding)
+			b.invariant[key] = []Binding{binding}
 		} else {
-			p.invariant[key] = append(p.invariant[key], binding)
+			b.invariant[key] = append(b.invariant[key], binding)
 		}
 	}
 }
 
-func (p *policyInfo) reduce(
+func (b *indexedBindingList) reduce(
 	key     any,
 	policy  Policy,
 	reducer BindingReducer,
@@ -98,15 +120,15 @@ func (p *policyInfo) reduce(
 	// Check variant keys (reflect.Type)
 	if variant, unknown := policy.VariantKey(key); variant {
 		var needsIndex bool
-		elem := p.index[key]
+		elem := b.index[key]
 		if elem == nil {
 			if !unknown {
-				if dynIndex := p.dynIdx.Load(); dynIndex != nil {
+				if dynIndex := b.dynIndex.Load(); dynIndex != nil {
 					elem = (*dynIndex)[key]
 				}
 			}
 			if elem == nil {
-				elem = p.variant.Front()
+				elem = b.variant.Front()
 				needsIndex = true
 			}
 		}
@@ -120,8 +142,8 @@ func (p *policyInfo) reduce(
 					// Uses the copy-on-write idiom since reads should be more
 					// frequent than writes.
 					needsIndex = false
-					p.dynLock.Lock()
-					dynIndex := p.dynIdx.Load()
+					b.dynLock.Lock()
+					dynIndex := b.dynIndex.Load()
 					if dynIndex != nil {
 						if _, ok := (*dynIndex)[key]; !ok {
 							di := maps.Clone(*dynIndex)
@@ -131,17 +153,17 @@ func (p *policyInfo) reduce(
 					} else {
 						dynIndex = &map[any]*list.Element{key: elem}
 					}
-					p.dynIdx.Store(dynIndex)
-					p.dynLock.Unlock()
+					b.dynIndex.Store(dynIndex)
+					b.dynLock.Unlock()
 				}
 				break
 			}
 			elem = elem.Next()
 		}
 		return result
-	} else if p.invariant != nil {
+	} else if b.invariant != nil {
 		// Check invariant keys (string)
-		if bs := p.invariant[key]; bs != nil {
+		if bs := b.invariant[key]; bs != nil {
 			for _, b := range bs {
 				if result, done = reducer(b, result); done {
 					return result
@@ -150,7 +172,7 @@ func (p *policyInfo) reduce(
 		}
 	}
 	// Check unknown keys (any)
-	if unk := p.index[internal.AnyType]; unk != nil {
+	if unk := b.index[internal.AnyType]; unk != nil {
 		for unk != nil {
 			if result, done = reducer(unk.Value.(Binding), result); done {
 				break
@@ -161,15 +183,36 @@ func (p *policyInfo) reduce(
 	return result
 }
 
-func (p policyInfoMap) forPolicy(policy Policy) *policyInfo {
+func (p policyBindingMap) forPolicy(policy Policy) *indexedBindingList {
 	bindings, found := p[policy]
 	if !found {
-		bindings = &policyInfo{
+		bindings = &indexedBindingList{
 			index: make(map[any]*list.Element),
 		}
 		p[policy] = bindings
 	}
 	return bindings
+}
+
+func (p policyBindingMap) insert(policy Policy, binding Binding) {
+	p.forPolicy(policy).insert(policy, binding)
+}
+
+func (p policyBindingMap) all() iter.Seq2[Policy, iter.Seq[Binding]] {
+	return func(yield func(Policy, iter.Seq[Binding]) bool) {
+		for policy, bindings := range p {
+			if !yield(policy, bindings.all()) {
+				return
+			}
+		}
+	}
+}
+
+func (p policyBindingMap) policy(policy Policy) iter.Seq[Binding] {
+	if pb, ok := p[policy]; ok {
+		return pb.all()
+	}
+	return seq.Empty[Binding]()
 }
 
 func DispatchPolicy(

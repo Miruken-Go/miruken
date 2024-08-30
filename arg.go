@@ -394,8 +394,8 @@ func parseResolver(
 }
 
 var (
+	defaultResolver defaultDependencyResolver
 	handlerType     = reflect.TypeFor[Handler]()
 	handleCtxType   = reflect.TypeFor[HandleContext]()
 	depResolverType = reflect.TypeFor[DependencyResolver]()
-	defaultResolver = defaultDependencyResolver{}
 )

@@ -73,7 +73,7 @@ func (h *inferenceHandler) SuppressDispatch() {}
 // methodIntercept intercepts method Binding invocations.
 type methodIntercept struct {
 	*methodBinding
-	handlerType reflect.Type
+	typ reflect.Type
 }
 
 func (b *methodIntercept) Filters() []FilterProvider {
@@ -88,7 +88,7 @@ func (b *methodIntercept) Invoke(
 	ctx      HandleContext,
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
-	handlerType := b.handlerType
+	typ := b.typ
 	callback := ctx.Callback
 	parent, _ := callback.(*Provides)
 	var builder ResolvesBuilder
@@ -96,7 +96,7 @@ func (b *methodIntercept) Invoke(
 	builder.
 		WithGreedy(ctx.Greedy).
 		WithParent(parent).
-		WithKey(handlerType)
+		WithKey(typ)
 	resolves := builder.New(callback)
 	if result := ctx.Handle(resolves, true, nil); result.IsError() {
 		return nil, nil, result.Error()
@@ -128,11 +128,11 @@ func (g *inferenceGuard) CanDispatch(
 	binding Binding,
 ) (reset func(), approved bool) {
 	if methodBinding, ok := binding.(*methodIntercept); ok {
-		handlerType := methodBinding.handlerType
+		typ := methodBinding.typ
 		if resolved := g.resolved; resolved == nil {
-			g.resolved = map[reflect.Type]struct{}{handlerType: {}}
-		} else if _, found := resolved[handlerType]; !found {
-			resolved[handlerType] = struct{}{}
+			g.resolved = map[reflect.Type]struct{}{typ: {}}
+		} else if _, found := resolved[typ]; !found {
+			resolved[typ] = struct{}{}
 		} else {
 			return nil, false
 		}
@@ -147,35 +147,35 @@ func NewInferenceHandler(
 	if factory == nil {
 		panic("factory cannot be nil")
 	}
-	bindings := make(policyInfoMap)
+	bindings := make(policyBindingMap)
 	for _, spec := range specs {
-		if info, added, err := factory.Register(spec); err != nil {
+		if runtime, added, err := factory.Register(spec); err != nil {
 			panic(err)
 		} else if added {
-			var handlerType reflect.Type
-			if h, ok := info.spec.(TypeSpec); ok {
-				handlerType = h.Type()
+			var ht reflect.Type
+			if h, ok := runtime.spec.(TypeSpec); ok {
+				ht = h.Type()
 			}
-			for policy, bs := range info.bindings {
+			for policy, bs := range runtime.bindings {
 				pb := bindings.forPolicy(policy)
-				// Us bs.index vs.variant since inference ONLY needs a
+				// Us bs.index vs bs.variant since inference ONLY needs a
 				// single binding to infer the handler type for a
 				// specific key.
 				for _, elem := range bs.index {
-					linkBinding(policy, elem.Value.(Binding), pb, handlerType, true)
+					linkBinding(policy, elem.Value.(Binding), pb, ht, true)
 				}
 				// Only need the first of each invariant since it is
-				// just to link the actual handler info.
+				// just to link the actual handler runtime.
 				for _, bs := range bs.invariant {
 					if len(bs) > 0 {
-						linkBinding(policy, bs[0], pb, handlerType, true)
+						linkBinding(policy, bs[0], pb, ht, true)
 					}
 				}
 				// Only need one unknown binding to create link.
 				if last := bs.variant.Back(); last != nil {
 					binding := last.Value.(Binding)
 					if bt, ok := binding.Key().(reflect.Type); ok && internal.IsAny(bt) {
-						linkBinding(policy, binding, pb, handlerType, false)
+						linkBinding(policy, binding, pb, ht, false)
 					}
 				}
 			}
@@ -190,11 +190,11 @@ func NewInferenceHandler(
 }
 
 func linkBinding(
-	policy      Policy,
-	binding     Binding,
-	bindings    *policyInfo,
-	handlerType reflect.Type,
-	addCtor     bool,
+	policy   Policy,
+	binding  Binding,
+	bindings *indexedBindingList,
+	typ      reflect.Type,
+	addCtor  bool,
 ) {
 	switch b := binding.(type) {
 	case *ctorBinding:
@@ -202,7 +202,7 @@ func linkBinding(
 			bindings.insert(policy, b)
 		}
 	case *methodBinding:
-		bindings.insert(policy, &methodIntercept{b, handlerType})
+		bindings.insert(policy, &methodIntercept{b, typ})
 	case *funcBinding:
 		bindings.insert(policy, b)
 	}

@@ -8,7 +8,7 @@ import (
 	"github.com/miruken-go/miruken/internal"
 )
 
-// Applies events invariantly.
+// Applies events invariantly to an aggregate.
 type Applies struct {
 	miruken.CallbackBase
 	event any
@@ -76,8 +76,8 @@ func (b *AppliesBuilder) New() *Applies {
 // Apply applies an event with no results.
 // returns an empty promise if execution is asynchronous.
 func Apply(
-	handler     miruken.Handler,
-	event       any,
+	handler miruken.Handler,
+	event   any,
 ) error {
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")

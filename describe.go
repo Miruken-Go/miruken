@@ -3,6 +3,7 @@ package miruken
 import (
 	"errors"
 	"fmt"
+	"iter"
 	"reflect"
 	"strings"
 
@@ -15,7 +16,7 @@ type (
 	HandlerRuntime struct {
 		FilteredScope
 		spec     HandlerSpec
-		bindings policyInfoMap
+		bindings policyBindingMap
 		compound filterBindingGroup
 	}
 
@@ -88,7 +89,7 @@ func (s TypeSpec) newRuntime(
 	observers []HandlerRuntimeObserver,
 ) (runtime *HandlerRuntime, invalid error) {
 	typ := s.typ
-	bindings := make(policyInfoMap)
+	bindings := make(policyBindingMap)
 	runtime = &HandlerRuntime{spec: s}
 	isFilter := typ.Implements(filterType)
 
@@ -153,10 +154,7 @@ func (s TypeSpec) newRuntime(
 				policy := pk.policy
 				if binder, ok := policy.(MethodBinder); ok {
 					if binding, err := binder.NewMethodBinding(&method, spec, pk.key); binding != nil {
-						for _, observer := range observers {
-							observer.BindingCreated(policy, runtime, binding)
-						}
-						bindings.forPolicy(policy).insert(policy, binding)
+						bindings.insert(policy, binding)
 					} else if err != nil {
 						invalid = errors.Join(invalid, err)
 					}
@@ -172,10 +170,7 @@ func (s TypeSpec) newRuntime(
 		policy := ctorPk.policy
 		if binder, ok := policy.(ConstructorBinder); ok {
 			if ctor, err := binder.NewCtorBinding(typ, ctor, inits, ctorSpec, ctorPk.key); err == nil {
-				for _, observer := range observers {
-					observer.BindingCreated(policy, runtime, ctor)
-				}
-				bindings.forPolicy(policy).insert(policy, ctor)
+				bindings.insert(policy, ctor)
 			} else {
 				invalid = errors.Join(invalid, err)
 			}
@@ -216,7 +211,7 @@ func (s FuncSpec) newRuntime(
 	observers []HandlerRuntimeObserver,
 ) (runtime *HandlerRuntime, invalid error) {
 	funType := s.fun.Type()
-	bindings := make(policyInfoMap)
+	bindings := make(policyBindingMap)
 	runtime = &HandlerRuntime{spec: s}
 
 	if spec, err := factory.createSpec(funType, 1); err == nil {
@@ -227,10 +222,7 @@ func (s FuncSpec) newRuntime(
 				policy := pk.policy
 				if binder, ok := policy.(FuncBinder); ok {
 					if binding, errBind := binder.NewFuncBinding(s.fun, spec, pk.key); binding != nil {
-						for _, observer := range observers {
-							observer.BindingCreated(policy, runtime, binding)
-						}
-						bindings.forPolicy(policy).insert(policy, binding)
+						bindings.insert(policy, binding)
 					} else if errBind != nil {
 						invalid = errors.Join(invalid, errBind)
 					}
@@ -264,6 +256,14 @@ func (e *HandlerRuntimeError) Unwrap() error {
 
 func (h *HandlerRuntime) Spec() HandlerSpec {
 	return h.spec
+}
+
+func (h *HandlerRuntime) Bindings() iter.Seq2[Policy, iter.Seq[Binding]] {
+	return h.bindings.all()
+}
+
+func (h *HandlerRuntime) BindingsFor(policy Policy) iter.Seq[Binding] {
+	return h.bindings.policy(policy)
 }
 
 func (h *HandlerRuntime) Dispatch(
@@ -460,13 +460,9 @@ type (
 
 	// HandlerRuntimeObserver observes HandlerRuntime creation.
 	HandlerRuntimeObserver interface {
-		BindingCreated(
-			policy  Policy,
-			runtime *HandlerRuntime,
-			binding Binding,
-		)
-		HandlerRuntimeCreated(*HandlerRuntime)
+		HandlerRuntimeRegistered(*HandlerRuntime)
 	}
+	HandlerRuntimeObserverFunc func(*HandlerRuntime)
 )
 
 // mutableHandlerFactory creates HandlerRuntime on demand.
@@ -525,7 +521,7 @@ func (f *mutableHandlerFactory) Register(
 	}
 	if runtime, err := spec.newRuntime(f.bindingSpecFactory, f.observers); err == nil {
 		for _, observer := range f.observers {
-			observer.HandlerRuntimeCreated(runtime)
+			observer.HandlerRuntimeRegistered(runtime)
 		}
 		f.handlers[key] = runtime
 		return runtime, true, nil
@@ -534,7 +530,13 @@ func (f *mutableHandlerFactory) Register(
 	}
 }
 
-// HandlerRuntimeFactoryBuilder build the HandlerRuntimeFactory.
+func (f HandlerRuntimeObserverFunc) HandlerRuntimeRegistered(
+	runtime *HandlerRuntime,
+) {
+	f(runtime)
+}
+
+// HandlerRuntimeFactoryBuilder builds the HandlerRuntimeFactory.
 type HandlerRuntimeFactoryBuilder struct {
 	parsers   []BindingParser
 	observers []HandlerRuntimeObserver
