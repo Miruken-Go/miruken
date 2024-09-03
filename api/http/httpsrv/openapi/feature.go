@@ -67,8 +67,7 @@ func (i *Installer) DependsOn() []setup.Feature {
 
 func (i *Installer) Install(b *setup.Builder) error {
 	if b.Tag(&featureTag) {
-		var h handles.It
-		i.policy = h.Policy()
+		i.policy = (*handles.It)(nil).Policy()
 		i.apiProfiles = make(map[string]*apiProfile)
 		b.Observers(i)
 

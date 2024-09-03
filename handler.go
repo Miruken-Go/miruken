@@ -21,6 +21,7 @@ type (
 		Handler  any
 		Callback Callback
 		Binding  Binding
+		Runtime  *HandlerRuntime
 		Composer Handler
 		Greedy   bool
 	}

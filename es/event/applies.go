@@ -8,11 +8,22 @@ import (
 	"github.com/miruken-go/miruken/internal"
 )
 
-// Applies events invariantly to an aggregate.
-type Applies struct {
-	miruken.CallbackBase
-	event any
-}
+type (
+	// Applies events invariantly to an aggregate.
+	Applies struct {
+		miruken.CallbackBase
+		event any
+	}
+
+	// AppliesBuilder builds Applies callbacks.
+	AppliesBuilder struct {
+		miruken.CallbackBuilder
+		event any
+	}
+)
+
+
+// Applies
 
 func (a *Applies) Source() any {
 	return a.event
@@ -50,11 +61,8 @@ func (a *Applies) String() string {
 	return fmt.Sprintf("applies => %v", a.event)
 }
 
-// AppliesBuilder builds Applies events.
-type AppliesBuilder struct {
-	miruken.CallbackBuilder
-	event any
-}
+
+// AppliesBuilder
 
 func (b *AppliesBuilder) WithEvent(
 	event any,

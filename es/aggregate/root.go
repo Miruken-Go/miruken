@@ -14,7 +14,7 @@ type (
 	Root struct {
 		miruken.BindingGroup
 		provides.It
-		Model
+		Metadata
 		loadProvider
 	}
 

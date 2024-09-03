@@ -14,8 +14,9 @@ import (
 type (
 	// HandlerRuntime provides Handler runtime support.
 	HandlerRuntime struct {
-		FilteredScope
+		FilterScope
 		spec     HandlerSpec
+		filters  FilterScope
 		bindings policyBindingMap
 		compound filterBindingGroup
 	}
@@ -327,7 +328,7 @@ func (h *HandlerRuntime) Dispatch(
 					}
 					if orderedFilters, err := orderFilters(
 						composer, binding, callback, binding.Filters(),
-						h.Filters(), policy.Filters(), tp); orderedFilters != nil && err == nil {
+						h.filters.Filters(), policy.Filters(), tp); orderedFilters != nil && err == nil {
 						filters = orderedFilters
 					} else {
 						return result, false
@@ -340,6 +341,7 @@ func (h *HandlerRuntime) Dispatch(
 					Handler:  handler,
 					Callback: callback,
 					Binding:  binding,
+					Runtime:  h,
 					Composer: composer,
 					Greedy:   greedy,
 				}

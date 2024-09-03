@@ -72,8 +72,8 @@ type (
 		RemoveAllFilters()
 	}
 
-	// FilteredScope implements a container of Filters.
-	FilteredScope struct {
+	// FilterScope implements a container of Filters.
+	FilterScope struct {
 		providers []FilterProvider
 	}
 )
@@ -219,13 +219,13 @@ func NewFilterInstanceProvider(
 	return &FilterInstanceProvider{filters, required}
 }
 
-// FilteredScope
+// FilterScope
 
-func (f *FilteredScope) Filters() []FilterProvider {
+func (f *FilterScope) Filters() []FilterProvider {
 	return f.providers
 }
 
-func (f *FilteredScope) AddFilters(providers ...FilterProvider) {
+func (f *FilterScope) AddFilters(providers ...FilterProvider) {
 	if len(providers) == 0 {
 		return
 	}
@@ -243,7 +243,7 @@ Loop:
 	}
 }
 
-func (f *FilteredScope) RemoveFilters(providers ...FilterProvider) {
+func (f *FilterScope) RemoveFilters(providers ...FilterProvider) {
 	if len(providers) == 0 {
 		return
 	}
@@ -260,7 +260,7 @@ func (f *FilteredScope) RemoveFilters(providers ...FilterProvider) {
 	}
 }
 
-func (f *FilteredScope) RemoveAllFilters() {
+func (f *FilterScope) RemoveAllFilters() {
 	f.providers = nil
 }
 

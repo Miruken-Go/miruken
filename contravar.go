@@ -11,7 +11,7 @@ import (
 
 // ContravariantPolicy matches related input values.
 type ContravariantPolicy struct {
-	FilteredScope
+	FilterScope
 }
 
 var ErrConMissingCallback = errors.New("contravariant: missing callback argument")
@@ -130,7 +130,7 @@ func (p *ContravariantPolicy) NewMethodBinding(
 		return &methodBinding{
 			funcCall{method.Func, args},
 			BindingBase{
-				FilteredScope{spec.filters},
+				FilterScope{spec.filters},
 				spec.flags, spec.metadata,
 			}, k, *method, spec.lt,
 		}, nil
@@ -148,7 +148,7 @@ func (p *ContravariantPolicy) NewFuncBinding(
 		return &funcBinding{
 			funcCall{fun, args},
 			BindingBase{
-				FilteredScope{spec.filters},
+				FilterScope{spec.filters},
 				spec.flags, spec.metadata,
 			}, k, spec.lt,
 		}, nil

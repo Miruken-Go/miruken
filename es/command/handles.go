@@ -13,7 +13,7 @@ type (
 	Handles struct {
 		miruken.BindingGroup
 		handles.It
-		Model
+		Metadata
 		processProvider
 	}
 

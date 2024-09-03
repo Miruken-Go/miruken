@@ -1,10 +1,10 @@
 package es
 
 import (
-	"slices"
+	"fmt"
 
 	"github.com/miruken-go/miruken"
-	"github.com/miruken-go/miruken/internal/seq"
+	"github.com/miruken-go/miruken/es/aggregate"
 	"github.com/miruken-go/miruken/setup"
 )
 
@@ -22,16 +22,20 @@ func (i *Installer) Install(b *setup.Builder) error {
 func (i *Installer) HandlerRuntimeRegistered(
 	runtime *miruken.HandlerRuntime,
 ) {
+	spec, ok := runtime.Spec().(*miruken.TypeSpec)
+	if !ok {
+		return
+	}
+
 	for _, bindings := range runtime.Bindings() {
 		for binding := range bindings {
-			for model := range seq.OfType[any, interface{
-				InitWithBinding(miruken.Binding) error
-			}](slices.Values(binding.Metadata())) {
-				if err := model.InitWithBinding(binding); err != nil {
-					panic(err)
-				}
-			}
+			fmt.Println(binding)
 		}
+	}
+
+	_, err := aggregate.NewModel(spec.Type(), "", nil)
+	if err != nil {
+		panic(err)
 	}
 }
 

@@ -29,7 +29,7 @@ type (
 
 	// BindingBase implements common binding contract.
 	BindingBase struct {
-		FilteredScope
+		FilterScope
 		flags    bindingFlags
 		metadata []any
 	}

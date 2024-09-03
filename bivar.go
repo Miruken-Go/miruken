@@ -18,7 +18,7 @@ type (
 
 	// BivariantPolicy matches related input and output values.
 	BivariantPolicy struct {
-		FilteredScope
+		FilterScope
 		in  ContravariantPolicy
 		out CovariantPolicy
 	}
@@ -93,7 +93,7 @@ func (p *BivariantPolicy) NewMethodBinding(
 		return &methodBinding{
 			funcCall{method.Func, args},
 			BindingBase{
-				FilteredScope{spec.filters},
+				FilterScope{spec.filters},
 				spec.flags, spec.metadata,
 			}, k, *method, spec.lt,
 		}, nil
@@ -111,7 +111,7 @@ func (p *BivariantPolicy) NewFuncBinding(
 		return &funcBinding{
 			funcCall{fun, args},
 			BindingBase{
-				FilteredScope{spec.filters},
+				FilterScope{spec.filters},
 				spec.flags, spec.metadata,
 			}, k, spec.lt,
 		}, nil

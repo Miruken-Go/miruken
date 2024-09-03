@@ -11,7 +11,7 @@ import (
 
 // InvariantPolicy matches equal input values.
 type InvariantPolicy struct {
-	FilteredScope
+	FilterScope
 }
 
 var ErrInvMissingCallback = errors.New("invariant: missing callback argument")
@@ -113,7 +113,7 @@ func (p *InvariantPolicy) NewMethodBinding(
 		return &methodBinding{
 			funcCall{method.Func, args},
 			BindingBase{
-				FilteredScope{spec.filters},
+				FilterScope{spec.filters},
 				spec.flags, spec.metadata,
 			}, k, *method, spec.lt,
 		}, nil
@@ -131,7 +131,7 @@ func (p *InvariantPolicy) NewFuncBinding(
 		return &funcBinding{
 			funcCall{fun, args},
 			BindingBase{
-				FilteredScope{spec.filters},
+				FilterScope{spec.filters},
 				spec.flags, spec.metadata,
 			}, k, spec.lt,
 		}, nil

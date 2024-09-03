@@ -1,31 +1,39 @@
 package event
 
 import (
-	"fmt"
 	"reflect"
 
-	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/es/internal"
 )
 
 // Model captures an event specification.
-type Model string
-
-func (e *Model) Name() string {
-	return string(*e)
+type Model struct {
+	name string
+	typ  reflect.Type
 }
 
-func (e *Model) InitWithTag(tag reflect.StructTag) error {
-	if event, ok := tag.Lookup("event"); ok {
-		_, err := fmt.Sscanf(event, "name=%s", e)
-		return err
-	}
-	return nil
+
+func (m *Model) Name() string {
+	return m.name
 }
 
-func (e *Model) InitWithBinding(binding miruken.Binding) error {
-	if *e == "" {
-		*e = Model(internal.DefaultBindingName(binding))
+func (m *Model) Type() reflect.Type {
+	return m.typ
+}
+
+
+// NewModel creates an event model for type and name.
+func NewModel(typ reflect.Type, name string) (*Model, error) {
+	if typ == nil {
+		panic("event: typ cannot be nil")
 	}
-	return nil
+
+	if name == "" {
+		name = internal.DefaultTypeName(typ)
+	}
+
+	return &Model{
+		name: name,
+		typ:  typ,
+	}, nil
 }

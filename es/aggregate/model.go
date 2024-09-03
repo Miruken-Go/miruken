@@ -6,71 +6,87 @@ import (
 	"reflect"
 
 	"github.com/google/uuid"
-	"github.com/miruken-go/miruken"
+	"github.com/miruken-go/miruken/es/command"
 	"github.com/miruken-go/miruken/es/internal"
 )
 
 // Model captures an aggregate specification.
 type Model struct {
 	name       string
+	typ        reflect.Type
 	id         func(any) uuid.UUID
 	setId      func(any, uuid.UUID)
 	version    func(any) int
 	setVersion func(any, int)
+	commands   []command.Model
 }
+
 
 func (m *Model) Name() string {
 	return m.name
 }
 
-func (m *Model) InitWithTag(tag reflect.StructTag) error {
-	if aggregate, ok := tag.Lookup("aggregate"); ok {
-		_, err := fmt.Sscanf(aggregate, "name=%s", &m.name)
-		return err
-	}
-	return nil
+func (m *Model) Type() reflect.Type {
+	return m.typ
 }
 
-func (m *Model) InitWithBinding(binding miruken.Binding) (err error) {
-	if m.name == "" {
-		m.name = internal.DefaultBindingName(binding)
+
+// NewModel creates an aggregate model for type and name.
+func NewModel(
+	typ      reflect.Type,
+	name     string,
+	commands []command.Model,
+) (m *Model, err error) {
+	if typ == nil {
+		panic("aggregate: typ cannot be nil")
 	}
 
-	typ := binding.LogicalOutputType()
+	if name == "" {
+		name = internal.DefaultTypeName(typ)
+	}
+
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
 	}
 
+	var model = Model{
+		name:     name,
+		typ:      typ,
+		commands: commands,
+	}
+
 	if typ.Kind() == reflect.Struct {
-		if err = m.extractIdAndVersionFields(typ); err != nil {
+		if err = extractAggregateIdAndVersionFields(&model, typ); err != nil {
 			return
 		}
 	}
 
-	if m.id == nil || m.setId == nil || m.version == nil || m.setVersion == nil {
-		m.extractIdAndVersionMethods(typ)
+	if model.id == nil || model.setId == nil || model.version == nil || model.setVersion == nil {
+		extractAggregateIdAndVersionMethods(&model, typ)
 	}
 
-	if m.id == nil {
+	if model.id == nil {
 		err = errors.Join(err, fmt.Errorf("aggregate: missing id field or getter"))
 	}
 
-	if m.setId == nil {
+	if model.setId == nil {
 		err = errors.Join(err, fmt.Errorf("aggregate: missing id field or setter"))
 	}
 
-	if m.version == nil {
+	if model.version == nil {
 		err = errors.Join(err, fmt.Errorf("aggregate: missing version field or getter"))
 	}
 
-	if m.setVersion == nil {
+	if model.setVersion == nil {
 		err = errors.Join(err, fmt.Errorf("aggregate: missing version field or setter"))
 	}
 
+	m = &model
 	return
 }
 
-func (m *Model) extractIdAndVersionFields(typ reflect.Type) (err error) {
+
+func extractAggregateIdAndVersionFields(m *Model, typ reflect.Type) (err error) {
 	idIndex := -1
 	versionIndex := -1
 
@@ -154,7 +170,7 @@ func (m *Model) extractIdAndVersionFields(typ reflect.Type) (err error) {
 	return nil
 }
 
-func (m *Model) extractIdAndVersionMethods(typ reflect.Type) {
+func extractAggregateIdAndVersionMethods(m *Model, typ reflect.Type) {
 	for i := 0; i < typ.NumMethod(); i++ {
 		method := typ.Method(i)
 
@@ -197,7 +213,7 @@ func (m *Model) extractIdAndVersionMethods(typ reflect.Type) {
 			}
 		}
 
-		if m.id != nil && m.setId != nil && m.version != nil || m.setVersion != nil {
+		if m.id != nil && m.setId != nil && m.version != nil && m.setVersion != nil {
 			return
 		}
 	}

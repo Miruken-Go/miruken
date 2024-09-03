@@ -12,7 +12,7 @@ import (
 
 // CovariantPolicy matches related output values.
 type CovariantPolicy struct {
-	FilteredScope
+	FilterScope
 }
 
 var (
@@ -109,7 +109,7 @@ func (p *CovariantPolicy) NewCtorBinding(
 ) (Binding, error) {
 	binding := &ctorBinding{typ: typ, key: key}
 	if spec != nil {
-		binding.BindingBase.FilteredScope.providers = spec.filters
+		binding.BindingBase.FilterScope.providers = spec.filters
 		binding.BindingBase.metadata = spec.metadata
 		binding.BindingBase.flags = spec.flags
 	}
@@ -142,7 +142,7 @@ func (p *CovariantPolicy) NewMethodBinding(
 		return &methodBinding{
 			funcCall{method.Func, args},
 			BindingBase{
-				FilteredScope{spec.filters},
+				FilterScope{spec.filters},
 				spec.flags, spec.metadata,
 			}, k, *method, spec.lt,
 		}, nil
@@ -160,7 +160,7 @@ func (p *CovariantPolicy) NewFuncBinding(
 		return &funcBinding{
 			funcCall{fun, args},
 			BindingBase{
-				FilteredScope{spec.filters},
+				FilterScope{spec.filters},
 				spec.flags, spec.metadata,
 			}, k, spec.lt,
 		}, nil
