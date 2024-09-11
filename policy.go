@@ -215,6 +215,12 @@ func (p policyBindingMap) policy(policy Policy) iter.Seq[Binding] {
 	return seq.Empty[Binding]()
 }
 
+func PolicyOf[C Callback]() Policy {
+	var callback C
+	//goland:noinspection ALL
+	return callback.Policy()
+}
+
 func DispatchPolicy(
 	handler  any,
 	callback Callback,

@@ -26,8 +26,8 @@ type (
 		reason error
 	}
 
-	// funcBinding models a `key` Binding to a function.
-	funcBinding struct {
+	// FuncBinding models a `key` Binding to a function.
+	FuncBinding struct {
 		funcCall
 		BindingBase
 		key any
@@ -55,17 +55,17 @@ func (e *FuncBindingError) Unwrap() error {
 	return e.reason
 }
 
-// funcBinding
+// FuncBinding
 
-func (b *funcBinding) Key() any {
+func (b *FuncBinding) Key() any {
 	return b.key
 }
 
-func (b *funcBinding) Exported() bool {
+func (b *FuncBinding) Exported() bool {
 	return internal.Exported(b.key) && internal.Exported(b.fun.Interface())
 }
 
-func (b *funcBinding) LogicalOutputType() reflect.Type {
+func (b *FuncBinding) LogicalOutputType() reflect.Type {
 	return b.lt
 }
 

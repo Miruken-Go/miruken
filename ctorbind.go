@@ -18,38 +18,38 @@ type (
 		) (Binding, error)
 	}
 
-	// ctorBinding provides instances through logical construction.
-	ctorBinding struct {
+	// CtorBinding provides instances through logical construction.
+	CtorBinding struct {
 		BindingBase
 		typ reflect.Type
 		key any
 	}
 )
 
-func (b *ctorBinding) Key() any {
+func (b *CtorBinding) Key() any {
 	if key := b.key; key != nil {
 		return key
 	}
 	return b.typ
 }
 
-func (b *ctorBinding) Strict() bool {
+func (b *CtorBinding) Strict() bool {
 	return false
 }
 
-func (b *ctorBinding) Exported() bool {
+func (b *CtorBinding) Exported() bool {
 	return false
 }
 
-func (b *ctorBinding) LogicalOutputType() reflect.Type {
+func (b *CtorBinding) LogicalOutputType() reflect.Type {
 	return b.typ
 }
 
-func (b *ctorBinding) Invoke(
+func (b *CtorBinding) Invoke(
 	ctx HandleContext,
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {
-	// ctorBinding's will be called on existing
+	// CtorBinding's will be called on existing
 	// handlers if present.  This would result in an
 	// additional and unexpected instance created.
 	// This situation can be detected if the handler is

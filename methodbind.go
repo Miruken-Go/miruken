@@ -18,8 +18,8 @@ type (
 		) (Binding, error)
 	}
 
-	// methodBinding models a `key` Binding to a method.
-	methodBinding struct {
+	// MethodBinding models a `key` Binding to a method.
+	MethodBinding struct {
 		funcCall
 		BindingBase
 		key    any
@@ -34,23 +34,23 @@ type (
 	}
 )
 
-func (b *methodBinding) Key() any {
+func (b *MethodBinding) Key() any {
 	return b.key
 }
 
-func (b *methodBinding) Exported() bool {
+func (b *MethodBinding) Exported() bool {
 	return internal.Exported(b.key) && internal.Exported(b.method)
 }
 
-func (b *methodBinding) LogicalOutputType() reflect.Type {
+func (b *MethodBinding) LogicalOutputType() reflect.Type {
 	return b.lt
 }
 
-func (b *methodBinding) Method() *reflect.Method {
+func (b *MethodBinding) Method() *reflect.Method {
 	return &b.method
 }
 
-func (b *methodBinding) Invoke(
+func (b *MethodBinding) Invoke(
 	ctx      HandleContext,
 	initArgs ...any,
 ) ([]any, *promise.Promise[[]any], error) {

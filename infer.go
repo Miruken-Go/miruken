@@ -72,7 +72,7 @@ func (h *inferenceHandler) SuppressDispatch() {}
 
 // methodIntercept intercepts method Binding invocations.
 type methodIntercept struct {
-	*methodBinding
+	*MethodBinding
 	typ reflect.Type
 }
 
@@ -197,13 +197,13 @@ func linkBinding(
 	addCtor  bool,
 ) {
 	switch b := binding.(type) {
-	case *ctorBinding:
+	case *CtorBinding:
 		if addCtor {
 			bindings.insert(policy, b)
 		}
-	case *methodBinding:
+	case *MethodBinding:
 		bindings.insert(policy, &methodIntercept{b, typ})
-	case *funcBinding:
+	case *FuncBinding:
 		bindings.insert(policy, b)
 	}
 }

@@ -11,15 +11,15 @@ import (
 
 // Model captures a command specification.
 type Model struct {
-	name       string
 	typ        reflect.Type
+	meta 	   *Metadata
 	id         func(any) uuid.UUID
 	version    func(any) int
 }
 
 
-func (m *Model) Name() string {
-	return m.name
+func (m *Model) Name() *Metadata {
+	return m.meta
 }
 
 func (m *Model) Type() reflect.Type {
@@ -28,18 +28,20 @@ func (m *Model) Type() reflect.Type {
 
 
 // NewModel creates a command model for type and name.
-func NewModel(typ reflect.Type, name string) (*Model, error) {
+func NewModel(
+	typ  reflect.Type,
+	meta *Metadata,
+) (*Model, error) {
 	if typ == nil {
 		panic("command: typ cannot be nil")
 	}
 
-	if name == "" {
-		name = internal.DefaultTypeName(typ)
+	if meta.Name() == "" {
+		*meta = Metadata(internal.DefaultTypeName(typ))
 	}
-
 	return &Model{
-		name: name,
 		typ:  typ,
+		meta: meta,
 	}, nil
 }
 

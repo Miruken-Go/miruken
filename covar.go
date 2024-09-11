@@ -107,7 +107,7 @@ func (p *CovariantPolicy) NewCtorBinding(
 	spec  *bindingSpec,
 	key   any,
 ) (Binding, error) {
-	binding := &ctorBinding{typ: typ, key: key}
+	binding := &CtorBinding{typ: typ, key: key}
 	if spec != nil {
 		binding.BindingBase.FilterScope.providers = spec.filters
 		binding.BindingBase.metadata = spec.metadata
@@ -139,7 +139,7 @@ func (p *CovariantPolicy) NewMethodBinding(
 	if args, k, err := validateCovariantFunc(method.Type, spec, key, 1); err != nil {
 		return nil, &MethodBindingError{method, err}
 	} else {
-		return &methodBinding{
+		return &MethodBinding{
 			funcCall{method.Func, args},
 			BindingBase{
 				FilterScope{spec.filters},
@@ -157,7 +157,7 @@ func (p *CovariantPolicy) NewFuncBinding(
 	if args, k, err := validateCovariantFunc(fun.Type(), spec, key, 0); err != nil {
 		return nil, &FuncBindingError{fun, err}
 	} else {
-		return &funcBinding{
+		return &FuncBinding{
 			funcCall{fun, args},
 			BindingBase{
 				FilterScope{spec.filters},

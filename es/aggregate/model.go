@@ -12,8 +12,8 @@ import (
 
 // Model captures an aggregate specification.
 type Model struct {
-	name       string
 	typ        reflect.Type
+	meta       *Metadata
 	id         func(any) uuid.UUID
 	setId      func(any, uuid.UUID)
 	version    func(any) int
@@ -22,8 +22,8 @@ type Model struct {
 }
 
 
-func (m *Model) Name() string {
-	return m.name
+func (m *Model) Metadata() *Metadata {
+	return m.meta
 }
 
 func (m *Model) Type() reflect.Type {
@@ -34,15 +34,15 @@ func (m *Model) Type() reflect.Type {
 // NewModel creates an aggregate model for type and name.
 func NewModel(
 	typ      reflect.Type,
-	name     string,
+	meta     *Metadata,
 	commands []command.Model,
 ) (m *Model, err error) {
 	if typ == nil {
 		panic("aggregate: typ cannot be nil")
 	}
 
-	if name == "" {
-		name = internal.DefaultTypeName(typ)
+	if meta.Name() == "" {
+		*meta = Metadata(internal.DefaultTypeName(typ))
 	}
 
 	if typ.Kind() == reflect.Ptr {
@@ -50,8 +50,8 @@ func NewModel(
 	}
 
 	var model = Model{
-		name:     name,
 		typ:      typ,
+		meta:     meta,
 		commands: commands,
 	}
 
