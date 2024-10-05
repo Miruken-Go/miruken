@@ -21,6 +21,8 @@ type (
 		compound filterBindingGroup
 	}
 
+	runtimeObserverMap map[runtimeObserverType][]HandlerRuntimeObserver
+
 	// HandlerSpec is factory for HandlerRuntime and metadata.
 	HandlerSpec interface {
 		fmt.Stringer
@@ -29,7 +31,7 @@ type (
 		suppress() bool
 		newRuntime(
 			builder   bindingSpecFactory,
-			observers []HandlerRuntimeObserver,
+			observers runtimeObserverMap,
 		) (*HandlerRuntime, error)
 	}
 
@@ -87,12 +89,14 @@ func (s TypeSpec) suppress() bool {
 
 func (s TypeSpec) newRuntime(
 	factory   bindingSpecFactory,
-	observers []HandlerRuntimeObserver,
+	observers runtimeObserverMap,
 ) (runtime *HandlerRuntime, invalid error) {
 	typ := s.typ
 	bindings := make(policyBindingMap)
 	runtime = &HandlerRuntime{spec: s}
 	isFilter := typ.Implements(filterType)
+
+	observers.notify(runtimeCreatedObserver, runtime, nil, nil)
 
 	var ctorSpec     *bindingSpec
 	var ctorPolicies []policyKey
@@ -156,6 +160,7 @@ func (s TypeSpec) newRuntime(
 				if binder, ok := policy.(MethodBinder); ok {
 					if binding, err := binder.NewMethodBinding(&method, spec, pk.key); binding != nil {
 						bindings.insert(policy, binding)
+						observers.notify(runtimeBindingObserver, runtime, binding, policy)
 					} else if err != nil {
 						invalid = errors.Join(invalid, err)
 					}
@@ -172,6 +177,7 @@ func (s TypeSpec) newRuntime(
 		if binder, ok := policy.(ConstructorBinder); ok {
 			if ctor, err := binder.NewCtorBinding(typ, ctor, inits, ctorSpec, ctorPk.key); err == nil {
 				bindings.insert(policy, ctor)
+				observers.notify(runtimeBindingObserver, runtime, ctor, policy)
 			} else {
 				invalid = errors.Join(invalid, err)
 			}
@@ -209,11 +215,13 @@ func (s FuncSpec) suppress() bool {
 
 func (s FuncSpec) newRuntime(
 	factory   bindingSpecFactory,
-	observers []HandlerRuntimeObserver,
+	observers runtimeObserverMap,
 ) (runtime *HandlerRuntime, invalid error) {
 	funType := s.fun.Type()
 	bindings := make(policyBindingMap)
 	runtime = &HandlerRuntime{spec: s}
+
+	observers.notify(runtimeCreatedObserver, runtime, nil, nil)
 
 	if spec, err := factory.createSpec(funType, 1); err == nil {
 		if spec == nil {
@@ -224,6 +232,7 @@ func (s FuncSpec) newRuntime(
 				if binder, ok := policy.(FuncBinder); ok {
 					if binding, errBind := binder.NewFuncBinding(s.fun, spec, pk.key); binding != nil {
 						bindings.insert(policy, binding)
+						observers.notify(runtimeBindingObserver, runtime, binding, policy)
 					} else if errBind != nil {
 						invalid = errors.Join(invalid, errBind)
 					}
@@ -460,18 +469,83 @@ type (
 		Register(src any) (*HandlerRuntime, bool, error)
 	}
 
-	// HandlerRuntimeObserver observes HandlerRuntime creation.
-	HandlerRuntimeObserver interface {
+	// HandlerRuntimeObserver is a generic HandlerRuntime observer.
+	HandlerRuntimeObserver = any
+
+	// HandlerRuntimeCreatedObserver observes HandlerRuntime creation.
+	// This observer is called after the HandlerRuntime has been created,
+	// but not fully initialized with bindings.
+	HandlerRuntimeCreatedObserver interface {
+		HandlerRuntimeCreated(*HandlerRuntime)
+	}
+	HandlerRuntimeCreatedObserverFunc func(*HandlerRuntime)
+
+	// HandlerRuntimeBindingObserver observes HandlerRuntime Binding creation.
+	// This observer is called after each HandlerRuntime Binding has been added.
+	HandlerRuntimeBindingObserver interface {
+		HandlerRuntimeBinding(*HandlerRuntime, Binding, Policy)
+	}
+	HandlerRuntimeBindingObserverFunc func(*HandlerRuntime, Binding, Policy)
+
+	// HandlerRuntimeRegisteredObserver observes HandlerRuntime registration.
+	// This observer is called after the HandlerRuntime has been registered
+	// and fully initialized with all bindings.
+	HandlerRuntimeRegisteredObserver interface {
 		HandlerRuntimeRegistered(*HandlerRuntime)
 	}
-	HandlerRuntimeObserverFunc func(*HandlerRuntime)
+	HandlerRuntimeRegisteredObserverFunc func(*HandlerRuntime)
+
+	// mutableHandlerFactory creates HandlerRuntime on demand.
+	mutableHandlerFactory struct {
+		bindingSpecFactory
+		handlers  map[any]*HandlerRuntime
+		observers runtimeObserverMap
+	}
+
+	runtimeObserverType uint8
 )
 
-// mutableHandlerFactory creates HandlerRuntime on demand.
-type mutableHandlerFactory struct {
-	bindingSpecFactory
-	handlers  map[any]*HandlerRuntime
-	observers []HandlerRuntimeObserver
+const (
+	runtimeCreatedObserver = runtimeObserverType(1 << iota)
+	runtimeBindingObserver
+	runtimeRegisteredObserver
+)
+
+func (o runtimeObserverMap) register(
+	observers ...HandlerRuntimeObserver,
+) {
+	for _, observer := range observers {
+		if _, ok := observer.(HandlerRuntimeCreatedObserver); ok {
+			o[runtimeCreatedObserver] = append(o[runtimeCreatedObserver], observer)
+		}
+		if _, ok := observer.(HandlerRuntimeBindingObserver); ok {
+			o[runtimeBindingObserver] = append(o[runtimeCreatedObserver], observer)
+		}
+		if _, ok := observer.(HandlerRuntimeRegisteredObserver); ok {
+			o[runtimeRegisteredObserver] = append(o[runtimeRegisteredObserver], observer)
+		}
+	}
+}
+
+func (o runtimeObserverMap) notify(
+	observerType runtimeObserverType,
+	runtime      *HandlerRuntime,
+	binding      Binding,
+	policy       Policy,
+) {
+	if o == nil {
+		return
+	}
+	for _, observer := range o[observerType] {
+		switch observerType {
+		case runtimeCreatedObserver:
+			observer.(HandlerRuntimeCreatedObserver).HandlerRuntimeCreated(runtime)
+		case runtimeBindingObserver:
+			observer.(HandlerRuntimeBindingObserver).HandlerRuntimeBinding(runtime, binding, policy)
+		case runtimeRegisteredObserver:
+			observer.(HandlerRuntimeRegisteredObserver).HandlerRuntimeRegistered(runtime)
+		}
+	}
 }
 
 func (f *mutableHandlerFactory) Spec(
@@ -522,17 +596,30 @@ func (f *mutableHandlerFactory) Register(
 		return runtime, false, nil
 	}
 	if runtime, err := spec.newRuntime(f.bindingSpecFactory, f.observers); err == nil {
-		for _, observer := range f.observers {
-			observer.HandlerRuntimeRegistered(runtime)
-		}
 		f.handlers[key] = runtime
+		f.observers.notify(runtimeRegisteredObserver, runtime, nil, nil)
 		return runtime, true, nil
 	} else {
 		return nil, false, err
 	}
 }
 
-func (f HandlerRuntimeObserverFunc) HandlerRuntimeRegistered(
+
+func (f HandlerRuntimeCreatedObserverFunc) HandlerRuntimeCreated(
+	runtime *HandlerRuntime,
+) {
+	f(runtime)
+}
+
+func (f HandlerRuntimeBindingObserverFunc) HandlerRuntimeBinding(
+	runtime *HandlerRuntime,
+	binding Binding,
+	policy  Policy,
+) {
+	f(runtime, binding, policy)
+}
+
+func (f HandlerRuntimeRegisteredObserverFunc) HandlerRuntimeRegistered(
 	runtime *HandlerRuntime,
 ) {
 	f(runtime)
@@ -541,7 +628,7 @@ func (f HandlerRuntimeObserverFunc) HandlerRuntimeRegistered(
 // HandlerRuntimeFactoryBuilder builds the HandlerRuntimeFactory.
 type HandlerRuntimeFactoryBuilder struct {
 	parsers   []BindingParser
-	observers []HandlerRuntimeObserver
+	observers runtimeObserverMap
 }
 
 func (b *HandlerRuntimeFactoryBuilder) Parsers(
@@ -554,7 +641,11 @@ func (b *HandlerRuntimeFactoryBuilder) Parsers(
 func (b *HandlerRuntimeFactoryBuilder) Observers(
 	observers ...HandlerRuntimeObserver,
 ) *HandlerRuntimeFactoryBuilder {
-	b.observers = append(b.observers, observers...)
+	if len(observers) == 0 {
+		return b
+	}
+	b.observers = make(runtimeObserverMap)
+	b.observers.register(observers...)
 	return b
 }
 

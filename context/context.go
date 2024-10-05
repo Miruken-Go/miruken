@@ -92,14 +92,14 @@ func (c *Context) NewChild() *Context {
 		state:  StateActive,
 	}
 	child.observers.Store(&map[contextObserverType][]Observer{
-		contextObserverEnding: {
+		contextEndingObserver: {
 			EndingObserverFunc(func(ctx *Context, reason any) {
-				c.notify(contextObserverChildEnding, ctx, reason)
+				c.notify(contextChildEndingObserver, ctx, reason)
 			})},
-		contextObserverEnded: {
+		contextEndedObserver: {
 			EndedObserverFunc(func(ctx *Context, reason any) {
 				c.removeChild(ctx)
-				c.notify(contextObserverChildEnded, ctx, reason)
+				c.notify(contextChildEndedObserver, ctx, reason)
 			})},
 	})
 	child.ResetHandlers(miruken.NewProvider(child))
@@ -170,21 +170,21 @@ func (c *Context) Observe(observer Observer) miruken.Disposable {
 		if c.state == StateEnding {
 			obs.ContextEnding(c, ReasonAlreadyEnded)
 		} else if c.state == StateActive {
-			obsType |= contextObserverEnding
+			obsType |= contextEndingObserver
 		}
 	}
 	if obs, ok := observer.(EndedObserver); ok {
 		if c.state == StateEnded {
 			obs.ContextEnded(c, ReasonAlreadyEnded)
 		} else if c.state == StateActive {
-			obsType |= contextObserverEnded
+			obsType |= contextEndedObserver
 		}
 	}
 	if _, ok := observer.(ChildEndingObserver); ok {
-		obsType |= contextObserverChildEnding
+		obsType |= contextChildEndingObserver
 	}
 	if _, ok := observer.(ChildEndedObserver); ok {
-		obsType |= contextObserverChildEnded
+		obsType |= contextChildEndedObserver
 	}
 	c.addObserver(obsType, observer)
 	return miruken.DisposableFunc(func() {
@@ -219,10 +219,10 @@ func (c *Context) End(reason any) {
 		return
 	}
 	c.state = StateEnding
-	c.notify(contextObserverEnding, c, reason)
+	c.notify(contextEndingObserver, c, reason)
 	defer func() {
 		c.state = StateEnded
-		c.notify(contextObserverEnded, c, reason)
+		c.notify(contextEndedObserver, c, reason)
 	}()
 	c.Unwind(nil)
 }
@@ -242,7 +242,7 @@ func (c *Context) addObserver(
 	obsType  contextObserverType,
 	observer Observer,
 ) {
-	if obsType == contextObserverNone {
+	if obsType == contextNoneObserver {
 		return
 	}
 	c.lock.Lock()
@@ -259,7 +259,7 @@ func (c *Context) addObserver(
 	} else {
 		obs = map[contextObserverType][]Observer{}
 	}
-	for ot := contextObserverEnding; ot < contextObserverAll; ot <<= 1 {
+	for ot := contextEndingObserver; ot < contextAllObserver; ot <<= 1 {
 		if obsType&ot == ot {
 			obs[ot] = append(obs[ot], observer)
 		}
@@ -271,7 +271,7 @@ func (c *Context) removeObserver(
 	obsType  contextObserverType,
 	observer Observer,
 ) {
-	if obsType == contextObserverNone {
+	if obsType == contextNoneObserver {
 		return
 	}
 	c.lock.Lock()
@@ -308,19 +308,19 @@ func (c *Context) notify(
 	if observers := c.observers.Load(); observers != nil {
 		if obs, ok := (*observers)[obsType]; ok && len(obs) > 0 {
 			switch obsType {
-			case contextObserverEnding:
+			case contextEndingObserver:
 				for _, obs := range obs {
 					obs.(EndingObserver).ContextEnding(ctx, reason)
 				}
-			case contextObserverEnded:
+			case contextEndedObserver:
 				for _, obs := range obs {
 					obs.(EndedObserver).ContextEnded(ctx, reason)
 				}
-			case contextObserverChildEnding:
+			case contextChildEndingObserver:
 				for _, obs := range obs {
 					obs.(ChildEndingObserver).ChildContextEnding(ctx, reason)
 				}
-			case contextObserverChildEnded:
+			case contextChildEndedObserver:
 				for _, obs := range obs {
 					obs.(ChildEndedObserver).ChildContextEnded(ctx, reason)
 				}
@@ -366,7 +366,7 @@ func (c *ContextualBase) ChangeContext(
 		return
 	}
 	newCtx := ctx
-	c.notify(contextual, contextualObserverChanging, oldCtx, &newCtx)
+	c.notify(contextual, contextualChangingObserver, oldCtx, &newCtx)
 	if oldCtx != nil {
 		oldCtx.RemoveHandlers(contextual)
 	}
@@ -374,7 +374,7 @@ func (c *ContextualBase) ChangeContext(
 	if newCtx != nil {
 		newCtx.InsertHandlers(0, contextual)
 	}
-	c.notify(contextual, contextualObserverChanged, oldCtx, &newCtx)
+	c.notify(contextual, contextualChangedObserver, oldCtx, &newCtx)
 }
 
 func (c *ContextualBase) EndContext() {
@@ -391,10 +391,10 @@ func (c *ContextualBase) Observe(
 	}
 	var obsType contextualObserverType
 	if _, ok := observer.(ChangingObserver); ok {
-		obsType |= contextualObserverChanging
+		obsType |= contextualChangingObserver
 	}
 	if _, ok := observer.(ChangedObserver); ok {
-		obsType |= contextualObserverChanged
+		obsType |= contextualChangedObserver
 	}
 	c.addObserver(obsType, observer)
 	return miruken.DisposableFunc(func() {
@@ -406,7 +406,7 @@ func (c *ContextualBase) addObserver(
 	obsType  contextualObserverType,
 	observer Observer,
 ) {
-	if obsType == contextualObserverNone {
+	if obsType == contextualNoneObserver {
 		return
 	}
 	c.lock.Lock()
@@ -414,7 +414,7 @@ func (c *ContextualBase) addObserver(
 	if c.observers == nil {
 		c.observers = make(map[contextualObserverType][]Observer)
 	}
-	for typ := contextualObserverChanging; typ < contextualObserverAll; typ <<= 1 {
+	for typ := contextualChangingObserver; typ < contextualAllObserver; typ <<= 1 {
 		if obsType&typ == typ {
 			c.observers[typ] = append(c.observers[typ], observer)
 		}
@@ -425,12 +425,12 @@ func (c *ContextualBase) removeObserver(
 	obsType  contextualObserverType,
 	observer Observer,
 ) {
-	if obsType == contextualObserverNone {
+	if obsType == contextualNoneObserver {
 		return
 	}
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	for typ := contextualObserverChanging; typ < contextualObserverAll; typ <<= 1 {
+	for typ := contextualChangingObserver; typ < contextualAllObserver; typ <<= 1 {
 		if obsType&typ != typ {
 			continue
 		}
@@ -455,11 +455,11 @@ func (c *ContextualBase) notify(
 ) {
 	if observers, ok := c.observers[obsType]; ok && len(observers) > 0 {
 		switch obsType {
-		case contextualObserverChanging:
+		case contextualChangingObserver:
 			for _, obs := range observers {
 				obs.(ChangingObserver).ContextChanging(contextual, oldCtx, newCtx)
 			}
-		case contextualObserverChanged:
+		case contextualChangedObserver:
 			for _, obs := range observers {
 				obs.(ChangedObserver).ContextChanged(contextual, oldCtx, *newCtx)
 			}
@@ -502,12 +502,12 @@ type (
 )
 
 const (
-	contextObserverEnding = contextObserverType(1 << iota)
-	contextObserverEnded
-	contextObserverChildEnding
-	contextObserverChildEnded
-	contextObserverAll= contextObserverType(1<<iota - 1)
-	contextObserverNone = contextObserverType(0)
+	contextEndingObserver = contextObserverType(1 << iota)
+	contextEndedObserver
+	contextChildEndingObserver
+	contextChildEndedObserver
+	contextAllObserver  = contextObserverType(1<<iota - 1)
+	contextNoneObserver = contextObserverType(0)
 )
 
 func (f EndingObserverFunc) ContextEnding(
@@ -541,7 +541,7 @@ func (f ChildEndedObserverFunc) ChildContextEnded(
 // Contextual observers
 
 type (
-	// ChangingObserver reports a Context is contextualObserverChanging.
+	// ChangingObserver reports a Context is contextualChangingObserver.
 	ChangingObserver interface {
 		ContextChanging(
 			contextual Contextual,
@@ -553,7 +553,7 @@ type (
 		oldCtx *Context,
 		newCtx **Context)
 
-	// ChangedObserver reports a Context contextualObserverChanged.
+	// ChangedObserver reports a Context contextualChangedObserver.
 	ChangedObserver interface {
 		ContextChanged(
 			contextual Contextual,
@@ -569,10 +569,10 @@ type (
 )
 
 const (
-	contextualObserverChanging = contextualObserverType(1 << iota)
-	contextualObserverChanged
-	contextualObserverAll = contextualObserverType(1<<iota - 1)
-	contextualObserverNone = contextualObserverType(0)
+	contextualChangingObserver = contextualObserverType(1 << iota)
+	contextualChangedObserver
+	contextualAllObserver  = contextualObserverType(1<<iota - 1)
+	contextualNoneObserver = contextualObserverType(0)
 )
 
 func (f ChangingObserverFunc) ContextChanging(
