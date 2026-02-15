@@ -118,12 +118,11 @@ func (n Next) Handle(
 		return nil, nil, result.Error()
 	} else if !result.handled {
 		return nil, nil, &NotHandledError{callback}
+	}
+	if r, pr := cb.Result(greedy); pr != nil {
+		return nil, promise.Slice(pr), nil
 	} else {
-		if r, pr := cb.Result(greedy); pr != nil {
-			return nil, promise.Slice(pr), nil
-		} else {
-			return []any{r}, nil, nil
-		}
+		return []any{r}, nil, nil
 	}
 }
 
@@ -474,16 +473,15 @@ func (n *filterBinding) invoke(
 		err, _ = out[2].(error)
 		out, _ = out[0].([]any)
 		return
-	} else {
-		pout = promise.Then(pout, func(o []any) []any {
-			if err, ok := o[2].(error); ok {
-				panic(err)
-			} else if ro, ok := o[0].([]any); ok {
-				return ro
-			}
-			return nil
-		})
 	}
+	pout = promise.Then(pout, func(o []any) []any {
+		if err, ok := o[2].(error); ok {
+			panic(err)
+		} else if ro, ok := o[0].([]any); ok {
+			return ro
+		}
+		return nil
+	})
 	return
 }
 
@@ -534,14 +532,14 @@ func (c compoundHandler) Next(
 ) ([]any, *promise.Promise[[]any], error) {
 	if filters := c.filters; filters != nil {
 		return filters.invoke(c.handler, ctx, next, provider)
-	} else {
-		return next(nil, true)
 	}
+	return next(nil, true)
 }
 
 // getFilterBinding discovers a suitable dynamic Filter binding.
 // Uses the copy-on-write idiom since reads should be more frequent than writes.
 // If ignoreNext is true, the "Next" Filter method will be ignored.
+//goland:noinspection DuplicatedCode
 func getFilterBinding(
 	filter Filter,
 ) (filterBindingGroup, error) {

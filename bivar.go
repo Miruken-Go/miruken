@@ -51,12 +51,11 @@ func (p *BivariantPolicy) MatchesKey(
 				matches, _ = p.out.MatchesKey(bk.Out, ok.Out, false)
 			}
 			return matches, false
-		} else {
-			panic("expected DiKey for otherBinding.Key()")
 		}
-	} else {
-		panic("expected DiKey for binding.Key()")
+		panic("expected DiKey for otherBinding.Key()")
 	}
+
+	panic("expected DiKey for binding.Key()")
 }
 
 func (p *BivariantPolicy) Strict() bool {

@@ -30,7 +30,7 @@ func (b Basic) Challenge(
 	r   *http.Request,
 	err error,
 ) int {
-	WriteWWWAuthenticateHeader(w, "Bearer", b.Realm, nil, err)
+	WriteWWWAuthenticateHeader(w, "Basic", b.Realm, nil, err)
 	return http.StatusUnauthorized
 }
 

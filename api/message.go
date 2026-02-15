@@ -117,11 +117,9 @@ func Publish(
 	if pv, err := handles.CommandAll(stash, message); err == nil {
 		return pv, nil
 	} else {
-		var notHandledError *miruken.NotHandledError
-		if errors.As(err, &notHandledError) {
+		if _, ok := errors.AsType[*miruken.NotHandledError](err); ok {
 			return nil, nil
-		} else {
-			return pv, err
 		}
+		return pv, err
 	}
 }

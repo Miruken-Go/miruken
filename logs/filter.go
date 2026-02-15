@@ -87,16 +87,15 @@ func (f filter) Next(
 		} else if pout == nil {
 			f.logSuccess(start, logger)
 			return
-		} else {
-			return nil, promise.Catch(
-				promise.Then(pout, func(oo []any) []any {
-					f.logSuccess(start, logger)
-					return oo
-				}), func(ee error) error {
-					f.logError(ee, start, logger)
-					return ee
-				}), nil
 		}
+		return nil, promise.Catch(
+			promise.Then(pout, func(oo []any) []any {
+				f.logSuccess(start, logger)
+				return oo
+			}), func(ee error) error {
+				f.logError(ee, start, logger)
+				return ee
+			}), nil
 	}
 	return next.Abort()
 }

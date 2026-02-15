@@ -296,23 +296,7 @@ func (i *Installer) initializeDefinitions(ap *apiProfile) {
 		Post: &openapi3.Operation{
 			OperationID: "process",
 			RequestBody: payload,
-			Responses: openapi3.NewResponses(
-				openapi3.WithStatus(http.StatusOK, &openapi3.ResponseRef{
-					Ref: "#/components/responses/NoResponse",
-				}),
-				openapi3.WithStatus(http.StatusUnprocessableEntity, &openapi3.ResponseRef{
-					Ref: "#/components/responses/ValidationError",
-				}),
-				openapi3.WithStatus(http.StatusUnauthorized, &openapi3.ResponseRef{
-					Ref: "#/components/responses/UnauthorizedError",
-				}),
-				openapi3.WithStatus(http.StatusForbidden, &openapi3.ResponseRef{
-					Ref: "#/components/responses/ForbiddenError",
-				}),
-				openapi3.WithStatus(http.StatusInternalServerError, &openapi3.ResponseRef{
-					Ref: "#/components/responses/GenericError",
-				}),
-			),
+			Responses: i.standardResponses(),
 			Tags: tags,
 		},
 	})
@@ -320,26 +304,30 @@ func (i *Installer) initializeDefinitions(ap *apiProfile) {
 		Post: &openapi3.Operation{
 			OperationID: "publish",
 			RequestBody: payload,
-			Responses: openapi3.NewResponses(
-				openapi3.WithStatus(http.StatusOK, &openapi3.ResponseRef{
-					Ref: "#/components/responses/NoResponse",
-				}),
-				openapi3.WithStatus(http.StatusUnprocessableEntity, &openapi3.ResponseRef{
-					Ref: "#/components/responses/ValidationError",
-				}),
-				openapi3.WithStatus(http.StatusUnauthorized, &openapi3.ResponseRef{
-					Ref: "#/components/responses/UnauthorizedError",
-				}),
-				openapi3.WithStatus(http.StatusForbidden, &openapi3.ResponseRef{
-					Ref: "#/components/responses/ForbiddenError",
-				}),
-				openapi3.WithStatus(http.StatusInternalServerError, &openapi3.ResponseRef{
-					Ref: "#/components/responses/GenericError",
-				}),
-			),
+			Responses: i.standardResponses(),
 			Tags: tags,
 		},
 	})
+}
+
+func (i *Installer) standardResponses() *openapi3.Responses {
+	return openapi3.NewResponses(
+		openapi3.WithStatus(http.StatusOK, &openapi3.ResponseRef{
+			Ref: "#/components/responses/NoResponse",
+		}),
+		openapi3.WithStatus(http.StatusUnprocessableEntity, &openapi3.ResponseRef{
+			Ref: "#/components/responses/ValidationError",
+		}),
+		openapi3.WithStatus(http.StatusUnauthorized, &openapi3.ResponseRef{
+			Ref: "#/components/responses/UnauthorizedError",
+		}),
+		openapi3.WithStatus(http.StatusForbidden, &openapi3.ResponseRef{
+			Ref: "#/components/responses/ForbiddenError",
+		}),
+		openapi3.WithStatus(http.StatusInternalServerError, &openapi3.ResponseRef{
+			Ref: "#/components/responses/GenericError",
+		}),
+	)
 }
 
 func (i *Installer) apiProfile(

@@ -131,6 +131,7 @@ func (suite *CreatesTestSuite) TestCreates() {
 	})
 
 	suite.Run("MultipleKeys", func() {
+		//goland:noinspection DuplicatedCode
 		handler, _ := setup.New().
 			Specs(&MultiKeyFactory{}).
 			Context()

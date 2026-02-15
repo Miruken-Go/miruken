@@ -270,6 +270,7 @@ func (a *funHandler) tryBind(fun any) bool {
 	return false
 }
 
+//goland:noinspection DuplicatedCode
 func (a *resHandler[H]) serve(
 	w http.ResponseWriter,
 	c miruken.Handler,

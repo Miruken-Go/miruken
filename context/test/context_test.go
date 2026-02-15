@@ -112,6 +112,7 @@ func (suite *ContextTestSuite) RootContextWith(specs ...any) *context.Context {
 	return ctx
 }
 
+//goland:noinspection DuplicatedCode
 func (suite *ContextTestSuite) TestContext() {
 	suite.Run("InitiallyActive", func() {
 		ctx := context.New()

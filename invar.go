@@ -48,6 +48,7 @@ func (p *InvariantPolicy) Less(
 	return false
 }
 
+//goland:noinspection DuplicatedCode
 func (p *InvariantPolicy) AcceptResults(
 	results []any,
 ) (any, HandleResult, []Effect, []any) {

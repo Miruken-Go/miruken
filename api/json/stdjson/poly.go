@@ -67,10 +67,8 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 			}
 			if err := enc.Encode(elem); err != nil {
 				return nil, fmt.Errorf("can't marshal array index %d: %w", i, err)
-			} else {
-				raw := json.RawMessage(b.Bytes())
-				arr = append(arr, &raw)
 			}
+			arr = append(arr, new(json.RawMessage(b.Bytes())))
 		}
 		v = arr
 	}
@@ -118,8 +116,7 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 func (c *typeContainer) UnmarshalJSON(data []byte) error {
 	var fields map[string]*json.RawMessage
 	if err := json.Unmarshal(data, &fields); err != nil {
-		var me *json.UnmarshalTypeError
-		if errors.As(err, &me) {
+		if me, ok := errors.AsType[*json.UnmarshalTypeError](err); ok {
 			if me.Value == "array" {
 				var raw []*json.RawMessage
 				if err = json.Unmarshal(data, &raw); err == nil {
@@ -164,9 +161,8 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 		if late, ok := c.v.(*api.Late); ok {
 			if err := json.Unmarshal(data, &late.Value); err != nil {
 				return err
-			} else {
-				return nil
 			}
+			return nil
 		}
 		return json.Unmarshal(data, c.v)
 	}
@@ -196,12 +192,12 @@ func (c *typeContainer) UnmarshalJSON(data []byte) error {
 			}
 			if err := json.Unmarshal(data, vm); err != nil {
 				return err
+			}
+
+			if late, ok := c.v.(*api.Late); ok {
+				late.Value = v
 			} else {
-				if late, ok := c.v.(*api.Late); ok {
-					late.Value = v
-				} else {
-					internal.CopyIndirect(v, c.v)
-				}
+				internal.CopyIndirect(v, c.v)
 			}
 		}
 	}

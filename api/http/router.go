@@ -181,9 +181,8 @@ func (r *Router) decodeError(
 		if payload := msg.Payload; payload != nil {
 			if err, ok := payload.(error); ok {
 				return err
-			} else {
-				return &api.MalformedErrorError{Culprit: payload}
 			}
+			return &api.MalformedErrorError{Culprit: payload}
 		}
 	}
 	return nil

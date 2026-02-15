@@ -699,8 +699,7 @@ func (suite *ProvidesTestSuite) TestProvides() {
 	suite.Run("Invalid", func() {
 		defer func() {
 			if r := recover(); r != nil {
-				var err *miruken.HandlerRuntimeError
-				if errors.As(r.(error), &err) {
+				if err, ok := errors.AsType[*miruken.HandlerRuntimeError](r.(error)); ok {
 					failures := internal.UnwrapErrors(err.Cause)
 					suite.Len(failures, 6)
 				} else {

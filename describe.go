@@ -134,7 +134,7 @@ func (s TypeSpec) newRuntime(
 			"handler %v has both a Constructor and NoConstructor method", typ))
 	}
 
-	// Discover explicit callback handlers
+	// Discover method callback handlers
 	for i := range typ.NumMethod() {
 		method := typ.Method(i)
 		if method.Name == "Constructor" || method.Name == "NoConstructor" {
@@ -172,6 +172,7 @@ func (s TypeSpec) newRuntime(
 	}
 
 	// Build ctor bindings
+	// Must come after methods to collect Initializers.
 	for _, ctorPk := range ctorPolicies {
 		policy := ctorPk.policy
 		if binder, ok := policy.(ConstructorBinder); ok {

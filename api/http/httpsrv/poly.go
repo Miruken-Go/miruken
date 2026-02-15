@@ -197,8 +197,7 @@ func (a *PolyHandler) encodeError(
 	handler              miruken.Handler,
 ) {
 	if notHandledStatusCode > 0 {
-		var nh *miruken.NotHandledError
-		if errors.As(err, &nh) {
+		if _, ok := errors.AsType[*miruken.NotHandledError](err); ok {
 			w.WriteHeader(notHandledStatusCode)
 			return
 		}

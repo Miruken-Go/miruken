@@ -362,6 +362,7 @@ func (suite *FilterTestSuite) Setup(specs ...any) (miruken.Handler, error) {
 	return setup.New().Specs(specs...).Context()
 }
 
+//goland:noinspection DuplicatedCode
 func (suite *FilterTestSuite) TestFilters() {
 	suite.Run("FilterOptions", func() {
 		suite.Run("Merges", func() {

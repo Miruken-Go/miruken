@@ -155,6 +155,7 @@ func (p *ContravariantPolicy) NewFuncBinding(
 	}
 }
 
+//goland:noinspection DuplicatedCode
 func validateContravariantFunc(
 	funType reflect.Type,
 	spec    *bindingSpec,

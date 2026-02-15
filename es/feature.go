@@ -32,6 +32,14 @@ func (i *Installer) Install(b *setup.Builder) error {
 	return nil
 }
 
+func (i *Installer) HandlerRuntimeBinding(
+	runtime *miruken.HandlerRuntime,
+	binding miruken.Binding,
+	policy  miruken.Policy,
+) {
+
+}
+
 func (i *Installer) HandlerRuntimeRegistered(
 	runtime *miruken.HandlerRuntime,
 ) {
@@ -48,7 +56,7 @@ func (i *Installer) makeAggregateModel(
 ) (m *aggregate.Model, err error) {
 	ctor, ok := seq.First(
 		seq.OfType[miruken.Binding, *miruken.CtorBinding](
-			runtime.BindingsFor((*provides.It)(nil).Policy())))
+			runtime.BindingsFor(i.provides)))
 	if !ok {
 		return nil, nil
 	}

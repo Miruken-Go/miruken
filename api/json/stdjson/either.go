@@ -33,11 +33,10 @@ func (s Either[L, R]) Original(
 				return either.Left(l), nil
 			}
 			return nil, fmt.Errorf("expected left of %s", reflect.TypeFor[L]())
-		} else {
-			if r, ok := v.(R); ok {
-				return either.Right(r), nil
-			}
-			return nil, fmt.Errorf("expected right of %s", reflect.TypeFor[R]())
 		}
+		if r, ok := v.(R); ok {
+			return either.Right(r), nil
+		}
+		return nil, fmt.Errorf("expected right of %s", reflect.TypeFor[R]())
 	}
 }

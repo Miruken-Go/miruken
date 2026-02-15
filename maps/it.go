@@ -96,6 +96,7 @@ func (b *Builder) New() *It {
 	}
 }
 
+//goland:noinspection DuplicatedCode
 func Out[T any](
 	handler     miruken.Handler,
 	source      any,

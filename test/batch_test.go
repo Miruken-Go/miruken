@@ -132,6 +132,7 @@ func (suite *BatchTestSuite) Setup() (miruken.Handler, error) {
 		Context()
 }
 
+//goland:noinspection DuplicatedCode
 func (suite *BatchTestSuite) TestBatch() {
 	suite.Run("Uses Same Batcher", func() {
 		handler, _ := setup.New().Handlers(new(EmailHandler)).Context()
