@@ -70,7 +70,7 @@ func Use(
 	}
 }
 
-// Api builds a http.Handler for processing polymorphic api calls
+// Api builds an http.Handler for processing polymorphic api calls
 // through a Middleware pipeline.
 func Api(
 	ctx        *context.Context,
@@ -112,8 +112,7 @@ func getHandlerBinding(
 		if binding, ok := (*bindings)[typ]; ok {
 			return binding, nil
 		}
-		sb := maps.Clone(*bindings)
-		bindings = &sb
+		bindings = new(maps.Clone(*bindings))
 	} else {
 		bindings = &map[reflect.Type]handlerBinding{}
 	}

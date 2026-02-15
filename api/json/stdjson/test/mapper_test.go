@@ -345,8 +345,7 @@ func (suite *StdJsonTestSuite) TestJson() {
 					85,
 				}
 				var b bytes.Buffer
-				writer := io.Writer(&b)
-				_, _, err := maps.Into(handler, data, &writer, api.ToJson)
+				_, _, err := maps.Into(handler, data, new(io.Writer(&b)), api.ToJson)
 				suite.Nil(err)
 				suite.Equal("{\"Name\":\"James Webb\",\"Age\":85}\n", b.String())
 			})
@@ -360,10 +359,9 @@ func (suite *StdJsonTestSuite) TestJson() {
 					85,
 				}
 				var b bytes.Buffer
-				writer := io.Writer(&b)
 				_, _, err := maps.Into(
 					miruken.BuildUp(handler, miruken.Options(stdjson.Options{Indent: "  "})),
-					data, &writer, api.ToJson)
+					data, new(io.Writer(&b)), api.ToJson)
 				suite.Nil(err)
 				suite.Equal("{\n  \"Name\": \"James Webb\",\n  \"Age\": 85\n}\n", b.String())
 			})
@@ -379,10 +377,9 @@ func (suite *StdJsonTestSuite) TestJson() {
 					},
 				}
 				var b bytes.Buffer
-				writer := io.Writer(&b)
 				_, _, err := maps.Into(
 					miruken.BuildUp(handler, stdjson.CamelCase),
-					data, &writer, api.ToJson)
+					data, new(io.Writer(&b)), api.ToJson)
 				suite.Nil(err)
 				suite.Equal("{\"id\":15,\"name\":\"Breakaway\",\"players\":[{\"id\":1,\"name\":\"Sean Rose\"},{\"id\":4,\"name\":\"Mark Kingston\"},{\"id\":8,\"name\":\"Michael Binder\"}]}\n", b.String())
 			})
@@ -398,10 +395,9 @@ func (suite *StdJsonTestSuite) TestJson() {
 					},
 				}
 				var b bytes.Buffer
-				writer := io.Writer(&b)
 				_, _, err := maps.Into(
 					miruken.BuildUp(handler, api.Polymorphic),
-					data, &writer, api.ToJson)
+					data, new(io.Writer(&b)), api.ToJson)
 				suite.Nil(err)
 				suite.Equal("{\"@type\":\"test.TeamData\",\"Id\":15,\"Name\":\"Breakaway\",\"Players\":[{\"Id\":1,\"Name\":\"Sean Rose\"},{\"Id\":4,\"Name\":\"Mark Kingston\"},{\"Id\":8,\"Name\":\"Michael Binder\"}]}\n", b.String())
 			})

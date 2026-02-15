@@ -9,7 +9,7 @@ import (
 	"github.com/miruken-go/miruken/maps"
 )
 
-// MessageSurrogate is a json standard surrogate for api.Message.
+// MessageSurrogate is a JSON standard surrogate for api.Message.
 type MessageSurrogate struct {
 	Payload json.RawMessage `json:"payload"`
 }

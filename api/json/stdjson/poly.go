@@ -18,7 +18,7 @@ import (
 )
 
 type (
-	// typeContainer customizes json standard serialization to
+	// typeContainer customizes JSON standard serialization to
 	// emit type field information needed to support polymorphism.
 	typeContainer struct {
 		v        any
@@ -29,11 +29,11 @@ type (
 )
 
 var (
-	// KnownTypeFields holds the list of json property names
+	// KnownTypeFields holds the list of JSON property names
 	// that can contain type discriminators.
 	KnownTypeFields = []string{"$type", "@type"}
 
-	// KnownValuesFields holds the list of json property names
+	// KnownValuesFields holds the list of JSON property names
 	// that can contain values for discriminated arrays.
 	KnownValuesFields = []string{"$values", "@values"}
 )

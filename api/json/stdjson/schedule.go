@@ -8,7 +8,7 @@ import (
 )
 
 type (
-	// ScheduledResult is a surrogate for api.ScheduledResult over json.
+	// ScheduledResult is a surrogate for api.ScheduledResult over JSON.
 	ScheduledResult []Either[error, any]
 )
 

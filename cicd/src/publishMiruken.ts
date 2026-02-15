@@ -35,7 +35,7 @@ handle(async () => {
 
     logging.header("Publishing new miruken version ")
 
-    //This docker container is running docker in docker from github actions
+    //This docker container is running docker in docker from GitHub actions
     //Therefore using $(pwd) to get the working directory would be the working directory of the running container 
     //Not the working directory from the host system. So we need to pass in the repository path.
     const rawVersion = await bash.execute(`

@@ -8,7 +8,7 @@ import (
 	"github.com/miruken-go/miruken/security/login/callback"
 )
 
-// Bearer is a http authentication Scheme that uses an
+// Bearer is an http authentication Scheme that uses an
 // opaque string (token) to protect resources.
 type Bearer struct {
 	Realm string

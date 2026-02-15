@@ -7,10 +7,10 @@ import (
 )
 
 type (
-	// Concurrent is a surrogate for api.ConcurrentBatch over json.
+	// Concurrent is a surrogate for api.ConcurrentBatch over JSON.
 	Concurrent []any
 
-	// Sequential is a surrogate for api.SequentialBatch over json.
+	// Sequential is a surrogate for api.SequentialBatch over JSON.
 	Sequential []any
 )
 

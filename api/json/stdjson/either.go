@@ -11,7 +11,7 @@ import (
 	"github.com/miruken-go/miruken/maps"
 )
 
-// Either is a surrogate for either.Monad using standard json.
+// Either is a surrogate for either.Monad using standard JSON.
 type Either[L, R any] struct {
 	Left  bool            `json:"left"`
 	Value json.RawMessage `json:"value"`

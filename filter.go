@@ -556,8 +556,7 @@ func getFilterBinding(
 		if group, ok := (*bindings)[typ]; ok {
 			return group, nil
 		}
-		fb := maps.Clone(*bindings)
-		bindings = &fb
+		bindings = new(maps.Clone(*bindings))
 	} else {
 		bindings = &map[reflect.Type]filterBindingGroup{}
 	}

@@ -150,8 +150,7 @@ func (m *GoPolymorphism) Dynamic(
 				if proto, ok := (*types)[key]; ok {
 					return proto
 				}
-				db := maps2.Clone(*types)
-				types = &db
+				types = new(maps2.Clone(*types))
 			} else {
 				types = &map[string]any{}
 			}

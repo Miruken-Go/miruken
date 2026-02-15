@@ -159,15 +159,13 @@ func (a *PolyHandler) encodeResult(
 	if len(formats) == 1 && formats[0].Rule() == maps.FormatRuleEquals {
 		format := formats[0]
 		header.Set("Content-Type", format.Name())
-		out := io.Writer(w)
-		if _, _, err := maps.Into(handler, msg, &out, format); err != nil {
+		if _, _, err := maps.Into(handler, msg, new(io.Writer(w)), format); err != nil {
 			a.encodeError(err, http.StatusNotAcceptable, w, handler)
 		}
 	} else {
 		for i, format := range formats {
 			var b bytes.Buffer
-			out := io.Writer(&b)
-			if _, m, err := maps.Into(handler, msg, &out, format); err == nil {
+			if _, m, err := maps.Into(handler, msg, new(io.Writer(&b)), format); err == nil {
 				var contentType string
 				if format.Rule() == maps.FormatRuleEquals {
 					contentType = api.FormatMediaType(format)
@@ -209,9 +207,8 @@ func (a *PolyHandler) encodeError(
 		statusCode = sc
 	}
 	w.WriteHeader(statusCode)
-	out := io.Writer(w)
 	msg := api.Message{Payload: err}
-	if _, _, err := maps.Into(handler, msg, &out, api.ToJson); err != nil {
+	if _, _, err := maps.Into(handler, msg, new(io.Writer(w)), api.ToJson); err != nil {
 		a.logger.Error(err, "unable to write error response")
 	}
 }

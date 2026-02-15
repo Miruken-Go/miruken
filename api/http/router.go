@@ -42,7 +42,7 @@ type (
 		Pipeline    []Policy
 	}
 
-	// Router routes messages over a http transport.
+	// Router routes messages over an http transport.
 	Router struct{}
 )
 
@@ -90,9 +90,8 @@ func (r *Router) Route(
 		composer := miruken.BuildUp(ctx.Composer, api.Polymorphic)
 
 		var b bytes.Buffer
-		out := io.Writer(&b)
 		msg := api.Message{Payload: routed.Message}
-		if _, _, err = maps.Into(composer, msg, &out, to); err != nil {
+		if _, _, err = maps.Into(composer, msg, new(io.Writer(&b)), to); err != nil {
 			reject(fmt.Errorf("http router: %w", err))
 		}
 

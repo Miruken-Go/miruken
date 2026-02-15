@@ -26,8 +26,7 @@ func (s *Safe[T]) Items() []T {
 }
 
 func (s *Safe[T]) Reset(items ...T) *Safe[T] {
-	c := append([]T{}, items...)
-	s.items.Store(&c)
+	s.items.Store(new(append([]T{}, items...)))
 	return s
 }
 

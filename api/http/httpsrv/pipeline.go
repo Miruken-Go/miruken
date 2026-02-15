@@ -145,8 +145,7 @@ func getMiddlewareBinding(
 		if binding, ok := (*bindings)[typ]; ok {
 			return &binding, nil
 		}
-		sb := maps.Clone(*bindings)
-		bindings = &sb
+		bindings = new(maps.Clone(*bindings))
 	} else {
 		bindings = &map[reflect.Type]middlewareBinding{}
 	}

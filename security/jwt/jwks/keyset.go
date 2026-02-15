@@ -47,8 +47,7 @@ func (f *KeySet) At(
 				resolve(fn)
 				return
 			}
-			atc := maps.Clone(*at)
-			at = &atc
+			at = new(maps.Clone(*at))
 		} else {
 			at = &map[string]jwt.Keyfunc{jwksURI: jwks.Keyfunc}
 		}

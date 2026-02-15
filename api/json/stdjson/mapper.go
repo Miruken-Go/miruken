@@ -15,7 +15,7 @@ import (
 )
 
 type (
-	// Options provide options for controlling json encoding.
+	// Options provide options for controlling JSON encoding.
 	Options struct {
 		Prefix       string
 		Indent       string
@@ -23,12 +23,12 @@ type (
 		Transformers []transform.Transformer
 	}
 
-	// Mapper formats to and from json using encoding/json.
+	// Mapper formats to and from JSON using encoding/json.
 	Mapper struct{}
 )
 
 var (
-	// CamelCase directs the json encoding of keys to use camelcase notation.
+	// CamelCase directs the JSON encoding of keys to use camelcase notation.
 	CamelCase = miruken.Options(Options{
 		Transformers: []transform.Transformer{
 			transform.OnlyForDirection(
@@ -210,7 +210,7 @@ func decode(
 	return
 }
 
-// transformer applies transformations to json serialization.
+// transformer applies transformations to JSON serialization.
 type transformer struct {
 	v     any
 	trans []transform.Transformer

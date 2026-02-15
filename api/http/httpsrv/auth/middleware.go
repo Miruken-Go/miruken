@@ -14,7 +14,7 @@ import (
 )
 
 type (
-	// Scheme binds a http request to a login flow.
+	// Scheme binds an http request to a login flow.
 	Scheme interface {
 		Accept(*http.Request) (miruken.Handler, error, bool)
 		Challenge(http.ResponseWriter, *http.Request, error) int

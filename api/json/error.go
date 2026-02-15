@@ -9,7 +9,7 @@ import (
 	"github.com/miruken-go/miruken/validates"
 )
 
-// Outcome is a surrogate for validates.Outcome over json.
+// Outcome is a surrogate for validates.Outcome over JSON.
 type Outcome []struct {
 	PropertyName string
 	Errors       []string
@@ -73,7 +73,7 @@ func surrogateToOutcome(surrogate Outcome) *validates.Outcome {
 	return outcome
 }
 
-// Error is a surrogate for a generic error over json.
+// Error is a surrogate for a generic error over JSON.
 type Error struct {
 	Message string
 }

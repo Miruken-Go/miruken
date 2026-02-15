@@ -325,8 +325,7 @@ func (b *CallbackBuilder) WithConstraints(
 		switch c := constraint.(type) {
 		case nil:
 		case string:
-			n := Named(c)
-			b.constraints = append(b.constraints, &n)
+			b.constraints = append(b.constraints, new(Named(c)))
 		case Constraint:
 			b.constraints = append(b.constraints, c)
 		case map[any]any:

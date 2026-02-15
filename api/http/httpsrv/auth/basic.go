@@ -7,7 +7,7 @@ import (
 	"github.com/miruken-go/miruken/security/login/callback"
 )
 
-// Basic is a http authentication Scheme that uses a
+// Basic is an http authentication Scheme that uses a
 // username and password to protect resources.
 type Basic struct {
 	Realm string
