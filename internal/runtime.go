@@ -22,6 +22,15 @@ func IsNil(val any) bool {
 	if val == nil {
 		return true
 	}
+	// Fast path: common non-nillable types avoid reflection entirely
+	switch val.(type) {
+	case string, bool,
+		int, int8, int16, int32, int64,
+		uint, uint8, uint16, uint32, uint64,
+		float32, float64, complex64, complex128,
+		error:
+		return false
+	}
 	v := reflect.ValueOf(val)
 	switch v.Type().Kind() {
 	case reflect.Chan,

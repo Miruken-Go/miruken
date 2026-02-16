@@ -236,35 +236,37 @@ func (r *defaultDependencyResolver) Resolve(
 	if result, pr, err2 := p.Resolve(ctx, many); err2 != nil {
 		err = fmt.Errorf("arg: unable to resolve dependency %v: %w", typ, err2)
 	} else if pr == nil {
-		switch {
-		case many:
-			v = reflect.New(typ).Elem()
-			internal.CopySliceIndirect(result.([]any), v)
-		case result != nil:
-			v = reflect.ValueOf(result)
-		case dep.Optional():
-			v = reflect.Zero(typ)
-		default:
-			err = fmt.Errorf("arg: unable to resolve dependency %v", typ)
-		}
+		v, err = resolveResult(result, typ, many, dep.Optional())
 	} else {
 		pv = promise.Then(pr, func(res any) reflect.Value {
-			var val reflect.Value
-			switch {
-			case many:
-				val = reflect.New(typ).Elem()
-				internal.CopySliceIndirect(res.([]any), val)
-			case res != nil:
-				val = reflect.ValueOf(res)
-			case dep.Optional():
-				val = reflect.Zero(typ)
-			default:
-				panic(fmt.Errorf("arg: unable to resolve dependency %v", typ))
+			val, err := resolveResult(res, typ, many, dep.Optional())
+			if err != nil {
+				panic(err)
 			}
 			return val
 		})
 	}
 	return
+}
+
+func resolveResult(
+	result any,
+	typ    reflect.Type,
+	many   bool,
+	optional bool,
+) (reflect.Value, error) {
+	switch {
+	case many:
+		v := reflect.New(typ).Elem()
+		internal.CopySliceIndirect(result.([]any), v)
+		return v, nil
+	case result != nil:
+		return reflect.ValueOf(result), nil
+	case optional:
+		return reflect.Zero(typ), nil
+	default:
+		return reflect.Value{}, fmt.Errorf("arg: unable to resolve dependency %v", typ)
+	}
 }
 
 // UnresolvedArgError reports a failed resolve an arg.

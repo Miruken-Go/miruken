@@ -5,7 +5,7 @@ import (
 	"maps"
 	"math"
 	"reflect"
-	"sort"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -295,15 +295,19 @@ type (
 )
 
 func orderFilters(
-	handler   Handler,
+	options   FilterOptions,
 	binding   Binding,
 	callback  Callback,
+	composer  Handler,
 	providers ...[]FilterProvider,
 ) ([]providedFilter, error) {
-	options, _ := GetOptions[FilterOptions](handler)
 	skipFilters := options.SkipFilters
 	bindingSkip := binding.SkipFilters()
-	var allProviders []FilterProvider
+	capacity := 0
+	for _, ps := range providers {
+		capacity += len(ps)
+	}
+	allProviders := make([]FilterProvider, 0, capacity)
 	var addProvider = func(p FilterProvider) {
 		if p == nil {
 			return
@@ -338,12 +342,12 @@ func orderFilters(
 		}
 	}
 	if skipFilters != Set(true) {
-		handler = BuildUp(handler, DisableFilters)
+		composer = BuildUp(composer, DisableFilters)
 	}
-	var allFilters []providedFilter
+	allFilters := make([]providedFilter, 0, len(allProviders))
 	for _, provider := range allProviders {
 		found := false
-		filters, err := provider.Filters(binding, callback, handler)
+		filters, err := provider.Filters(binding, callback, composer)
 		if filters == nil || err != nil {
 			return nil, err
 		}
@@ -360,24 +364,59 @@ func orderFilters(
 			return nil, nil
 		}
 	}
-	if allFilters == nil {
-		return []providedFilter{}, nil
+	if len(allFilters) == 0 {
+		return allFilters, nil
 	}
-	sort.Slice(allFilters, func(i, j int) bool {
-		filter1, filter2 := allFilters[i].filter, allFilters[j].filter
-		if filter1 == filter2 {
-			return false
+	slices.SortFunc(allFilters, func(a, b providedFilter) int {
+		fa, fb := a.filter, b.filter
+		if fa == fb {
+			return 0
 		}
-		order1, order2 := filter1.Order(), filter2.Order()
-		if order1 == order2 || order2 < 0 {
-			return true
+		oa, ob := fa.Order(), fb.Order()
+		if oa == ob || ob < 0 {
+			return -1
 		}
-		if order1 < 0 {
-			return false
+		if oa < 0 {
+			return 1
 		}
-		return order1 < order2
+		if oa < ob {
+			return -1
+		}
+		return 1
 	})
 	return allFilters, nil
+}
+
+func pipelineInvoke(
+	ctx     HandleContext,
+	filters []providedFilter,
+	binding Binding,
+) (r []any, pr *promise.Promise[[]any], err error) {
+	index, length := 0, len(filters)
+	var next Next
+	next = func(
+		composer Handler,
+		proceed bool,
+		values ...any,
+	) ([]any, *promise.Promise[[]any], error) {
+		if !proceed {
+			return nil, nil, &RejectedError{ctx.Callback}
+		}
+		if composer != nil {
+			ctx.Composer = composer
+		}
+		if len(values) > 0 {
+			ctx.Composer = BuildUp(ctx.Composer, With(values...))
+		}
+		if index < length {
+			pf := filters[index]
+			f := pf.filter
+			index++
+			return f.Next(f, next, ctx, pf.provider)
+		}
+		return binding.Invoke(ctx)
+	}
+	return next(nil, true)
 }
 
 func pipeline(
@@ -561,10 +600,9 @@ func getFilterBinding(
 		bindings = &map[reflect.Type]filterBindingGroup{}
 	}
 	var group filterBindingGroup
-	// Methods in GO are sorted in lexicographic order which will
+	// Methods in Go are sorted in lexicographic order which will
 	// determine the order of filter execution.
-	for i := range typ.NumMethod() {
-		method := typ.Method(i)
+	for method := range typ.Methods() {
 		if method.Name != "Next" {
 			if binding, err := parseFilterMethod(&method); err != nil {
 				return nil, err
@@ -637,8 +675,7 @@ func parseFilterMethod(
 		err = fmt.Errorf("filter: %v %q: %w", funcType.In(0), method.Name, err)
 		return nil, &MethodBindingError{method, err}
 	}
-	binding.funcCall.fun = method.Func
-	binding.funcCall.args = args
+	binding.funcCall = newFuncCall(method.Func, args)
 	return &binding, nil
 }
 

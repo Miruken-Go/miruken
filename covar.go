@@ -109,9 +109,7 @@ func (p *CovariantPolicy) NewCtorBinding(
 ) (Binding, error) {
 	binding := &CtorBinding{typ: typ, key: key}
 	if spec != nil {
-		binding.BindingBase.FilterScope.providers = spec.filters
-		binding.BindingBase.metadata = spec.metadata
-		binding.BindingBase.flags = spec.flags
+		binding.BindingBase = spec.bindingBase()
 	}
 	var ctorInits initializer
 	if ctor != nil {
@@ -140,11 +138,8 @@ func (p *CovariantPolicy) NewMethodBinding(
 		return nil, &MethodBindingError{method, err}
 	} else {
 		return &MethodBinding{
-			funcCall{method.Func, args},
-			BindingBase{
-				FilterScope{spec.filters},
-				spec.flags, spec.metadata,
-			}, k, *method, spec.lt,
+			newFuncCall(method.Func, args),
+			spec.bindingBase(), k, *method, spec.lt,
 		}, nil
 	}
 }
@@ -158,11 +153,8 @@ func (p *CovariantPolicy) NewFuncBinding(
 		return nil, &FuncBindingError{fun, err}
 	} else {
 		return &FuncBinding{
-			funcCall{fun, args},
-			BindingBase{
-				FilterScope{spec.filters},
-				spec.flags, spec.metadata,
-			}, k, spec.lt,
+			newFuncCall(fun, args),
+			spec.bindingBase(), k, spec.lt,
 		}, nil
 	}
 }
@@ -244,6 +236,6 @@ func addInitializer(
 	if err != nil {
 		return fmt.Errorf("%s: %w", label, err)
 	}
-	ci.inits = append(ci.inits, funcCall{init.Func, args})
+	ci.inits = append(ci.inits, newFuncCall(init.Func, args))
 	return nil
 }

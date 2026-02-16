@@ -30,7 +30,7 @@ func MakeCaller(fun any) (CallerFunc, error) {
 			return nil, err
 		}
 		return func(handler Handler, initArgs ...any) ([]any, *promise.Promise[[]any], error) {
-			fun := funcCall{val, args[len(initArgs):]}
+			fun := newFuncCall(val, args[len(initArgs):])
 			return fun.Invoke(HandleContext{Composer: handler}, initArgs...)
 		}, nil
 	}

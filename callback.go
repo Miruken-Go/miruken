@@ -3,10 +3,8 @@ package miruken
 import (
 	"fmt"
 	"reflect"
-	"slices"
 
 	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/internal/seq"
 	"github.com/miruken-go/miruken/promise"
 )
 
@@ -192,13 +190,11 @@ func (c *CallbackBase) ReceiveResult(
 	if strict {
 		return c.includeResult(result, true, composer)
 	}
-	switch reflect.TypeOf(result).Kind() {
-	case reflect.Slice, reflect.Array:
+	if isSliceOrArray(result) {
 		_, r := c.processResults(false, result, composer)
 		return r
-	default:
-		return c.includeResult(result, false, composer)
 	}
+	return c.includeResult(result, false, composer)
 }
 
 func (c *CallbackBase) Constraints() []Constraint {
@@ -209,20 +205,22 @@ func (c *CallbackBase) ensureResult(many, expand bool) any {
 	if c.result == nil {
 		var results []any
 		if expand {
-			results = slices.Collect(
-				seq.FlatMap(slices.Values(c.results), func(res any) []any {
-					if internal.IsNil(res) {
-						return nil
-					}
-					if expand, ok := res.(expandResults); ok {
-						return expand
-					}
-					return []any{res}
-				}))
+			for _, res := range c.results {
+				if internal.IsNil(res) {
+					continue
+				}
+				if exp, ok := res.(expandResults); ok {
+					results = append(results, exp...)
+				} else {
+					results = append(results, res)
+				}
+			}
 		} else {
-			results = slices.Collect(
-				seq.Filter(slices.Values(c.results), seq.Not(internal.IsNil)),
-			)
+			for _, res := range c.results {
+				if !internal.IsNil(res) {
+					results = append(results, res)
+				}
+			}
 		}
 		switch {
 		case many:
@@ -256,11 +254,9 @@ func (c *CallbackBase) includeResult(
 		pp := pr.Then(func(res any) any {
 			if !(strict || internal.IsNil(res)) {
 				// Squash list into expando result
-				switch reflect.TypeOf(res).Kind() {
-				case reflect.Slice, reflect.Array:
+				if isSliceOrArray(res) {
 					r, _ := c.processResults(true, res, composer)
 					return r
-				default:
 				}
 			}
 			return res
@@ -272,13 +268,11 @@ func (c *CallbackBase) includeResult(
 	} else if strict {
 		return c.AddResult(result, composer)
 	}
-	switch reflect.TypeOf(result).Kind() {
-	case reflect.Slice, reflect.Array:
+	if isSliceOrArray(result) {
 		c.processResults(false, result, composer)
-	default:
-		return c.AddResult(result, composer)
+		return Handled
 	}
-	return Handled
+	return c.AddResult(result, composer)
 }
 
 // processResults adds an array or slice to the callbacks results.
@@ -292,13 +286,28 @@ func (c *CallbackBase) processResults(
 ) (expandResults, HandleResult) {
 	res := NotHandled
 	var expand expandResults
-	v := reflect.ValueOf(results)
-	for i := range v.Len() {
-		val := v.Index(i).Interface()
+	addItem := func(val any) bool {
 		if !internal.IsNil(val) {
 			if squash {
 				expand = append(expand, val)
 			} else if res = res.Or(c.AddResult(val, composer)); res.stop {
+				return false
+			}
+		}
+		return true
+	}
+	// Fast path for []any (most common case)
+	if anySlice, ok := results.([]any); ok {
+		for _, val := range anySlice {
+			if !addItem(val) {
+				break
+			}
+		}
+	} else {
+		// Fallback to reflection for typed slices
+		v := reflect.ValueOf(results)
+		for i := range v.Len() {
+			if !addItem(v.Index(i).Interface()) {
 				break
 			}
 		}
@@ -349,6 +358,17 @@ func (b *CallbackBuilder) CallbackBase() CallbackBase {
 // to an asynchronous operation, so it must be unwrapped.
 //
 //	e.g.  async filter, async args
+// isSliceOrArray checks if val is a slice or array type,
+// using fast-path type switches before falling back to reflection.
+func isSliceOrArray(val any) bool {
+	switch val.(type) {
+	case []any, expandResults:
+		return true
+	}
+	k := reflect.TypeOf(val).Kind()
+	return k == reflect.Slice || k == reflect.Array
+}
+
 func unwrapResult(result any) any {
 	if result == nil {
 		return nil

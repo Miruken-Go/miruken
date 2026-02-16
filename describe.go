@@ -135,8 +135,7 @@ func (s TypeSpec) newRuntime(
 	}
 
 	// Discover method callback handlers
-	for i := range typ.NumMethod() {
-		method := typ.Method(i)
+	for method := range typ.Methods() {
 		if method.Name == "Constructor" || method.Name == "NoConstructor" {
 			continue
 		}
@@ -287,6 +286,8 @@ func (h *HandlerRuntime) Dispatch(
 ) (result HandleResult) {
 	if pb, found := h.bindings[policy]; found {
 		key := callback.Key()
+		var filterOpts FilterOptions
+		var filterOptsResolved bool
 		return pb.reduce(key, policy, func(
 			binding Binding,
 			result HandleResult,
@@ -321,6 +322,10 @@ func (h *HandlerRuntime) Dispatch(
 				if check, ok := callback.(interface {
 					CanFilter() bool
 				}); !ok || check.CanFilter() {
+					if !filterOptsResolved {
+						filterOpts, _ = GetOptions[FilterOptions](composer)
+						filterOptsResolved = true
+					}
 					var tp []FilterProvider
 					// Only apply compound filters for handles policy
 					if policy == handlesPolicyIns {
@@ -337,8 +342,8 @@ func (h *HandlerRuntime) Dispatch(
 						}
 					}
 					if orderedFilters, err := orderFilters(
-						composer, binding, callback, binding.Filters(),
-						h.filters.Filters(), policy.Filters(), tp); orderedFilters != nil && err == nil {
+						filterOpts, binding, callback, composer,
+						binding.Filters(), h.filters.Filters(), policy.Filters(), tp); orderedFilters != nil && err == nil {
 						filters = orderedFilters
 					} else {
 						return result, false
@@ -358,10 +363,7 @@ func (h *HandlerRuntime) Dispatch(
 				if len(filters) == 0 {
 					out, pout, err = binding.Invoke(ctx)
 				} else {
-					out, pout, err = pipeline(ctx, filters,
-						func(ctx HandleContext) ([]any, *promise.Promise[[]any], error) {
-							return binding.Invoke(ctx)
-						})
+					out, pout, err = pipelineInvoke(ctx, filters, binding)
 				}
 				if err == nil {
 					if pout != nil {
@@ -520,7 +522,7 @@ func (o runtimeObserverMap) register(
 			o[runtimeCreatedObserver] = append(o[runtimeCreatedObserver], observer)
 		}
 		if _, ok := observer.(HandlerRuntimeBindingObserver); ok {
-			o[runtimeBindingObserver] = append(o[runtimeCreatedObserver], observer)
+			o[runtimeBindingObserver] = append(o[runtimeBindingObserver], observer)
 		}
 		if _, ok := observer.(HandlerRuntimeRegisteredObserver); ok {
 			o[runtimeRegisteredObserver] = append(o[runtimeRegisteredObserver], observer)

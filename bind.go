@@ -213,6 +213,13 @@ func (b *bindingSpec) addMetadata(
 	return nil
 }
 
+func (b *bindingSpec) bindingBase() BindingBase {
+	return BindingBase{
+		FilterScope{b.filters},
+		b.flags, b.metadata,
+	}
+}
+
 func (b *bindingSpec) setLogicalOutputType(lt reflect.Type) {
 	switch lt {
 	case internal.ErrorType, handleResType:
@@ -350,10 +357,11 @@ func parseStruct(
 	var metadataOwner interface {
 		addMetadata(metadata any) error
 	}
+	fieldIdx := -1
 NextField:
-	for i := range typ.NumField() {
+	for field := range typ.Fields() {
+		fieldIdx++
 		bound := false
-		field := typ.Field(i)
 		fieldType := field.Type
 		if fieldType == bindingGroupType {
 			continue
@@ -369,7 +377,7 @@ NextField:
 			continue
 		}
 		for _, parser := range parsers {
-			if b, inv := parser.parse(i, &field, binding, tags...); inv != nil {
+			if b, inv := parser.parse(fieldIdx, &field, binding, tags...); inv != nil {
 				err = errors.Join(err, inv)
 				continue NextField
 			} else if b {

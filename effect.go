@@ -207,8 +207,7 @@ func getEffectMethod(
 	} else {
 		bindings = &map[reflect.Type]effectBinding{}
 	}
-	for i := range typ.NumMethod() {
-		method := typ.Method(i)
+	for method := range typ.Methods() {
 		if method.Name != "Apply" {
 			continue
 		}
@@ -253,8 +252,7 @@ func getEffectMethod(
 				err = fmt.Errorf("effect: %v %q: %w", typ, method.Name, err)
 				return nil, &MethodBindingError{&method, err}
 			}
-			binding.funcCall.fun = method.Func
-			binding.funcCall.args = args
+			binding.funcCall = newFuncCall(method.Func, args)
 			(*bindings)[typ] = binding
 			effectBindingMap.Store(bindings)
 			return &binding, nil

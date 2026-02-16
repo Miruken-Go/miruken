@@ -3,10 +3,8 @@ package miruken
 import (
 	"fmt"
 	"reflect"
-	"slices"
 
 	"github.com/miruken-go/miruken/internal"
-	"github.com/miruken-go/miruken/internal/seq"
 	"github.com/miruken-go/miruken/promise"
 )
 
@@ -36,10 +34,22 @@ type (
 
 	// funcCall models a function call with arguments.
 	funcCall struct {
-		fun  reflect.Value
-		args []arg
+		fun      reflect.Value
+		funType  reflect.Type   // cached fun.Type()
+		argTypes []reflect.Type // cached funType.In(i) for each arg
+		args     []arg
 	}
 )
+
+func newFuncCall(fun reflect.Value, args []arg) funcCall {
+	ft := fun.Type()
+	n := ft.NumIn()
+	argTypes := make([]reflect.Type, n)
+	for i := range n {
+		argTypes[i] = ft.In(i)
+	}
+	return funcCall{fun: fun, funType: ft, argTypes: argTypes, args: args}
+}
 
 // FuncBindingError
 
@@ -93,11 +103,10 @@ func (f *funcCall) resolveArgs(
 	if len(f.args) == 0 {
 		return nil, nil, nil
 	}
-	funType := f.fun.Type()
 	var promises []*promise.Promise[struct{}]
 	resolved := make([]reflect.Value, len(f.args))
 	for i, arg := range f.args {
-		typ := funType.In(fromIndex + i)
+		typ := f.argTypes[fromIndex+i]
 		if a, pa, err := arg.resolve(typ, ctx); err != nil {
 			return nil, nil, &UnresolvedArgError{arg, err}
 		} else if pa == nil {
@@ -132,7 +141,7 @@ func (f *funcCall) resolveArgs(
 }
 
 // callFuncWithArgs calls the function stored in the fun argument.
-// Combines the initial ands resolved args as the function input.
+// Combines the initial and resolved args as the function input.
 // Returns the output results slice.
 func callFuncWithArgs(
 	fun      reflect.Value,
@@ -140,14 +149,22 @@ func callFuncWithArgs(
 	initArgs []any,
 ) []any {
 	cnt := len(initArgs)
-	in := make([]reflect.Value, len(initArgs)+len(ra))
+	in := make([]reflect.Value, cnt+len(ra))
 	for i, ia := range initArgs {
 		in[i] = reflect.ValueOf(ia)
 	}
 	for i, aa := range ra {
 		in[cnt+i] = aa
 	}
-	return slices.Collect(seq.Map(slices.Values(fun.Call(in)), reflect.Value.Interface))
+	results := fun.Call(in)
+	if len(results) == 0 {
+		return nil
+	}
+	out := make([]any, len(results))
+	for i, v := range results {
+		out[i] = v.Interface()
+	}
+	return out
 }
 
 // mergeOutput analyzes the standard function return values and

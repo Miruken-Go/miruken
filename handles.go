@@ -12,6 +12,7 @@ import (
 type Handles struct {
 	CallbackBase
 	callback any
+	key      reflect.Type
 }
 
 func (h *Handles) Source() any {
@@ -19,7 +20,7 @@ func (h *Handles) Source() any {
 }
 
 func (h *Handles) Key() any {
-	return reflect.TypeOf(h.callback)
+	return h.key
 }
 
 func (h *Handles) Policy() Policy {
@@ -91,6 +92,7 @@ func (b *HandlesBuilder) New() *Handles {
 	return &Handles{
 		CallbackBase: b.CallbackBase(),
 		callback:     b.callback,
+		key:          reflect.TypeOf(b.callback),
 	}
 }
 

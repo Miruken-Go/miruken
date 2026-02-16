@@ -239,6 +239,60 @@ func DispatchPolicy(
 	return NotHandled
 }
 
+func acceptResultsWithEffects(
+	results []any,
+) (any, HandleResult, []Effect, []any) {
+	switch len(results) {
+	case 0:
+		return nil, Handled, nil, nil
+	case 1:
+		switch result := results[0].(type) {
+		case error:
+			return nil, NotHandled.WithError(result), nil, nil
+		case HandleResult:
+			return nil, result, nil, nil
+		default:
+			if effect, _ := MakeEffect(result, false); effect != nil {
+				return nil, Handled, []Effect{effect}, nil
+			}
+			return result, Handled, nil, nil
+		}
+	default:
+		iEnd := 0
+		hr := Handled
+		switch err := results[len(results)-1].(type) {
+		case error:
+			return nil, NotHandled.WithError(err), nil, nil
+		case HandleResult:
+			if !err.Handled() || err.IsError() {
+				return nil, err, nil, nil
+			}
+			hr = err
+			iEnd++
+		}
+		var res any
+		iStart := 0
+		first := results[0]
+		if h, ok := first.(HandleResult); ok {
+			hr = hr.And(h)
+			if !hr.Handled() || hr.IsError() {
+				return nil, hr, nil, nil
+			}
+			iStart++
+		} else {
+			if effect, _ := MakeEffect(first, false); effect == nil {
+				res = first
+				iStart++
+			}
+		}
+		effects, xs, err := MakeEffects(false, results[iStart:len(results)-iEnd])
+		if err != nil {
+			return res, NotHandled.WithError(err), nil, nil
+		}
+		return res, hr, effects, xs
+	}
+}
+
 var (
 	callbackType  = reflect.TypeFor[Callback]()
 	handleResType = reflect.TypeFor[HandleResult]()
