@@ -105,9 +105,10 @@ func Out[T any](
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
+	var target T
 	var builder Builder
 	builder.FromSource(source).
-		IntoTarget(&t).
+		IntoTarget(&target).
 		WithConstraints(constraints...)
 	m = builder.New()
 	if result := handler.Handle(m, false, nil); result.IsError() {
@@ -115,7 +116,9 @@ func Out[T any](
 	} else if !result.Handled() {
 		err = &miruken.NotHandledError{Callback: m}
 	} else if _, p := m.Result(false); p != nil {
-		tp = promise.IndirectReturn(p, &t)
+		tp = promise.IndirectReturn(p, &target)
+	} else {
+		t = target
 	}
 	return
 }
@@ -159,9 +162,10 @@ func Key[T any](
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
+	var target T
 	var builder Builder
 	builder.WithKey(key).
-		IntoTarget(&t).
+		IntoTarget(&target).
 		WithConstraints(constraints...)
 	m = builder.New()
 	if result := handler.Handle(m, false, nil); result.IsError() {
@@ -169,7 +173,9 @@ func Key[T any](
 	} else if !result.Handled() {
 		err = &miruken.NotHandledError{Callback: m}
 	} else if _, p := m.Result(false); p != nil {
-		tp = promise.IndirectReturn(p, &t)
+		tp = promise.IndirectReturn(p, &target)
+	} else {
+		t = target
 	}
 	return
 }
@@ -186,12 +192,12 @@ func All[T any](
 		panic("source must be a non-nil slice")
 	}
 	ts := reflect.ValueOf(source)
-	t = make([]T, ts.Len())
+	target := make([]T, ts.Len())
 	var promises []*promise.Promise[T]
 	for i := range ts.Len() {
 		var builder Builder
 		builder.FromSource(ts.Index(i).Interface()).
-			IntoTarget(&t[i]).
+			IntoTarget(&target[i]).
 			WithConstraints(constraints...)
 		m := builder.New()
 		if result := handler.Handle(m, false, nil); result.IsError() {
@@ -201,17 +207,18 @@ func All[T any](
 		} else if _, p := m.Result(false); p != nil {
 			idx := i
 			promises = append(promises, promise.Then(p, func(any) T {
-				return t[idx]
+				return target[idx]
 			}))
 		}
 	}
 	switch len(promises) {
 	case 0:
+		t = target
 		return
 	case 1:
-		return nil, promise.Return(promises[0], t), nil
+		return nil, promise.Return(promises[0], target), nil
 	default:
-		return nil, promise.Return(promise.All(nil, promises...), t), nil
+		return nil, promise.Return(promise.All(nil, promises...), target), nil
 	}
 }
 

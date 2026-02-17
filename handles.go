@@ -130,9 +130,10 @@ func Execute[T any](
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
+	var target T
 	var builder HandlesBuilder
 	builder.WithCallback(callback).
-		IntoTarget(&t).
+		IntoTarget(&target).
 		WithConstraints(constraints...)
 	handles := builder.New()
 	if result := handler.Handle(handles, false, nil); result.IsError() {
@@ -140,7 +141,9 @@ func Execute[T any](
 	} else if !result.Handled() {
 		err = &NotHandledError{callback}
 	} else if _, p := handles.Result(false); p != nil {
-		tp = promise.IndirectReturn(p, &t)
+		tp = promise.IndirectReturn(p, &target)
+	} else {
+		t = target
 	}
 	return
 }
@@ -179,9 +182,10 @@ func ExecuteAll[T any](
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
+	var target []T
 	var builder HandlesBuilder
 	builder.WithCallback(callback).
-		IntoTarget(&t).
+		IntoTarget(&target).
 		WithConstraints(constraints...)
 	handles := builder.New()
 	if result := handler.Handle(handles, true, nil); result.IsError() {
@@ -189,7 +193,9 @@ func ExecuteAll[T any](
 	} else if !result.Handled() {
 		err = &NotHandledError{Callback: callback}
 	} else if _, p := handles.Result(true); p != nil {
-		tp = promise.IndirectReturn(p, &t)
+		tp = promise.IndirectReturn(p, &target)
+	} else {
+		t = target
 	}
 	return
 }

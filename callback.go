@@ -3,6 +3,8 @@ package miruken
 import (
 	"fmt"
 	"reflect"
+	"sync"
+	"sync/atomic"
 
 	"github.com/miruken-go/miruken/internal"
 	"github.com/miruken-go/miruken/promise"
@@ -48,6 +50,8 @@ type (
 
 	// CallbackBase is abstract Callback implementation.
 	CallbackBase struct {
+		mu            sync.Mutex
+		async         atomic.Bool // true once a promise result is added
 		result        any
 		results       []any
 		target        any
@@ -101,26 +105,40 @@ func (c *CallbackBase) TargetForWrite() any {
 }
 
 func (c *CallbackBase) ResultCount() int {
+	if c.async.Load() {
+		c.mu.Lock()
+		n := len(c.results)
+		c.mu.Unlock()
+		return n
+	}
 	return len(c.results)
 }
 
 func (c *CallbackBase) Result(
 	many bool,
 ) (any, *promise.Promise[any]) {
-	if c.result == nil {
-		switch len(c.promises) {
-		case 0:
-			c.ensureResult(many, false)
-		case 1:
-			return nil, c.promises[0].Then(func(any) any {
-				return c.ensureResult(many, true)
-			})
-		default:
-			return nil, promise.All(nil, c.promises...).
-				Then(func(any) any {
+	if c.async.Load() {
+		c.mu.Lock()
+		result := c.result
+		promises := c.promises
+		c.mu.Unlock()
+		if result == nil {
+			switch len(promises) {
+			case 0:
+				c.ensureResult(many, false)
+			case 1:
+				return nil, promises[0].Then(func(any) any {
 					return c.ensureResult(many, true)
 				})
+			default:
+				return nil, promise.All(nil, promises...).
+					Then(func(any) any {
+						return c.ensureResult(many, true)
+					})
+			}
 		}
+	} else if c.result == nil {
+		c.ensureResult(many, false)
 	}
 	return c.result, nil
 }
@@ -150,32 +168,47 @@ func (c *CallbackBase) AddResult(
 	}
 	accept := c.accept
 	if pr, ok := result.(promise.Reflect); ok && !internal.IsNil(pr) {
-		// To avoid locking the results, promises are added to
-		// the results and promises list.  When resolved, the
-		// result is replaced at the same position.  A special
-		// expandResults type is used when the promise Resolves
-		// in a list of results.
+		c.mu.Lock()
 		idx := len(c.results)
 		c.results = append(c.results, result)
-		c.promises = append(c.promises, pr.Then(func(res any) any {
+		c.async.Store(true)
+		c.mu.Unlock()
+		p := pr.Then(func(res any) any {
 			if accept != nil {
+				c.mu.Lock()
 				if l := len(c.results); l > idx {
 					c.results[idx] = nil
 				}
+				c.mu.Unlock()
 				if !internal.IsNil(res) {
 					accept(res, composer)
 				}
-			} else if l := len(c.results); l > idx {
-				c.results[idx] = res
+			} else {
+				c.mu.Lock()
+				if l := len(c.results); l > idx {
+					c.results[idx] = res
+				}
+				c.mu.Unlock()
 			}
 			return nil
-		}))
+		})
+		c.mu.Lock()
+		c.promises = append(c.promises, p)
+		c.result = nil
+		c.mu.Unlock()
 	} else if accept == nil {
-		c.results = append(c.results, result)
+		if c.async.Load() {
+			c.mu.Lock()
+			c.results = append(c.results, result)
+			c.result = nil
+			c.mu.Unlock()
+		} else {
+			c.results = append(c.results, result)
+			c.result = nil
+		}
 	} else {
 		return accept(result, composer)
 	}
-	c.result = nil
 	return Handled
 }
 
@@ -203,6 +236,9 @@ func (c *CallbackBase) Constraints() []Constraint {
 
 func (c *CallbackBase) ensureResult(many, expand bool) any {
 	if c.result == nil {
+		if c.async.Load() {
+			c.mu.Lock()
+		}
 		var results []any
 		if expand {
 			for _, res := range c.results {
@@ -221,6 +257,9 @@ func (c *CallbackBase) ensureResult(many, expand bool) any {
 					results = append(results, res)
 				}
 			}
+		}
+		if c.async.Load() {
+			c.mu.Unlock()
 		}
 		switch {
 		case many:

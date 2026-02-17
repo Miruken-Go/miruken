@@ -234,10 +234,11 @@ func ResolveKey[T any](
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
+	var target T
 	var builder ProvidesBuilder
 	builder.WithConstraints(constraints...)
 	builder.WithKey(key).
-		IntoTarget(&t)
+		IntoTarget(&target)
 	p := builder.New()
 	if result := handler.Handle(p, false, nil); result.IsError() {
 		err = result.Error()
@@ -245,8 +246,10 @@ func ResolveKey[T any](
 		ok = true
 		if _, pr := p.Result(false); pr != nil {
 			tp = promise.Then(pr, func(any) T {
-				return t
+				return target
 			})
+		} else {
+			t = target
 		}
 	}
 	return
@@ -261,16 +264,19 @@ func ResolveAll[T any](
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
+	var target []T
 	var builder ProvidesBuilder
 	builder.WithConstraints(constraints...)
 	builder.WithKey(reflect.TypeFor[T]()).
-		IntoTarget(&t)
+		IntoTarget(&target)
 	p := builder.New()
 	if result := handler.Handle(p, true, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {
 		if _, pr := p.Result(true); pr != nil {
-			tp = promise.IndirectReturn(pr, &t)
+			tp = promise.IndirectReturn(pr, &target)
+		} else {
+			t = target
 		}
 	}
 	return

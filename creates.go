@@ -82,9 +82,10 @@ func CreateKey[T any](
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
+	var target T
 	var builder CreatesBuilder
 	builder.WithKey(key).
-		IntoTarget(&t).
+		IntoTarget(&target).
 		WithConstraints(constraints...)
 	creates := builder.New()
 	if result := handler.Handle(creates, false, nil); result.IsError() {
@@ -93,6 +94,8 @@ func CreateKey[T any](
 		err = &NotHandledError{creates}
 	} else if _, p := creates.Result(false); p != nil {
 		tp = promise.Coerce[T](p)
+	} else {
+		t = target
 	}
 	return
 }
@@ -105,16 +108,19 @@ func CreateAll[T any](
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
 	}
+	var target []T
 	var builder CreatesBuilder
 	builder.WithKey(reflect.TypeFor[T]()).
-		IntoTarget(&t).
+		IntoTarget(&target).
 		WithConstraints(constraints...)
 	creates := builder.New()
 	if result := handler.Handle(creates, true, nil); result.IsError() {
 		err = result.Error()
 	} else if result.handled {
 		if _, p := creates.Result(true); p != nil {
-			tp = promise.Return(p, t)
+			tp = promise.IndirectReturn(p, &target)
+		} else {
+			t = target
 		}
 	}
 	return
