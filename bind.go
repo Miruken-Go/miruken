@@ -37,14 +37,14 @@ type (
 	// BindingReducer aggregates Binding results.
 	BindingReducer func(
 		binding Binding,
-		result  HandleResult,
+		result HandleResult,
 	) (HandleResult, bool)
 
 	// BindingParser is an extension for binding customizations.
 	BindingParser interface {
 		parse(
-			index   int,
-			field   *reflect.StructField,
+			index int,
+			field *reflect.StructField,
 			binding any,
 			tags ...reflect.StructTag,
 		) (bound bool, err error)
@@ -52,8 +52,8 @@ type (
 
 	// BindingParserFunc implements a BindingParser using a function.
 	BindingParserFunc func(
-		index   int,
-		field   *reflect.StructField,
+		index int,
+		field *reflect.StructField,
 		binding any,
 		tags ...reflect.StructTag,
 	) (bound bool, err error)
@@ -75,8 +75,8 @@ type (
 // BindingParserFunc
 
 func (b BindingParserFunc) parse(
-	index   int,
-	field   *reflect.StructField,
+	index int,
+	field *reflect.StructField,
 	binding any,
 	tags ...reflect.StructTag,
 ) (bound bool, err error) {
@@ -144,7 +144,7 @@ const (
 
 func (b *bindingSpec) addPolicy(
 	policy Policy,
-	field  *reflect.StructField,
+	field *reflect.StructField,
 ) error {
 	pk := policyKey{policy: policy}
 	if key, ok := field.Tag.Lookup("key"); ok {
@@ -189,8 +189,8 @@ func (b *bindingSpec) addConstraint(
 }
 
 func (b *bindingSpec) setStrict(
-	index  int,
-	field  *reflect.StructField,
+	index int,
+	field *reflect.StructField,
 	strict bool,
 ) error {
 	b.flags |= bindingStrict
@@ -198,8 +198,8 @@ func (b *bindingSpec) setStrict(
 }
 
 func (b *bindingSpec) setSkipFilters(
-	index  int,
-	field  *reflect.StructField,
+	index int,
+	field *reflect.StructField,
 	strict bool,
 ) error {
 	b.flags |= bindingSkipFilters
@@ -238,7 +238,7 @@ func (b *bindingSpec) complete() error {
 // bindingSpecFactory
 
 func (p *bindingSpecFactory) createSpec(
-	typ     reflect.Type,
+	typ reflect.Type,
 	minArgs int,
 ) (spec *bindingSpec, err error) {
 	if typ.Kind() != reflect.Func || typ.NumIn() < minArgs {
@@ -246,9 +246,9 @@ func (p *bindingSpecFactory) createSpec(
 	}
 	specType := typ.In(minArgs - 1)
 	// Is it a policy spec?
-	if specType.Kind() == reflect.Ptr {
+	if specType.Kind() == reflect.Pointer {
 		if at := specType.Elem(); // anonymous struct or binding group
-			(at.Name() == "" || at.Implements(definesBindingGroup)) &&
+		(at.Name() == "" || at.Implements(definesBindingGroup)) &&
 			at.Kind() == reflect.Struct {
 			spec = &bindingSpec{}
 			if err := parseSpec(at, spec, p.parsers); err != nil {
@@ -309,8 +309,8 @@ func (p *bindingSpecFactory) policyOf(
 }
 
 func (p *bindingSpecFactory) parse(
-	index   int,
-	field   *reflect.StructField,
+	index int,
+	field *reflect.StructField,
 	binding any,
 	tags ...reflect.StructTag,
 ) (bound bool, err error) {
@@ -333,8 +333,8 @@ func (p *bindingSpecFactory) parse(
 }
 
 func parseSpec(
-	source  reflect.Type,
-	spec    any,
+	source reflect.Type,
+	spec any,
 	parsers []BindingParser,
 ) (err error) {
 	if err = parseStruct(source, spec, parsers); err == nil {
@@ -348,7 +348,7 @@ func parseSpec(
 }
 
 func parseStruct(
-	typ     reflect.Type,
+	typ reflect.Type,
 	binding any,
 	parsers []BindingParser,
 	tags ...reflect.StructTag,
@@ -404,8 +404,8 @@ NextField:
 }
 
 func parseFilters(
-	index   int,
-	field   *reflect.StructField,
+	index int,
+	field *reflect.StructField,
 	binding any,
 	tags ...reflect.StructTag,
 ) (bound bool, err error) {
@@ -417,8 +417,8 @@ func parseFilters(
 		}); ok {
 			spec := filterSpec{filter, false, -1}
 			if f, ok := field.Tag.Lookup(filterTag); ok {
-				args := strings.Split(f, ",")
-				for _, arg := range args {
+				args := strings.SplitSeq(f, ",")
+				for arg := range args {
 					if arg == requiredArg {
 						spec.required = true
 					} else {
@@ -456,8 +456,8 @@ func parseFilters(
 }
 
 func parseConstraints(
-	index   int,
-	field   *reflect.StructField,
+	index int,
+	field *reflect.StructField,
 	binding any,
 	tags ...reflect.StructTag,
 ) (bound bool, err error) {
@@ -481,8 +481,8 @@ func parseConstraints(
 }
 
 func parseOptions(
-	index   int,
-	field   *reflect.StructField,
+	index int,
+	field *reflect.StructField,
 	binding any,
 	tags ...reflect.StructTag,
 ) (bound bool, err error) {
@@ -531,7 +531,7 @@ func addMetadata(
 		addMetadata(metadata any) error
 	},
 ) error {
-	if typ.Kind() != reflect.Ptr {
+	if typ.Kind() != reflect.Pointer {
 		typ = reflect.PointerTo(typ)
 	}
 	if metadata, err := internal.NewWithTag(typ, tag); metadata != nil && err == nil {

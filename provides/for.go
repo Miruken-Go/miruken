@@ -22,7 +22,7 @@ type (
 // For
 
 func (f *For[T]) Init() error {
-	if f.typ = reflect.TypeFor[T](); f.typ.Kind() == reflect.Ptr {
+	if f.typ = reflect.TypeFor[T](); f.typ.Kind() == reflect.Pointer {
 		f.typ = f.typ.Elem()
 	}
 	return nil
@@ -50,7 +50,7 @@ func (f *For[T]) matches(p *It, graph bool) bool {
 	for p != nil {
 		if b := p.Binding(); b != nil {
 			if typ := b.LogicalOutputType(); typ != nil {
-				if typ.Kind() == reflect.Ptr {
+				if typ.Kind() == reflect.Pointer {
 					typ = typ.Elem()
 				}
 				if typ.AssignableTo(f.typ) {

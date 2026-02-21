@@ -112,7 +112,7 @@ func (m *Metadata) InitWithTag(
 		if tag == "" {
 			return nil
 		}
-		for _, metadata := range strings.Split(tag, ",") {
+		for metadata := range strings.SplitSeq(tag, ",") {
 			var meta = strings.SplitN(metadata, "=", 2)
 			switch len(meta) {
 			case 1:
@@ -169,9 +169,9 @@ func (f constraintFilter) Order() int {
 }
 
 func (f constraintFilter) Next(
-	_        Filter,
-	next     Next,
-	ctx      HandleContext,
+	_ Filter,
+	next Next,
+	ctx HandleContext,
 	provider FilterProvider,
 ) ([]any, *promise.Promise[[]any], error) {
 	if cp, ok := provider.(ConstraintSource); ok {

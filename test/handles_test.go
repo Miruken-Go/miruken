@@ -286,7 +286,7 @@ func (c *Configuration) Validate(
 	typ reflect.Type,
 	_ miruken.DependencyArg,
 ) error {
-	if !reflect.TypeOf(c.config).AssignableTo(typ) {
+	if !reflect.TypeFor[*Config]().AssignableTo(typ) {
 		return fmt.Errorf("the Configuration resolver expects a %T field", c.config)
 	}
 	return nil
@@ -458,6 +458,7 @@ func (h *InvalidHandler) SecondReturnMustBeErrorOrHandleResult(
 ) (Foo, string) {
 	return Foo{}, "bad"
 }
+
 /**/
 
 func (h *InvalidHandler) UntypedInterfaceDependency(

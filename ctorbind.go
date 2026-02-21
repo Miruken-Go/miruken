@@ -10,11 +10,11 @@ type (
 	// ConstructorBinder creates constructor Binding's.
 	ConstructorBinder interface {
 		NewCtorBinding(
-			typ   reflect.Type,
-			ctor  *reflect.Method,
+			typ reflect.Type,
+			ctor *reflect.Method,
 			inits []*reflect.Method,
-			spec  *bindingSpec,
-			key   any,
+			spec *bindingSpec,
+			key any,
 		) (Binding, error)
 	}
 
@@ -61,7 +61,7 @@ func (b *CtorBinding) Invoke(
 		return nil, nil, nil
 	}
 	var receiver any
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		receiver = reflect.New(typ.Elem()).Interface()
 	} else {
 		receiver = reflect.New(typ).Elem().Interface()

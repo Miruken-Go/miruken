@@ -45,7 +45,7 @@ func (m *PlayerMapper) ToPlayerJson(
 		maps.Format `to:"application/json"`
 	}, data PlayerData,
 ) []byte {
-	return []byte(fmt.Sprintf("{\"id\":%v,\"name\":%q}", data.Id, strings.ToUpper(data.Name)))
+	return fmt.Appendf(nil, "{\"id\":%v,\"name\":%q}", data.Id, strings.ToUpper(data.Name))
 }
 
 func (m *TypeIdMapper) PlayerDotNet(
@@ -256,8 +256,8 @@ func (suite *StdJsonTestSuite) TestJson() {
 					Name:    "Craig",
 					Players: nil,
 				}}
-				fmt.Printf("%T - %v\n", x, reflect.TypeOf(x).String())
-				fmt.Printf("%T - %v\n", y, reflect.TypeOf(y).String())
+				fmt.Printf("%T - %v\n", x, reflect.TypeFor[[]int]().String())
+				fmt.Printf("%T - %v\n", y, reflect.TypeFor[[]TeamData]().String())
 			})
 
 			suite.Run("ToJsonBytesTypedIndent", func() {

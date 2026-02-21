@@ -25,7 +25,6 @@ type (
 	Baz struct{}
 )
 
-
 type MultiHandler struct {
 	foo Foo
 	bar Bar
@@ -45,7 +44,6 @@ func (h *MultiHandler) HandleBar(
 	return miruken.Handled
 }
 
-
 type EverythingHandler struct{}
 
 func (h *EverythingHandler) HandleEverything(
@@ -59,23 +57,21 @@ func (h *EverythingHandler) HandleEverything(
 	}
 }
 
-
 type MyBootstrap struct {
 }
 
 func (b *MyBootstrap) Startup(
 	ctx context.Context,
-	h   miruken.Handler,
+	h miruken.Handler,
 ) *promise.Promise[struct{}] {
-	return promise.Delay[struct {}](ctx, 5*time.Millisecond)
+	return promise.Delay[struct{}](ctx, 5*time.Millisecond)
 }
 
 func (b *MyBootstrap) Shutdown(
 	ctx context.Context,
 ) *promise.Promise[struct{}] {
-	return promise.Delay[struct {}](ctx, 5*time.Millisecond)
+	return promise.Delay[struct{}](ctx, 5*time.Millisecond)
 }
-
 
 type MyInstaller struct {
 	count int
@@ -84,13 +80,12 @@ type MyInstaller struct {
 func (i *MyInstaller) Install(
 	b *setup.Builder,
 ) error {
-	if b.Tag(reflect.TypeOf(i)) {
+	if b.Tag(reflect.TypeFor[*MyInstaller]()) {
 		i.count++
 		b.Specs(&MultiHandler{})
 	}
 	return nil
 }
-
 
 type RootInstaller struct{}
 
@@ -103,7 +98,6 @@ func (i *RootInstaller) Install(
 ) error {
 	return nil
 }
-
 
 type BadInstaller struct{}
 
@@ -118,7 +112,6 @@ func (i BadInstaller) AfterInstall(
 ) error {
 	return errors.New("process failed to start")
 }
-
 
 type SetupTestSuite struct {
 	suite.Suite

@@ -88,7 +88,7 @@ func Options(options any) BuilderFunc {
 	if optType == nil {
 		panic("options cannot be nil")
 	}
-	if optType.Kind() == reflect.Ptr {
+	if optType.Kind() == reflect.Pointer {
 		optType = optType.Elem()
 	}
 	if optType.Kind() != reflect.Struct {
@@ -110,7 +110,7 @@ func GetOptionsInto(handler Handler, target any) bool {
 	}
 	tv := internal.TargetValue(target)
 	optType := tv.Type()
-	if optType.Kind() != reflect.Ptr {
+	if optType.Kind() != reflect.Pointer {
 		panic(fmt.Sprintf("options: %v is not a *struct or **struct", optType))
 	}
 	optType = optType.Elem()
@@ -121,7 +121,7 @@ func GetOptionsInto(handler Handler, target any) bool {
 	switch optType.Kind() {
 	case reflect.Struct:
 		options.options = tv.Interface()
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if optType.Elem().Kind() != reflect.Struct {
 			panic(fmt.Sprintf("options: %v is not a *struct or **struct", optType))
 		}
@@ -166,7 +166,7 @@ func (o optCallback) CanBatch() bool {
 
 func (c *optionsHandler) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if callback == nil {
@@ -205,7 +205,7 @@ func (o FromOptions) Validate(
 	typ reflect.Type,
 	dep DependencyArg,
 ) error {
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 	}
 	if typ.Kind() != reflect.Struct {
@@ -221,7 +221,7 @@ func (o FromOptions) Resolve(
 ) (options reflect.Value, _ *promise.Promise[reflect.Value], err error) {
 	options = reflect.New(typ)
 	if GetOptionsInto(ctx, options.Interface()) {
-		if typ.Kind() == reflect.Ptr {
+		if typ.Kind() == reflect.Pointer {
 			return options, nil, nil
 		}
 		return reflect.Indirect(options), nil, nil
@@ -239,7 +239,7 @@ func (t optionMerger) Transformer(
 	typ reflect.Type,
 ) func(dst, src reflect.Value) error {
 	addr := false
-	if !typ.AssignableTo(mergeableType) && typ.Kind() != reflect.Ptr {
+	if !typ.AssignableTo(mergeableType) && typ.Kind() != reflect.Pointer {
 		typ = reflect.PointerTo(typ)
 		addr = true
 	}

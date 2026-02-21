@@ -27,7 +27,7 @@ func (p *Promise[T]) Context() context.Context {
 }
 
 func (p *Promise[T]) UnderlyingType() reflect.Type {
-	return reflect.TypeOf((*T)(nil)).Elem()
+	return reflect.TypeFor[T]()
 }
 
 func (p *Promise[T]) Then(
@@ -101,7 +101,7 @@ func Inspect(typ reflect.Type) (reflect.Type, bool) {
 }
 
 func Lift(typ reflect.Type, result any) Reflect {
-	if typ.Kind() != reflect.Ptr || !typ.Implements(reflectType) {
+	if typ.Kind() != reflect.Pointer || !typ.Implements(reflectType) {
 		panic("typ must be a promise")
 	}
 	promise := reflect.New(typ.Elem()).Interface().(internal)
@@ -131,7 +131,7 @@ func CoerceType(
 	typ reflect.Type,
 	promise Reflect,
 ) Reflect {
-	if typ.Kind() != reflect.Ptr || !typ.Implements(reflectType) {
+	if typ.Kind() != reflect.Pointer || !typ.Implements(reflectType) {
 		panic("typ must be a promise")
 	}
 	p := reflect.New(typ.Elem()).Interface().(internal)
@@ -189,7 +189,7 @@ func Erase[A any](p *Promise[A]) *Promise[struct{}] {
 }
 
 func Delay[T any](
-	ctx   context.Context,
+	ctx context.Context,
 	delay time.Duration,
 ) *Promise[T] {
 	return New(ctx, func(resolve func(T), _ func(error), onCancel func(func())) {
@@ -199,4 +199,4 @@ func Delay[T any](
 	})
 }
 
-var reflectType = reflect.TypeOf((*Reflect)(nil)).Elem()
+var reflectType = reflect.TypeFor[Reflect]()

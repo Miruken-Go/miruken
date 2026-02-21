@@ -27,7 +27,7 @@ func (p *ContravariantPolicy) VariantKey(
 
 func (p *ContravariantPolicy) MatchesKey(
 	key, otherKey any,
-	invariant     bool,
+	invariant bool,
 ) (matches, exact bool) {
 	if key == otherKey {
 		return true, true
@@ -40,7 +40,7 @@ func (p *ContravariantPolicy) MatchesKey(
 			if kt.AssignableTo(bt) {
 				return true, false
 			}
-			if kt.Kind() == reflect.Ptr && kt.Elem().AssignableTo(bt) {
+			if kt.Kind() == reflect.Pointer && kt.Elem().AssignableTo(bt) {
 				return true, false
 			}
 		}
@@ -73,8 +73,8 @@ func (p *ContravariantPolicy) AcceptResults(
 
 func (p *ContravariantPolicy) NewMethodBinding(
 	method *reflect.Method,
-	spec   *bindingSpec,
-	key    any,
+	spec *bindingSpec,
+	key any,
 ) (Binding, error) {
 	if args, k, err := validateContravariantFunc(method.Type, spec, key, 1); err != nil {
 		return nil, &MethodBindingError{method, err}
@@ -87,9 +87,9 @@ func (p *ContravariantPolicy) NewMethodBinding(
 }
 
 func (p *ContravariantPolicy) NewFuncBinding(
-	fun  reflect.Value,
+	fun reflect.Value,
 	spec *bindingSpec,
-	key  any,
+	key any,
 ) (Binding, error) {
 	if args, k, err := validateContravariantFunc(fun.Type(), spec, key, 0); err != nil {
 		return nil, &FuncBindingError{fun, err}
@@ -104,9 +104,9 @@ func (p *ContravariantPolicy) NewFuncBinding(
 //goland:noinspection DuplicatedCode
 func validateContravariantFunc(
 	funType reflect.Type,
-	spec    *bindingSpec,
-	key     any,
-	skip    int,
+	spec *bindingSpec,
+	key any,
+	skip int,
 ) (args []arg, ck any, err error) {
 	ck = key
 	numArgs := funType.NumIn()
@@ -158,7 +158,7 @@ func validateContravariantFunc(
 		} else if err2 != nil {
 			err = errors.Join(err, fmt.Errorf(
 				"contravariant: invalid effect at index %v: %w", i, err2))
-		} else if resIdx == -1 {  // response assumed be first
+		} else if resIdx == -1 { // response assumed be first
 			resIdx = i
 			if lt, ok := promise.Inspect(out); ok {
 				spec.flags |= bindingAsync

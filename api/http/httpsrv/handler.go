@@ -44,8 +44,8 @@ func (f HandlerFunc) ServeHTTP(
 // requests through a Middleware pipeline and terminating
 // at a provided handler.
 func Use(
-	ctx        *context.Context,
-	handler    any,
+	ctx *context.Context,
+	handler any,
 	middleware ...any,
 ) http.Handler {
 	pipeline := Pipe(middleware...)
@@ -73,7 +73,7 @@ func Use(
 // Api builds an http.Handler for processing polymorphic api calls
 // through a Middleware pipeline.
 func Api(
-	ctx        *context.Context,
+	ctx *context.Context,
 	middleware ...any,
 ) http.Handler {
 	return Use(ctx, H[*PolyHandler](), middleware...)
@@ -116,8 +116,8 @@ func getHandlerBinding(
 	} else {
 		bindings = &map[reflect.Type]handlerBinding{}
 	}
-	for i := range typ.NumMethod() {
-		method := typ.Method(i)
+	for method := range typ.Methods() {
+		method := method
 		binding, err := makeHandlerBinding(method.Type, method.Func, 1)
 		if binding != nil {
 			(*bindings)[typ] = binding
@@ -325,7 +325,7 @@ func (a *dynResHandler) ServeHTTP(
 }
 
 func (b handlerBinding) invoke(
-	c        miruken.Handler,
+	c miruken.Handler,
 	initArgs ...any,
 ) error {
 	_, pr, err := b(c, initArgs...)

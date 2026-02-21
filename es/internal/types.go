@@ -8,7 +8,7 @@ import (
 
 // DefaultTypeName returns the default name for a type.
 func DefaultTypeName(typ reflect.Type) string {
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 	}
 	return typ.String()

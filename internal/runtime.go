@@ -37,7 +37,7 @@ func IsNil(val any) bool {
 		reflect.Func,
 		reflect.Interface,
 		reflect.Map,
-		reflect.Ptr,
+		reflect.Pointer,
 		reflect.Slice:
 		return v.IsNil()
 	default:
@@ -51,7 +51,7 @@ func IsStruct(val any) bool {
 		return false
 	}
 	v := reflect.ValueOf(val)
-	if v.Kind() == reflect.Ptr && !v.IsNil() {
+	if v.Kind() == reflect.Pointer && !v.IsNil() {
 		v = v.Elem()
 	}
 	return v.Kind() == reflect.Struct
@@ -96,7 +96,7 @@ func TargetValue(target any) reflect.Value {
 	}
 	val := reflect.ValueOf(target)
 	typ := val.Type()
-	if typ.Kind() != reflect.Ptr || val.IsNil() {
+	if typ.Kind() != reflect.Pointer || val.IsNil() {
 		panic("target must be a non-nil pointer")
 	}
 	return val
@@ -118,7 +118,7 @@ func TargetSliceValue(target any) reflect.Value {
 func CopyIndirect(src, target any) {
 	var val reflect.Value
 	if v, ok := target.(reflect.Value); ok {
-		if v.Kind() != reflect.Ptr || val.IsNil() {
+		if v.Kind() != reflect.Pointer || val.IsNil() {
 			panic("target must be a non-nil pointer")
 		}
 		val = v
@@ -134,7 +134,7 @@ func CopyIndirect(src, target any) {
 	if src == nil {
 		val.Set(reflect.Zero(typ))
 	} else {
-		if st := srcVal.Type(); st.Kind() == reflect.Ptr && st.Elem() == typ {
+		if st := srcVal.Type(); st.Kind() == reflect.Pointer && st.Elem() == typ {
 			srcVal = reflect.Indirect(srcVal)
 		} else if !st.AssignableTo(typ) && st.ConvertibleTo(typ) {
 			srcVal = srcVal.Convert(typ)
@@ -182,7 +182,7 @@ func CopySliceIndirect(src []any, target any) {
 // and return the newly promoted slice and true if successful.
 // If elemType is nil, the most specific type will be inferred.
 func CoerceSlice(
-	slice   reflect.Value,
+	slice reflect.Value,
 	elemTyp reflect.Type,
 ) (reflect.Value, bool) {
 	st := slice.Type()
@@ -231,7 +231,7 @@ func Exported(t any) bool {
 	}
 	switch m := t.(type) {
 	case reflect.Type:
-		if m.Kind() == reflect.Ptr {
+		if m.Kind() == reflect.Pointer {
 			m = m.Elem()
 		}
 		name := m.Name()
@@ -254,12 +254,12 @@ func UnwrapErrors(errs ...error) []error {
 }
 
 func CoerceToPtr(
-	givenType   reflect.Type,
+	givenType reflect.Type,
 	desiredType reflect.Type,
 ) reflect.Type {
 	if givenType.AssignableTo(desiredType) {
 		return givenType
-	} else if givenType.Kind() != reflect.Ptr {
+	} else if givenType.Kind() != reflect.Pointer {
 		givenType = reflect.PointerTo(givenType)
 		if givenType.AssignableTo(desiredType) {
 			return givenType
@@ -282,8 +282,8 @@ func MergeStructTags(tags ...reflect.StructTag) reflect.StructTag {
 				continue
 			}
 			tagString := string(tag)
-			tagParts := strings.Split(tagString, " ")
-			for _, part := range tagParts {
+			tagParts := strings.SplitSeq(tagString, " ")
+			for part := range tagParts {
 				keyValue := strings.SplitN(part, ":", 2)
 				if len(keyValue) == 2 {
 					key := keyValue[0]
@@ -303,7 +303,7 @@ func MergeStructTags(tags ...reflect.StructTag) reflect.StructTag {
 }
 
 func MergeStructTagsWith(
-	tag  reflect.StructTag,
+	tag reflect.StructTag,
 	tags ...reflect.StructTag,
 ) reflect.StructTag {
 	if len(tags) == 0 {
@@ -320,7 +320,7 @@ func NewWithTag(
 	typ reflect.Type,
 	tag reflect.StructTag,
 ) (any, error) {
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		obj := reflect.New(typ.Elem()).Interface()
 		if err := tryInitObj(obj, tag); err != nil {
 			return nil, err

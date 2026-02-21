@@ -14,36 +14,36 @@ func TestPromise_UnderlyingType(t *testing.T) {
 	p1 := promise.New(nil, func(resolve func(string), reject func(error), onCancel func(func())) {
 		resolve("Hello")
 	})
-	require.Equal(t, reflect.TypeOf(""), p1.UnderlyingType())
+	require.Equal(t, reflect.TypeFor[string](), p1.UnderlyingType())
 
 	p2 := promise.New(nil, func(resolve func(int), reject func(error), onCancel func(func())) {
 		resolve(22)
 	})
-	require.Equal(t, reflect.TypeOf(1), p2.UnderlyingType())
+	require.Equal(t, reflect.TypeFor[int](), p2.UnderlyingType())
 }
 
 func TestInspect(t *testing.T) {
-	p1 := promise.New(nil, func(resolve func(string), reject func(error), onCancel func(func())) {
+	_ = promise.New(nil, func(resolve func(string), reject func(error), onCancel func(func())) {
 		resolve("Hello")
 	})
-	ut, ok := promise.Inspect(reflect.TypeOf(p1))
+	ut, ok := promise.Inspect(reflect.TypeFor[*promise.Promise[string]]())
 	require.True(t, ok)
-	require.Equal(t, reflect.TypeOf(""), ut)
+	require.Equal(t, reflect.TypeFor[string](), ut)
 
-	p2 := promise.New(nil, func(resolve func(int), reject func(error), onCancel func(func())) {
+	_ = promise.New(nil, func(resolve func(int), reject func(error), onCancel func(func())) {
 		resolve(22)
 	})
-	ut, ok = promise.Inspect(reflect.TypeOf(p2))
+	ut, ok = promise.Inspect(reflect.TypeFor[*promise.Promise[int]]())
 	require.True(t, ok)
-	require.Equal(t, reflect.TypeOf(1), ut)
+	require.Equal(t, reflect.TypeFor[int](), ut)
 
-	ut, ok = promise.Inspect(reflect.TypeOf(1))
+	ut, ok = promise.Inspect(reflect.TypeFor[int]())
 	require.False(t, ok)
 }
 
 func TestLift(t *testing.T) {
 	var p *promise.Promise[string]
-	p = promise.Lift(reflect.TypeOf(p), "Hello").(*promise.Promise[string])
+	p = promise.Lift(reflect.TypeFor[*promise.Promise[string]](), "Hello").(*promise.Promise[string])
 	require.NotNil(t, p)
 }
 
@@ -72,8 +72,7 @@ func TestCoerceType(t *testing.T) {
 	p := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		resolve("Hello")
 	})
-	var ps *promise.Promise[string]
-	pc := promise.CoerceType(reflect.TypeOf(ps), p).(*promise.Promise[string])
+	pc := promise.CoerceType(reflect.TypeFor[*promise.Promise[string]](), p).(*promise.Promise[string])
 	result, _ := pc.Await()
 	require.Equal(t, "Hello", result)
 }
@@ -82,8 +81,7 @@ func TestCoerceType_Fail(t *testing.T) {
 	p := promise.New(nil, func(resolve func(any), reject func(error), onCancel func(func())) {
 		resolve(22)
 	})
-	var ps *promise.Promise[string]
-	pc := promise.CoerceType(reflect.TypeOf(ps), p).(*promise.Promise[string])
+	pc := promise.CoerceType(reflect.TypeFor[*promise.Promise[string]](), p).(*promise.Promise[string])
 	_, err := pc.Await()
 	var ta *runtime.TypeAssertionError
 	require.ErrorAs(t, err, &ta)

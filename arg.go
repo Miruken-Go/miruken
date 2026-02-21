@@ -68,7 +68,7 @@ func (s sourceArg) resolve(
 			v := reflect.ValueOf(src)
 			if t := v.Type(); t.AssignableTo(typ) {
 				return v, nil, nil
-			} else if t.Kind() == reflect.Ptr && t.Elem().AssignableTo(typ) {
+			} else if t.Kind() == reflect.Pointer && t.Elem().AssignableTo(typ) {
 				return v.Elem(), nil, nil
 			}
 		}
@@ -251,8 +251,8 @@ func (r *defaultDependencyResolver) Resolve(
 
 func resolveResult(
 	result any,
-	typ    reflect.Type,
-	many   bool,
+	typ reflect.Type,
+	many bool,
 	optional bool,
 ) (reflect.Value, error) {
 	switch {
@@ -292,11 +292,11 @@ var dependencyParsers = []BindingParser{
 }
 
 func buildDependencies(
-	funTyp     reflect.Type,
+	funTyp reflect.Type,
 	startIndex int,
-	endIndex   int,
-	args       []arg,
-	offset     int,
+	endIndex int,
+	args []arg,
+	offset int,
 ) (invalid error) {
 	var lastSpec *dependencySpec
 	for i, j := startIndex, 0; i < endIndex; i, j = i+1, j+1 {
@@ -355,7 +355,7 @@ func buildDependency(
 			internal.AnyType)
 	}
 	// Is it a *struct arg binding?
-	if argType.Kind() != reflect.Ptr {
+	if argType.Kind() != reflect.Pointer {
 		return arg, nil
 	}
 	argType = argType.Elem()
@@ -370,8 +370,8 @@ func buildDependency(
 }
 
 func parseResolver(
-	index   int,
-	field   *reflect.StructField,
+	index int,
+	field *reflect.StructField,
 	binding any,
 	tags ...reflect.StructTag,
 ) (bound bool, err error) {
@@ -381,7 +381,7 @@ func parseResolver(
 			setResolver(DependencyResolver) error
 		}); ok {
 			tag := internal.MergeStructTagsWith(field.Tag, tags...)
-			if resolver, invalid := internal.NewWithTag(dr,tag); invalid != nil {
+			if resolver, invalid := internal.NewWithTag(dr, tag); invalid != nil {
 				err = fmt.Errorf(
 					"parseResolver: new dependency resolver at field %v (%v) failed: %w",
 					field.Name, index, invalid)

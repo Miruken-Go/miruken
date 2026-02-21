@@ -39,7 +39,7 @@ func (suite *RuntimeTestSuite) TestRuntime() {
 	suite.Run("CoerceSlice", func() {
 		suite.Run("Convert", func() {
 			fa := []any{3.2, 19.9}
-			sl, ok := internal.CoerceSlice(reflect.ValueOf(fa), reflect.TypeOf(float32(1)))
+			sl, ok := internal.CoerceSlice(reflect.ValueOf(fa), reflect.TypeFor[float32]())
 			suite.True(ok)
 			suite.Equal([]float32{3.2, 19.9}, sl.Interface())
 		})
@@ -116,8 +116,8 @@ func parseStructTag(tag reflect.StructTag) map[string]string {
 		return result
 	}
 	tagString := string(tag)
-	tagParts := strings.Split(tagString, " ")
-	for _, part := range tagParts {
+	tagParts := strings.SplitSeq(tagString, " ")
+	for part := range tagParts {
 		keyValue := strings.SplitN(part, ":", 2)
 		if len(keyValue) == 2 {
 			key := keyValue[0]

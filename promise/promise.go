@@ -26,9 +26,8 @@ type (
 	}
 )
 
-
 func New[T any](
-	ctx      context.Context,
+	ctx context.Context,
 	executor func(resolve func(T), reject func(error), onCancel func(func())),
 ) *Promise[T] {
 	if executor == nil {
@@ -90,7 +89,8 @@ func (p *Promise[T]) Await() (T, error) {
 	if ch := p.ch; ch != nil {
 		if ctx := p.ctx; ctx != nil {
 			select {
-			case <-ctx.Done(): p.Cancel()
+			case <-ctx.Done():
+				p.Cancel()
 			case <-ch:
 			}
 		} else {
@@ -174,7 +174,7 @@ func Reject[T any](err error) *Promise[T] {
 
 // All resolves when all promises have resolved, or rejects immediately upon any of the promises rejecting
 func All[T any](
-	ctx      context.Context,
+	ctx context.Context,
 	promises ...*Promise[T],
 ) *Promise[[]T] {
 	if len(promises) == 0 {
@@ -186,7 +186,6 @@ func All[T any](
 		errsChan := make(chan error, len(promises))
 
 		for idx, p := range promises {
-			idx := idx
 			_ = Then(p, func(data T) T {
 				resultsChan <- tuple[T, int]{_1: data, _2: idx}
 				return data
@@ -198,7 +197,7 @@ func All[T any](
 		}
 
 		results := make([]T, len(promises))
-		for idx := 0; idx < len(promises); idx++ {
+		for range promises {
 			select {
 			case result := <-resultsChan:
 				results[result._2] = result._1
@@ -213,7 +212,7 @@ func All[T any](
 
 // Race resolves or rejects as soon as any one of the promises resolves or rejects
 func Race[T any](
-	ctx      context.Context,
+	ctx context.Context,
 	promises ...*Promise[T],
 ) *Promise[T] {
 	if len(promises) == 0 {

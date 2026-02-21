@@ -89,7 +89,7 @@ func (c *typeContainer) MarshalJSON() ([]byte, error) {
 		if len(byt) > 1 && byt[1] != '}' {
 			comma = ","
 		}
-		typeProperty := []byte(fmt.Sprintf("%q:%q%s", typeInfo.TypeField, typeInfo.TypeValue, comma))
+		typeProperty := fmt.Appendf(nil, "%q:%q%s", typeInfo.TypeField, typeInfo.TypeValue, comma)
 		byt = append(byt, typeProperty...)
 		copy(byt[len(typeProperty)+1:], byt[1:])
 		copy(byt[1:], typeProperty)

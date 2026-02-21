@@ -30,7 +30,7 @@ type (
 		key() any
 		suppress() bool
 		newRuntime(
-			builder   bindingSpecFactory,
+			builder bindingSpecFactory,
 			observers runtimeObserverMap,
 		) (*HandlerRuntime, error)
 	}
@@ -61,7 +61,7 @@ func (s TypeSpec) Type() reflect.Type {
 
 func (s TypeSpec) Name() string {
 	typ := s.typ
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 	}
 	return typ.Name()
@@ -69,7 +69,7 @@ func (s TypeSpec) Name() string {
 
 func (s TypeSpec) PkgPath() string {
 	typ := s.typ
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 	}
 	return typ.PkgPath()
@@ -88,7 +88,7 @@ func (s TypeSpec) suppress() bool {
 }
 
 func (s TypeSpec) newRuntime(
-	factory   bindingSpecFactory,
+	factory bindingSpecFactory,
 	observers runtimeObserverMap,
 ) (runtime *HandlerRuntime, invalid error) {
 	typ := s.typ
@@ -98,10 +98,10 @@ func (s TypeSpec) newRuntime(
 
 	observers.notify(runtimeCreatedObserver, runtime, nil, nil)
 
-	var ctorSpec     *bindingSpec
+	var ctorSpec *bindingSpec
 	var ctorPolicies []policyKey
-	var ctor         *reflect.Method
-	var inits        []*reflect.Method
+	var ctor *reflect.Method
+	var inits []*reflect.Method
 
 	// Add ctor implicitly
 	if ctorMethod, ok := typ.MethodByName("Constructor"); ok {
@@ -214,7 +214,7 @@ func (s FuncSpec) suppress() bool {
 }
 
 func (s FuncSpec) newRuntime(
-	factory   bindingSpecFactory,
+	factory bindingSpecFactory,
 	observers runtimeObserverMap,
 ) (runtime *HandlerRuntime, invalid error) {
 	funType := s.fun.Type()
@@ -277,12 +277,12 @@ func (h *HandlerRuntime) BindingsFor(policy Policy) iter.Seq[Binding] {
 }
 
 func (h *HandlerRuntime) Dispatch(
-	policy   Policy,
-	handler  any,
+	policy Policy,
+	handler any,
 	callback Callback,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
-	guard    CallbackGuard,
+	guard CallbackGuard,
 ) (result HandleResult) {
 	if pb, found := h.bindings[policy]; found {
 		key := callback.Key()
@@ -407,9 +407,9 @@ func (h *HandlerRuntime) Dispatch(
 
 func applyResults(
 	results []any,
-	policy  Policy,
-	ctx     *HandleContext,
-	await   bool,
+	policy Policy,
+	ctx *HandleContext,
+	await bool,
 ) (any, HandleResult) {
 	res, accept, effects, cascade := policy.AcceptResults(results)
 	if len(cascade) > 0 {
@@ -428,8 +428,8 @@ func applyResults(
 
 func processEffects(
 	effects []Effect,
-	ctx     *HandleContext,
-	await   bool,
+	ctx *HandleContext,
+	await bool,
 ) (*promise.Promise[struct{}], error) {
 	var ps []*promise.Promise[any]
 	for _, effect := range effects {
@@ -532,9 +532,9 @@ func (o runtimeObserverMap) register(
 
 func (o runtimeObserverMap) notify(
 	observerType runtimeObserverType,
-	runtime      *HandlerRuntime,
-	binding      Binding,
-	policy       Policy,
+	runtime *HandlerRuntime,
+	binding Binding,
+	policy Policy,
 ) {
 	if o == nil {
 		return
@@ -607,7 +607,6 @@ func (f *mutableHandlerFactory) Register(
 	}
 }
 
-
 func (f HandlerRuntimeCreatedObserverFunc) HandlerRuntimeCreated(
 	runtime *HandlerRuntime,
 ) {
@@ -617,7 +616,7 @@ func (f HandlerRuntimeCreatedObserverFunc) HandlerRuntimeCreated(
 func (f HandlerRuntimeBindingObserverFunc) HandlerRuntimeBinding(
 	runtime *HandlerRuntime,
 	binding Binding,
-	policy  Policy,
+	policy Policy,
 ) {
 	f(runtime, binding, policy)
 }
@@ -689,7 +688,7 @@ type CurrentHandlerRuntimeFactoryProvider struct {
 
 func (f *CurrentHandlerRuntimeFactoryProvider) Handle(
 	callback any,
-	greedy   bool,
+	greedy bool,
 	composer Handler,
 ) HandleResult {
 	if comp, ok := callback.(*Composition); ok {

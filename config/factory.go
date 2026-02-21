@@ -107,7 +107,7 @@ func (f *Factory) NewConfiguration(
 		}
 
 		var out any
-		ptr := typ.Kind() == reflect.Ptr
+		ptr := typ.Kind() == reflect.Pointer
 		if ptr {
 			out = reflect.New(typ.Elem()).Interface()
 		} else {

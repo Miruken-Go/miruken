@@ -11,12 +11,11 @@ import (
 
 // Model captures a command specification.
 type Model struct {
-	typ        reflect.Type
-	meta 	   *Metadata
-	id         func(any) uuid.UUID
-	version    func(any) int
+	typ     reflect.Type
+	meta    *Metadata
+	id      func(any) uuid.UUID
+	version func(any) int
 }
-
 
 func (m *Model) Name() *Metadata {
 	return m.meta
@@ -26,10 +25,9 @@ func (m *Model) Type() reflect.Type {
 	return m.typ
 }
 
-
 // NewModel creates a command model for type and name.
 func NewModel(
-	typ  reflect.Type,
+	typ reflect.Type,
 	meta *Metadata,
 ) (*Model, error) {
 	if typ == nil {
@@ -44,7 +42,6 @@ func NewModel(
 		meta: meta,
 	}, nil
 }
-
 
 func extractCommandIdAndVersionFields(m *Model, typ reflect.Type) (err error) {
 	idIndex := -1
@@ -96,7 +93,7 @@ func extractCommandIdAndVersionFields(m *Model, typ reflect.Type) (err error) {
 	if idIndex >= 0 {
 		m.id = func(a any) uuid.UUID {
 			val := reflect.ValueOf(a)
-			if val.Kind() == reflect.Ptr {
+			if val.Kind() == reflect.Pointer {
 				val = val.Elem()
 			}
 			return val.Field(idIndex).Interface().(uuid.UUID)
@@ -106,7 +103,7 @@ func extractCommandIdAndVersionFields(m *Model, typ reflect.Type) (err error) {
 	if versionIndex >= 0 {
 		m.version = func(a any) int {
 			val := reflect.ValueOf(a)
-			if val.Kind() == reflect.Ptr {
+			if val.Kind() == reflect.Pointer {
 				val = val.Elem()
 			}
 			return int(val.Field(idIndex).Int())
@@ -117,8 +114,8 @@ func extractCommandIdAndVersionFields(m *Model, typ reflect.Type) (err error) {
 }
 
 func extractCommandIdAndVersionMethods(m *Model, typ reflect.Type) {
-	for i := 0; i < typ.NumMethod(); i++ {
-		method := typ.Method(i)
+	for method := range typ.Methods() {
+		method := method
 
 		if m.id == nil &&
 			method.Name == "Id" &&

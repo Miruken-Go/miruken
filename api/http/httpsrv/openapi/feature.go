@@ -85,7 +85,7 @@ func (i *Installer) Install(b *setup.Builder) error {
 }
 
 func (i *Installer) AfterInstall(
-	_   *setup.Builder,
+	_ *setup.Builder,
 	ctx *context.Context,
 ) error {
 	for _, ap := range i.apiProfiles {
@@ -177,7 +177,7 @@ func (i *Installer) addBinding(
 	binding miruken.Binding,
 ) {
 	if inType, ok := binding.Key().(reflect.Type); ok {
-		if inType.Kind() == reflect.Ptr {
+		if inType.Kind() == reflect.Pointer {
 			inType = inType.Elem()
 		}
 		spec := runtime.Spec()
@@ -195,7 +195,7 @@ func (i *Installer) addBinding(
 
 			responseName := "NoResponse"
 			if outType := binding.LogicalOutputType(); outType != nil {
-				if outType.Kind() == reflect.Ptr {
+				if outType.Kind() == reflect.Pointer {
 					outType = outType.Elem()
 				}
 				if schema, _, _ := i.generateTypeSchema(ap, outType, true); schema != nil {
@@ -296,16 +296,16 @@ func (i *Installer) initializeDefinitions(ap *apiProfile) {
 		Post: &openapi3.Operation{
 			OperationID: "process",
 			RequestBody: payload,
-			Responses: i.standardResponses(),
-			Tags: tags,
+			Responses:   i.standardResponses(),
+			Tags:        tags,
 		},
 	})
 	ap.paths.Set("/publish", &openapi3.PathItem{
 		Post: &openapi3.Operation{
 			OperationID: "publish",
 			RequestBody: payload,
-			Responses: i.standardResponses(),
-			Tags: tags,
+			Responses:   i.standardResponses(),
+			Tags:        tags,
 		},
 	})
 }
@@ -411,9 +411,9 @@ func (i *Installer) generateTypeSchema(
 }
 
 func (i *Installer) generateComponentSchema(
-	ap        *apiProfile,
+	ap *apiProfile,
 	component any,
-	shared    bool,
+	shared bool,
 ) (*openapi3.SchemaRef, string, bool) {
 	if internal.IsNil(component) {
 		return nil, "", false
@@ -428,7 +428,7 @@ func (i *Installer) generateComponentSchema(
 	var elemTyp reflect.Type
 	if list {
 		elemTyp = typ.Elem()
-		if elemTyp.Kind() == reflect.Ptr {
+		if elemTyp.Kind() == reflect.Pointer {
 			elemTyp = elemTyp.Elem()
 		}
 	}
@@ -499,7 +499,7 @@ func (ap *apiProfile) customize(
 		for key, scr := range props {
 			sc := scr.Value
 			// Fix anonymous self-referencing array
-			if sc.Type != nil &&  slices.Contains(*sc.Type, "array") &&
+			if sc.Type != nil && slices.Contains(*sc.Type, "array") &&
 				sc.Items.Value == schema &&
 				sc.Items.Ref == schemas {
 				sn := "schema" + strconv.Itoa(len(ap.schemas))

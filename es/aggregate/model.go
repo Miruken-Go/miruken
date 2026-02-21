@@ -21,7 +21,6 @@ type Model struct {
 	commands   []command.Model
 }
 
-
 func (m *Model) Metadata() *Metadata {
 	return m.meta
 }
@@ -30,11 +29,10 @@ func (m *Model) Type() reflect.Type {
 	return m.typ
 }
 
-
 // NewModel creates an aggregate model for type and name.
 func NewModel(
-	typ      reflect.Type,
-	meta     *Metadata,
+	typ reflect.Type,
+	meta *Metadata,
 	commands []command.Model,
 ) (m *Model, err error) {
 	if typ == nil {
@@ -45,7 +43,7 @@ func NewModel(
 		*meta = Metadata(internal.DefaultTypeName(typ))
 	}
 
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 	}
 
@@ -84,7 +82,6 @@ func NewModel(
 	m = &model
 	return
 }
-
 
 func extractAggregateIdAndVersionFields(m *Model, typ reflect.Type) (err error) {
 	idIndex := -1
@@ -136,14 +133,14 @@ func extractAggregateIdAndVersionFields(m *Model, typ reflect.Type) (err error) 
 	if idIndex >= 0 {
 		m.id = func(a any) uuid.UUID {
 			val := reflect.ValueOf(a)
-			if val.Kind() == reflect.Ptr {
+			if val.Kind() == reflect.Pointer {
 				val = val.Elem()
 			}
 			return val.Field(idIndex).Interface().(uuid.UUID)
 		}
 		m.setId = func(a any, id uuid.UUID) {
 			val := reflect.ValueOf(a)
-			if val.Kind() == reflect.Ptr {
+			if val.Kind() == reflect.Pointer {
 				val = val.Elem()
 			}
 			val.Field(idIndex).Set(reflect.ValueOf(id))
@@ -153,14 +150,14 @@ func extractAggregateIdAndVersionFields(m *Model, typ reflect.Type) (err error) 
 	if versionIndex >= 0 {
 		m.version = func(a any) int {
 			val := reflect.ValueOf(a)
-			if val.Kind() == reflect.Ptr {
+			if val.Kind() == reflect.Pointer {
 				val = val.Elem()
 			}
 			return int(val.Field(idIndex).Int())
 		}
 		m.setVersion = func(a any, version int) {
 			val := reflect.ValueOf(a)
-			if val.Kind() == reflect.Ptr {
+			if val.Kind() == reflect.Pointer {
 				val = val.Elem()
 			}
 			val.Field(versionIndex).SetInt(int64(version))
@@ -171,8 +168,8 @@ func extractAggregateIdAndVersionFields(m *Model, typ reflect.Type) (err error) 
 }
 
 func extractAggregateIdAndVersionMethods(m *Model, typ reflect.Type) {
-	for i := 0; i < typ.NumMethod(); i++ {
-		method := typ.Method(i)
+	for method := range typ.Methods() {
+		method := method
 
 		if m.id == nil &&
 			method.Name == "Id" &&
