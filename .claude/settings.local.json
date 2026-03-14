@@ -14,7 +14,8 @@
       "Bash(do echo \"=== Run $i ===\")",
       "Bash(done)",
       "Bash(git checkout:*)",
-      "Bash(go tool pprof:*)"
+      "Bash(go tool pprof:*)",
+      "Bash(xargs -I {} basename {})"
     ]
   }
 }
