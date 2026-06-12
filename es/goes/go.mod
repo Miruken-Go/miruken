@@ -3,7 +3,7 @@ module github.com/miruken-go/miruken/es/goes
 go 1.26.4
 
 require (
-	github.com/miruken-go/miruken v0.31.1
+	github.com/miruken-go/miruken v0.32.0
 	github.com/modernice/goes v0.7.2
 )
 
