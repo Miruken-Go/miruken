@@ -1,13 +1,14 @@
 package jwks
 
 import (
+	"context"
 	"encoding/json"
 	"maps"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/MicahParks/keyfunc/v2"
+	"github.com/MicahParks/keyfunc/v3"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/miruken-go/miruken/promise"
 )
@@ -34,7 +35,8 @@ func (f *KeySet) At(
 	}
 
 	return promise.New(nil, func(resolve func(jwt.Keyfunc), reject func(error), onCancel func(func())) {
-		jwks, err := keyfunc.Get(jwksURI, getOptions)
+		jwks, err := keyfunc.NewDefaultOverrideCtx(
+			context.Background(), []string{jwksURI}, refreshOverride)
 		if err != nil {
 			reject(err)
 			return
@@ -59,15 +61,16 @@ func (f *KeySet) At(
 func (f *KeySet) From(
 	jwksJSON json.RawMessage,
 ) (jwt.Keyfunc, error) {
-	jwks, err := keyfunc.NewJSON(jwksJSON)
+	jwks, err := keyfunc.NewJWKSetJSON(jwksJSON)
 	if err != nil {
 		return nil, err
 	}
 	return jwks.Keyfunc, nil
 }
 
-var getOptions = keyfunc.Options{
-	RefreshRateLimit:  time.Minute * 5,
-	RefreshTimeout:    time.Second * 10,
-	RefreshUnknownKID: true,
+// refreshOverride preserves the original JWKS refresh tuning under keyfunc v3.
+// A 10s HTTP timeout is set explicitly; refresh-on-unknown-KID rate-limited to
+// 5 minutes is the keyfunc v3 default.
+var refreshOverride = keyfunc.Override{
+	HTTPTimeout: time.Second * 10,
 }

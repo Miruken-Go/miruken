@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/knadh/koanf/parsers/json"
-	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/env/v2"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 	"github.com/miruken-go/miruken"
@@ -285,7 +285,7 @@ func (suite *LoginTestSuite) TestLogin() {
 			var k = koanf.New(".")
 			_ = os.Setenv("Login__Flow1__0__Module", "module1")
 			_ = os.Setenv("Login__Flow1__0__Options__Debug", "true")
-			err := k.Load(env.Provider("Login", "__", nil), nil,
+			err := k.Load(env.Provider("__", env.Opt{Prefix: "Login"}), nil,
 				koanf.WithMergeFunc(koanfp.Merge))
 			suite.Nil(err)
 			handler, _ := setup.New(config.Feature(koanfp.P(k))).Context()
@@ -313,7 +313,7 @@ func (suite *LoginTestSuite) TestLogin() {
 
 		suite.Run("No Modules", func() {
 			var k = koanf.New(".")
-			err := k.Load(env.Provider("Login", "__", nil), nil,
+			err := k.Load(env.Provider("__", env.Opt{Prefix: "Login"}), nil,
 				koanf.WithMergeFunc(koanfp.Merge))
 			suite.Nil(err)
 			handler, _ := setup.New(config.Feature(koanfp.P(k))).Context()

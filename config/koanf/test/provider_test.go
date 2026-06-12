@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/knadh/koanf/parsers/json"
-	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/env/v2"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 	"github.com/miruken-go/miruken"
@@ -208,7 +208,7 @@ func (suite *ProviderTestSuite) TestProvider() {
 		_ = os.Setenv("Miruken__Databases__1__ConnectionString", "Server=localhost;Database=Customers;User Id=user")
 		_ = os.Setenv("Miruken__Databases__1__Timeout", "1h10m20s")
 		var k = koanf.New(".")
-		err := k.Load(env.Provider("Miruken", "__", nil), nil,
+		err := k.Load(env.Provider("__", env.Opt{Prefix: "Miruken"}), nil,
 			koanf.WithMergeFunc(koanfp.Merge))
 		suite.Nil(err)
 		handler, _ := setup.New(config.Feature(koanfp.P(k))).Context()
