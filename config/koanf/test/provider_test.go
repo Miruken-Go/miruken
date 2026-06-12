@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/config"
 	koanfp "github.com/miruken-go/miruken/config/koanf"
@@ -102,7 +102,9 @@ func (r *Repository) LoadCustomer(
 	}, cfg struct {
 		Databases []DatabaseConfig `path:"databases"`
 	},
-	_ *struct { config.Load `path:"env"` }, 	env string,
+	_ *struct {
+		config.Load `path:"env"`
+	}, env string,
 ) {
 	fmt.Printf("(%s) %+v\n", env, cfg.Databases[0])
 }

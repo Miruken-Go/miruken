@@ -656,14 +656,14 @@ func (b *HandlerRuntimeFactoryBuilder) Build() HandlerRuntimeFactory {
 		handlers:  make(map[any]*HandlerRuntime),
 		observers: b.observers,
 	}
-	parsers := make([]BindingParser, len(b.parsers)+4)
-	parsers[0] = &factory.bindingSpecFactory
-	parsers[1] = BindingParserFunc(parseOptions)
-	parsers[2] = BindingParserFunc(parseFilters)
-	parsers[3] = BindingParserFunc(parseConstraints)
-	for i, binding := range b.parsers {
-		parsers[i+4] = binding
-	}
+	parsers := make([]BindingParser, 0, len(b.parsers)+4)
+	parsers = append(parsers,
+		&factory.bindingSpecFactory,
+		BindingParserFunc(parseOptions),
+		BindingParserFunc(parseFilters),
+		BindingParserFunc(parseConstraints),
+	)
+	parsers = append(parsers, b.parsers...)
 	factory.bindingSpecFactory.parsers = parsers
 	return factory
 }

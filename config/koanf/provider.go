@@ -3,8 +3,8 @@ package koanf
 import (
 	"strconv"
 
-	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/maps"
+	"github.com/knadh/koanf/v2"
 	"github.com/miruken-go/miruken/config"
 )
 

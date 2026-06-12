@@ -353,10 +353,9 @@ func parseStruct(
 	parsers []BindingParser,
 	tags ...reflect.StructTag,
 ) (err error) {
-	checkedMetadata := false
-	var metadataOwner interface {
+	metadataOwner, _ := binding.(interface {
 		addMetadata(metadata any) error
-	}
+	})
 	fieldIdx := -1
 NextField:
 	for field := range typ.Fields() {
@@ -385,18 +384,10 @@ NextField:
 				break
 			}
 		}
-		if !bound && (metadataOwner != nil || !checkedMetadata) {
-			if !checkedMetadata {
-				checkedMetadata = true
-				metadataOwner, _ = binding.(interface {
-					addMetadata(metadata any) error
-				})
-			}
-			if metadataOwner != nil {
-				tag := internal.MergeStructTagsWith(field.Tag, tags...)
-				if inv := addMetadata(field.Type, tag, metadataOwner); inv != nil {
-					err = errors.Join(err, inv)
-				}
+		if !bound && metadataOwner != nil {
+			tag := internal.MergeStructTagsWith(field.Tag, tags...)
+			if inv := addMetadata(field.Type, tag, metadataOwner); inv != nil {
+				err = errors.Join(err, inv)
 			}
 		}
 	}

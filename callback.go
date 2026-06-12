@@ -105,13 +105,10 @@ func (c *CallbackBase) TargetForWrite() any {
 }
 
 func (c *CallbackBase) ResultCount() int {
-	if c.async.Load() {
-		c.mu.Lock()
-		n := len(c.results)
-		c.mu.Unlock()
-		return n
-	}
-	return len(c.results)
+	c.mu.Lock()
+	n := len(c.results)
+	c.mu.Unlock()
+	return n
 }
 
 func (c *CallbackBase) Result(
@@ -125,7 +122,7 @@ func (c *CallbackBase) Result(
 		if result == nil {
 			switch len(promises) {
 			case 0:
-				c.ensureResult(many, false)
+				result = c.ensureResult(many, false)
 			case 1:
 				return nil, promises[0].Then(func(any) any {
 					return c.ensureResult(many, true)
@@ -137,6 +134,7 @@ func (c *CallbackBase) Result(
 					})
 			}
 		}
+		return result, nil
 	} else if c.result == nil {
 		c.ensureResult(many, false)
 	}
@@ -197,15 +195,10 @@ func (c *CallbackBase) AddResult(
 		c.result = nil
 		c.mu.Unlock()
 	} else if accept == nil {
-		if c.async.Load() {
-			c.mu.Lock()
-			c.results = append(c.results, result)
-			c.result = nil
-			c.mu.Unlock()
-		} else {
-			c.results = append(c.results, result)
-			c.result = nil
-		}
+		c.mu.Lock()
+		c.results = append(c.results, result)
+		c.result = nil
+		c.mu.Unlock()
 	} else {
 		return accept(result, composer)
 	}
@@ -235,50 +228,67 @@ func (c *CallbackBase) Constraints() []Constraint {
 }
 
 func (c *CallbackBase) ensureResult(many, expand bool) any {
-	if c.result == nil {
-		if c.async.Load() {
-			c.mu.Lock()
-		}
-		var results []any
-		if expand {
-			for _, res := range c.results {
-				if internal.IsNil(res) {
-					continue
-				}
-				if exp, ok := res.(expandResults); ok {
-					results = append(results, exp...)
-				} else {
-					results = append(results, res)
-				}
+	// Check under lock first - fast path if already computed.
+	c.mu.Lock()
+	if c.result != nil {
+		r := c.result
+		c.mu.Unlock()
+		return r
+	}
+	// Snapshot c.results under lock so we can release before
+	// calling unwrapResult, which may call AwaitAny and block.
+	// Holding the lock while blocking would deadlock because the
+	// promise resolution callbacks also acquire c.mu.
+	snapshot := make([]any, len(c.results))
+	copy(snapshot, c.results)
+	c.mu.Unlock()
+
+	var results []any
+	if expand {
+		for _, res := range snapshot {
+			if internal.IsNil(res) {
+				continue
 			}
-		} else {
-			for _, res := range c.results {
-				if !internal.IsNil(res) {
-					results = append(results, res)
-				}
+			if exp, ok := res.(expandResults); ok {
+				results = append(results, exp...)
+			} else {
+				results = append(results, res)
 			}
 		}
-		if c.async.Load() {
-			c.mu.Unlock()
-		}
-		switch {
-		case many:
-			c.result = unwrapResult(results)
-			if !(c.written || internal.IsNil(c.target)) {
-				internal.CopySliceIndirect(results, c.target)
-				c.written = true
-			}
-		case len(results) == 0:
-			c.result = nil
-		default:
-			c.result = unwrapResult(results[0])
-			if !(c.written || internal.IsNil(c.target)) {
-				internal.CopyIndirect(c.result, c.target)
-				c.written = true
+	} else {
+		for _, res := range snapshot {
+			if !internal.IsNil(res) {
+				results = append(results, res)
 			}
 		}
 	}
-	return c.result
+
+	// Compute final result outside the lock (unwrapResult may block).
+	var computed any
+	switch {
+	case many:
+		computed = unwrapResult(results)
+	case len(results) > 0:
+		computed = unwrapResult(results[0])
+	}
+
+	// Write result under lock; double-check in case another goroutine
+	// raced through the same path and already set it.
+	c.mu.Lock()
+	if c.result == nil {
+		c.result = computed
+		if !(c.written || internal.IsNil(c.target)) {
+			if many {
+				internal.CopySliceIndirect(results, c.target)
+			} else if computed != nil {
+				internal.CopyIndirect(computed, c.target)
+			}
+			c.written = true
+		}
+	}
+	r := c.result
+	c.mu.Unlock()
+	return r
 }
 
 func (c *CallbackBase) includeResult(
@@ -335,16 +345,28 @@ func (c *CallbackBase) processResults(
 		}
 		return true
 	}
-	// Fast path for []any (most common case)
-	if anySlice, ok := results.([]any); ok {
-		for _, val := range anySlice {
+	// Fast paths for []any and expandResults (most common cases).
+	// expandResults is a named type over []any so it doesn't match
+	// the []any type assertion and would otherwise fall through to
+	// the reflection path unnecessarily.
+	switch s := results.(type) {
+	case []any:
+		for _, val := range s {
 			if !addItem(val) {
 				break
 			}
 		}
-	} else {
-		// Fallback to reflection for typed slices
-		v := reflect.ValueOf(results)
+	case expandResults:
+		for _, val := range ([]any)(s) {
+			if !addItem(val) {
+				break
+			}
+		}
+	default:
+		// Fallback to reflection for typed slices from external handlers.
+		// For pointer element types this is cheap; value types incur one
+		// heap allocation per element (unavoidable without unsafe).
+		v := reflect.ValueOf(s)
 		for i := range v.Len() {
 			if !addItem(v.Index(i).Interface()) {
 				break
