@@ -89,9 +89,14 @@ re-verify with a grep if the surrounding code has since changed significantly.
 - **`validates/` is the cleanest hexagonal example in the repo** — the port has zero imports
   of either backend adapter, both adapters are fully swappable with no consumer changes. Good
   reference case if the user asks "show me what clean looks like here."
-- **Three structurally-identical "linked `next()`-closure" middleware chains exist**
-  independently: the core filter pipeline (`filter.go`), `http.Router.invoke`, and
-  `httpsrv.Pipe` (`delivery-http-json.md` §8). Candidate for consolidation in a simplify pass.
+- **CORRECTED (2026-07-31, Simplify Pass): the "3 duplicate next()-closure chains" are NOT a
+  clean unification candidate.** Actually compared the three closure signatures (core filter
+  pipeline, `http.Router.invoke`, `httpsrv.Pipe`): 3 params/3 returns, 1 param/0 returns
+  (side-effecting, writes to `http.ResponseWriter`), 0 params/2 returns respectively —
+  genuinely different shapes per domain, not one repeated pattern. Unifying would need
+  `any`-boxing or reflection, trading real type safety for marginal line savings — a
+  regression. Left as-is; this replaces the earlier, shallower note that flagged it as a
+  consolidation candidate.
 - **FIXED (2026-07-31, Performance Pass #1): `promise.Then`/`Catch` no longer always spawn a
   goroutine + channel.** They now fast-path (run synchronously on the calling goroutine) when
   the source promise is already permanently settled (`p.ch == nil` — true for
@@ -110,17 +115,18 @@ re-verify with a grep if the surrounding code has since changed significantly.
   `Scoped`-lifestyle filters bind to the correct ambient context, and this is the
   security/validation filter pipeline. Left untouched this round; see `core-dispatch.md` §12
   for what a safe narrower design would need to account for before revisiting.
-- **DONE (2026-07-31, Module Organization Pass): module boundaries.** Root module
-  (`github.com/miruken-go/miruken`) now has **five** split-out submodules, each requiring root
-  at `v0.32.1` (the first tag that actually excludes them — a nested `go.mod` inside a
-  subdirectory only takes effect for consumers pinned to a root version tagged *after* the
-  exclusion exists; see `es/goes`/`openapi`'s history for the original precedent):
-  - `api/http/httpsrv/openapi` (`kin-openapi`/schema-gen deps — pre-existing)
-  - `es/goes` (`modernice/goes` + transitives — pre-existing)
+- **DONE (2026-07-31, Module Organization + Simplify Passes): module boundaries.** Root module
+  (`github.com/miruken-go/miruken`) now has **six** split-out submodules. Each requires root at
+  the first tag that actually excludes it — a nested `go.mod` inside a subdirectory only takes
+  effect for consumers pinned to a root version tagged *after* the exclusion exists (see
+  `es/goes`/`openapi`'s history for the original precedent):
+  - `api/http/httpsrv/openapi` (`kin-openapi`/schema-gen deps — pre-existing) — root `v0.32.0`
+  - `es/goes` (`modernice/goes` + transitives — pre-existing) — root `v0.32.0`
   - `security/jwt` (incl. `security/jwt/jwks`) — `golang-jwt/jwt`, `MicahParks/keyfunc`,
-    `MicahParks/jwkset` — new
-  - `validates/play` — `go-playground/validator`, `universal-translator`, `locales` — new
-  - `validates/go` — `asaskevich/govalidator` — new
+    `MicahParks/jwkset` — root `v0.32.1`
+  - `validates/play` — `go-playground/validator`, `universal-translator`, `locales` — root `v0.32.1`
+  - `validates/go` — `asaskevich/govalidator` — root `v0.32.1`
+  - `config/koanf` — `knadh/koanf/*` family — root `v0.32.2`
 
   **Vendor folder**: investigated, recommended against — no evidence of offline/air-gapped
   build needs, `go.sum` already covers supply-chain integrity. No action taken.
@@ -129,26 +135,55 @@ re-verify with a grep if the surrounding code has since changed significantly.
   candidates (`constraint/`, `args/`, `effect/`, `cascade/`, `either/`) — all are intentional,
   consumer-facing thin façade packages (same shape as `handles/`/`provides/`/`creates/`), just
   low-usage. No misplaced package found; current `internal/`/`internal/seq`/`internal/slices`
-  scoping is correct as-is. No action taken. (Aside: `constraint/`'s alias package has only 2
-  external call sites — a simplify-pass candidate, not a module-org issue.)
+  scoping is correct as-is. No action taken.
 
   **Declined splits**: `logs/` (`go-logr` is already a direct `httpsrv` dependency regardless,
   and near-zero-weight anyway — splitting wouldn't reduce a real consumer's footprint) and
   `api/json/stdjson` (`conjson` is light, and `stdjson` is the framework's default JSON
   backend, not an optional add-on).
 
-  **Blocked, not done**: `config/koanf` — `security/login/test` and `security/password/test`
-  (both in the root module) import it directly to exercise the config-driven login-module
-  chain against a real backend; splitting as-is would make root require a submodule that
-  itself requires root (a cycle). Needs those two test files reworked to use an in-repo fake
-  `config.Provider` first, with the "real koanf adapter" integration proof relocated into
-  `config/koanf`'s own `test/` dir, before this split is safe.
+  **`config/koanf` split — done (2026-07-31, Simplify Pass).** Was blocked because
+  `security/login/test` and `security/password/test` imported it directly; fixed by reworking
+  both: `security/password/test/login_test.go` now builds a `login.Flow` directly via
+  `login.NewFlow(...)` instead of round-tripping through koanf (the password module never
+  knew or cared how its options map was built, so zero coverage loss; collapsed what had been
+  a redundant JSON-vs-ENV split into one test now that config isn't in the picture).
+  `security/login/test/login_test.go`'s `Configuration/File` and `Configuration/Env` sub-tests
+  were deleted outright as redundant with `config/koanf/test/provider_test.go` (which already
+  covers those exact koanf behaviors); `Configuration/No Modules` was kept (it has real,
+  distinct value — proves `login.Context.initFlow` propagates a config-resolved `Flow`'s
+  `Validate()` failure into a `login.Error`) with a trivial in-file `emptyProvider` swapped in
+  for the koanf backend. Then split exactly like the other five.
 
   **Heads up**: local downstream consumers in the shared workspace
   (`demo.microservice/adb2c`, `team`, `team-srv`) currently import `security/jwt`/
   `validates/play`/`validates/go` "for free" via root — they'll need `go mod tidy` to pick up
   explicit requires on the new module paths (the shared `go.work` keeps them building locally
   regardless).
+
+- **DONE (2026-07-31, Simplify Pass): dead code and modernization.** Deleted `pipeline()` in
+  `filter.go` — byte-for-byte identical to `pipelineInvoke` except it took the terminal step
+  as a parameter, confirmed via repo-wide grep to have zero call sites anywhere. Replaced two
+  manual "clone a map minus one key" loops in `context/lifestyle.go` (`ContextChanging`,
+  `removeContext`) with `maps.Clone`+`delete`, matching the idiom the file already used
+  elsewhere. Replaced two `sort.Slice`/`sort.Strings` calls (`api/http/httpsrv/openapi/feature.go`,
+  `validates/outcome.go`) with `slices.SortFunc`/`slices.Sort`. All zero-behavior-change. A
+  broader Go-1.26-modernization scan otherwise came back clean: no literal `interface{}`
+  anywhere, `iter.Seq`/`iter.Seq2` already used idiomatically and extensively, no manual
+  min/max patterns found. `graph.go`'s visitor-callback traversal engine *could* theoretically
+  become `iter.Seq`-based, but that's a real rewrite of working early-termination/circularity-
+  detection logic, not a cheap win — flagged, not touched.
+- **CORRECTED (2026-07-31, Simplify Pass): don't touch `constraint/`.** Not low-value as
+  earlier noted — `constraint.First[T]` is used by two production files
+  (`api/multipart.go:212`, `config/factory.go:81`), plus `constraint.Named` in two test files.
+  Keeping as-is; this replaces the earlier "only 2 call sites, question its need" note.
+- **`effect/` now has test coverage (2026-07-31, Simplify Pass)** — `effect/test/effect_test.go`,
+  covering `Group`'s aggregation (0/1/many async sub-effects, short-circuit on synchronous
+  error) and `Async`'s fire-and-forget semantics. It had zero internal call sites AND zero
+  tests (unlike `cascade/`, which has zero internal usage but a real passing test suite) — this
+  was the one "genuinely unverified, not just unused" public API surface found. `cascade/`,
+  `validates/go` vs `validates/play`'s structural similarity (the correct outcome of the
+  port/adapter pattern, not a smell) — reviewed, no action.
 
 ## Open items flagged by the research (not yet resolved)
 
