@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"maps"
 	"slices"
-	"sort"
 	"strings"
 )
 
@@ -90,7 +89,7 @@ func (o *Outcome) Error() string {
 	}
 
 	keys := slices.Collect(maps.Keys(errs))
-	sort.Strings(keys)
+	slices.Sort(keys)
 
 	var s strings.Builder
 	for i, key := range keys {

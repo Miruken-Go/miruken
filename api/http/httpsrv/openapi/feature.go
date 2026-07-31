@@ -1,6 +1,7 @@
 package openapi
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -8,7 +9,6 @@ import (
 	"reflect"
 	"runtime/debug"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"unicode"
@@ -75,8 +75,8 @@ func (i *Installer) Install(b *setup.Builder) error {
 			if i.modules = bi.Deps; i.modules != nil {
 				// sort lexicographically in descending order to
 				// match modules with overlapping prefixes.
-				sort.Slice(i.modules, func(j, k int) bool {
-					return i.modules[j].Path > i.modules[k].Path
+				slices.SortFunc(i.modules, func(a, b *debug.Module) int {
+					return cmp.Compare(b.Path, a.Path)
 				})
 			}
 		}

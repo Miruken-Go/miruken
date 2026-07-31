@@ -419,39 +419,6 @@ func pipelineInvoke(
 	return next(nil, true)
 }
 
-func pipeline(
-	ctx HandleContext,
-	filters []providedFilter,
-	complete func(HandleContext) ([]any, *promise.Promise[[]any], error),
-) (r []any, pr *promise.Promise[[]any], err error) {
-	index, length := 0, len(filters)
-	var next Next
-	next = func(
-		composer Handler,
-		proceed bool,
-		values ...any,
-	) ([]any, *promise.Promise[[]any], error) {
-		if !proceed {
-			return nil, nil, &RejectedError{ctx.Callback}
-		}
-		if composer != nil {
-			ctx.Composer = composer
-		}
-		if len(values) > 0 {
-			ctx.Composer = BuildUp(ctx.Composer, With(values...))
-		}
-		if index < length {
-			pf := filters[index]
-			f := pf.filter
-			index++
-			return f.Next(f, next, ctx, pf.provider)
-		}
-		return complete(ctx)
-	}
-
-	return next(nil, true)
-}
-
 type (
 	// filterBinding executes a Filter method dynamically.
 	filterBinding struct {

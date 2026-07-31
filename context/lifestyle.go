@@ -152,12 +152,8 @@ func (s *scoped) ContextChanging(
 		if entry := (*cache)[oldCtx]; entry != nil {
 			s.lock.Lock()
 			defer s.lock.Unlock()
-			cc := make(map[*Context]*scopedEntry, len(*cache)+1)
-			for k, v := range *cache {
-				if k != oldCtx {
-					cc[k] = v
-				}
-			}
+			cc := maps.Clone(*cache)
+			delete(cc, oldCtx)
 			tryDispose(contextual)
 			s.cache.Store(&cc)
 		}
@@ -168,12 +164,8 @@ func (s *scoped) removeContext(context *Context) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	if cache := s.cache.Load(); cache != nil {
-		cc := make(map[*Context]*scopedEntry, len(*cache)+1)
-		for k, v := range *cache {
-			if k != context {
-				cc[k] = v
-			}
-		}
+		cc := maps.Clone(*cache)
+		delete(cc, context)
 		s.cache.Store(&cc)
 	}
 }
