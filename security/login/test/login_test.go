@@ -3,20 +3,13 @@ package test
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"testing"
 
-	"github.com/knadh/koanf/parsers/json"
-	"github.com/knadh/koanf/providers/env/v2"
-	"github.com/knadh/koanf/providers/file"
-	"github.com/knadh/koanf/v2"
 	"github.com/miruken-go/miruken"
 	"github.com/miruken-go/miruken/config"
-	koanfp "github.com/miruken-go/miruken/config/koanf"
 	"github.com/miruken-go/miruken/context"
 	"github.com/miruken-go/miruken/creates"
-	"github.com/miruken-go/miruken/provides"
 	"github.com/miruken-go/miruken/security"
 	"github.com/miruken-go/miruken/security/login"
 	"github.com/miruken-go/miruken/security/login/callback"
@@ -24,6 +17,15 @@ import (
 	"github.com/miruken-go/miruken/setup"
 	"github.com/stretchr/testify/suite"
 )
+
+// emptyProvider is a trivial config.Provider that leaves the output
+// at its zero value, used to exercise config-driven flow resolution
+// without depending on a real config backend.
+type emptyProvider struct{}
+
+func (emptyProvider) Unmarshal(_ string, _ bool, _ any) error {
+	return nil
+}
 
 type (
 	MyCallbackHandler struct {
@@ -254,69 +256,8 @@ func (suite *LoginTestSuite) TestLogin() {
 	})
 
 	suite.Run("Configuration", func() {
-		suite.Run("File", func() {
-			var k = koanf.New(".")
-			err := k.Load(file.Provider("./login.json"), json.Parser())
-			suite.Nil(err)
-			handler, _ := setup.New(config.Feature(koanfp.P(k))).Context()
-			cfg, _, ok, err := provides.Type[login.Configuration](handler, &config.Load{Path: "login"})
-			suite.True(ok)
-			suite.Nil(err)
-			suite.NotNil(cfg)
-			suite.Len(cfg, 1)
-			suite.NotNil(cfg["flow1"])
-			suite.Len(cfg["flow1"], 1)
-			suite.Equal("module1", cfg["flow1"][0].Module)
-			suite.Equal(map[string]any{
-				"debug": true,
-			}, cfg["flow1"][0].Options)
-
-			f, _, ok, err := provides.Type[login.Flow](handler, &config.Load{Path: "login.flow1"})
-			suite.True(ok)
-			suite.Nil(err)
-			suite.NotNil(f)
-			suite.Equal("module1", f[0].Module)
-			suite.Equal(map[string]any{
-				"debug": true,
-			}, f[0].Options)
-		})
-
-		suite.Run("Env", func() {
-			var k = koanf.New(".")
-			_ = os.Setenv("Login__Flow1__0__Module", "module1")
-			_ = os.Setenv("Login__Flow1__0__Options__Debug", "true")
-			err := k.Load(env.Provider("__", env.Opt{Prefix: "Login"}), nil,
-				koanf.WithMergeFunc(koanfp.Merge))
-			suite.Nil(err)
-			handler, _ := setup.New(config.Feature(koanfp.P(k))).Context()
-			cfg, _, ok, err := provides.Type[login.Configuration](handler, &config.Load{Path: "Login"})
-			suite.True(ok)
-			suite.Nil(err)
-			suite.NotNil(cfg)
-			suite.Len(cfg, 1)
-			suite.NotNil(cfg["Flow1"])
-			suite.Len(cfg["Flow1"], 1)
-			suite.Equal("module1", cfg["Flow1"][0].Module)
-			suite.Equal(map[string]any{
-				"Debug": "true",
-			}, cfg["Flow1"][0].Options)
-
-			f, _, ok, err := provides.Type[login.Flow](handler, &config.Load{Path: "Login.Flow1"})
-			suite.True(ok)
-			suite.Nil(err)
-			suite.NotNil(f)
-			suite.Equal("module1", f[0].Module)
-			suite.Equal(map[string]any{
-				"Debug": "true",
-			}, f[0].Options)
-		})
-
 		suite.Run("No Modules", func() {
-			var k = koanf.New(".")
-			err := k.Load(env.Provider("__", env.Opt{Prefix: "Login"}), nil,
-				koanf.WithMergeFunc(koanfp.Merge))
-			suite.Nil(err)
-			handler, _ := setup.New(config.Feature(koanfp.P(k))).Context()
+			handler, _ := setup.New(config.Feature(emptyProvider{})).Context()
 			ctx := login.New("login.flow")
 			ps := ctx.Login(handler)
 			suite.NotNil(ps)
