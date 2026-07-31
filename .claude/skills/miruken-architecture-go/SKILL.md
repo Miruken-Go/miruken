@@ -110,11 +110,45 @@ re-verify with a grep if the surrounding code has since changed significantly.
   `Scoped`-lifestyle filters bind to the correct ambient context, and this is the
   security/validation filter pipeline. Left untouched this round; see `core-dispatch.md` §12
   for what a safe narrower design would need to account for before revisiting.
-- **Module boundaries today**: root module (`github.com/miruken-go/miruken`), plus two split-out
-  submodules: `api/http/httpsrv/openapi` (keeps `kin-openapi`/schema-gen deps out of core —
-  deliberate, correctly drawn per `delivery-http-json.md` §6) and `es/goes` (keeps
-  `modernice/goes` + its transitive deps opt-in — `eventsourcing-support.md` §3). Relevant
-  starting point for the "do I need more submodules / internal/ packages" question.
+- **DONE (2026-07-31, Module Organization Pass): module boundaries.** Root module
+  (`github.com/miruken-go/miruken`) now has **five** split-out submodules, each requiring root
+  at `v0.32.1` (the first tag that actually excludes them — a nested `go.mod` inside a
+  subdirectory only takes effect for consumers pinned to a root version tagged *after* the
+  exclusion exists; see `es/goes`/`openapi`'s history for the original precedent):
+  - `api/http/httpsrv/openapi` (`kin-openapi`/schema-gen deps — pre-existing)
+  - `es/goes` (`modernice/goes` + transitives — pre-existing)
+  - `security/jwt` (incl. `security/jwt/jwks`) — `golang-jwt/jwt`, `MicahParks/keyfunc`,
+    `MicahParks/jwkset` — new
+  - `validates/play` — `go-playground/validator`, `universal-translator`, `locales` — new
+  - `validates/go` — `asaskevich/govalidator` — new
+
+  **Vendor folder**: investigated, recommended against — no evidence of offline/air-gapped
+  build needs, `go.sum` already covers supply-chain integrity. No action taken.
+
+  **`internal/` usage**: reviewed every top-level package for "this is really just plumbing"
+  candidates (`constraint/`, `args/`, `effect/`, `cascade/`, `either/`) — all are intentional,
+  consumer-facing thin façade packages (same shape as `handles/`/`provides/`/`creates/`), just
+  low-usage. No misplaced package found; current `internal/`/`internal/seq`/`internal/slices`
+  scoping is correct as-is. No action taken. (Aside: `constraint/`'s alias package has only 2
+  external call sites — a simplify-pass candidate, not a module-org issue.)
+
+  **Declined splits**: `logs/` (`go-logr` is already a direct `httpsrv` dependency regardless,
+  and near-zero-weight anyway — splitting wouldn't reduce a real consumer's footprint) and
+  `api/json/stdjson` (`conjson` is light, and `stdjson` is the framework's default JSON
+  backend, not an optional add-on).
+
+  **Blocked, not done**: `config/koanf` — `security/login/test` and `security/password/test`
+  (both in the root module) import it directly to exercise the config-driven login-module
+  chain against a real backend; splitting as-is would make root require a submodule that
+  itself requires root (a cycle). Needs those two test files reworked to use an in-repo fake
+  `config.Provider` first, with the "real koanf adapter" integration proof relocated into
+  `config/koanf`'s own `test/` dir, before this split is safe.
+
+  **Heads up**: local downstream consumers in the shared workspace
+  (`demo.microservice/adb2c`, `team`, `team-srv`) currently import `security/jwt`/
+  `validates/play`/`validates/go` "for free" via root — they'll need `go mod tidy` to pick up
+  explicit requires on the new module paths (the shared `go.work` keeps them building locally
+  regardless).
 
 ## Open items flagged by the research (not yet resolved)
 

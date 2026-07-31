@@ -14,8 +14,16 @@ machinery, not how it works internally.
   (`security/authorizes`).
 - `validates/` — a validation **port** (`validates/it.go`, `filter.go`, `outcome.go`) with two
   interchangeable **adapters**: `validates/go` (wraps `github.com/asaskevich/govalidator`) and
-  `validates/play` (wraps `github.com/go-playground/validator/v10`, module deps confirmed in
-  root `go.mod`).
+  `validates/play` (wraps `github.com/go-playground/validator/v10`).
+
+**Module note (2026-07-31, Module Organization Pass):** `security/jwt` (incl. `security/jwt/jwks`),
+`validates/play`, and `validates/go` are each now their **own nested Go module**
+(`require github.com/miruken-go/miruken v0.32.1`), split out of root the same way
+`api/http/httpsrv/openapi`/`es/goes` were, since each pulls dependencies (JWT/JWKS libraries,
+go-playground's validator+translator, govalidator respectively) that only apps actually using
+that specific feature need. Import paths are unchanged; nothing else in this doc changes as a
+result. `security/password` and `security/login` (the port) stay in root — no heavy
+third-party deps of their own.
 
 ## 2. Security: Subject & Principal
 
