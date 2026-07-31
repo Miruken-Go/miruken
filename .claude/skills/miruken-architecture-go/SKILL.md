@@ -170,9 +170,17 @@ re-verify with a grep if the surrounding code has since changed significantly.
   `validates/outcome.go`) with `slices.SortFunc`/`slices.Sort`. All zero-behavior-change. A
   broader Go-1.26-modernization scan otherwise came back clean: no literal `interface{}`
   anywhere, `iter.Seq`/`iter.Seq2` already used idiomatically and extensively, no manual
-  min/max patterns found. `graph.go`'s visitor-callback traversal engine *could* theoretically
-  become `iter.Seq`-based, but that's a real rewrite of working early-termination/circularity-
-  detection logic, not a cheap win — flagged, not touched.
+  min/max patterns found.
+- **DONE (2026-07-31, Simplify Pass, BREAKING root API change): `graph.go` rewritten around
+  `iter.Seq[Traversing]`.** Initially declined as "a real rewrite, not a cheap win" — revisited
+  on request and it turned out to be a genuine improvement, not just a style change: callers
+  now write a plain `for node := range TraversePreOrder(root) { ... break ... }` instead of
+  implementing `TraversalVisitor`/wrapping a func in `TraversalVisitorFunc` (both removed).
+  Circularity detection now panics instead of returning an error (confirmed nothing anywhere
+  caught it specially first); `context.Context.HandleAxis` gets a targeted `recover()` to keep
+  its own external contract unchanged. Zero usage found in local demo-consumer repos, so no
+  known real-world breakage. Full detail, including a minor stop-early correctness fix that
+  fell out of the redesign, in `core-dispatch.md`'s graph.go entry.
 - **CORRECTED (2026-07-31, Simplify Pass): don't touch `constraint/`.** Not low-value as
   earlier noted — `constraint.First[T]` is used by two production files
   (`api/multipart.go:212`, `config/factory.go:81`), plus `constraint.Named` in two test files.

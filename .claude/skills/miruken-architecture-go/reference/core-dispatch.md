@@ -514,11 +514,38 @@ plus free functions delegating to the root package, e.g.
   `MakeEffect`/`MakeEffects`/`ValidEffect` are how a plain returned value
   gets recognized/promoted into an `Effect` during `AcceptResults`.
 - **graph.go** — generic tree traversal (`Traversing` interface:
-  `Parent()`/`Children()`), independent of Handler/Callback; implements
-  pre-order/post-order/level-order/reverse-level-order and the
-  axis-relative traversals (siblings, ancestors, descendants) that back
-  `axis.go` and `context/` tree traversal. Includes circularity detection
-  (`traversalHistory`, `TraversalCircularityError`).
+  `Parent()`/`Children()`/`Traverse(axis) iter.Seq[Traversing]`),
+  independent of Handler/Callback; implements pre-order/post-order/
+  level-order/reverse-level-order and the axis-relative traversals
+  (siblings, ancestors, descendants) that back `axis.go` and `context/`
+  tree traversal. **REDESIGNED (2026-07-31, Simplify Pass, BREAKING root
+  API change):** `TraverseAxis`/`TraversePreOrder`/`TraversePostOrder`/
+  `TraverseLevelOrder`/`TraverseReverseLevelOrder` now return
+  `iter.Seq[Traversing]` instead of taking a `TraversalVisitor` and
+  returning `error` — callers write a plain `for node := range
+  TraversePreOrder(root) { ... break ... }` instead of implementing
+  `TraversalVisitor`/wrapping a func in `TraversalVisitorFunc` (both
+  removed). Circularity detection (`traversalHistory`,
+  `TraversalCircularityError`) now **panics** instead of returning an
+  error — confirmed via repo-wide grep that nothing anywhere caught it
+  specially, so this trades one unhandled-error class for one
+  unhandled-panic class with the same observable outcome, consistent
+  with the panic-for-invariant-violation idiom already used in
+  `security/authorizes/filter.go`'s async path. `context.Context.HandleAxis`
+  is the one place that publicly promised "returns an error, never
+  panics"; it now has a targeted `recover()` that converts a
+  `TraversalCircularityError` panic back into the same
+  `HandleResult.WithError(...)` it produced before — its own external
+  behavior is unchanged for every caller. `context.Context.Traverse`'s
+  signature changed to match. Verified zero usage in the local
+  demo-consumer repos (`adb2c`/`team`/`team-srv`), so no known real-world
+  breakage. One deliberate, minor behavior refinement as a side effect:
+  the old implementation was inconsistent about honoring a visitor's
+  `stop=true` across different traversal orders (some ignored it,
+  untested either way since every existing visitor always returned
+  `stop=false`) — the new `yield`-based design makes `break` stop
+  consistently and correctly at every level, a small correctness fix,
+  not an intentionally-preserved quirk.
 - **methodbind.go** — see §7.
 - **options.go** — the `Options(...)`/`GetOptions[T]`/`GetOptionsInto`
   pattern: a struct-typed "settings" `Builder` is installed via
