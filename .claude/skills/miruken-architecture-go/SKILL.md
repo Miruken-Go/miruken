@@ -181,6 +181,24 @@ re-verify with a grep if the surrounding code has since changed significantly.
   its own external contract unchanged. Zero usage found in local demo-consumer repos, so no
   known real-world breakage. Full detail, including a minor stop-early correctness fix that
   fell out of the redesign, in `core-dispatch.md`'s graph.go entry.
+- **DONE + ONE NEAR-MISS (2026-07-31, iter.Seq follow-up pass).** Surveyed the whole repo for
+  more `iter.Seq`/`iter.Pull` candidates after `graph.go`. Converted `api/http/router.go`'s
+  `Router.invoke` and `api/http/httpsrv/pipeline.go`'s `Pipe` to `iter.Pull(slices.Values(...))`
+  — verified safe first by reading every implementation (no promise anywhere in
+  `Policy.Apply`/`Middleware.ServeHTTP`'s signatures; async DI resolution blocks via `.Await()`
+  rather than deferring). Swapped two plain manual reverse-index loops (`build.go`'s
+  `PipeBuilders`, `context/context.go`'s `Unwind`) for `slices.Backward` — zero risk, no
+  promises involved at all. **Did NOT touch `filter.go`'s `pipelineInvoke`/
+  `filterBindingGroup.invoke`** — a first attempt on `pipelineInvoke` was implemented and
+  reverted before being committed once it became clear its `next` continuation can genuinely
+  resume on a different goroutine (async `Filter.Next` implementations exist, e.g.
+  `security/authorizes/filter.go`), which violates `iter.Pull`'s documented single-goroutine
+  constraint. Full trace in `core-dispatch.md` §12. **The rule going forward:** `iter.Seq` you
+  write yourself (a generator, driven synchronously by whoever ranges over it) is safe
+  wherever the underlying logic is genuinely synchronous end-to-end; `iter.Pull` (converting an
+  existing push sequence so you can call `next()` manually) is only safe if you've traced the
+  *entire* call chain and confirmed no continuation can ever be resumed asynchronously — never
+  assume from surface shape alone.
 - **CORRECTED (2026-07-31, Simplify Pass): don't touch `constraint/`.** Not low-value as
   earlier noted — `constraint.First[T]` is used by two production files
   (`api/multipart.go:212`, `config/factory.go:81`), plus `constraint.Named` in two test files.

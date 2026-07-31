@@ -681,6 +681,36 @@ recommendations):
   without a bigger interface change, and `Unwrap` doesn't call `Then`/`Catch`
   at all).
 
+**ATTEMPTED AND REVERTED (2026-07-31, iter.Seq follow-up pass): `iter.Pull` for
+`filter.go`'s `pipelineInvoke`.** The manual `index, length := 0, len(filters)`
+counter in `pipelineInvoke` (and the identical shape in
+`filterBindingGroup.invoke`, `filter.go:503-524`) looked like an `iter.Pull`
+candidate, matching the `graph.go` `iter.Seq` redesign done in the same pass.
+It was implemented, then caught before being committed: `iter.Pull`'s
+documented contract is "it is an error to call next or stop from multiple
+goroutines simultaneously," and this filter chain's `next` continuation
+genuinely can be resumed from a *different* goroutine than the one that
+started it — e.g. `security/authorizes/filter.go`'s async `Authorize` method
+does `promise.Then(pg, func(g bool) []any { ...; return next.PipeAwait() })`,
+resuming the chain from inside a promise continuation that (depending on
+whether the source was already settled — see the `Then`/`Catch` fast path
+above) can genuinely run on a different goroutine, later.
+`filterBindingGroup.invoke` shares the identical hazard (its `n` closure
+calls into `filterBinding.invoke`, which does `promise.Then(pout, ...)`,
+`filter.go:475-489`). **Neither was touched.** The distinction that matters:
+`iter.Seq` (a generator function you write, driven synchronously start-to-
+finish by whoever ranges over it — safe anywhere the underlying logic is
+genuinely synchronous end-to-end, as `graph.go` is) is not the same risk
+class as `iter.Pull` (converting an *existing* push sequence into pull-style
+so you can call `next()`/`stop()` manually — this spawns an internal
+goroutine and forbids cross-goroutine calls, so it must never be introduced
+anywhere a continuation could plausibly be resumed asynchronously). Two
+*other* `next()`-closure chains — `http.Router.invoke` and `httpsrv.Pipe`
+(`delivery-http-json.md` §4) — were separately verified genuinely safe for
+`iter.Pull` (no promise anywhere in their `Policy.Apply`/`Middleware.ServeHTTP`
+signatures, async DI resolution blocks via `.Await()` rather than deferring)
+and converted successfully.
+
 ## Open questions / things not fully verified
 
 - `filter.go`'s `filterBinding.invoke` loop at lines 501-507
