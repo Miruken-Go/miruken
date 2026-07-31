@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"iter"
 	"net/http"
 	"net/url"
+	"slices"
 	"time"
 
 	"github.com/miruken-go/miruken"
@@ -146,15 +148,14 @@ func (r *Router) invoke(
 	composer miruken.Handler,
 	pipeline []Policy,
 ) (*http.Response, error) {
-	index, length := 0, len(pipeline)
-	if length == 0 {
+	if len(pipeline) == 0 {
 		return defaultHttpClient.Do(req)
 	}
+	advance, stop := iter.Pull(slices.Values(pipeline))
+	defer stop()
 	var next func() (*http.Response, error)
 	next = func() (*http.Response, error) {
-		if index < length {
-			policy := pipeline[index]
-			index++
+		if policy, ok := advance(); ok {
 			return policy.Apply(req, composer, next)
 		}
 		return defaultHttpClient.Do(req)

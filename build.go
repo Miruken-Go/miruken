@@ -74,8 +74,8 @@ func PipeBuilders(builder Builder, builders ...Builder) Builder {
 		return composeBuilder2(builders[0], builder)
 	default:
 		b := builders[len(builders)-1]
-		for i := len(builders) - 2; i >= 0; i-- {
-			b = composeBuilder2(b, builders[i])
+		for _, next := range slices.Backward(builders[:len(builders)-1]) {
+			b = composeBuilder2(b, next)
 		}
 		return composeBuilder2(b, builder)
 	}

@@ -2,6 +2,7 @@ package httpsrv
 
 import (
 	"fmt"
+	"iter"
 	"log"
 	"maps"
 	"net/http"
@@ -70,15 +71,14 @@ func Pipe(middleware ...any) Middleware {
 		h miruken.Handler,
 		n func(miruken.Handler),
 	) {
-		index, length := 0, len(ms)
+		advance, stop := iter.Pull(slices.Values(ms))
+		defer stop()
 		var next func(miruken.Handler)
 		next = func(composer miruken.Handler) {
 			if composer == nil {
 				composer = h
 			}
-			if index < length {
-				m := ms[index]
-				index++
+			if m, ok := advance(); ok {
 				m.ServeHTTP(w, r, composer, next)
 			} else {
 				n(composer)

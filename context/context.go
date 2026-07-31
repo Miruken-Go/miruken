@@ -215,9 +215,8 @@ func (c *Context) Unwind(reason any) *Context {
 	if internal.IsNil(reason) {
 		reason = ReasonUnwinded
 	}
-	children := c.children.Items()
-	for i := len(children) - 1; i >= 0; i-- {
-		children[i].(*Context).End(reason)
+	for _, child := range slices.Backward(c.children.Items()) {
+		child.(*Context).End(reason)
 	}
 	return c
 }
