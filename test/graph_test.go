@@ -1,6 +1,7 @@
 package test
 
 import (
+	"iter"
 	"testing"
 
 	"github.com/miruken-go/miruken"
@@ -31,14 +32,20 @@ func (t *treeNode) addChildren(children ...*treeNode) *treeNode {
 
 func (t *treeNode) Traverse(
 	axis miruken.TraversingAxis,
-	visitor miruken.TraversalVisitor,
-) error {
-	return miruken.TraverseAxis(t, axis, visitor)
+) iter.Seq[miruken.Traversing] {
+	return miruken.TraverseAxis(t, axis)
+}
+
+func visit(seq iter.Seq[miruken.Traversing]) []*treeNode {
+	var visited []*treeNode
+	for node := range seq {
+		visited = append(visited, node.(*treeNode))
+	}
+	return visited
 }
 
 type TraversalTestSuite struct {
 	suite.Suite
-	visited []*treeNode
 	root,
 	child1, child11,
 	child2, child21, child22,
@@ -46,7 +53,6 @@ type TraversalTestSuite struct {
 }
 
 func (suite *TraversalTestSuite) SetupTest() {
-	suite.visited = make([]*treeNode, 0)
 	suite.root = &treeNode{data: "root"}
 	suite.child1 = &treeNode{data: "child1"}
 	suite.child11 = &treeNode{data: "child11"}
@@ -63,55 +69,67 @@ func (suite *TraversalTestSuite) SetupTest() {
 	suite.root.addChildren(suite.child1, suite.child2, suite.child3)
 }
 
-func (suite *TraversalTestSuite) VisitTraversal(
-	node miruken.Traversing,
-) (stop bool, err error) {
-	suite.visited = append(suite.visited, node.(*treeNode))
-	return false, nil
-}
-
-func (suite *TraversalTestSuite) Visited(expected ...*treeNode) {
-	suite.ElementsMatch(suite.visited, expected)
-}
-
 func (suite *TraversalTestSuite) TestPreOrderTraversal() {
-	err := miruken.TraversePreOrder(suite.root, suite)
-	suite.Nil(err)
-	suite.Visited(
-		suite.root, suite.child1, suite.child11,
-		suite.child2, suite.child21, suite.child22,
-		suite.child3, suite.child31, suite.child32,
-		suite.child33)
+	visited := visit(miruken.TraversePreOrder(suite.root))
+	suite.ElementsMatch(visited,
+		[]*treeNode{
+			suite.root, suite.child1, suite.child11,
+			suite.child2, suite.child21, suite.child22,
+			suite.child3, suite.child31, suite.child32,
+			suite.child33,
+		})
 }
 
 func (suite *TraversalTestSuite) TestPostOrderTraversal() {
-	err := miruken.TraversePostOrder(suite.root, suite)
-	suite.Nil(err)
-	suite.Visited(
-		suite.child11, suite.child1, suite.child21,
-		suite.child22, suite.child2, suite.child31,
-		suite.child32, suite.child33, suite.child3,
-		suite.root)
+	visited := visit(miruken.TraversePostOrder(suite.root))
+	suite.ElementsMatch(visited,
+		[]*treeNode{
+			suite.child11, suite.child1, suite.child21,
+			suite.child22, suite.child2, suite.child31,
+			suite.child32, suite.child33, suite.child3,
+			suite.root,
+		})
 }
 
 func (suite *TraversalTestSuite) TestLevelOrderTraversal() {
-	err := miruken.TraverseLevelOrder(suite.root, suite)
-	suite.Nil(err)
-	suite.Visited(
-		suite.root, suite.child1, suite.child2,
-		suite.child3, suite.child11, suite.child21,
-		suite.child22, suite.child31, suite.child32,
-		suite.child33)
+	visited := visit(miruken.TraverseLevelOrder(suite.root))
+	suite.ElementsMatch(visited,
+		[]*treeNode{
+			suite.root, suite.child1, suite.child2,
+			suite.child3, suite.child11, suite.child21,
+			suite.child22, suite.child31, suite.child32,
+			suite.child33,
+		})
 }
 
 func (suite *TraversalTestSuite) TestReverseLevelOrderTraversal() {
-	err := miruken.TraverseReverseLevelOrder(suite.root, suite)
-	suite.Nil(err)
-	suite.Visited(
-		suite.child11, suite.child21, suite.child22,
-		suite.child31, suite.child32, suite.child33,
-		suite.child1, suite.child2, suite.child3,
-		suite.root)
+	visited := visit(miruken.TraverseReverseLevelOrder(suite.root))
+	suite.ElementsMatch(visited,
+		[]*treeNode{
+			suite.child11, suite.child21, suite.child22,
+			suite.child31, suite.child32, suite.child33,
+			suite.child1, suite.child2, suite.child3,
+			suite.root,
+		})
+}
+
+func (suite *TraversalTestSuite) TestPreOrderStopsEarly() {
+	var visited []*treeNode
+	for node := range miruken.TraversePreOrder(suite.root) {
+		tn := node.(*treeNode)
+		visited = append(visited, tn)
+		if tn == suite.child1 {
+			break
+		}
+	}
+	suite.Equal([]*treeNode{suite.root, suite.child1}, visited)
+}
+
+func (suite *TraversalTestSuite) TestCircularityPanics() {
+	suite.root.parent = suite.child11
+	suite.Panics(func() {
+		visit(miruken.TraverseAxis(suite.root, miruken.TraverseAncestor))
+	})
 }
 
 func TestTraversalTestSuite(t *testing.T) {
@@ -120,29 +138,12 @@ func TestTraversalTestSuite(t *testing.T) {
 
 type GraphTestSuite struct {
 	suite.Suite
-	visited []*treeNode
-}
-
-func (suite *GraphTestSuite) SetupTest() {
-	suite.visited = make([]*treeNode, 0)
-}
-
-func (suite *GraphTestSuite) VisitTraversal(
-	node miruken.Traversing,
-) (stop bool, err error) {
-	suite.visited = append(suite.visited, node.(*treeNode))
-	return false, nil
-}
-
-func (suite *GraphTestSuite) Visited(expected ...*treeNode) {
-	suite.ElementsMatch(suite.visited, expected)
 }
 
 func (suite *GraphTestSuite) TestTraverseSelf() {
 	var root = &treeNode{data: "root"}
-	err := miruken.TraverseAxis(root, miruken.TraverseSelf, suite)
-	suite.Nil(err)
-	suite.Visited(root)
+	visited := visit(miruken.TraverseAxis(root, miruken.TraverseSelf))
+	suite.ElementsMatch(visited, []*treeNode{root})
 }
 
 func (suite *GraphTestSuite) TestTraverseRoot() {
@@ -151,9 +152,8 @@ func (suite *GraphTestSuite) TestTraverseRoot() {
 	var child2 = &treeNode{data: "child2"}
 	var child3 = &treeNode{data: "child3"}
 	root.addChildren(child1, child2, child3)
-	err := miruken.TraverseAxis(root, miruken.TraverseRoot, suite)
-	suite.Nil(err)
-	suite.Visited(root)
+	visited := visit(miruken.TraverseAxis(root, miruken.TraverseRoot))
+	suite.ElementsMatch(visited, []*treeNode{root})
 }
 
 func (suite *GraphTestSuite) TestTraverseChildren() {
@@ -163,9 +163,8 @@ func (suite *GraphTestSuite) TestTraverseChildren() {
 	var child3 = &treeNode{data: "child3"}
 	child3.addChildren(&treeNode{data: "child31"})
 	root.addChildren(child1, child2, child3)
-	err := miruken.TraverseAxis(root, miruken.TraverseChild, suite)
-	suite.Nil(err)
-	suite.Visited(child1, child2, child3)
+	visited := visit(miruken.TraverseAxis(root, miruken.TraverseChild))
+	suite.ElementsMatch(visited, []*treeNode{child1, child2, child3})
 }
 
 func (suite *GraphTestSuite) TestTraverseSiblings() {
@@ -175,9 +174,8 @@ func (suite *GraphTestSuite) TestTraverseSiblings() {
 	var child3 = &treeNode{data: "child3"}
 	child3.addChildren(&treeNode{data: "child31"})
 	root.addChildren(child1, child2, child3)
-	err := miruken.TraverseAxis(child2, miruken.TraverseSibling, suite)
-	suite.Nil(err)
-	suite.Visited(child1, child3)
+	visited := visit(miruken.TraverseAxis(child2, miruken.TraverseSibling))
+	suite.ElementsMatch(visited, []*treeNode{child1, child3})
 }
 
 func (suite *GraphTestSuite) TestTraverseChildrenAndSelf() {
@@ -187,9 +185,8 @@ func (suite *GraphTestSuite) TestTraverseChildrenAndSelf() {
 	var child3 = &treeNode{data: "child3"}
 	child3.addChildren(&treeNode{data: "child31"})
 	root.addChildren(child1, child2, child3)
-	err := miruken.TraverseAxis(root, miruken.TraverseSelfOrChild, suite)
-	suite.Nil(err)
-	suite.Visited(root, child1, child2, child3)
+	visited := visit(miruken.TraverseAxis(root, miruken.TraverseSelfOrChild))
+	suite.ElementsMatch(visited, []*treeNode{root, child1, child2, child3})
 }
 
 func (suite *GraphTestSuite) TestTraverseSiblingAndSelf() {
@@ -199,9 +196,8 @@ func (suite *GraphTestSuite) TestTraverseSiblingAndSelf() {
 	var child3 = &treeNode{data: "child3"}
 	child3.addChildren(&treeNode{data: "child31"})
 	root.addChildren(child1, child2, child3)
-	err := miruken.TraverseAxis(child2, miruken.TraverseSelfOrSibling, suite)
-	suite.Nil(err)
-	suite.Visited(child2, child1, child3)
+	visited := visit(miruken.TraverseAxis(child2, miruken.TraverseSelfOrSibling))
+	suite.ElementsMatch(visited, []*treeNode{child2, child1, child3})
 }
 
 func (suite *GraphTestSuite) TestTraverseAncestors() {
@@ -210,9 +206,8 @@ func (suite *GraphTestSuite) TestTraverseAncestors() {
 	var grandChild = &treeNode{data: "grandChild"}
 	root.addChildren(child)
 	child.addChildren(grandChild)
-	err := miruken.TraverseAxis(grandChild, miruken.TraverseAncestor, suite)
-	suite.Nil(err)
-	suite.Visited(child, root)
+	visited := visit(miruken.TraverseAxis(grandChild, miruken.TraverseAncestor))
+	suite.ElementsMatch(visited, []*treeNode{child, root})
 }
 
 func (suite *GraphTestSuite) TestTraverseAncestorsAndSelf() {
@@ -221,9 +216,8 @@ func (suite *GraphTestSuite) TestTraverseAncestorsAndSelf() {
 	var grandChild = &treeNode{data: "grandChild"}
 	root.addChildren(child)
 	child.addChildren(grandChild)
-	err := miruken.TraverseAxis(grandChild, miruken.TraverseSelfOrAncestor, suite)
-	suite.Nil(err)
-	suite.Visited(grandChild, child, root)
+	visited := visit(miruken.TraverseAxis(grandChild, miruken.TraverseSelfOrAncestor))
+	suite.ElementsMatch(visited, []*treeNode{grandChild, child, root})
 }
 
 func (suite *GraphTestSuite) TestTraverseDescendants() {
@@ -234,9 +228,8 @@ func (suite *GraphTestSuite) TestTraverseDescendants() {
 	var child31 = &treeNode{data: "child31"}
 	child3.addChildren(child31)
 	root.addChildren(child1, child2, child3)
-	err := miruken.TraverseAxis(root, miruken.TraverseDescendant, suite)
-	suite.Nil(err)
-	suite.Visited(child1, child2, child3, child31)
+	visited := visit(miruken.TraverseAxis(root, miruken.TraverseDescendant))
+	suite.ElementsMatch(visited, []*treeNode{child1, child2, child3, child31})
 }
 
 func (suite *GraphTestSuite) TestTraverseDescendantsReverse() {
@@ -247,9 +240,8 @@ func (suite *GraphTestSuite) TestTraverseDescendantsReverse() {
 	var child31 = &treeNode{data: "child31"}
 	child3.addChildren(child31)
 	root.addChildren(child1, child2, child3)
-	err := miruken.TraverseAxis(root, miruken.TraverseDescendantReverse, suite)
-	suite.Nil(err)
-	suite.Visited(child31, child3, child2, child1)
+	visited := visit(miruken.TraverseAxis(root, miruken.TraverseDescendantReverse))
+	suite.ElementsMatch(visited, []*treeNode{child31, child3, child2, child1})
 }
 
 func (suite *GraphTestSuite) TestTraverseDescendantsAndSelf() {
@@ -260,9 +252,8 @@ func (suite *GraphTestSuite) TestTraverseDescendantsAndSelf() {
 	var child31 = &treeNode{data: "child31"}
 	child3.addChildren(child31)
 	root.addChildren(child1, child2, child3)
-	err := miruken.TraverseAxis(root, miruken.TraverseSelfOrDescendant, suite)
-	suite.Nil(err)
-	suite.Visited(root, child1, child2, child3, child31)
+	visited := visit(miruken.TraverseAxis(root, miruken.TraverseSelfOrDescendant))
+	suite.ElementsMatch(visited, []*treeNode{root, child1, child2, child3, child31})
 }
 
 func (suite *GraphTestSuite) TestTraverseDescendantsAndSelfReverse() {
@@ -273,9 +264,8 @@ func (suite *GraphTestSuite) TestTraverseDescendantsAndSelfReverse() {
 	var child31 = &treeNode{data: "child31"}
 	child3.addChildren(child31)
 	root.addChildren(child1, child2, child3)
-	err := miruken.TraverseAxis(root, miruken.TraverseSelfOrDescendantReverse, suite)
-	suite.Nil(err)
-	suite.Visited(child31, child1, child2, child3, root)
+	visited := visit(miruken.TraverseAxis(root, miruken.TraverseSelfOrDescendantReverse))
+	suite.ElementsMatch(visited, []*treeNode{child31, child1, child2, child3, root})
 }
 
 func (suite *GraphTestSuite) TestTraverseAncestorSiblingAndSelf() {
@@ -288,9 +278,8 @@ func (suite *GraphTestSuite) TestTraverseAncestorSiblingAndSelf() {
 	child3.addChildren(child31)
 	parent.addChildren(child1, child2, child3)
 	root.addChildren(parent)
-	err := miruken.TraverseAxis(child3, miruken.TraverseSelfSiblingOrAncestor, suite)
-	suite.Nil(err)
-	suite.Visited(child3, child1, child2, parent, root)
+	visited := visit(miruken.TraverseAxis(child3, miruken.TraverseSelfSiblingOrAncestor))
+	suite.ElementsMatch(visited, []*treeNode{child3, child1, child2, parent, root})
 }
 
 func TestGraphTestSuite(t *testing.T) {

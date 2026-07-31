@@ -3,6 +3,7 @@ package miruken
 import (
 	"container/list"
 	"fmt"
+	"iter"
 
 	"github.com/miruken-go/miruken/internal"
 )
@@ -26,184 +27,160 @@ const (
 	TraverseSelfSiblingOrAncestor
 )
 
-// TraversalVisitor is called during traversal.
-type TraversalVisitor interface {
-	VisitTraversal(node Traversing) (stop bool, err error)
-}
-type TraversalVisitorFunc func(node Traversing) (stop bool, err error)
-
-func (f TraversalVisitorFunc) VisitTraversal(node Traversing) (bool, error) {
-	return f(node)
-}
-
 // Traversing represents a node in a graph.
 type Traversing interface {
 	Parent() Traversing
 	Children() []Traversing
-	Traverse(axis TraversingAxis, visitor TraversalVisitor) error
+	Traverse(axis TraversingAxis) iter.Seq[Traversing]
 }
 
 // TraverseAxis traverses a node over an axis.
+// Panics with TraversalCircularityError if a cycle is detected -
+// Traversing implementations are expected to form a tree.
 func TraverseAxis(
-	node    Traversing,
-	axis    TraversingAxis,
-	visitor TraversalVisitor,
-) error {
-	if visitor == nil {
-		return nil
+	node Traversing,
+	axis TraversingAxis,
+) iter.Seq[Traversing] {
+	return func(yield func(Traversing) bool) {
+		switch axis {
+		case TraverseSelf:
+			traverseSelf(node, yield)
+		case TraverseRoot:
+			traverseRoot(node, yield)
+		case TraverseChild:
+			traverseChildren(node, yield, false)
+		case TraverseSibling:
+			traverseSelfSiblingOrAncestor(node, yield, false, false)
+		case TraverseSelfOrChild:
+			traverseChildren(node, yield, true)
+		case TraverseSelfOrSibling:
+			traverseSelfSiblingOrAncestor(node, yield, true, false)
+		case TraverseAncestor:
+			traverseAncestors(node, yield, false)
+		case TraverseSelfOrAncestor:
+			traverseAncestors(node, yield, true)
+		case TraverseDescendant:
+			traverseDescendants(node, yield, false)
+		case TraverseDescendantReverse:
+			traverseDescendantsReverse(node, yield, false)
+		case TraverseSelfOrDescendant:
+			traverseDescendants(node, yield, true)
+		case TraverseSelfOrDescendantReverse:
+			traverseDescendantsReverse(node, yield, true)
+		case TraverseSelfSiblingOrAncestor:
+			traverseSelfSiblingOrAncestor(node, yield, true, true)
+		default:
+			panic(fmt.Sprintf("unrecognized axis %v", axis))
+		}
 	}
-	switch axis {
-	case TraverseSelf:
-		return traverseSelf(node, visitor)
-	case TraverseRoot:
-		return traverseRoot(node, visitor)
-	case TraverseChild:
-		return traverseChildren(node, visitor, false)
-	case TraverseSibling:
-		return traverseSelfSiblingOrAncestor(node, visitor, false, false)
-	case TraverseSelfOrChild:
-		return traverseChildren(node, visitor, true)
-	case TraverseSelfOrSibling:
-		return traverseSelfSiblingOrAncestor(node, visitor, true, false)
-	case TraverseAncestor:
-		return traverseAncestors(node, visitor, false)
-	case TraverseSelfOrAncestor:
-		return traverseAncestors(node, visitor, true)
-	case TraverseDescendant:
-		return traverseDescendants(node, visitor, false)
-	case TraverseDescendantReverse:
-		return traverseDescendantsReverse(node, visitor, false)
-	case TraverseSelfOrDescendant:
-		return traverseDescendants(node, visitor, true)
-	case TraverseSelfOrDescendantReverse:
-		return traverseDescendantsReverse(node, visitor, true)
-	case TraverseSelfSiblingOrAncestor:
-		return traverseSelfSiblingOrAncestor(node, visitor, true, true)
-	}
-	panic(fmt.Sprintf("unrecognized axis %v", axis))
 }
 
 func traverseSelf(
-	node    Traversing,
-	visitor TraversalVisitor,
-) error {
-	_, err := visitor.VisitTraversal(node)
-	return err
+	node  Traversing,
+	yield func(Traversing) bool,
+) {
+	yield(node)
 }
 
 func traverseRoot(
-	node    Traversing,
-	visitor TraversalVisitor,
-) error {
+	node  Traversing,
+	yield func(Traversing) bool,
+) {
 	root := node
 	visited := make(traversalHistory)
 	for parent := root.Parent(); !internal.IsNil(parent); parent = parent.Parent() {
-		if err := checkTraversalCircularity(parent, visited); err != nil {
-			return err
-		}
+		checkTraversalCircularity(parent, visited)
 		root = parent
 	}
-	_, err := visitor.VisitTraversal(root)
-	return err
+	yield(root)
 }
 
 func traverseChildren(
 	node     Traversing,
-	visitor  TraversalVisitor,
+	yield    func(Traversing) bool,
 	withSelf bool,
-) error {
-	if withSelf {
-		if _, err := visitor.VisitTraversal(node); err != nil {
-			return err
-		}
+) {
+	if withSelf && !yield(node) {
+		return
 	}
 	for _, child := range node.Children() {
-		if _, err := visitor.VisitTraversal(child); err != nil {
-			return err
+		if !yield(child) {
+			return
 		}
 	}
-	return nil
 }
 
 func traverseAncestors(
 	node     Traversing,
-	visitor  TraversalVisitor,
+	yield    func(Traversing) bool,
 	withSelf bool,
-) error {
-	if withSelf {
-		if _, err := visitor.VisitTraversal(node); err != nil {
-			return err
-		}
+) {
+	if withSelf && !yield(node) {
+		return
 	}
 	parent := node.Parent()
 	visited := make(traversalHistory)
 	for !internal.IsNil(parent) {
-		if err := checkTraversalCircularity(parent, visited); err != nil {
-			return err
-		}
-		if _, err := visitor.VisitTraversal(parent); err != nil {
-			return err
+		checkTraversalCircularity(parent, visited)
+		if !yield(parent) {
+			return
 		}
 		parent = parent.Parent()
 	}
-	return nil
 }
 
 func traverseDescendants(
 	node     Traversing,
-	visitor  TraversalVisitor,
+	yield    func(Traversing) bool,
 	withSelf bool,
-) error {
-	return TraverseLevelOrder(node, TraversalVisitorFunc(
-		func(child Traversing) (bool, error) {
-			if child != node || withSelf {
-				return visitor.VisitTraversal(child)
+) {
+	for child := range TraverseLevelOrder(node) {
+		if child != node || withSelf {
+			if !yield(child) {
+				return
 			}
-			return false, nil
-		}))
+		}
+	}
 }
 
 func traverseDescendantsReverse(
 	node     Traversing,
-	visitor  TraversalVisitor,
+	yield    func(Traversing) bool,
 	withSelf bool,
-) error {
-	return TraverseReverseLevelOrder(node, TraversalVisitorFunc(
-		func(child Traversing) (bool, error) {
-			if child != node || withSelf {
-				return visitor.VisitTraversal(child)
+) {
+	for child := range TraverseReverseLevelOrder(node) {
+		if child != node || withSelf {
+			if !yield(child) {
+				return
 			}
-			return false, nil
-		}))
+		}
+	}
 }
 
 func traverseSelfSiblingOrAncestor(
 	node          Traversing,
-	visitor       TraversalVisitor,
+	yield         func(Traversing) bool,
 	withSelf      bool,
 	withAncestors bool,
-) error {
-	if withSelf {
-		if _, err := visitor.VisitTraversal(node); err != nil {
-			return err
-		}
+) {
+	if withSelf && !yield(node) {
+		return
 	}
 	parent := node.Parent()
 	if internal.IsNil(parent) {
-		return nil
+		return
 	}
 	for _, sibling := range parent.Children() {
 		if sibling == node {
 			continue
 		}
-		if stop, err := visitor.VisitTraversal(sibling); stop || err != nil {
-			return err
+		if !yield(sibling) {
+			return
 		}
 	}
 	if withAncestors {
-		return traverseAncestors(parent, visitor, true)
+		traverseAncestors(parent, yield, true)
 	}
-	return nil
 }
 
 // TraversalCircularityError reports a traversal circularity.
@@ -221,167 +198,130 @@ func (e TraversalCircularityError) Error() string {
 
 type traversalHistory map[Traversing]bool
 
-// TraversePreOrder traverse the node using pre-order algorithm.
-func TraversePreOrder(
-	node    Traversing,
-	visitor TraversalVisitor,
-) error {
-	_, err := traversePreOrder(node, visitor, make(traversalHistory))
-	return err
+// TraversePreOrder traverses the node using the pre-order algorithm.
+// Panics with TraversalCircularityError if a cycle is detected.
+func TraversePreOrder(node Traversing) iter.Seq[Traversing] {
+	return func(yield func(Traversing) bool) {
+		traversePreOrder(node, yield, make(traversalHistory))
+	}
 }
 
 func traversePreOrder(
 	node    Traversing,
-	visitor TraversalVisitor,
+	yield   func(Traversing) bool,
 	visited traversalHistory,
-) (stop bool, err error) {
-	if node == nil || visitor == nil {
-		return true, nil
+) bool {
+	if node == nil {
+		return true
 	}
-	if err := checkTraversalCircularity(node, visited); err != nil {
-		return true, err
+	checkTraversalCircularity(node, visited)
+	if !yield(node) {
+		return false
 	}
-	if stop, err = visitor.VisitTraversal(node); stop || err != nil {
-		return stop, err
+	for _, child := range node.Children() {
+		if !traversePreOrder(child, yield, visited) {
+			return false
+		}
 	}
-	err = TraverseAxis(node, TraverseChild, TraversalVisitorFunc(
-		func(child Traversing) (bool, error) {
-			return traversePreOrder(child, visitor, visited)
-		}))
-	return false, err
+	return true
 }
 
-// TraversePostOrder traverse the node using post-order algorithm.
-func TraversePostOrder(
-	node    Traversing,
-	visitor TraversalVisitor,
-) error {
-	_, err := traversePostOrder(node, visitor, make(traversalHistory))
-	return err
+// TraversePostOrder traverses the node using the post-order algorithm.
+// Panics with TraversalCircularityError if a cycle is detected.
+func TraversePostOrder(node Traversing) iter.Seq[Traversing] {
+	return func(yield func(Traversing) bool) {
+		traversePostOrder(node, yield, make(traversalHistory))
+	}
 }
 
 func traversePostOrder(
 	node    Traversing,
-	visitor TraversalVisitor,
+	yield   func(Traversing) bool,
 	history traversalHistory,
-) (stop bool, err error) {
-	if node == nil || visitor == nil {
-		return true, nil
+) bool {
+	if node == nil {
+		return true
 	}
-	if err := checkTraversalCircularity(node, history); err != nil {
-		return true, err
+	checkTraversalCircularity(node, history)
+	for _, child := range node.Children() {
+		if !traversePostOrder(child, yield, history) {
+			return false
+		}
 	}
-	if err := TraverseAxis(node, TraverseChild, TraversalVisitorFunc(
-		func(child Traversing) (bool, error) {
-			return traversePostOrder(child, visitor, history)
-		})); err != nil {
-		return false, err
-	}
-	return visitor.VisitTraversal(node)
+	return yield(node)
 }
 
-// TraverseLevelOrder traverse the node using level-order algorithm.
-func TraverseLevelOrder(
-	node    Traversing,
-	visitor TraversalVisitor,
-) error {
-	_, err := traverseLevelOrder(node, visitor, make(traversalHistory))
-	return err
-}
-
-func traverseLevelOrder(
-	node    Traversing,
-	visitor TraversalVisitor,
-	history traversalHistory,
-) (stop bool, err error) {
-	if node == nil || visitor == nil {
-		return true, nil
-	}
-	queue := list.New()
-	queue.PushBack(node)
-	for queue.Len() > 0 {
-		front := queue.Front()
-		queue.Remove(front)
-		next := front.Value.(Traversing)
-		if err := checkTraversalCircularity(next, history); err != nil {
-			return true, err
+// TraverseLevelOrder traverses the node using the level-order algorithm.
+// Panics with TraversalCircularityError if a cycle is detected.
+func TraverseLevelOrder(node Traversing) iter.Seq[Traversing] {
+	return func(yield func(Traversing) bool) {
+		if node == nil {
+			return
 		}
-		if stop, err := visitor.VisitTraversal(next); stop || err != nil {
-			return stop, err
-		}
-		if err := TraverseAxis(next, TraverseChild, TraversalVisitorFunc(
-			func(child Traversing) (bool, error) {
+		history := make(traversalHistory)
+		queue := list.New()
+		queue.PushBack(node)
+		for queue.Len() > 0 {
+			front := queue.Front()
+			queue.Remove(front)
+			next := front.Value.(Traversing)
+			checkTraversalCircularity(next, history)
+			if !yield(next) {
+				return
+			}
+			for _, child := range next.Children() {
 				if !internal.IsNil(child) {
 					queue.PushBack(child)
 				}
-				return false, nil
-			})); err != nil {
-			return false, err
+			}
 		}
 	}
-	return false, nil
 }
 
-// TraverseReverseLevelOrder traverse the node using reverse level-order algorithm.
-func TraverseReverseLevelOrder(
-	node    Traversing,
-	visitor TraversalVisitor,
-) error {
-	_, err := traverseReverseLevelOrder(node, visitor, make(traversalHistory))
-	return err
-}
-
-func traverseReverseLevelOrder(
-	node    Traversing,
-	visitor TraversalVisitor,
-	history traversalHistory,
-) (stop bool, err error) {
-	if node == nil || visitor == nil {
-		return true, nil
-	}
-	queue := list.New()
-	queue.PushBack(node)
-	stack := list.New()
-	for queue.Len() > 0 {
-		front := queue.Front()
-		queue.Remove(front)
-		next := front.Value.(Traversing)
-		if err := checkTraversalCircularity(next, history); err != nil {
-			return true, err
+// TraverseReverseLevelOrder traverses the node using the reverse level-order algorithm.
+// Panics with TraversalCircularityError if a cycle is detected.
+func TraverseReverseLevelOrder(node Traversing) iter.Seq[Traversing] {
+	return func(yield func(Traversing) bool) {
+		if node == nil {
+			return
 		}
-		stack.PushBack(next)
-		level := list.New()
-		if err := TraverseAxis(next, TraverseChild, TraversalVisitorFunc(
-			func(child Traversing) (bool, error) {
+		history := make(traversalHistory)
+		queue := list.New()
+		queue.PushBack(node)
+		stack := list.New()
+		for queue.Len() > 0 {
+			front := queue.Front()
+			queue.Remove(front)
+			next := front.Value.(Traversing)
+			checkTraversalCircularity(next, history)
+			stack.PushBack(next)
+			level := list.New()
+			for _, child := range next.Children() {
 				if !internal.IsNil(child) {
 					level.PushFront(child)
 				}
-				return false, nil
-			})); err != nil {
-			return false, err
+			}
+			for e := level.Front(); e != nil; e = e.Next() {
+				queue.PushBack(e.Value)
+			}
 		}
-		for e := level.Front(); e != nil; e = e.Next() {
-			queue.PushBack(e.Value)
-		}
-	}
-	for stack.Len() > 0 {
-		back := stack.Back()
-		stack.Remove(back)
-		next := back.Value.(Traversing)
-		if stop, err := visitor.VisitTraversal(next); stop || err != nil {
-			return stop, err
+		for stack.Len() > 0 {
+			back := stack.Back()
+			stack.Remove(back)
+			next := back.Value.(Traversing)
+			if !yield(next) {
+				return
+			}
 		}
 	}
-	return false, nil
 }
 
 func checkTraversalCircularity(
 	node    Traversing,
 	history traversalHistory,
-) error {
+) {
 	if _, ok := history[node]; ok {
-		return TraversalCircularityError{node}
+		panic(TraversalCircularityError{node})
 	}
 	history[node] = true
-	return nil
 }

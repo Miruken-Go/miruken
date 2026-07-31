@@ -1,6 +1,7 @@
 package context
 
 import (
+	"iter"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -138,24 +139,32 @@ func (c *Context) HandleAxis(
 	callback any,
 	greedy   bool,
 	composer miruken.Handler,
-) miruken.HandleResult {
+) (result miruken.HandleResult) {
 	if composer == nil {
 		composer = &miruken.CompositionScope{Handler: c}
 	}
 	if axis == miruken.TraverseSelf {
 		return c.MutableHandlers.Handle(callback, greedy, composer)
 	}
-	result := miruken.NotHandled
-	if err := miruken.TraverseAxis(c, axis, miruken.TraversalVisitorFunc(
-		func(child miruken.Traversing) (bool, error) {
-			if child == c {
-				result = result.Or(c.MutableHandlers.Handle(callback, greedy, composer))
-			} else if ctx, ok := child.(*Context); ok {
-				result = result.Or(ctx.HandleAxis(miruken.TraverseSelf, callback, greedy, composer))
+	result = miruken.NotHandled
+	defer func() {
+		if r := recover(); r != nil {
+			if ce, ok := r.(miruken.TraversalCircularityError); ok {
+				result = result.WithError(ce)
+			} else {
+				panic(r)
 			}
-			return result.Stop() || (result.Handled() && !greedy), nil
-		})); err != nil {
-		result = result.WithError(err)
+		}
+	}()
+	for child := range miruken.TraverseAxis(c, axis) {
+		if child == c {
+			result = result.Or(c.MutableHandlers.Handle(callback, greedy, composer))
+		} else if ctx, ok := child.(*Context); ok {
+			result = result.Or(ctx.HandleAxis(miruken.TraverseSelf, callback, greedy, composer))
+		}
+		if result.Stop() || (result.Handled() && !greedy) {
+			break
+		}
 	}
 	return result
 }
@@ -193,10 +202,9 @@ func (c *Context) Observe(observer Observer) miruken.Disposable {
 }
 
 func (c *Context) Traverse(
-	axis    miruken.TraversingAxis,
-	visitor miruken.TraversalVisitor,
-) error {
-	return miruken.TraverseAxis(c, axis, visitor)
+	axis miruken.TraversingAxis,
+) iter.Seq[miruken.Traversing] {
+	return miruken.TraverseAxis(c, axis)
 }
 
 func (c *Context) UnwindToRoot(reason any) *Context {
