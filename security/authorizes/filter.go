@@ -89,8 +89,10 @@ func (f filter) Authorize(
 		if !checkBindingPrincipals(ctx.Binding, subject) {
 			return nil, nil, &AccessDeniedError{action}
 		}
-		// perform authorization check
-		g, pg, err := Access(composer, action, ap.policy)
+		// perform authorization check; a binding explicitly marked
+		// Required must fail closed if no policy handles the check,
+		// regardless of the ambient Options.RequirePolicy setting.
+		g, pg, err := access(composer, action, true, ap.policy)
 		if err != nil {
 			// error performing authorization
 			return nil, nil, err

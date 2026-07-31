@@ -26,6 +26,10 @@ type (
 
 	TransferFundsAccessPolicy struct{}
 
+	Withdraw struct {
+		Amount Money
+	}
+
 	Account struct {
 		Balance Money
 	}
@@ -63,6 +67,18 @@ func (a *Account) Transfer(
 	}, transfer TransferFunds,
 ) Money {
 	a.Balance += transfer.Amount
+	return a.Balance
+}
+
+// Withdraw is Required-protected but no AuthorizeX policy method
+// exists anywhere for it, exercising the fail-closed-on-no-policy path.
+func (a *Account) Withdraw(
+	_ *struct {
+		handles.It
+		authorizes.Required
+	}, withdraw Withdraw,
+) Money {
+	a.Balance -= withdraw.Amount
 	return a.Balance
 }
 
@@ -181,6 +197,14 @@ func (suite *AuthorizesTestSuite) TestAuthorizes() {
 				balance, _, err := handles.Request[int](handler, transfer)
 				suite.Nil(err)
 				suite.Equal(20000, balance)
+			})
+
+			suite.Run("DeniedWithoutPolicy", func() {
+				handler, _ := suite.Setup()
+				withdraw := Withdraw{Amount: 100}
+				handler = miruken.BuildUp(handler, provides.With(security.NewSubject()))
+				_, _, err := handles.Request[int](handler, withdraw)
+				suite.IsType(err, &authorizes.AccessDeniedError{})
 			})
 		})
 	})

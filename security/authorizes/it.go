@@ -82,10 +82,24 @@ func (b *Builder) New() *It {
 }
 
 // Access performs authorization on `action`.
+// If no policy handles the check, access is granted unless
+// Options.RequirePolicy is set on the handler chain.
 func Access(
 	handler     miruken.Handler,
 	action      any,
 	constraints ...any,
+) (bool, *promise.Promise[bool], error) {
+	options, _ := miruken.GetOptions[Options](handler)
+	return access(handler, action, options.RequirePolicy, constraints...)
+}
+
+// access performs authorization on `action`, denying access if no
+// policy handles the check and requirePolicy is true.
+func access(
+	handler       miruken.Handler,
+	action        any,
+	requirePolicy bool,
+	constraints   ...any,
 ) (bool, *promise.Promise[bool], error) {
 	if internal.IsNil(handler) {
 		panic("handler cannot be nil")
@@ -93,7 +107,6 @@ func Access(
 	if internal.IsNil(action) {
 		panic("action cannot be nil")
 	}
-	options, _ := miruken.GetOptions[Options](handler)
 	var builder Builder
 	builder.ForAction(action).
 		WithConstraints(constraints...)
@@ -101,7 +114,7 @@ func Access(
 	if result := handler.Handle(auth, false, nil); result.IsError() {
 		return false, nil, result.Error()
 	} else if !result.Handled() {
-		return !options.RequirePolicy, nil, nil
+		return !requirePolicy, nil, nil
 	} else if r, pr := auth.Result(false); pr == nil {
 		return r == true, nil, nil
 	} else {
