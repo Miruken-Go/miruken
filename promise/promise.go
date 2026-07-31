@@ -53,25 +53,56 @@ func New[T any](
 }
 
 func Then[A, B any](p *Promise[A], resolve func(A) B) *Promise[B] {
-	return New(p.ctx, func(internalResolve func(B), reject func(error), onCancel func(func())) {
+	executor := func(internalResolve func(B), reject func(error), onCancel func(func())) {
 		result, err := p.Await()
 		if err != nil {
 			reject(err)
 		} else {
 			internalResolve(resolve(result))
 		}
-	})
+	}
+	if p.ch == nil {
+		return newSync(p.ctx, executor)
+	}
+	return New(p.ctx, executor)
 }
 
 func Catch[T any](p *Promise[T], reject func(err error) error) *Promise[T] {
-	return New(p.ctx, func(resolve func(T), internalReject func(error), onCancel func(func())) {
+	executor := func(resolve func(T), internalReject func(error), onCancel func(func())) {
 		result, err := p.Await()
 		if err != nil {
 			internalReject(reject(err))
 		} else {
 			resolve(result)
 		}
-	})
+	}
+	if p.ch == nil {
+		return newSync(p.ctx, executor)
+	}
+	return New(p.ctx, executor)
+}
+
+// newSync runs executor on the calling goroutine instead of spawning one.
+// Only safe when the caller has already proven executor cannot block —
+// i.e. every resolve/reject call inside it is synchronous. The resulting
+// promise's ch stays nil (permanently settled), but ctx/cancel are still
+// set up via context.WithCancel so an already-canceled parent context is
+// still honored by resolve/reject's existing cancellation check. Because
+// once is already spent by the time this returns, ch == nil no longer
+// implies ctx == nil for promises produced this way — Cancel() on such a
+// promise is a safe no-op (once already consumed), not a nil p.cancel panic.
+func newSync[T any](
+	ctx      context.Context,
+	executor func(resolve func(T), reject func(error), onCancel func(func())),
+) (p *Promise[T]) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	p = &Promise[T]{}
+	p.ctx, p.cancel = context.WithCancel(ctx)
+	defer p.handlePanic()
+	executor(p.resolve, p.reject, func(f func()) { p.OnCancel(f) })
+	return p
 }
 
 func (p *Promise[T]) OnCancel(fun func()) *Promise[T] {

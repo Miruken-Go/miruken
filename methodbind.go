@@ -57,10 +57,10 @@ func (b *MethodBinding) Invoke(
 	if initArgs == nil {
 		return b.funcCall.Invoke(ctx, ctx.Handler)
 	}
-	initArgs = append(initArgs, nil)
-	copy(initArgs[1:], initArgs)
-	initArgs[0] = ctx.Handler
-	return b.funcCall.Invoke(ctx, initArgs...)
+	args := make([]any, len(initArgs)+1)
+	args[0] = ctx.Handler
+	copy(args[1:], initArgs)
+	return b.funcCall.Invoke(ctx, args...)
 }
 
 // MethodBindingError

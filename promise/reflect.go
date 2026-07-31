@@ -36,14 +36,18 @@ func (p *Promise[T]) Then(
 	if res == nil {
 		panic("res cannot be nil")
 	}
-	return New(p.ctx, func(resolve func(any), reject func(error), onCancel func(func())) {
+	executor := func(resolve func(any), reject func(error), onCancel func(func())) {
 		result, err := p.Await()
 		if err != nil {
 			reject(err)
 			return
 		}
 		resolve(res(result))
-	})
+	}
+	if p.ch == nil {
+		return newSync(p.ctx, executor)
+	}
+	return New(p.ctx, executor)
 }
 
 func (p *Promise[T]) Catch(
@@ -52,14 +56,18 @@ func (p *Promise[T]) Catch(
 	if rej == nil {
 		panic("rej cannot be nil")
 	}
-	return New(p.ctx, func(resolve func(any), reject func(error), onCancel func(func())) {
+	executor := func(resolve func(any), reject func(error), onCancel func(func())) {
 		result, err := p.Await()
 		if err != nil {
 			reject(rej(err))
 			return
 		}
 		resolve(result)
-	})
+	}
+	if p.ch == nil {
+		return newSync(p.ctx, executor)
+	}
+	return New(p.ctx, executor)
 }
 
 func (p *Promise[T]) AwaitAny() (any, error) {
