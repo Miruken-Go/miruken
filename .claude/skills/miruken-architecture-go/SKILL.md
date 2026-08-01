@@ -115,6 +115,18 @@ re-verify with a grep if the surrounding code has since changed significantly.
   `Scoped`-lifestyle filters bind to the correct ambient context, and this is the
   security/validation filter pipeline. Left untouched this round; see `core-dispatch.md` §12
   for what a safe narrower design would need to account for before revisiting.
+- **PERFORMANCE PASS #2 CLOSED (2026-08-01): no further safe wins found.** Re-examined all
+  three remaining candidates from Pass #1 with fresh, skeptical eyes: `DependencyArg.resolve`'s
+  fast-path already covers everything it safely can without breaking extensibility (nothing
+  more to add); `callFuncWithArgs`'s `reflect.ValueOf` boxing is inherent to
+  `reflect.Value.Call`-based invocation, not actually optimizable; the "`arg.flags()`
+  memoization" note was simply wrong — it's already a plain field read, nothing to memoize.
+  Also verified `GetOptions[FilterOptions]` (checked once per dispatch) isn't a hidden second
+  full dispatch — it's a cheap decorator-Handler interception, never touches the reflection-
+  based binding lookup. **`orderFilters` remains the one real lever, but it's genuine design
+  work (needs the same correctness rigor as the promise fast-path), not a quick win.** User
+  reviewed this and decided to leave performance where it stands — do not reopen this area
+  unless explicitly asked. Full detail in `core-dispatch.md` §12.
 - **DONE (2026-07-31, Module Organization + Simplify Passes): module boundaries.** Root module
   (`github.com/miruken-go/miruken`) now has **six** split-out submodules. Each requires root at
   the first tag that actually excludes it — a nested `go.mod` inside a subdirectory only takes

@@ -623,29 +623,44 @@ future task.
 
 **Candidate areas worth investigating for performance** (observations, not
 recommendations):
-- Dependency-argument resolution recurses through the full `Handle` →
-  binding-lookup → filter-pipeline machinery even for the extremely common
-  case of resolving `Handler`/`HandleContext`/the callback itself, which
-  `DependencyArg.resolve` already special-cases *before* falling into the
-  resolver (arg.go:174-196) — but anything beyond those already goes
-  through a full nested dispatch.
-- **INVESTIGATED AND DECLINED (2026-07-31, Performance Pass #1):** `orderFilters`
-  recomputing and sorting per dispatch, even when the binding/handler-runtime/
-  policy provider lists are static — looked like a caching win but is **not**
-  safe to cache blindly: `filterSpecProvider.Filters` (filter.go:172-198) does a
-  full DI `Provides.Resolve(composer, false)` on every call specifically so
+- **RE-EXAMINED, NO SAFE ACTION FOUND (2026-08-01, Performance Pass #2):**
+  dependency-argument resolution recursing through the full `Handle` →
+  binding-lookup → filter-pipeline machinery for every non-trivial
+  dependency argument. Confirmed `DependencyArg.resolve` (arg.go:174-204)
+  already fast-paths everything it safely can — `Handler`, `HandleContext`,
+  the callback itself, its `Source()` — *before* falling into
+  `defaultDependencyResolver.Resolve` (arg.go:218-250), which builds a
+  `Provides` callback and dispatches it through `ctx.Handle(...)` (since
+  `HandleContext` itself implements `Handler` by delegating to
+  `ctx.Composer`, handler.go:53-59). Anything beyond the already-fast-pathed
+  cases is a real, user-overridable dependency (someone could register
+  their own provider for it) — hardcoding more fast-paths would silently
+  break extensibility for whoever does that. **No further safe fast-path
+  available here without giving up genuine extensibility.**
+- **INVESTIGATED AND DECLINED (2026-07-31, Performance Pass #1, reconfirmed
+  2026-08-01):** `orderFilters` recomputing and sorting per dispatch, even
+  when the binding/handler-runtime/policy provider lists are static — looked
+  like a caching win but is **not** safe to cache blindly:
+  `filterSpecProvider.Filters` (filter.go:172-198) does a full DI
+  `Provides.Resolve(composer, false)` on every call specifically so
   `Scoped`-lifestyle filters resolve against the *correct* ambient context;
   caching per binding would pin a scoped filter to whichever
   context/composer resolved it first. Several `AppliesTo(callback)` checks
   also key off the live callback. This flows through the security/validation
   filter pipeline, so left untouched rather than shipping an unverified
-  change here — would need a narrower design (e.g. only cache when no
-  `Scoped` filter and no data-dependent `AppliesTo` is present) before
-  revisiting.
-- `callFuncWithArgs`'s per-call `reflect.ValueOf` boxing of `initArgs`
-  (which are frequently the same small set of types — e.g. always the
-  receiver, always `ctx`) has no fast-path avoiding the boxing when the
-  value's concrete type is already known at bind time.
+  change here. **This remains the one real remaining performance lever** —
+  a narrower design (cache only when no `Scoped` filter and no
+  data-dependent `AppliesTo` is present) is still theoretically available,
+  but is genuine design work needing the same correctness rigor the promise
+  fast-path got, not a quick win. The user reviewed this assessment
+  (2026-08-01) and decided not to pursue it — **leave performance where it
+  stands unless explicitly asked to revisit.**
+- **RE-EXAMINED, CONFIRMED NOT ACTIONABLE (2026-08-01, Performance Pass #2):**
+  `callFuncWithArgs`'s per-call `reflect.ValueOf` boxing of `initArgs` is
+  inherent to invoking through `reflect.Value.Call` — the actual argument
+  values differ every call and must be boxed regardless of what's known at
+  bind time. No shortcut exists without abandoning reflection-based
+  invocation entirely (a much bigger, separate undertaking, out of scope).
 - **FIXED (2026-07-31, Performance Pass #1):** the `MethodBinding.Invoke`
   initArgs `append`+`copy` shuffle (was methodbind.go:57-63) ran an `append`
   (which reallocates once, since these slices are typically exact-length
@@ -653,9 +668,20 @@ recommendations):
   invocation with init args. Replaced with a single `make`+forward-`copy` —
   same one allocation, half the copy work, identical output. Zero behavior
   change; full test suite (all 3 modules) unaffected.
-- No apparent memoization of `arg.flags()` combinations that are checked per
-  resolved argument (`funcbind.go:113,119`) — cheap today (bitwise AND) but
-  called in a hot loop per arg per call.
+- **CORRECTED, NOT A REAL ISSUE (2026-08-01, Performance Pass #2):** the
+  earlier note about "no memoization of `arg.flags()` combinations" was
+  overstated — `arg.flags()` (e.g. `DependencyArg.flags()`, arg.go:137-142)
+  is already just a struct field read (`d.spec.flags`) or a constant,
+  not a computation. There is nothing to memoize.
+- **CHECKED, CONFIRMED CHEAP (2026-08-01, Performance Pass #2):**
+  `GetOptions[FilterOptions](composer)` (called once per `Dispatch`,
+  cached via `filterOptsResolved`, describe.go:325-328) was worth verifying
+  wasn't a second hidden full dispatch stacked on top of every dependency
+  resolution. It isn't: `optCallback` (options.go:24-26) doesn't implement
+  `Callback` at all, so it never reaches the reflection-based
+  binding-lookup/`orderFilters` machinery — it's intercepted directly by
+  `optionsHandler.Handle` (options.go:167-...), a hand-written decorator
+  Handler wrapping the composer chain. Not a cost center.
 - **FIXED (2026-07-31, Performance Pass #1):** `promise.Then`/`Catch` (both the
   free functions in promise.go and the `Reflect`-interface instance methods
   in reflect.go) always spawned a goroutine + allocated a channel via `New`,
