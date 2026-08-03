@@ -88,6 +88,15 @@ func (t *TransferFundsAccessPolicy) AuthorizeTransferFast(
   explicitly declares `Required` fails closed on an unhandled check regardless of the ambient
   `Options`. See `security/authorizes/it.go` and `filter.go`, and the
   `Filter/DeniedWithoutPolicy` test case.
+  **Real downstream impact (2026-08-03):** confirmed this fix breaks any consumer repo that
+  has `authorizes.Required` on a binding with zero matching `authorizes.It` policy anywhere —
+  the `demo.microservice` repo (separate repo) had exactly this in `adb2c`'s `azure/subject`,
+  `azure/user`, `azure/principal` handlers and `team`'s team-creation handler; all had been
+  implicitly, accidentally allowed for everyone pre-fix. Fixed there by adding an explicit
+  `AuthorizeX(...) bool { return true }` placeholder next to each affected method (user's
+  choice, not unilateral — preserves prior behavior explicitly rather than silently). Before
+  bumping any consumer past this fix, grep it for `authorizes.Required` and confirm each hit
+  has a real matching `authorizes.It` policy somewhere in that same codebase.
 - Enforcement side: `authorizes.Required` (`security/authorizes/filter.go`) is a
   `FilterProvider` + `Constraint`-like marker consumed the same way `validates.Required` and
   `Routes` are (§ pattern shared with `api/route.go`) — embed it in a handler method's policy

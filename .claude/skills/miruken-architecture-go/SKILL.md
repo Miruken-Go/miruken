@@ -82,6 +82,25 @@ re-verify with a grep if the surrounding code has since changed significantly.
   `Required`-protected `Account.Withdraw` method with no corresponding `AuthorizeX` policy
   registered anywhere — asserts `*authorizes.AccessDeniedError`, not silent allow. Full test
   suite (all 3 modules) passes; `go vet ./...` clean.
+  **REAL DOWNSTREAM IMPACT CONFIRMED (2026-08-03):** when updating the `demo.microservice`
+  repo (separate repo, `adb2c`/`team`/`team-api`/`team-srv`) to this miruken version, this fix
+  broke real (demo) production request paths — `adb2c`'s `azure/subject`, `azure/user`, and
+  `azure/principal` handlers, and `team`'s team-creation handler, all declare
+  `authorizes.Required` with **zero** `authorizes.It` policy anywhere in either module to
+  answer it. Before this fix, every one of those was implicitly, accidentally allowed for
+  everyone (never actually enforced); after it, every one is unconditionally denied. Confirmed
+  by testing against the real published `v0.32.0` with `GOWORK=off` (the *first* comparison
+  attempt was wrong — forgetting `GOWORK=off` silently re-resolved through the local
+  workspace's already-patched miruken source instead of the real old tag, masking the
+  regression as "pre-existing"). **Resolution** (user's call, not unilateral): added a plain
+  `AuthorizeX(_ *authorizes.It, _ <ActionType>) bool { return true }` placeholder method next
+  to every affected handler method in `demo.microservice`, explicitly commented as preserving
+  prior de facto behavior rather than real policy — see that repo's `adb2c/azure/subject/handler.go`,
+  `adb2c/azure/user/handler.go`, `adb2c/azure/principal/handler.go`, `adb2c/enrich/test/handler_test.go`,
+  and `team/team/create.go`. **Lesson for future consumer-repo audits: `authorizes.Required` +
+  zero matching `authorizes.It` anywhere in that consumer's codebase is now a silent
+  production-breaking landmine on upgrade — grep for this combination in any repo before
+  bumping it past this fix.**
 - **CONFIRMED, KEEP AS-IS: implicit `Provides` registration defaults to `Single` (singleton),
   not transient.** Any constructable type with no explicit `Provides` binding spec gets
   `&Single{}` force-attached (`provides.go:287-304`, `core-dispatch.md` §9). User reviewed and
